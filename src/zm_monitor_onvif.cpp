@@ -27,6 +27,14 @@
 #include <cstdint>
 #include <cstring>
 
+// Publish the subscription state to shared memory so the web interface can
+// show it (refs #4191).
+void ONVIF::setHealthy(bool p_healthy) {
+  healthy_.store(p_healthy, std::memory_order_release);
+  if (parent and parent->shared_data)
+    parent->shared_data->onvif_status = p_healthy ? 2 : 1;
+}
+
 #ifdef WITH_GSOAP
 
 namespace {

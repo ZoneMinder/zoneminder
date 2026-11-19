@@ -550,6 +550,7 @@ function initPage() {
     AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
   startAudioLevelMeter();
+  startOnvifStatus();
   rememberSelectedTab();
 } // end function initPage()
 
@@ -951,6 +952,30 @@ function startAudioLevelMeter() {
   // not make the measurement lapse and the bar stall.
   audioLevelTimer = setInterval(pollAudioLevel, 1000);
   pollAudioLevel();
+}
+
+// Shows whether zmc holds an ONVIF event subscription for this monitor, so a
+// failing subscription no longer has to be found in the logs.
+var onvifStatusTimer = null;
+
+function pollOnvifStatus() {
+  const el = document.getElementById('onvifStatus');
+  if (!el || !$j(el).is(':visible')) return;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'onvifStatus', mid: el.dataset.mid})
+      .done(function(data) {
+        el.textContent = (data.result !== 'Error' && data.status !== null && onvifStatusLabels[data.status]) ?
+          onvifStatusLabels[data.status] : onvifStatusUnavailable;
+      })
+      .fail(function() {
+        el.textContent = onvifStatusUnavailable;
+      });
+}
+
+function startOnvifStatus() {
+  if (!document.getElementById('onvifStatus')) return;
+  if (onvifStatusTimer) clearInterval(onvifStatusTimer);
+  onvifStatusTimer = setInterval(pollOnvifStatus, 5000);
+  pollOnvifStatus();
 }
 
 function Recording_onChange(e) {

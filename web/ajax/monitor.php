@@ -62,6 +62,20 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
       'detection' => $monitor->AudioDetection() ? true : false,
     ));
     break;
+  case 'onvifStatus' :
+    // Whether zmc currently holds an ONVIF event subscription for the monitor
+    require_once('includes/Monitor.php');
+    $monitor = new ZM\Monitor($mid);
+    if (!$monitor->Id()) {
+      ajaxError('Not found: monitor id '.validHtmlStr($mid));
+      break;
+    }
+    if (!$monitor->canView()) {
+      ajaxError(translate('insufficientPermissionsUser').' "'.validHtmlStr($user->Username()).'"');
+      break;
+    }
+    ajaxResponse(array('status' => $monitor->OnvifStatus()));
+    break;
   } // end switch action
 } // end if canView('Monitors')
 

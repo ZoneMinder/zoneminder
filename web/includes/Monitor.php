@@ -75,6 +75,7 @@ class Monitor extends ZM_Object {
     'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
     'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
     'audio_level_until' => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
+    'onvif_status' => [ 'type'=>'uint32', 'offset'=>884, 'size'=>4 ], // 0 not in use, 1 not subscribed, 2 subscribed
   ],
   'TriggerData' => [
     'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
@@ -1611,6 +1612,14 @@ class Monitor extends ZM_Object {
   public function audioLevel() {
     if (!$this->connect()) return null;
     return $this->shared_read('SharedData', 'audio_level');
+  }
+
+  // State of the ONVIF event subscription as zmc last published it: 0 not in
+  // use, 1 enabled but not subscribed, 2 subscribed. Null when there is no
+  // shared memory to read (zmc not running).
+  public function OnvifStatus() {
+    if (!$this->connect()) return null;
+    return intval($this->shared_read('SharedData', 'onvif_status'));
   }
 
   public function audioAlarm() {

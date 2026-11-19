@@ -261,7 +261,8 @@ while (!$zm_terminate) {
   }
 
   # Prune the Logs table if required (excluding AUDIT entries)
-  if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+  # A number less than or equal to zero means no limit
+  if ( $Config{ZM_LOG_DATABASE_LIMIT} and $Config{ZM_LOG_DATABASE_LIMIT} !~ /^-\d+$/ ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows

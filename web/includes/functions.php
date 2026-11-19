@@ -1659,7 +1659,7 @@ function setDeviceStatusX10($key, $status) {
     //$command .= " 2>/dev/null >&- <&- >/dev/null";
     $x10Response = exec($command);
   }
-  if ( preg_match('/^'.$key.'\s+(.*)/', $x10Response, $matches) )
+  if ( preg_match('/^'.preg_quote($key, '/').'\s+(.*)/', $x10Response, $matches) )
     $status = $matches[1];
   else
     $status = 'unknown';

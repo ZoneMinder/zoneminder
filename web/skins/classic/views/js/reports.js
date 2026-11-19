@@ -98,6 +98,14 @@ function deleteReports(ids) {
 
   $j.getJSON(thisUrl + '?request=reports&task=delete&ids[]='+chunk.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          $j('#reportsTable').bootstrapTable('refresh');
+          return;
+        }
+        if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         if (!ids.length) {
           $j('#reportsTable').bootstrapTable('refresh');
         } else {

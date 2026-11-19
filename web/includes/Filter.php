@@ -334,10 +334,11 @@ class Filter extends ZM_Object {
       $Query['terms'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['terms'] ) ) {
-      return $this->Query()['terms'];
+    $terms = $this->Query()['terms'] ?? array();
+    if ( !is_array($terms) ) {
+      return array();
     }
-    return array();
+    return array_values(array_filter($terms, 'is_array'));
   }
 
   /**

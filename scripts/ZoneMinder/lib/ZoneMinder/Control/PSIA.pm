@@ -55,7 +55,7 @@ sub open
 
     if ($res->is_success) {
         $self->{state} = 'open';
-        return;
+        return 1;
     } elsif (! $res->is_success) {
         Debug("Need newer REALM");
         if ( $res->status_line() eq '401 Unauthorized' ) {
@@ -69,12 +69,19 @@ sub open
                     $REALM = $1;
                     Debug("Changing REALM to $REALM");
                     $self->{ua}->credentials($ADDRESS, $REALM, $USERNAME, $PASSWORD);
+                    $res = $self->{ua}->request($req);
+                    if ($res->is_success) {
+                        $self->{state} = 'open';
+                        return 1;
+                    }
+                    Error('Authentication still failed after updating REALM: '.$res->status_line);
                 } # end if
             } else {
                 Debug("No WWW-Authenticate header");
             } # end if www-authenticate header
         } # end if $res->status_line() eq '401 Unauthorized'
     } # end elsif ! $res->is_success
+    return 0;
 }
 
 sub close

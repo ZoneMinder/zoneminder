@@ -372,6 +372,23 @@ TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame", "[S
   CHECK(used.crop().Hi().y_ == expected.Hi().y_);
 }
 
+TEST_CASE("StreamBase::prepareImage keeps a zoomed view still from frame to frame", "[StreamBase]") {
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  TestStream stream;
+  stream.setView(ZM_SCALE_BASE, 150);
+  stream.setClick(100, 100);
+  stream.prepare(&frame);
+  const Box first = stream.crop();
+
+  for (int i = 0; i < 30; i++) stream.prepare(&frame);
+
+  CHECK(stream.crop().Lo().x_ == first.Lo().x_);
+  CHECK(stream.crop().Lo().y_ == first.Lo().y_);
+  CHECK(stream.crop().Hi().x_ == first.Hi().x_);
+  CHECK(stream.crop().Hi().y_ == first.Hi().y_);
+}
+
 TEST_CASE("StreamBase::preScaleDimensions") {
   const int kWidth = 640;
   const int kHeight = 480;

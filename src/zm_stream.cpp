@@ -306,8 +306,9 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     }
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
-    // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    // Scaled back to base_image dimensions; kept while the view is unchanged, since redoing it rounds towards 0,0.
+    if ((cur_zoom != last_zoom) || (cur_x != last_x) || (cur_y != last_y))
+      last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
     last_crop_width = base_image_width;
     last_crop_height = base_image_height;
 

@@ -199,6 +199,14 @@ function initLogPanel(panel) {
       data: params.data,
       timeout: 600000,
       success: function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so without this the
+          // header showed NaN and data.rows.length threw on every refresh.
+          updateRequestStatus("error");
+          table.bootstrapTable('hideLoading');
+          zmAlert(data.message, i18n.AJAXRequestError);
+          return;
+        }
         updateRequestStatus(secsToTime((Date.now() - startTime)/1000, 1));
         updateHeaderStats(data);
         table.bootstrapTable('hideLoading');

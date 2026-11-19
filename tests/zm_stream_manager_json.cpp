@@ -84,9 +84,10 @@ TEST_CASE("RTSP2WebManager: the stream name and URLs are escaped in the request"
 
   std::string body = BodyOf(server, "POST", "\"channels\"");
   INFO("body: " << body);
-  // Each of these is the JSON form of the raw value, escaped exactly once.
+  // Each of these is the JSON form of the raw value, escaped exactly once. The
+  // password is percent-encoded into the URL first, so its quote is %22.
   REQUIRE(body.find("\"name\" : \"Fr\\\"ont\\\\door\"") != std::string::npos);
-  REQUIRE(body.find("\"url\" : \"rtsp://admin:p\\\"w@192.168.1.10/stream?x=\\\"1\\\"\"") != std::string::npos);
+  REQUIRE(body.find("\"url\" : \"rtsp://admin:p%22w@192.168.1.10/stream?x=\\\"1\\\"\"") != std::string::npos);
 }
 
 TEST_CASE("JanusManager: the camera URL is escaped in the create request", "[Janus]") {

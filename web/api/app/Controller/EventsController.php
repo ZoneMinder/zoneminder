@@ -370,11 +370,22 @@ class EventsController extends AppController {
       $this->pinRequestId($this->Event, null);
       $this->Event->create();
       if ( $this->Event->save($this->request->data) ) {
-        return $this->flash(__('The event has been saved.'), array('action' => 'index'));
+        $message = 'Saved';
+        $id = $this->Event->id;
+      } else {
+        $message = 'Error';
+        $id = null;
+        // if there is a validation message, use it
+        if (!$this->Event->validates()) {
+          $message = $this->Event->validationErrors;
+        }
       }
+      $this->set(array(
+        'message' => $message,
+        'id' => $id,
+        '_serialize' => array('message', 'id')
+      ));
     }
-    $monitors = $this->Event->Monitor->find('list');
-    $this->set(compact('monitors'));
   }
 
   /**

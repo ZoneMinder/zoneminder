@@ -20,6 +20,7 @@
 #include "zm_eventstream.h"
 
 #include <chrono>
+#include <vector>
 
 namespace {
 
@@ -36,6 +37,18 @@ class ProbeEventStream : public EventStream {
     for (int i = 0; i < count; i++) {
       event_data->frames.emplace_back(i + 1, event_data->start_time + spacing * i, spacing * i,
                                       i ? spacing : Microseconds(0), true);
+    }
+  }
+  // Frames at the given offsets from the start, in an event of the given length.
+  void loadFrameTimes(const std::vector<Microseconds> &offsets, Microseconds length) {
+    event_data = new EventData();
+    event_data->start_time = SystemTimePoint(Seconds(1000));
+    event_data->end_time = event_data->start_time + length;
+    event_data->duration = length;
+    event_data->frame_count = static_cast<int>(offsets.size());
+    for (size_t i = 0; i < offsets.size(); i++) {
+      event_data->frames.emplace_back(static_cast<unsigned int>(i) + 1, event_data->start_time + offsets[i], offsets[i],
+                                      i ? offsets[i] - offsets[i - 1] : Microseconds(0), true);
     }
   }
   void start(SystemTimePoint t) { startAtTime(t); }
@@ -98,6 +111,30 @@ TEST_CASE("event= with a time outside the event starts on frame 1", "[EventStrea
   SECTION("a time inside the event") {
     stream.start(stream.startTime() + Milliseconds(500));
     CHECK(stream.frameId() > 1);
+  }
+}
+
+TEST_CASE("event= with a time starts on the last frame at or before it", "[EventStreamCmd]") {
+  ProbeEventStream stream;
+
+  SECTION("a time on each frame") {
+    stream.loadFrames(10, Milliseconds(100));
+    for (int i = 0; i < 10; i++) {
+      stream.start(stream.startTime() + Milliseconds(100) * i);
+      CHECK(stream.frameId() == i + 1);
+    }
+    stream.start(stream.startTime() + Milliseconds(450));
+    CHECK(stream.frameId() == 5);
+  }
+  SECTION("a time in a gap longer than the one before it") {
+    stream.loadFrameTimes({Milliseconds(0), Milliseconds(100), Milliseconds(150), Milliseconds(300)}, Milliseconds(400));
+    stream.start(stream.startTime() + Milliseconds(290));
+    CHECK(stream.frameId() == 3);
+  }
+  SECTION("a time after the last frame") {
+    stream.loadFrameTimes({Milliseconds(0), Milliseconds(100), Milliseconds(200)}, Milliseconds(500));
+    stream.start(stream.startTime() + Milliseconds(450));
+    CHECK(stream.frameId() == 3);
   }
 }
 

@@ -107,34 +107,21 @@ bool EventStream::seek(SystemTimePoint event_time) {
   }
 
   // Binary search: frames are sorted by timestamp (ascending).
-  // Find the first frame whose timestamp >= event_time.
-  auto it = std::lower_bound(
+  // Find the last frame whose timestamp <= event_time, as CMD_SEEK does for offsets.
+  // A frame's delta is the gap before it, so it says nothing about how long it is shown.
+  auto it = std::upper_bound(
     event_data->frames.begin(),
     event_data->frames.end(),
     event_time,
-    [](const FrameData &frame, const SystemTimePoint &t) {
-      return frame.timestamp < t;
+    [](const SystemTimePoint &t, const FrameData &frame) {
+      return t < frame.timestamp;
     });
 
-  // If event_time is past all frame timestamps (e.g. at event end_time),
-  // step back to the last frame so the delta check below can evaluate it.
-  if (it == event_data->frames.end() && it != event_data->frames.begin()) {
+  // upper_bound gives the first frame after event_time; step back one
+  if (it != event_data->frames.begin())
     --it;
-  }
 
-  // Check if the previous frame's time window covers event_time.
-  // Original logic: timestamp + delta >= event_time allows a frame whose
-  // timestamp is before the target to match if its display window extends
-  // past it.
-  if (it != event_data->frames.begin()) {
-    auto prev = std::prev(it);
-    if (prev->timestamp + prev->delta >= event_time) {
-      it = prev;
-    }
-  }
-
-  if (it != event_data->frames.end() &&
-      (it->timestamp >= event_time || it->timestamp + it->delta >= event_time)) {
+  if (it != event_data->frames.end()) {
     curr_frame_id = static_cast<int>(std::distance(event_data->frames.begin(), it)) + 1;
     curr_stream_time = event_time;
     Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",

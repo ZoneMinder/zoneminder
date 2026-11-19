@@ -705,15 +705,42 @@ function change_Path(event) {
     return;
   }
 
+  // Credentials live in the authority: the text after "://" up to the first
+  // "/", "?" or "#". An "@" in the path or query is not an auth separator.
+  const authorityStart = protoPrefixPos+3;
+  const authorityEnd = pathInput.value.slice(authorityStart).search(/[/?#]/);
+  const authority = authorityEnd == -1 ?
+    pathInput.value.slice(authorityStart) :
+    pathInput.value.slice(authorityStart, authorityStart+authorityEnd);
+
   // check the formatting of the url
-  const authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 ) {
-    console.log('ignoring URL without "@"');
-    return;
+  const atPos = authority.lastIndexOf('@');
+  let authSeparatorPos;
+  if ( atPos != -1 ) {
+    // A raw @ in the password is fine: the last @ of the authority ends it.
+    authSeparatorPos = authorityStart + atPos;
+  } else {
+    // No @ in the authority. Raw / ? # in a password (user:pa#ss@host) put the
+    // @ after the first delimiter, so accept it only if the authority looks
+    // like user:pass and not host:port, [ipv6] or a bare host. That keeps an @
+    // in the path or query (rtsp://h:554/live?token=a@b) from being read as
+    // credentials.
+    const colonPos = authority.indexOf(':');
+    const afterColon = colonPos == -1 ? '' : authority.slice(colonPos+1);
+    if ( authority == '' || authority[0] == '[' || colonPos == -1 ||
+         afterColon == '' || /^\d+$/.test(afterColon) ) {
+      console.log('ignoring URL without "@" in the authority');
+      return;
+    }
+    authSeparatorPos = authorityEnd == -1 ? -1 :
+      pathInput.value.indexOf('@', authorityStart+authorityEnd);
+    if ( authSeparatorPos == -1 ) {
+      return;
+    }
   }
 
   const fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+  if ( fieldsSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
     console.warn('ignoring URL incorrectly formatted, missing ":"');
     return;
   }

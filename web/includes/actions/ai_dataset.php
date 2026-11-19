@@ -24,6 +24,8 @@ if (!canEdit('System')) {
   return;
 }
 
+global $error_message;
+
 if ($action == 'save') {
   if (!empty($_REQUEST['id'])) {
     $dbDataset = dbFetchOne('SELECT * FROM AI_Datasets WHERE Id=?', NULL, [$_REQUEST['id']]);
@@ -36,14 +38,19 @@ if ($action == 'save') {
 
   if (count($changes)) {
     if (!empty($_REQUEST['id'])) {
-      dbQuery('UPDATE AI_Datasets SET '.implode(', ', $changes).' WHERE Id = ?',
+      $result = dbQuery('UPDATE AI_Datasets SET '.implode(', ', $changes).' WHERE Id = ?',
         array($_REQUEST['id']) );
     } else {
-      dbQuery('INSERT INTO AI_Datasets SET '.implode(', ', $changes));
+      $result = dbQuery('INSERT INTO AI_Datasets SET '.implode(', ', $changes));
     }
-    $refreshParent = true;
+    if ($result) {
+      $refreshParent = true;
+    } else {
+      $error_message .= 'Error saving dataset: '.validHtmlStr(dbLastError()).'<br/>';
+    }
   }
-  $redirect = '?view=options&tab=ai_datasets';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_datasets';
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {

@@ -80,13 +80,19 @@ check('reset sends move=home without an empty parameter',
   'http://192.0.2.1/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&move=home');
 
 # 2. Speed clamping tests
-check('moveConLeft clamps panspeed 6 to -5',
-  run_cmd('moveConLeft', {panspeed => 6}),
+check('moveConLeft clamps speed below -5 to -5',
+  run_cmd('moveConLeft', {panspeed => 0}),
   'http://192.0.2.1/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&speedpan=-5&move=left');
 
-check('moveConLeft clamps negative panspeed -6 to 5',
-  run_cmd('moveConLeft', {panspeed => -6}),
+check('moveConLeft clamps speed above 5 to 5',
+  run_cmd('moveConLeft', {panspeed => 12}),
   'http://192.0.2.1/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&speedpan=5&move=left');
+
+foreach my $panspeed (1, 6, 11) {
+  my ($left) = run_cmd('moveConLeft', {panspeed => $panspeed}) =~ /speedpan=(-?\d+)/;
+  my ($right) = run_cmd('moveConRight', {panspeed => $panspeed}) =~ /speedpan=(-?\d+)/;
+  check("left and right pan at the same speed for panspeed $panspeed", $left, $right);
+}
 
 check('moveConRight clamps speed below -5 to -5',
   run_cmd('moveConRight', {panspeed => 0}),

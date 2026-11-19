@@ -200,7 +200,7 @@ sub moveConDown {
 
 sub moveConLeft {
   my ($self, $params) = @_;
-  my $val = defined($params->{panspeed}) ? -$params->{panspeed} : -5;
+  my $val = defined($params->{panspeed}) ? $params->{panspeed} - 6 : -5;
   my $speed = 'speedpan=' . _clamp_speed($val);
   $self->sendCmd( 'move=left', $speed );
 }

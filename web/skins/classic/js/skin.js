@@ -813,14 +813,14 @@ function convertLabelFormat(LabelFormat, monitorName) {
     'Y': 'YYYY',
     'z': 'ZZ',
     'Z': 'z',
-    'f': 'SS',
-    'N': '['+monitorName+']',
-    '%': '%'};
-  var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
-    var value = replacements[key];
-    return momentFormat.replace('%' + key, value);
-  }, LabelFormat);
-  return momentLabelFormat;
+    'f': 'SS'};
+  const lit = (s) => s ? '[' + s.replace(/[\[\]]/g, '') + ']' : '';
+  return LabelFormat.replace(/%(.)|([^%]+)|%$/g, (m, k, t) => {
+    if (t !== undefined) return lit(t);
+    if (k === 'N') return lit(monitorName);
+    if (k === '%') return '[%]';
+    return replacements[k] !== undefined ? replacements[k] : lit(m);
+  });
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {

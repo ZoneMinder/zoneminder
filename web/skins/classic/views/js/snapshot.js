@@ -1,4 +1,6 @@
 
+let downloadTimer = null;
+
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
@@ -77,7 +79,7 @@ function initPage() {
   $j('#downloadBtn').prop('disabled', !canView.Snapshots);
   bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();
-    formData = {
+    const formData = {
       eids: snapshot.EventIds,
       exportImages: 0,
       exportVideo: 0,
@@ -91,7 +93,11 @@ function initPage() {
     };
     $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
         .done(downloadResponse)
-        .fail(logAjaxFail);
+        .fail(function(jqxhr, textStatus, error) {
+          clearInterval(downloadTimer);
+          $j('#downloadProgressTicker').text(downloadFailedString);
+          logAjaxFail(jqxhr, textStatus, error);
+        });
 
     $j('#downloadProgress').removeClass('hidden');
     $j('#downloadProgress').addClass('warnText');

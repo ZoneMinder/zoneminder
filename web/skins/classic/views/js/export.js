@@ -69,11 +69,11 @@ function exportEvents( ) {
   exportTimer = setInterval(exportProgress, 500);
 }
 
-function exportFail() {
+function exportFail(jqxhr, textStatus, error) {
   clearInterval(exportTimer);
   $j('#exportProgress').addClass('errorText');
   $j('#exportProgressTicker').text('Failed export');
-  logAjaxFail();
+  logAjaxFail(jqxhr, textStatus, error);
 }
 
 function getEventDetailModal(eid) {

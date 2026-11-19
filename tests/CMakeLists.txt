@@ -93,6 +93,7 @@ set(TEST_SOURCES
   zm_user_default_password.cpp
   zm_user_group.cpp
   zm_remote_camera.cpp
+  zm_uri.cpp
   zm_utils.cpp
   zm_mem_utils.cpp
   zm_videostore_m3u8.cpp

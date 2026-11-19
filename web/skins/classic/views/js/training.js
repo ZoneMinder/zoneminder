@@ -229,6 +229,8 @@ AnnotationEditor.prototype.open = function(initialFrame) {
     if (!self.dirty) return;
     const link = e.target.closest('a[href]');
     if (!link) return;
+    // In-page links (e.g. the frame browser's pagination) don't leave the page.
+    if (link.getAttribute('href').startsWith('#')) return;
     const msg = self.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) {

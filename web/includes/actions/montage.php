@@ -71,14 +71,20 @@ if ( isset($_REQUEST['object']) ) {
 
       if (canEdit('System')) {
         if ($Layout->Id()) {
-          $Layout->delete();
-          zm_session_start();
-          unset($_SESSION["zmMontageLayout"]);
-          $_SESSION['zmMontageLayout'] = '';
-          session_write_close();
-          unset($_COOKIE['zmMontageLayout']);
-          zm_setcookie('zmMontageLayout', '', array('expires'=>time()-3600*24)); //!!! After this JS still sees cookies, strange !!!
-          $redirect = '?view=montage';
+          // Same preset names that save refuses to overwrite.
+          if (preg_match('/^(Auto|Freeform|\d+ Wide)$/', $Layout->Name())) {
+            ZM\Warning('Cannot delete preset layout ' . $Layout->Name());
+            $redirect = '?view=montage';
+          } else {
+            $Layout->delete();
+            zm_session_start();
+            unset($_SESSION["zmMontageLayout"]);
+            $_SESSION['zmMontageLayout'] = '';
+            session_write_close();
+            unset($_COOKIE['zmMontageLayout']);
+            zm_setcookie('zmMontageLayout', '', array('expires'=>time()-3600*24)); //!!! After this JS still sees cookies, strange !!!
+            $redirect = '?view=montage';
+          }
         } else {
           ZM\Warning('Layout Id=' . $_REQUEST['zmMontageLayout'] . ' not found for delete');
           $redirect = '?view=montage';

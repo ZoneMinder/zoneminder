@@ -119,9 +119,21 @@ if (isset($_REQUEST['zmMontageLayout'])) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {
-  $layout_id = $layoutsByName['Auto']->Id();
+  if (isset($layoutsByName['Auto'])) {
+    $layout_id = $layoutsByName['Auto']->Id();
+  } else if ($layoutsById) {
+    $layout_id = array_key_first($layoutsById);
+  } else {
+    $layout_id = 0;
+  }
 }
-$layout = $layoutsById[$layout_id];
+if ($layout_id && isset($layoutsById[$layout_id])) {
+  $layout = $layoutsById[$layout_id];
+} else {
+  /* No layouts in the DB at all, so fall back to an empty auto layout */
+  $layout = new ZM\MontageLayout();
+  $layout->Name('Auto');
+}
 $layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();

@@ -104,7 +104,7 @@ if ( !empty($_REQUEST['gid']) ) {
             <tbody>
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configModalBtns"/></td>
+                <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" maxlength="64" data-on-input="configModalBtns"/></td>
               </tr>
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('ParentGroup') ?></th>

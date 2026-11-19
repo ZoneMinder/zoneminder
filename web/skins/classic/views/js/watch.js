@@ -719,12 +719,22 @@ function getSettingsModal() {
       .fail(logAjaxFail);
 }
 
+// ajax/events.php lists events it could not delete (archived, no edit rights,
+// already gone) in notDeleted, and a refusal comes back as result Error.
+function reportUndeletedEvents(data) {
+  if (!data.message) return;
+  if (data.result == 'Error' || (data.notDeleted && data.notDeleted.length)) {
+    alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+  }
+}
+
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
     if (window.event.shiftKey) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
+            reportUndeletedEvents(data);
             eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
@@ -754,6 +764,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
+          reportUndeletedEvents(data);
           eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })

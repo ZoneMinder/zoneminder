@@ -4,7 +4,13 @@ if (!canEdit('Monitors')) {
   return ' ';
 }
 
-$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($_REQUEST['mid']));
+$mid = validCardinal($_REQUEST['mid'] ?? '');
+
+$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($mid));
+if (!$monitor) {
+  ZM\Warning('No controllable monitor '.$mid.' for the preset modal');
+  return ' ';
+}
 
 $labels = array();
 foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor['Id'])) as $row) {

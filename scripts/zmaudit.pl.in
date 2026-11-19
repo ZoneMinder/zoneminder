@@ -303,8 +303,11 @@ MAIN: while( $loop ) {
               aud_print("Event link $day_dir/$event_link does not point to valid target at $event_path");
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                unlink($event_link);
-                $cleaned = 1;
+                if ( unlink($event_link) ) {
+                  $cleaned = 1;
+                } else {
+                  Error("Unable to delete broken event link $day_dir/$event_link: $!");
+                }
               }
             } else {
               $event_ids_by_path{$event_path} = $event_id;

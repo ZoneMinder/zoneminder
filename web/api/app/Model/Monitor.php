@@ -219,14 +219,23 @@ class Monitor extends AppModel {
     )
   );
 
+  // Explanation for the last daemonControl() that returned false.
+  public $daemonControlError = null;
+
+  // Returns the daemon output on success and false when the command was not run
+  // or zmdc.pl failed. Callers cannot otherwise tell a failed start from a
+  // successful one, because zmdc.pl prints its errors on stdout.
   public function daemonControl($monitor, $command, $daemon=null) {
+    $this->daemonControlError = null;
     if ($monitor['Capturing'] == 'None' and $command != 'stop') {
       ZM\Warning("Calling daemonControl with command $command when Capturing == None");
-      return;
+      $this->daemonControlError = 'Monitor capturing is set to None';
+      return false;
     }
     if (defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID)) {
       ZM\Error('Calling daemonControl for Monitor assigned to different server. Our server id '.ZM_SERVER_ID.' != '.$monitor['ServerId']);
-      return;
+      $this->daemonControlError = 'Monitor is assigned to a different server';
+      return false;
     }
 
     $daemons = array();
@@ -249,8 +258,17 @@ class Monitor extends AppModel {
 
       $shellcmd = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command).' '.escapeshellarg($daemon).' '.$args;
       ZM\Debug("Command $shellcmd");
-      $status = exec($shellcmd);
+      $output = array();
+      $status = exec($shellcmd, $output, $rc);
       $status_text .= $status.PHP_EOL;
+      if ($rc != 0) {
+        ZM\Error("Command $shellcmd failed with status $rc: ".implode(PHP_EOL, $output));
+        $this->daemonControlError = trim(implode(PHP_EOL, $output));
+        if ($this->daemonControlError === '') {
+          $this->daemonControlError = "zmdc.pl exited with status $rc";
+        }
+        return false;
+      }
     } # end foreach daemon
     return $status_text;
   } # end function daemonControl

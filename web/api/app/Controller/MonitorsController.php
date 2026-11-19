@@ -567,8 +567,22 @@ class MonitorsController extends AppController {
     $this->monitorForDaemonAction($id, true);
     $status_text = $this->runDaemonControl($id, $command, $daemon);
 
+    // The model answers false when it did not run the command (Capturing is
+    // None, or the monitor belongs to another server) or zmdc.pl exited
+    // non-zero. zmdc.pl reports its errors on stdout, so the old unconditional
+    // "ok" made a failed start look like a successful one.
+    if ($status_text === false) {
+      $status = 'error';
+      $status_text = $this->Monitor->daemonControlError;
+      if (!is_string($status_text) or $status_text === '') {
+        $status_text = 'Failed to '.$command.' '.($daemon ? $daemon : 'zmc');
+      }
+    } else {
+      $status = 'ok';
+    }
+
     $this->set(array(
-      'status' => 'ok',
+      'status' => $status,
       'statustext' => $status_text,
       '_serialize' => array('status','statustext'),
     ));

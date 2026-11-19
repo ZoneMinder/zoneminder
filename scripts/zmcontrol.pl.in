@@ -95,6 +95,9 @@ if ($protocol) {
       ControlDevice   => $device // '',
       ControlAddress  => $address // '',
       AutoStopTimeout => $options{autostop} // 0,
+      # There is no shared memory in this mode, so motion detection can't be
+      # suspended; without this, modules that suspend it die on every move.
+      ModectDuringPTZ => 1,
     },
   }, $module;
 

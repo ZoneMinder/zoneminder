@@ -332,7 +332,7 @@ sub autoStop {
 </s:Body>';
     }
 
-    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
     usleep($duration);
     $self->sendCmd($cmd, $msg_body, $content_type);
   }
@@ -386,7 +386,7 @@ sub moveMap {
     </Speed>
   </AbsoluteMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/AbsoluteMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -409,7 +409,7 @@ sub moveRel {
     </Translation>
   </RelativeMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/RelativeMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -641,7 +641,7 @@ sub presetHome {
     <ProfileToken>' . $profileToken . '</ProfileToken>
   </GotoHomePosition>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoPreset"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoHomePosition"';
   $self->sendCmd( $cmd, $msg_body, $content_type );
 }
 

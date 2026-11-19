@@ -1283,7 +1283,9 @@ function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;
   var i = 0;
-  while ((size / step) > 0.9) {
+  // NaN (a blank field) would print "NaNB" and Infinity would loop for ever.
+  if (!Number.isFinite(size)) return 'n/a';
+  while ((size / step) > 0.9 && i < units.length - 1) {
     size = size / step;
     i++;
   }

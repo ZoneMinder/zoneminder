@@ -10,7 +10,7 @@ function ajaxRequest(params) {
   }
   $j.getJSON(thisUrl + '?view=request&request=frames&task=query&eid='+eid, params.data)
       .done(function(data) {
-        if ( data.result == 'Error' ) {
+        if (data.result == 'Error') {
           // ajaxError() answers 200 with result=Error, so params.success()
           // would never run and the table would load for ever.
           table.bootstrapTable('hideLoading');
@@ -51,6 +51,10 @@ function detailFormatter(index, row, $detail) {
   $detail.html('Please wait. Loading from ajax request...');
   $j.get(thisUrl + '?request=stats&eid=' + row.EventId + '&fid=' + row.FrameId + '&row=' + index)
       .done(function(data) {
+        if (data.result == 'Error') {
+          $detail.empty().text(data.message);
+          return;
+        }
         $detail.html(data.html);
       })
       .fail(function(jqXHR, textStatus, errorThrown) {

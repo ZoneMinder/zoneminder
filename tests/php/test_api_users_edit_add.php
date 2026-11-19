@@ -56,6 +56,7 @@ class FakeModel {
   function save($data, $v = true, $f = array()) { $this->saved = $data; return $this->valid; }
   function validates() { return $this->valid; }
   function delete() { return true; }
+  function deleteAll($conditions, $cascade = true) { return true; }
 }
 class FakeRequest {
   public $method, $data = array();
@@ -69,8 +70,8 @@ class FakeRequest {
 class FakeResponse { public $code = 200; function statusCode($c = null) { if ($c) $this->code = $c; return $this->code; } }
 class FakePaginator { function paginate($m) { return array(); } }
 
-eval('class UsersHarness { public $request, $response, $User, $Paginator, $vars;
-  function set($v) { $this->vars = $v; } '.$methods.' }');
+eval('class UsersHarness { public $request, $response, $User, $UserPreference, $Paginator, $vars;
+  function set($v) { $this->vars = $v; } function loadModel($m) { $this->$m = new FakeModel(); } '.$methods.' }');
 
 function run($action, $system, $method, $data, $valid = true, $arg = 2) {
   global $user;

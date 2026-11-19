@@ -53,6 +53,7 @@ if ($action == 'save') {
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
+      $Monitor->zmtrackControl('start');
     }
   } // end foreach mid
 

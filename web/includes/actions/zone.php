@@ -139,14 +139,14 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
         ajaxError(translate('ZoneCannotModifyBuiltInPreset'));
       }
       if ( !$preset->save($cleanData) ) {
-        ajaxError($preset->last_error());
+        ajaxError($preset->get_last_error());
       }
       ZM\AuditAction('update', 'zone_preset', $preset->Id(), 'Name: '.$presetName);
     } else {
       $cleanData['Type'] = 'Active';
       $preset = new ZM\ZonePreset();
       if ( !$preset->save($cleanData) ) {
-        ajaxError($preset->last_error());
+        ajaxError($preset->get_last_error());
       }
       ZM\AuditAction('create', 'zone_preset', $preset->Id(), 'Name: '.$presetName);
     }

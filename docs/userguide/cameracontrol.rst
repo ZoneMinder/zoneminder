@@ -159,8 +159,6 @@ The standard set of parameters passed to control scripts is defined below,
 
   --xcoord=<x>, --ycoord=<y> : This specifies the x and/or y coordinates for commands which require them. These will normally be absolute or mapped commands.
 
-  --width=<width>'', ''--height=<height> : This specifies the width and height of the current image, for mapped motion commands where the coordinates values passed must have a context.
-
   --speed=<speed> : This specifies the speed that the command should use, if appropriate.
 
   --panspeed=<speed>'', ''--tiltspeed=<speed> : This indicates the specific pan and tilt speeds for diagonal movements which may allow a different motion rate for horizontal and vertical components.
@@ -171,6 +169,8 @@ The standard set of parameters passed to control scripts is defined below,
 
   --preset=<preset> : This specifies the particular preset that relevant commands should operate on.
 
+  --file=<file> : This specifies the number of the sound that the audioPlay command should play.
+
 The *command* option listed above may take one of the following commands as a parameter.
 
 wake
@@ -179,45 +179,43 @@ sleep
   Send the camera to sleep.
 reset
   Reset the camera.
-move_map
+moveMap
   Move mapped to a specified location on the image.
-move_pseudo_map
-  As move_map above. Pseudo-mapped motion can be used when mapped motion is not supported but relative motion is in which case mapped motion can be roughly approximated by careful calibration.
-move_abs_<direction>
-  Move to a specified absolute location. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "up", "down", "left", "right", "upleft", "upright", "downleft" or "downright".
-move_rel_<direction>
+moveAbs<direction>
+  Move to a specified absolute location. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Up", "Down", "Left", "Right", "UpLeft", "UpRight", "DownLeft" or "DownRight".
+moveRel<direction>
   Move a specified amount in the given direction. 
-move_con_<direction>
+moveCon<direction>
   Move continuously in the given direction until told to stop.
-move_stop
+moveStop
   Stop any motion which may be in progress. 
-zoom_abs_<direction>
-  Zoom to a specified absolute zoom position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "tele" or "wide".
-zoom_rel_<direction>
+zoomAbs<direction>
+  Zoom to a specified absolute zoom position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Tele" or "Wide".
+zoomRel<direction>
   Zoom a specified amount in the given direction.
-zoom_con_<direction>
+zoomCon<direction>
   Zoom continuously in the given direction until told to stop.
-zoom_stop
+zoomStop
   Stop any zooming which may be in progress.
-focus_auto
+focusAuto
   Set focusing to be automatic.
-focus_man
+focusMan
   Set focusing to be manual.
-focus_abs_<direction>
-  Focus to a specified absolute focus position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "near" or "far".
-focus_rel_<direction>
+focusAbs<direction>
+  Focus to a specified absolute focus position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Near" or "Far".
+focusRel<direction>
   Focus a specified amount in the given direction.
-focus_con_<direction>
+focusCon<direction>
   Focus continuously in the given direction until told to stop.
-focus_stop
+focusStop
   Stop any focusing which may be in progress.
-white_<subcommand>
-  As per the focus commands, except that direction may be "in" or "out".
-iris_<subcommand>
-  As per the focus commands, except that direction may be "open" or "close".
-preset_set
+white<subcommand>
+  As per the focus commands, except that direction may be "In" or "Out".
+iris<subcommand>
+  As per the focus commands, except that direction may be "Open" or "Close".
+presetSet
   Set the given preset to the current location.
-preset_goto
+presetGoto
   Move to the given preset.
-preset_home
+presetHome
   Move to the "home" preset.

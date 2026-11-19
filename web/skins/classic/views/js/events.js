@@ -435,8 +435,11 @@ function initPage() {
       url: thisUrl + '?request=events&task=archive',
       data: {'eids[]': selections},
       success: function(data) {
-        // ajaxError() answers 200 with result=Error
-        if (data.result == 'Error') alert(data.message);
+        // ajaxError() answers 200 with result=Error; events that could not
+        // be archived come back in message (a list).
+        if (data.message && (data.result == 'Error' || data.message.length)) {
+          alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+        }
         $j('#eventTable').bootstrapTable('refresh');
       },
       error: logAjaxFail

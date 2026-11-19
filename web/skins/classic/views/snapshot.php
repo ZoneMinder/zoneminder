@@ -75,7 +75,7 @@ if ( !$snapshot->Id() ) {
         <?php echo $snapshot->CreatedOn() ?>
       </div>
       <div class="form-group Name"><label><?php echo translate('Reference') ?></label>
-        <input type="text" name="snapshot[Name]" value="<?php echo validHtmlStr($snapshot->Name()); ?>"/>
+        <input type="text" name="snapshot[Name]" value="<?php echo validHtmlStr($snapshot->Name()); ?>" maxlength="64"/>
       </div>
       <div class="form-group Description"><label>
         <?php echo translate('Notes') ?></label>

@@ -37,7 +37,7 @@ if ( $sid and ! $Server->Id() ) return;
             <tbody>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newServer[Name]" value="<?php echo validHtmlStr($Server->Name()) ?>"/></td>
+                <td><input type="text" name="newServer[Name]" value="<?php echo validHtmlStr($Server->Name()) ?>" maxlength="64"/></td>
               </tr>
               <tr class="Protocol">
                 <th scope="row"><?php echo translate('Protocol') ?></th>

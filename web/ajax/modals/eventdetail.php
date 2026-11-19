@@ -81,7 +81,7 @@ if ( $eid ){ // Single Event Mode
             <tbody>
               <tr>
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newEvent[Name]" value="<?php echo validHtmlStr($newEvent['Name']) ?>" size="32"/></td>
+                <td><input type="text" name="newEvent[Name]" value="<?php echo validHtmlStr($newEvent['Name']) ?>" size="32" maxlength="64"/></td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('Cause') ?></th>

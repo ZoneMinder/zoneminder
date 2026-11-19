@@ -296,7 +296,7 @@ if ( count($other_zones) ) {
 							<tbody>
 								<tr>
 									<th scope="row"><?php echo translate('Name') ?></th>
-									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo validHtmlStr($zone['Name']) ?>"/></td>
+									<td colspan="2"><input type="text" name="newZone[Name]" value="<?php echo validHtmlStr($zone['Name']) ?>" maxlength="64"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('Type') ?></th>

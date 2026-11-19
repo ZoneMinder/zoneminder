@@ -176,7 +176,23 @@ class EventsController extends AppController {
     );
 
     $settings['contain'] = [];
-    if ( isset($conditions['GroupId']) ) {
+    # buildFilter() writes a condition as 'GroupId' <operator>, so a filter such
+    # as "GroupId >:1" produces the key 'GroupId >' and an array value (IN, or a
+    # bare array) is nested one level deeper. Look for the field in the keys
+    # rather than for the bare key, or the join is skipped and MySQL reports an
+    # unknown column.
+    $references_group = function($conds) use (&$references_group) {
+      foreach ($conds as $key => $value) {
+        if (is_string($key) and preg_match('/^(Groups_Monitors\.)?GroupId(\s|$)/', $key)) {
+          return true;
+        }
+        if (is_array($value) and $references_group($value)) {
+          return true;
+        }
+      }
+      return false;
+    };
+    if ($references_group($conditions)) {
       $settings['joins'] = array(
         array(
           'table' => 'Groups_Monitors',

@@ -1122,6 +1122,10 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
       data: {eid: this.eventId, fid: this.currentFrameId},
       dataType: 'json'
     }).done(function(data) {
+      if (data.result === 'Error') {
+        self._setStatus(data.message || self.translations.TrainingDeleteFailed || 'Failed to delete', 'error');
+        return;
+      }
       const resp = data.response || data;
       self._setStatus(
           self.translations.TrainingRemoved || 'Training annotation removed',
@@ -1848,6 +1852,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
               encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
               .done(function(data) {
+                if (data.result === 'Error') {
+                  alert(data.message || t.TrainingDeleteFailed || 'Failed to delete');
+                  delBtn.prop('disabled', false);
+                  return;
+                }
                 const resp = data.response || data;
                 browseChanged = true;
                 // Remove deleted files from treeData

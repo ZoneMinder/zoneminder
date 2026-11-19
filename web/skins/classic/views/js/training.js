@@ -351,6 +351,8 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = function() {
+    // A newer frame was requested while this one loaded; let that one win.
+    if (self.currentFrameId !== frameId) return;
     self.image = img;
     self.imageNaturalW = img.naturalWidth;
     self.imageNaturalH = img.naturalHeight;
@@ -366,6 +368,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
     self._render();
   };
   img.onerror = function() {
+    if (self.currentFrameId !== frameId) return;
     if (self.canvas) {
       self.canvas.style.filter = '';
       self.canvas.style.opacity = '';

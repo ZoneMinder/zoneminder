@@ -887,10 +887,13 @@ function deScale($dimension, $dummy) {
 
 function monitorLimitSql() {
   global $user;
-  if ( count($user->unviewableMonitorIds()) )
-    $midSql = ' AND MonitorId IN ('.join(',', $user->viewableMonitorIds()).')';
-  else
+  if ( count($user->unviewableMonitorIds()) ) {
+    // IN () is a syntax error, so a user who can view no monitor matches nothing
+    $viewableMonitorIds = $user->viewableMonitorIds();
+    $midSql = ' AND MonitorId IN ('.(count($viewableMonitorIds) ? join(',', $viewableMonitorIds) : '0').')';
+  } else {
     $midSql = '';
+  }
   return $midSql;
 }
 

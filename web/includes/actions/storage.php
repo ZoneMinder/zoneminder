@@ -33,7 +33,22 @@ if ($action == 'save') {
     $changes = array();
   } else {
     $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
-    $changes = $storage->changes($_REQUEST['newStorage']);
+
+    # Storage::Path() falls back to Name when Path is empty, which would turn the
+    # Name into a filesystem path, so neither may be blank.
+    $name = array_key_exists('Name', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Name'] : ($storage->{'Name'} ?? '');
+    $path = array_key_exists('Path', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Path'] : ($storage->{'Path'} ?? '');
+    if (!is_string($name) or (trim($name) === '')) {
+      ZM\Warning('Refusing to save storage area with an empty Name');
+      $error_message .= 'Storage area Name is required<br/>';
+      $changes = array();
+    } else if (!is_string($path) or (trim($path) === '')) {
+      ZM\Warning('Refusing to save storage area with an empty Path');
+      $error_message .= 'Storage area Path is required<br/>';
+      $changes = array();
+    } else {
+      $changes = $storage->changes($_REQUEST['newStorage']);
+    }
   }
 
   if (count($changes)) {

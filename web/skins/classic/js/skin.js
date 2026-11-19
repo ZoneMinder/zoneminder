@@ -1181,6 +1181,10 @@ function stateStuff(action, runState, newState) {
     timeout: 0
   }).done(function(data) {
     location.reload();
+  }).fail(function(jqxhr, textStatus, error) {
+    // Put the modal back so the user can see it failed and try again.
+    $j('#pleasewait').addClass('hidden');
+    logAjaxFail(jqxhr, textStatus, error);
   });
 }
 

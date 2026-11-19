@@ -87,9 +87,6 @@ $optTypes = [];
 foreach (getEnumValues('Zones', 'Type') as $optType) {
   $optTypes[$optType] = $typeLabels[$optType] ?? $optType;
 }
-// Set initial color class for the closed <select> based on the current zone type
-$currentClass = $typeLabels[$zone['Type']]['class'] ?? '';
-
 $optUnits = array();
 foreach ( getEnumValues('Zones', 'Units') as $optUnit ) {
   $optUnits[$optUnit] = $optUnit;
@@ -146,6 +143,9 @@ if ( !isset($zone) ) {
   $zone['Points'] = coordsToPoints($zone['Coords']) ?: array();
   $zone['AreaCoords'] = preg_replace('/\s+/', ',', $zone['Coords']);
 } # end if new Zone
+
+// Set initial color class for the closed <select> based on the current zone type
+$currentClass = $typeLabels[$zone['Type']]['class'] ?? '';
 
 # Auto-detect pixel coordinates and convert to percentages
 # Coordinates without a decimal point are pixels, as zmc reads them

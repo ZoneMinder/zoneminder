@@ -158,11 +158,11 @@ sub sendCmd {
     # Try again
     $res = $self->{ua}->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
+      $result = !undef;
       # Command to camera appears successful, write Info item to log
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
-      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 

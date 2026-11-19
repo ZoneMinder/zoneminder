@@ -55,6 +55,10 @@ use JSON::MaybeXS qw(encode_json decode_json);
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
+# Used when the Controls row has no pan/tilt/zoom speed, so the UI sends none.
+my $DefaultPanSpeed = 50;       # Should be between 1 and 100
+my $DefaultTiltSpeed = 50;      # Should be between 1 and 100
+my $DefaultZoomSpeed = 50;      # Should be between 1 and 100
 
 my %config_types = (
   'LAPI/V1.0/System/DeviceBasicInfo'           => {},
@@ -275,9 +279,9 @@ sub moveVector {
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }
   # Calculate movement speeds
-  my $x = $pandirection  * $self->getParam( $params, 'panspeed', 0 );
-  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', 0 );
-  my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
+  my $x = $pandirection  * $self->getParam( $params, 'panspeed', $DefaultPanSpeed );
+  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', $DefaultTiltSpeed );
+  my $z = $zoomdirection * $self->getParam( $params, 'speed', $DefaultZoomSpeed );
   # Create the XML
   my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
   # Send it to the camera

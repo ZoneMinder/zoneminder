@@ -28,13 +28,26 @@ $zid = (!empty($_REQUEST['zid'])) ? validInt($_REQUEST['zid']) : 0;
 
 $hicolor = '0x00ff00'; // Green
 
+require_once('includes/Zone.php');
+$builtInPresets = ZM\Zone::BUILT_IN_PRESETS;
+$builtInPresetIds = array();
 $presets = array();
 $presetNames = array();
 $presetNames[0] = translate('ChoosePreset');
 $sql = 'SELECT *, Units-1 AS UnitsIndex, CheckMethod-1 AS CheckMethodIndex FROM ZonePresets ORDER BY Id ASC';
 foreach ( dbFetchAll($sql) as $preset ) {
+  $isBuiltIn = isset($builtInPresets[$preset['Name']]);
+  if ( $isBuiltIn ) {
+    $builtInPresetIds[] = (int)$preset['Id'];
+    $langKey = $builtInPresets[$preset['Name']];
+    $presetNames[$preset['Id']] = [
+      'text'  => translate($langKey),
+      'title' => translate($langKey.'Desc'),
+    ];
+  } else {
   $presetNames[$preset['Id']] = $preset['Name'];
-  $presets[] = $preset;
+  }
+  $presets[$preset['Id']] = $preset;
 }
 
 $typeLabels = [
@@ -306,10 +319,20 @@ if ( count($other_zones) ) {
 								<tr>
 									<th scope="row"><?php echo translate('Preset') ?></th>
 									<td colspan="2">
-										<?php echo htmlSelect('presetSelector', $presetNames,
-												( isset($_REQUEST['presetSelector']) ? $_REQUEST['presetSelector'] : null),
-												array('data-on-change'=>'applyPreset', 'id'=>'presetSelector') )
-										?></td>
+<?php echo htmlSelect('presetSelector', $presetNames,
+  ( isset($_REQUEST['presetSelector']) ? $_REQUEST['presetSelector'] : null),
+  array(
+    'data-on-change'   => 'applyPreset',
+    'id'               => 'presetSelector',
+    'data-builtin-ids' => implode(',', $builtInPresetIds)
+  ) )
+?>
+										<div class="float-right">
+										  <button type="button" id="loadPresetBtn" class="btn btn-sm btn-normal" title="<?php echo translate('ZoneLoadPresetDesc'); ?>"><i class="fa fa-download"></i></button>
+										  <button type="button" id="savePresetBtn" class="btn btn-sm btn-normal" title="<?php echo translate('ZoneSavePresetDesc'); ?>"><i class="fa fa-save"></i></button>
+										  <button type="button" id="deletePresetBtn" class="btn btn-sm btn-danger" style="display:none;" title="<?php echo translate('ZoneDeletePresetDesc'); ?>"><i class="fa fa-trash"></i></button>
+										</div>
+									</td>
 								</tr>
 								<input type="hidden" name="newZone[Units]" value="Percent"/>
 								<tr>

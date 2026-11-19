@@ -195,6 +195,17 @@ function applyZoneType() {
     form.elements['newZone[ExtendAlarmFrames]'].disabled = true;
     applyCheckMethod();
   }
+
+  var presetId = $j('#presetSelector').val();
+  var loadPresetBtn = document.getElementById('loadPresetBtn');
+  if (loadPresetBtn) {
+    loadPresetBtn.disabled = form.presetSelector.disabled || !presets[presetId];
+  }
+  var savePresetBtn = document.getElementById('savePresetBtn');
+  if (savePresetBtn) {
+    savePresetBtn.disabled = form.presetSelector.disabled;
+  }
+
   syncPixelInputStates();
   alarmColourFromInputs();
 }
@@ -240,25 +251,34 @@ function applyCheckMethod() {
 function applyPreset() {
   var form = document.zoneForm;
   var presetId = $j('#presetSelector').val();
+  var isBuiltIn = isBuiltInPreset(presetId);
+
+  // Update load and delete preset button states
+  var loadPresetBtn = document.getElementById('loadPresetBtn');
+  if (loadPresetBtn) {
+    loadPresetBtn.disabled = form.presetSelector.disabled || !presets[presetId];
+  }
+  var deleteBtn = document.getElementById('deletePresetBtn');
+  if (deleteBtn) {
+    var isUserPreset = parseInt(presetId, 10) > 0 && !isBuiltIn;
+    deleteBtn.style.display = isUserPreset ? 'inline-block' : 'none';
+  }
 
   if ( presets[presetId] ) {
     var preset = presets[presetId];
 
-    form.elements['newZone[CheckMethod]'].selectedIndex = preset['CheckMethodIndex'];
-    form.elements['newZone[MinPixelThreshold]'].value = preset['MinPixelThreshold'];
-    form.elements['newZone[MaxPixelThreshold]'].value = preset['MaxPixelThreshold'];
-    form.elements['newZone[FilterX]'].value = preset['FilterX'];
-    form.elements['newZone[FilterY]'].value = preset['FilterY'];
-    form.elements['newZone[MinAlarmPixels]'].value = preset['MinAlarmPixels'];
-    form.elements['newZone[MaxAlarmPixels]'].value = preset['MaxAlarmPixels'];
-    form.elements['newZone[MinFilterPixels]'].value = preset['MinFilterPixels'];
-    form.elements['newZone[MaxFilterPixels]'].value = preset['MaxFilterPixels'];
-    form.elements['newZone[MinBlobPixels]'].value = preset['MinBlobPixels'];
-    form.elements['newZone[MaxBlobPixels]'].value = preset['MaxBlobPixels'];
-    form.elements['newZone[MinBlobs]'].value = preset['MinBlobs'];
-    form.elements['newZone[MaxBlobs]'].value = preset['MaxBlobs'];
-    form.elements['newZone[OverloadFrames]'].value = preset['OverloadFrames'];
-    form.elements['newZone[ExtendAlarmFrames]'].value = preset['ExtendAlarmFrames'];
+    for (var i = 0; i < zonePresetFields.length; i++) {
+      var field = zonePresetFields[i];
+      var el = form.elements['newZone[' + field + ']'];
+      if (el) {
+        // Preserve legacy CheckMethodIndex selection for the ENUM dropdown; other fields assign directly
+        if (field === 'CheckMethod' && typeof preset['CheckMethodIndex'] !== 'undefined') {
+          el.selectedIndex = preset['CheckMethodIndex'];
+        } else {
+          el.value = preset[field];
+        }
+      }
+    }
 
     applyCheckMethod();
     form.elements['newZone[Area]'].value = 100;
@@ -560,6 +580,11 @@ function resetChanges() {
   }
   form.presetSelector.selectedIndex = 0;
 
+  var deleteBtn = document.getElementById('deletePresetBtn');
+  if (deleteBtn) {
+    deleteBtn.style.display = 'none';
+  }
+
   applyZoneType();
   alarmColourFromInputs();
   updateArea();
@@ -732,7 +757,7 @@ function watchdogOk(type) {
 }
 
 function presetSelectorBlur() {
-  this.selectedIndex = 0;
+  //this.selectedIndex = 0;
 }
 
 function initPage() {
@@ -920,6 +945,94 @@ function initPage() {
   initialState = formState();
   $j('#zoneForm').on('input change', checkDirty);
   checkDirty();
+
+  // Managed PresetBtn
+  $j('#loadPresetBtn').on('click', function() {
+    applyPreset();
+  });
+
+  $j('#savePresetBtn').on('click', function() {
+    var form = document.zoneForm;
+    var presetSelect = document.getElementById('presetSelector');
+    var currentId = presetSelect ? presetSelect.value : 0;
+
+    // Pre-fill name only for user-created presets; leave empty for built-in presets
+    var defaultName = (parseInt(currentId, 10) > 0 && !isBuiltInPreset(currentId))
+      ? presetSelect.options[presetSelect.selectedIndex].text
+      : '';
+
+    var promptText = (typeof enterZonePresetName !== 'undefined') ? enterZonePresetName : 'Enter zone preset name:';
+    var invalidNameText = (typeof invalidZonePresetName !== 'undefined') ? invalidZonePresetName : 'Please enter a valid preset name.';
+
+    var name = prompt(promptText, defaultName);
+    if (name === null) {
+      return;
+    }
+
+    var trimmedName = name.trim();
+    if (trimmedName === '') {
+      alert(invalidNameText);
+      return;
+    }
+
+    // Prevent saving under the name of any built-in preset shown in the dropdown
+    if (presetSelect) {
+      for (var i = 0; i < presetSelect.options.length; i++) {
+        var opt = presetSelect.options[i];
+        if (isBuiltInPreset(opt.value) && opt.text.trim().toLowerCase() === trimmedName.toLowerCase()) {
+          alert(invalidNameText);
+          return;
+        }
+      }
+    }
+
+    var postData = {
+      view: 'zone',
+      action: 'save_preset',
+      mid: form.elements['mid'].value,
+      zid: form.elements['zid'].value,
+      presetName: trimmedName
+    };
+
+    if (form.elements['__csrf_magic']) {
+      postData['__csrf_magic'] = form.elements['__csrf_magic'].value;
+    }
+
+    for (var i = 0; i < zonePresetFields.length; i++) {
+      var field = zonePresetFields[i];
+      var el = form.elements['newZone[' + field + ']'];
+      if (el) {
+        postData['newZone[' + field + ']'] = el.value;
+      }
+    }
+
+    $j.post('?view=zone', postData, function(data) {
+      if (data.result === 'Ok' && data.preset) {
+        var p = data.preset;
+        presets[p.Id] = p;
+        var opt = $j('#presetSelector option[value="' + p.Id + '"]');
+        if (opt.length) {
+          opt.text(p.Name);
+        } else {
+          $j('#presetSelector').append($j('<option>', {value: p.Id, text: p.Name}));
+        }
+        $j('#presetSelector').val(p.Id);
+        $j('#loadPresetBtn').prop('disabled', false);
+        $j('#deletePresetBtn').css('display', 'inline-block');
+      } else if (data.message) {
+        alert(data.message);
+      }
+    }, 'json').fail(logAjaxFail);
+  });
+
+  $j('#deletePresetBtn').on('click', function() {
+    var presetSelect = document.getElementById('presetSelector');
+    var presetId = presetSelect ? presetSelect.value : 0;
+    if (parseInt(presetId, 10) <= 0 || isBuiltInPreset(presetId)) {
+      return;
+    }
+    getDelConfirmModal('ZoneConfirmDeletePreset', 'ConfirmDeleteTitle');
+  });
 } // initPage
 
 /* Sizes the feed to the space left above the Save/Reset/Cancel buttons, the same
@@ -964,6 +1077,52 @@ function Polygon_calcArea(coords) {
   float_area += (parseFloat(coords[n_coords-1].x)*parseFloat(coords[0].y) - parseFloat(coords[0].x)*parseFloat(coords[n_coords-1].y)) / 2;
 
   return Math.round(Math.abs(float_area));
+}
+
+// Callback invoked by getDelConfirmModal() when user confirms deletion
+function manageDelConfirmModalBtns() {
+  var form = document.zoneForm;
+  var presetSelect = document.getElementById('presetSelector');
+  var presetId = presetSelect ? presetSelect.value : 0;
+
+  if (isBuiltInPreset(presetId)) {
+    return;
+  }
+
+  var postData = {
+    view: 'zone',
+    action: 'delete_preset',
+    mid: form.elements['mid'].value,
+    zid: form.elements['zid'].value,
+    presetId: presetId
+  };
+
+  if (form.elements['__csrf_magic']) {
+    postData['__csrf_magic'] = form.elements['__csrf_magic'].value;
+  }
+
+  $j.post('?view=zone', postData, function(data) {
+    if (data.result === 'Ok') {
+      delete presets[presetId];
+      $j('#presetSelector option[value="' + presetId + '"]').remove();
+      $j('#presetSelector').val(0);
+      $j('#loadPresetBtn').prop('disabled', true);
+      $j('#deletePresetBtn').hide();
+    } else if (data.message) {
+      alert(data.message);
+    }
+  }, 'json').fail(logAjaxFail);
+}
+
+function isBuiltInPreset(presetId) {
+  var id = parseInt(presetId, 10);
+  if (!id || id <= 0) return true;
+  var presetSelect = document.getElementById('presetSelector');
+  if (presetSelect && presetSelect.dataset.builtinIds) {
+    var builtInIds = presetSelect.dataset.builtinIds.split(',').map(Number);
+    return builtInIds.indexOf(id) !== -1;
+  }
+  return true;
 }
 
 document.onvisibilitychange = () => {

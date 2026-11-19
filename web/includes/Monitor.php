@@ -895,13 +895,19 @@ class Monitor extends ZM_Object {
       if (@socket_connect($socket, $sockFile)) {
         if (!socket_write($socket, $optionString)) {
           Error('Can\'t write to control socket: '.socket_strerror(socket_last_error($socket)));
+          socket_close($socket);
           return false;
         }
       } else if ($command != 'quit') {
         $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id '.$this->{'Id'};
 
         // Can't connect so use script
-        $ctrlOutput = exec(escapeshellcmd($command));
+        exec(escapeshellcmd($command), $output, $rc);
+        if ($rc != 0) {
+          socket_close($socket);
+          Error('zmcontrol.pl exited with status '.$rc.' for command: '.$command);
+          return false;
+        }
       }
       socket_close($socket);
     } else if ($this->ServerId()) {

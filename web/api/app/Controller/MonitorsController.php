@@ -246,34 +246,38 @@ class MonitorsController extends AppController {
       throw new UnauthorizedException(__('Changing the event commands requires System edit permission'));
     }
 
-    $this->pinRequestId($this->Monitor, $id);
     $message = '';
-    if ($this->Monitor->save($this->request->data)) {
-      $message = 'Saved';
+    if ($this->request->is(array('post', 'put'))) {
+      $this->pinRequestId($this->Monitor, $id);
+      if ($this->Monitor->save($this->request->data)) {
+        $message = 'Saved';
 
-      // Restart the daemons the way the console's save does
-      // (includes/actions/monitor.php): zmc, and the control server of a
-      // controllable monitor, which otherwise keeps the ControlAddress,
-      // ControlDevice and Control it read when it started. ZM\Monitor sends
-      // the commands to the monitor's own server in a multi-server setup.
-      // Stopped with the old row, started with the saved one.
-      if ($zm_monitor->Type() != 'WebSite') {
-        $zm_monitor->zmcControl('stop');
-        if ($zm_monitor->Controllable()) {
-          $zm_monitor->sendControlCommand('stop');
+        // Restart the daemons the way the console's save does
+        // (includes/actions/monitor.php): zmc, and the control server of a
+        // controllable monitor, which otherwise keeps the ControlAddress,
+        // ControlDevice and Control it read when it started. ZM\Monitor sends
+        // the commands to the monitor's own server in a multi-server setup.
+        // Stopped with the old row, started with the saved one.
+        if ($zm_monitor->Type() != 'WebSite') {
+          $zm_monitor->zmcControl('stop');
+          if ($zm_monitor->Controllable()) {
+            $zm_monitor->sendControlCommand('stop');
+          }
         }
-      }
-      $saved = new ZM\Monitor($this->Monitor->find('first', array(
-        'conditions' => array('Id' => $id)
-      ))['Monitor']);
-      if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
-        $saved->zmcControl('start');
-        if ($saved->Controllable()) {
-          $saved->sendControlCommand('start');
+        $saved = new ZM\Monitor($this->Monitor->find('first', array(
+          'conditions' => array('Id' => $id)
+        ))['Monitor']);
+        if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
+          $saved->zmcControl('start');
+          if ($saved->Controllable()) {
+            $saved->sendControlCommand('start');
+          }
         }
+      } else {
+        $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
       }
     } else {
-      $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
 
     $this->set(array(

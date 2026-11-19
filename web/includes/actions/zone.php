@@ -19,6 +19,7 @@
 //
 
 require_once('includes/Zone.php');
+require_once('includes/ZonePreset.php');
 
 // Monitor edit actions, require a monitor id and edit permissions for that monitor
 if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
@@ -102,78 +103,67 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
     $redirect = localRedirectUrl(isset($_REQUEST['REFERER']) ? $_REQUEST['REFERER'] : '', '?view=zones&mid='.$mid);
   } // end if action 
 
-  $builtInPresets = ZM\Zone::BUILT_IN_PRESETS;
-  $builtInCount = count($builtInPresets);
-
   if ( $action == 'save_preset' ) {
     $presetName = isset($_REQUEST['presetName']) ? trim($_REQUEST['presetName']) : '';
-
-    // Prevent using names of built-in presets (English or localized)
-    $isBuiltInName = false;
-    foreach ( $builtInPresets as $sysName => $langKey ) {
-      if ( strcasecmp($presetName, $sysName) === 0 || strcasecmp($presetName, translate($langKey)) === 0 ) {
-        $isBuiltInName = true;
-        break;
-      }
-    }
-
-    if ( $presetName === '' || $isBuiltInName ) {
+    if ( $presetName === '' || ZM\ZonePreset::isBuiltInName($presetName) ) {
       ajaxError(translate('ZoneInvalidPresetName'));
     }
 
     $presetData = isset($_REQUEST['newZone']) && is_array($_REQUEST['newZone']) ? $_REQUEST['newZone'] : array();
-    $presetFields = ZM\Zone::getZonePresetFields();
+    $presetFields = ZM\ZonePreset::getConfigurableFields();
 
     // Dynamically identify area threshold fields by the 'Pixels' suffix instead of hardcoding a field list,
-    // and clamp their percentage values to the valid [0..100] range
-    foreach ( $presetFields as $field ) {
-      if ( substr($field, -6) === 'Pixels' && isset($presetData[$field]) && $presetData[$field] !== '' ) {
-        $presetData[$field] = max(0, min(100, floatval($presetData[$field])));
-      }
-    }
-
-    $setClauses = array('Name = ?', 'Units = ?');
-    $params = array($presetName, 'Percent');
+    // normalize decimal separators, clamp values to [0..100], and format to 2 decimal places
+    $cleanData = array(
+      'Name'  => $presetName,
+      'Units' => 'Percent',
+    );
     foreach ( $presetFields as $field ) {
       if ( isset($presetData[$field]) && $presetData[$field] !== '' ) {
-        $setClauses[] = '`'.$field.'` = ?';
-        $params[] = $presetData[$field];
+        $val = $presetData[$field];
+        // Convert locale-specific comma decimal separators to dots and format to 2 decimal places
+        // to match DECIMAL columns and preserve trailing zeros (e.g., 17.00) in the UI
+        if ( substr($field, -6) === 'Pixels' ) {
+          $val = str_replace(',', '.', (string)$val);
+          $val = number_format(max(0, min(100, floatval($val))), 2, '.', '');
+        }
+        $cleanData[$field] = $val;
       } else {
-        $setClauses[] = '`'.$field.'` = NULL';
+        $cleanData[$field] = null;
       }
     }
 
-    $existing = dbFetchOne('SELECT Id, Name FROM ZonePresets WHERE Name = ?', NULL, array($presetName));
-    if ( $existing ) {
-      if ( $existing['Id'] <= $builtInCount || isset($builtInPresets[$existing['Name']]) ) {
+    $preset = ZM\ZonePreset::find_one(array('Name' => $presetName));
+    if ( $preset ) {
+      if ( $preset->isBuiltIn() ) {
         ajaxError(translate('ZoneCannotModifyBuiltInPreset'));
       }
-      $presetId = $existing['Id'];
-      $params[] = $presetId;
-      dbQuery('UPDATE ZonePresets SET '.implode(', ', $setClauses).' WHERE Id = ?', $params);
-      ZM\AuditAction('update', 'zone_preset', $presetId, 'Name: '.$presetName);
+      if ( !$preset->save($cleanData) ) {
+        ajaxError($preset->last_error());
+      }
+      ZM\AuditAction('update', 'zone_preset', $preset->Id(), 'Name: '.$presetName);
     } else {
-      $setClauses[] = 'Type = ?';
-      $params[] = 'Active';
-      dbQuery('INSERT INTO ZonePresets SET '.implode(', ', $setClauses), $params);
-      $presetId = dbInsertId();
-      ZM\AuditAction('create', 'zone_preset', $presetId, 'Name: '.$presetName);
+      $cleanData['Type'] = 'Active';
+      $preset = new ZM\ZonePreset();
+      if ( !$preset->save($cleanData) ) {
+        ajaxError($preset->last_error());
+      }
+      ZM\AuditAction('create', 'zone_preset', $preset->Id(), 'Name: '.$presetName);
     }
 
-    $savedPreset = dbFetchOne('SELECT *, Units-1 AS UnitsIndex, CheckMethod-1 AS CheckMethodIndex FROM ZonePresets WHERE Id = ?', NULL, array($presetId));
-    $savedPreset['isBuiltIn'] = false;
-    ajaxResponse(array('preset' => $savedPreset));
+    ajaxResponse(array('preset' => $preset->toArray()));
   } else if ( $action == 'delete_preset' ) {
     $presetId = isset($_REQUEST['presetId']) ? validInt($_REQUEST['presetId']) : 0;
     if ( $presetId <= 0 ) {
       ajaxError(translate('ZoneCannotDeleteBuiltInPreset'));
     }
-    $target = dbFetchOne('SELECT Id, Name FROM ZonePresets WHERE Id = ?', NULL, array($presetId));
-    if ( !$target || isset($builtInPresets[trim($target['Name'])]) ) {
+    $target = ZM\ZonePreset::find_one(array('Id' => $presetId));
+    if ( !$target || $target->isBuiltIn() ) {
       ajaxError(translate('ZoneCannotDeleteBuiltInPreset'));
     }
-    dbQuery('DELETE FROM ZonePresets WHERE Id = ?', array($presetId));
-    ZM\AuditAction('delete', 'zone_preset', $presetId, 'Name: '.$target['Name']);
+    $targetName = $target->Name();
+    $target->delete();
+    ZM\AuditAction('delete', 'zone_preset', $presetId, 'Name: '.$targetName);
     ajaxResponse(array('deletedId' => $presetId));
   }
 } // end if $mid and canEdit($mid)

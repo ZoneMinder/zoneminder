@@ -372,6 +372,35 @@ TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame", "[S
   CHECK(used.crop().Hi().y_ == expected.Hi().y_);
 }
 
+TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame after a pre-scaled frame", "[StreamBase]") {
+  // Event playback at a scale other than 100% sends unzoomed frames pre-scaled,
+  // so zooming out there must also drop the crop of the earlier zoom.
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  Image half(320, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+  TestStream fresh;
+  fresh.setView(50, 200);
+  fresh.setClick(320, 240);
+  fresh.prepare(&frame);
+  const Box expected = fresh.crop();
+
+  TestStream used;
+  used.setView(50, 200);
+  used.setClick(600, 440);
+  used.prepare(&frame);
+  used.setView(50, 100);
+  used.prepare(&half, 50);
+  used.setView(50, 200);
+  used.setClick(320, 240);
+  used.prepare(&frame);
+
+  CHECK(used.crop().Lo().x_ == expected.Lo().x_);
+  CHECK(used.crop().Lo().y_ == expected.Lo().y_);
+  CHECK(used.crop().Hi().x_ == expected.Hi().x_);
+  CHECK(used.crop().Hi().y_ == expected.Hi().y_);
+}
+
 TEST_CASE("StreamBase::prepareImage keeps a zoomed view still from frame to frame", "[StreamBase]") {
   EnsureImageInit();
   Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);

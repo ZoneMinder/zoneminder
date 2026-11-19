@@ -1,6 +1,7 @@
 const table = $j('#frameStatsTable');
 const backBtn = $j('#backBtn');
 const statsBtn = $j('#statsBtn');
+let wasHidden = false;
 
 function changeScale() {
   const scale = $j('#scale').val();

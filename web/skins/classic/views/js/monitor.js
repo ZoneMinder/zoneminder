@@ -652,6 +652,8 @@ function saveMonitorData(href = '') {
     },
     error: function() {
       alertBlock.fadeOut({duration: 'fast'});
+      // Save and Close hid the buttons; bring them back so the user can retry.
+      $j('#contentButtons').show();
       alert('An error occurred while saving data.'); /* Proper formatting required! */
     }
   });

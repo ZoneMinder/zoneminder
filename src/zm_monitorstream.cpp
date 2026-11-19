@@ -530,7 +530,7 @@ void MonitorStream::runStream() {
 
   if (!monitor) {
     Error("Cannot stream monitor %d: not loaded", monitor_id);
-    if (type == STREAM_JPEG)
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
     sendTextFrame("Not connected");
     zm_terminate = true;
@@ -543,7 +543,7 @@ void MonitorStream::runStream() {
   // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
 
-  if (type == STREAM_JPEG)
+  if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   updateFrameRate(monitor->GetFPS());

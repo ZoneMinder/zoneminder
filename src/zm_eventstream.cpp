@@ -1255,7 +1255,7 @@ void EventStream::runStream() {
 
   //checkInitialised();
 
-  if (type == STREAM_JPEG)
+  if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   if (!event_data) {

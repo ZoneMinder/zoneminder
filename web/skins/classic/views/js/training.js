@@ -392,6 +392,8 @@ AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
   $j.getJSON(thisUrl + '?request=training&action=load_saved&eid=' + eid +
       '&fid=' + encodeURIComponent(fid))
       .done(function(data) {
+        // Another frame was chosen, or editing started, before this arrived.
+        if (String(self.currentFrameId) !== String(fid) || self.dirty) return;
         const resp = data.response || data;
         const saved = resp.annotations || [];
         if (saved.length === 0) return;
@@ -447,6 +449,9 @@ AnnotationEditor.prototype.switchFrame = function(frameId) {
 
   this._loadFrameImage(frameId);
   this._updateSidebar();
+  // Show the boxes already saved for this frame, so editing and saving it
+  // again doesn't start from an empty frame and overwrite its labels.
+  if (this.eventId) this._loadSavedAnnotations(this.eventId, frameId);
 };
 
 /**

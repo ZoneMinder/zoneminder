@@ -1777,6 +1777,11 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+eventData.Id)
         .done( function(data) {
+          // ajaxError() answers 200 with result=Error, so done() runs for a refusal too.
+          if (data.result == 'Error') {
+            alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+            return;
+          }
           //FIXME: update the status of the archive button reather than reload the whole page
           window.location.reload(true);
         })
@@ -1792,6 +1797,11 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+eventData.Id)
         .done( function(data) {
+          // ajaxError() answers 200 with result=Error, so done() runs for a refusal too.
+          if (data.result == 'Error') {
+            alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+            return;
+          }
           //FIXME: update the status of the unarchive button rather than reload the whole page
           window.location.reload(true);
         })

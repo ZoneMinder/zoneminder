@@ -116,9 +116,11 @@ class ConfigsController extends AppController {
       $configs = $visible;
     }
 
+    # References into $configs itself: a reference to the loop's copy $c is lost
+    # once the loop moves on, and the conf.d values below never reached the response.
     $config_by_name = [];
-    foreach ($configs as $c) {
-      $config_by_name[$c['Config']['Name']] = &$c['Config'];
+    foreach (array_keys($configs) as $i) {
+      $config_by_name[$configs[$i]['Config']['Name']] = &$configs[$i]['Config'];
     }
 
     global $zm_config;

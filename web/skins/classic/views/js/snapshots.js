@@ -107,6 +107,11 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+selections.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+        } else if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         $j('#snapshotTable').bootstrapTable('refresh');
       })
       .fail( function(jqxhr) {

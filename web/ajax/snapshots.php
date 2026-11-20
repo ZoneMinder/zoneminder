@@ -78,7 +78,10 @@ switch ($task) {
 			return;
 		}
 
-    foreach ($ids as $id) $data[] = deleteRequest($id);
+    // Only the problems are reported; snapshots.js shows them.
+    $messages = array();
+    foreach ($ids as $id) $messages = array_merge($messages, deleteRequest($id));
+    $data = array('message' => $messages);
     break;
   case 'query' :
     $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
@@ -97,12 +100,9 @@ function deleteRequest($id) {
   $message = array();
   $snapshot = new ZM\Snapshot($id);
   if ( !$snapshot->Id() ) {
-    $message[] = array($id=>'Snapshot not found.');
-  //} else if ( $snapshot->Archived() ) {
-    //$message[] = array($id=>'Event is archived, cannot delete it.');
-  } else {
-    $snapshot->delete();
-    $message[] = array($id=>'Snapshot deleted.');
+    $message[] = 'Snapshot '.$id.' not found.';
+  } else if ( !$snapshot->delete() ) {
+    $message[] = 'Snapshot '.$id.' could not be deleted.';
   }
   
   return $message;

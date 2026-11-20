@@ -342,6 +342,9 @@ sub moveMap {
   my $params = shift;
   my $x = $self->getParam($params,'xcoord');
   my $y = $self->getParam($params,'ycoord');
+  # ONVIF positions are normalised to -1..1, the click arrives in image pixels
+  $x = sprintf('%.4f', 2 * $x / ($self->{Monitor}->{Width} || 1) - 1);
+  $y = sprintf('%.4f', 1 - 2 * $y / ($self->{Monitor}->{Height} || 1));
   Debug("Move map to $x x $y");
 
   my $cmd = 'onvif/PTZ';

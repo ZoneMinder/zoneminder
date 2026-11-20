@@ -982,13 +982,17 @@ function getEventResponse(respObj, respText) {
 
   const previousEvent = eventData;
   eventData = respObj.event;
+  const eventChanged = previousEvent && previousEvent.Id != eventData.Id;
   getStat();
   currEventId = eventData.Id;
   $j('#eventTitle').html('Event '+currEventId); // FIXME should translate Event
 
   // Refresh the status of the archive and delete buttons
   setArchiveButtons();
-  if (previousEvent && previousEvent.Id != eventData.Id) refreshSelectedTags();
+  if (eventChanged) {
+    setDownloadLink();
+    refreshSelectedTags();
+  }
 
   history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
   if ( vid && CurEventDefVideoPath ) {
@@ -1012,6 +1016,14 @@ function setArchiveButtons() {
   unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
   deleteBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
   deleteBtn.prop('title', eventData.Archived ? "You cannot delete an archived event." : "");
+}
+
+// event.php renders the Download link for the page's event; point it at the
+// event now shown. An empty DownloadUrl means no video, so hide it as event.php does.
+function setDownloadLink() {
+  const url = eventData.DownloadUrl;
+  downloadBtn.attr('href', url || '');
+  if (url) downloadBtn.show(); else downloadBtn.hide();
 }
 
 // zms moved on to eventData by itself, possibly to another monitor's event.

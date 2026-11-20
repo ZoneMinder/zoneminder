@@ -175,6 +175,7 @@ class TagsController extends AppController {
 		if ( !$this->Tag->exists($id) ) {
 			throw new NotFoundException(__('Invalid tag'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

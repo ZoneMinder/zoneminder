@@ -23,6 +23,7 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -251,8 +252,9 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
                        last_crop.Hi().y_ * base_image_height / last_crop_height});
     }
 
-    double x_percent = static_cast<double>(cur_x * ZM_SCALE_BASE) / base_image_width;
-    double y_percent = static_cast<double>(cur_y * ZM_SCALE_BASE) / base_image_height;
+    // A click sent before a change of resolution can lie outside this frame.
+    double x_percent = static_cast<double>(std::min<int>(cur_x, base_image_width) * ZM_SCALE_BASE) / base_image_width;
+    double y_percent = static_cast<double>(std::min<int>(cur_y, base_image_height) * ZM_SCALE_BASE) / base_image_height;
     Debug(2, "click percent %dx%d => %.2fx%.2f", cur_x, cur_y, x_percent, y_percent);
 
     // If we were previously zoomed in, then the coordinate percentages are into the crop, so calculate the click coordinates in base image

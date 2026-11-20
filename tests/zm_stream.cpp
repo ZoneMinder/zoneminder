@@ -343,6 +343,34 @@ TEST_CASE("StreamBase::prepareImage keeps a zoom across a change of resolution")
   CHECK(sent->Height() == 480);
 }
 
+TEST_CASE("StreamBase::prepareImage zooms out within a smaller frame after a change of resolution", "[StreamBase]") {
+  // Zoom out sends no click, so the last zoom-in point, given in the old
+  // frame's pixels, can be past the edge of the new frame.
+  EnsureImageInit();
+  TestStream stream;
+  stream.setClick(1880, 210);
+  Image large(1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  for (int zoom = 110; zoom <= 140; zoom += 10) {
+    stream.setView(ZM_SCALE_BASE, zoom);
+    stream.prepare(&large);
+  }
+
+  Image small(352, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  stream.prepare(&small);
+  for (int zoom = 130; zoom >= 110; zoom -= 10) {
+    stream.setView(ZM_SCALE_BASE, zoom);
+    stream.prepare(&small);
+    const Box &crop = stream.crop();
+    CAPTURE(zoom, crop.Lo().x_, crop.Lo().y_, crop.Hi().x_, crop.Hi().y_);
+    CHECK(crop.Lo().x_ < crop.Hi().x_);
+    CHECK(crop.Lo().y_ < crop.Hi().y_);
+    CHECK(crop.Hi().x_ <= 351);
+    CHECK(crop.Hi().y_ <= 239);
+    // Still the right-hand side of the picture, where the click was.
+    CHECK(crop.Hi().x_ > 176);
+  }
+}
+
 TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame", "[StreamBase]") {
   // Zooming out to 100% shows the whole frame again. A later zoom-in click is
   // in that whole-frame view, so it must not be mapped through the crop left

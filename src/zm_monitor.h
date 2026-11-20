@@ -1298,6 +1298,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Frames analysis skips between motion detections so that analysis runs at
   // about analysis_fps_limit when the camera captures at capture_fps. Pure.
   static int AnalysisFrameSkip(double capture_fps, double analysis_fps_limit);
+  // MaxFPS for a camera whose rate the camera sets: true when a decoded frame
+  // is due for publishing. ts is the frame's capture time, next_due the time
+  // the following frame is wanted, delay 1/MaxFPS (0 = no limit).
+  static bool FrameDue(SystemTimePoint ts, SystemTimePoint &next_due, Microseconds delay);
+  // True when MaxFPS is applied by dropping decoded frames in the decoder
+  // instead of sleeping in zmc.
+  static bool MaxFPSByDropping(bool is_local, VideoWriter writer);
+  bool MaxFPSByDropping() const { return MaxFPSByDropping(camera && camera->IsLocal(), videowriter); }
   // True when the section_length boundary lies between two packet timestamps
   // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
   static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
@@ -1410,6 +1418,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // A future improvement could eliminate mode-specific checks by relying solely
   // on this flag to track the decoder state.
   bool decoder_requires_next_packet = false;
+  SystemTimePoint next_frame_due_;  // decoder thread: when MaxFPS wants the next frame
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

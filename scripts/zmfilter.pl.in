@@ -61,7 +61,7 @@ my $sleeping = 0;
 
 GetOptions(
   daemon        =>\$daemon,
-  'filter=s'    =>\$filter_name,
+  'f|filter=s'  =>\$filter_name,
   'filter_id=s' =>\$filter_id,
   version       =>\$version
 ) or pod2usage(-exitstatus => -1);

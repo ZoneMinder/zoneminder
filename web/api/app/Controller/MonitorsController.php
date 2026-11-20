@@ -168,55 +168,60 @@ class MonitorsController extends AppController {
   }
 
   public function add() {
-    if ( $this->request->is('post') ) {
-
-      global $user;
-      $canAdd = (!$user) || ($user->System() == 'Edit' || $user->Monitors() == 'Create' );
-      if ( !$canAdd ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-      // A new monitor's command fields start empty, so any value is a change.
-      require_once __DIR__ .'/../../../includes/Monitor.php';
-      $new_monitor = new ZM\Monitor();
-      if (count($new_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
-        throw new UnauthorizedException(__('Setting the event commands requires System edit permission'));
-      }
-      $this->pinRequestId($this->Monitor, null);
-      $this->Monitor->create();
-      if ($this->Monitor->save($this->request->data) ) {
-        require_once __DIR__ .'/../../../includes/Zone.php';
-        $zone = new ZM\Zone();
-        $zone->save(array('MonitorId'=>$this->Monitor->id, 'Name'=>'All',
-          'Units'=>'Percent',
-          'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
-          'Area'=>10000,
-          'MinAlarmPixels'=>0.05,
-          'MaxAlarmPixels'=>75,
-          'MinFilterPixels'=>0.05,
-          'MaxFilterPixels'=>75,
-          'MinBlobPixels'=>0.05
-        ));
-        $saved = new ZM\Monitor($this->Monitor->find('first', array(
-          'conditions' => array('Id' => $this->Monitor->id)
-        ))['Monitor']);
-        if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
-          $saved->zmcControl('start');
-        }
-        //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
-        $message = 'Saved';
-      } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if (!$this->Monitor->validates()) {
-          $message = $this->Monitor->validationErrors;
-       }
-      }
-      $this->set(array(
-        'message' => $message,
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+      return;
     }
+
+    global $user;
+    $canAdd = (!$user) || ($user->System() == 'Edit' || $user->Monitors() == 'Create' );
+    if ( !$canAdd ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+    // A new monitor's command fields start empty, so any value is a change.
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $new_monitor = new ZM\Monitor();
+    if (count($new_monitor->commandFieldChangesNotAllowed($this->requestCommandFields()))) {
+      throw new UnauthorizedException(__('Setting the event commands requires System edit permission'));
+    }
+    $this->pinRequestId($this->Monitor, null);
+    $this->Monitor->create();
+    $id = null;
+    if ($this->Monitor->save($this->request->data) ) {
+      require_once __DIR__ .'/../../../includes/Zone.php';
+      $zone = new ZM\Zone();
+      $zone->save(array('MonitorId'=>$this->Monitor->id, 'Name'=>'All',
+        'Units'=>'Percent',
+        'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
+        'Area'=>10000,
+        'MinAlarmPixels'=>0.05,
+        'MaxAlarmPixels'=>75,
+        'MinFilterPixels'=>0.05,
+        'MaxFilterPixels'=>75,
+        'MinBlobPixels'=>0.05
+      ));
+      $saved = new ZM\Monitor($this->Monitor->find('first', array(
+        'conditions' => array('Id' => $this->Monitor->id)
+      ))['Monitor']);
+      if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
+        $saved->zmcControl('start');
+      }
+      //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
+      $message = 'Saved';
+      $id = $this->Monitor->id;
+    } else {
+      $message = 'Error';
+      // if there is a validation message, use it
+      if (!$this->Monitor->validates()) {
+        $message = $this->Monitor->validationErrors;
+     }
+    }
+    $this->set(array(
+      'message' => $message,
+      'id' => $id,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**

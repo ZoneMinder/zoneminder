@@ -545,6 +545,29 @@ function getNearFrame() {
   return collectData();
 }
 
+# The WHERE part that picks the events on one side of the current one in the
+# (sort value, Id) ordering. MySQL sorts NULL before every other value, so a
+# NULL sort value (EndDateTime, DiskSpace or Frames of an event still recording)
+# counts as the smallest one here; a plain > or = against NULL matches nothing.
+function nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId) {
+  if ($sortColumn == 'E.Id') {
+    return ['E.Id '.$idCmp.' ?', [$eventId]];
+  }
+  $values = [];
+  if ($sortValue === null) {
+    $beyond = ($cmp == '>') ? $sortColumn.' IS NOT NULL' : '0';
+  } else if ($cmp == '>') {
+    $beyond = $sortColumn.' > ?';
+    $values[] = $sortValue;
+  } else {
+    $beyond = '('.$sortColumn.' < ? OR '.$sortColumn.' IS NULL)';
+    $values[] = $sortValue;
+  }
+  $values[] = $sortValue;
+  $values[] = $eventId;
+  return ['('.$beyond.' OR ('.$sortColumn.' <=> ? AND E.Id '.$idCmp.' ?))', $values];
+}
+
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
@@ -597,13 +620,8 @@ function getNearEvents() {
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
     LEFT JOIN Tags AS T ON T.Id = ET.TagId
     WHERE ';
-    if ($sortColumn == 'E.Id') {
-      $sql .= 'E.Id '.$idCmp.' ?';
-      $values = [$eventId];
-    } else {
-      $sql .= '('.$sortColumn.' '.$cmp.' ? OR ('.$sortColumn.' = ? AND E.Id '.$idCmp.' ?))';
-      $values = [$sortValue, $sortValue, $eventId];
-    }
+    list($where, $values) = nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId);
+    $sql .= $where;
     if ($filter->sql()) {
       $sql .= ' AND ('.$filter->sql().')';
     }

@@ -245,8 +245,12 @@ Debug("@Monitors");
                 $event->Orientation( $Monitor->Orientation() );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = $event->save({}, 1);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
@@ -256,7 +260,10 @@ Debug("@Monitors");
               saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDateTime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # event path exists
@@ -317,8 +324,12 @@ Debug("@Monitors");
                 $event->DiskSpace( undef );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = $event->save({}, 1);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
@@ -328,7 +339,10 @@ Debug("@Monitors");
               saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDateTime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # end if event found
@@ -374,7 +388,10 @@ Debug("@Monitors");
             saveDefaultVideo($event);
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
-                $event->save() if $event->guess_EndDateTime();
+                if ( $event->guess_EndDateTime() ) {
+                  my $error = $event->save();
+                  Error("Failed to save event $$event{Id}: $error") if $error;
+                }
               }
             }
             next;
@@ -395,8 +412,12 @@ Debug("@Monitors");
             $event->StorageId( $Storage->Id() );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
-              $event->save({}, 1);
-              Info("Event resurrected as " . $event->to_string() );
+              my $error = $event->save({}, 1);
+              if ( $error ) {
+                Error("Failed to save recovered event $$event{Id}: $error");
+              } else {
+                Info("Event resurrected as " . $event->to_string() );
+              }
             } else {
               Warning("Unable to determine starttime. Not resurrecting this event.");
             }
@@ -425,7 +446,10 @@ Debug("@Monitors");
           saveDefaultVideo($event);
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
-              $event->save() if $event->guess_EndDateTime();
+              if ( $event->guess_EndDateTime() ) {
+                my $error = $event->save();
+                Error("Failed to save event $$event{Id}: $error") if $error;
+              }
             }
           }
 
@@ -447,8 +471,12 @@ Debug("@Monitors");
           $event->StorageId( $Storage->Id() );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
-            $event->save({}, 1);
-            Info("Event resurrected as " . $event->to_string() );
+            my $error = $event->save({}, 1);
+            if ( $error ) {
+              Error("Failed to save recovered event $$event{Id}: $error");
+            } else {
+              Info("Event resurrected as " . $event->to_string() );
+            }
           } else {
             Warning("Unable to determine starttime. Not resurrecting this event.");
           }
@@ -466,7 +494,10 @@ sub saveDefaultVideo {
   my $event = shift;
   my $before = $event->DefaultVideo() // '';
   $event->fix_DefaultVideo();
-  $event->save() if ($event->DefaultVideo() // '') ne $before;
+  if ( ($event->DefaultVideo() // '') ne $before ) {
+    my $error = $event->save();
+    Error("Failed to save default video for event $$event{Id}: $error") if $error;
+  }
 }
 
 sub confirm {

@@ -1064,7 +1064,8 @@ function reminderClickFunction() {
   $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
     // The version view has no page, so the response is HTML, not JSON.
-    $j.get(thisUrl + '?view=version&action=version&option=' + option)
+    // index.php only runs actions sent by POST; csrf-magic adds the token to it.
+    $j.post(thisUrl + '?view=version', {action: 'version', option: option})
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })

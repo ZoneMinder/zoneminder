@@ -143,6 +143,7 @@ sub Track {
   .$monitor->{Id}
   ;
   if ( $monitor->{CanMoveMap} ) {
+    ( $x, $y ) = mapPoint($monitor, $x, $y);
     $ctrlCommand .= " --command=moveMap --xcoord=$x --ycoord=$y";
   } else {
     my $command = pseudoMapCommand($monitor, $x, $y);
@@ -150,6 +151,26 @@ sub Track {
     $ctrlCommand .= ' --command='.$command;
   }
   executeShellCommand($ctrlCommand);
+}
+
+# The alarm location is in the rotated or flipped image; moveMap takes a point
+# in the camera's own Width x Height frame.
+sub mapPoint {
+  my ( $monitor, $x, $y ) = @_;
+  my $orientation = $monitor->{Orientation};
+  my ( $width, $height ) = ( $monitor->{Width}, $monitor->{Height} );
+  if ( $orientation eq 'ROTATE_90' ) {
+    ( $x, $y ) = ( $y, $height - $x );
+  } elsif ( $orientation eq 'ROTATE_180' ) {
+    ( $x, $y ) = ( $width - $x, $height - $y );
+  } elsif ( $orientation eq 'ROTATE_270' ) {
+    ( $x, $y ) = ( $width - $y, $x );
+  } elsif ( $orientation eq 'FLIP_HORI' ) {
+    $x = $width - $x;
+  } elsif ( $orientation eq 'FLIP_VERT' ) {
+    $y = $height - $y;
+  }
+  return ( $x, $y );
 }
 
 # No control module implements movePseudoMap, so turn the point into a

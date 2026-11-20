@@ -343,7 +343,8 @@ if ( $freshen ) {
   if ( !ZoneMinder::Config::loadConfigFromDB() ) {
     Fatal("Unable to load configuration from the database, aborting freshen.");
   }
-  ZoneMinder::Config::saveConfigToDB();
+  ZoneMinder::Config::saveConfigToDB()
+    or Fatal('Failed to save the configuration to the database');
 }
 
 # Don't do innoDB upgrade if not interactive
@@ -367,8 +368,7 @@ However, the recommended database engine is InnoDB.
 Hint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.
 
 Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
-    my $response = <STDIN>;
-    chomp( $response );
+    my $response = readAnswer();
     if ( $response =~ /^[yY]$/ ) {
       $dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
       print "\nConverting MyISAM tables to InnoDB. Please wait.\n";

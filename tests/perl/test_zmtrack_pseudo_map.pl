@@ -157,5 +157,22 @@ check('no speed options for a camera without speed control',
 check('a camera that can move to a map point still gets moveMap',
   track(600, 240, 'CanMoveMap=1'), '--command=moveMap --xcoord=600 --ycoord=240');
 
+# moveMap takes a point in the camera's own 640x480 frame, the alarm location is in
+# the rotated or flipped image (a 90 degree rotation turns camera x,y into 480-y,x).
+check('moveMap on a 90 degree rotated monitor sends the point in the camera frame',
+  track(120, 160, 'CanMoveMap=1;Orientation=ROTATE_90'), '--command=moveMap --xcoord=160 --ycoord=360');
+
+check('moveMap on a 270 degree rotated monitor',
+  track(120, 160, 'CanMoveMap=1;Orientation=ROTATE_270'), '--command=moveMap --xcoord=480 --ycoord=120');
+
+check('moveMap on a 180 degree rotated monitor',
+  track(600, 100, 'CanMoveMap=1;Orientation=ROTATE_180'), '--command=moveMap --xcoord=40 --ycoord=380');
+
+check('moveMap on a horizontally flipped monitor',
+  track(600, 240, 'CanMoveMap=1;Orientation=FLIP_HORI'), '--command=moveMap --xcoord=40 --ycoord=240');
+
+check('moveMap on a vertically flipped monitor',
+  track(600, 100, 'CanMoveMap=1;Orientation=FLIP_VERT'), '--command=moveMap --xcoord=600 --ycoord=380');
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

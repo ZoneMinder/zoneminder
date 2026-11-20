@@ -463,7 +463,13 @@ sub run {
 sub cPrint {
   # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
-    print CLIENT @_
+    # A client that gave up (zmdc.pl's own reader stops after 30s idle, a web
+    # request can time out) has closed its end, and writing to it would kill
+    # zmdc with SIGPIPE in the middle of e.g. a shutdown.
+    # If the write fails the client is gone: close it here, or the unwritten
+    # reply stays buffered and closing CLIENT later raises SIGPIPE anyway.
+    local $SIG{PIPE} = 'IGNORE';
+    close(CLIENT) if !print CLIENT @_;
   }
 }
 

@@ -82,27 +82,32 @@ class ManufacturersController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->pinRequestId($this->Manufacturer, null);
-      $this->Manufacturer->create();
-      if ( $this->Manufacturer->save($this->request->data) ) {
-				# Might be nice to send it a start request
-        #$this->daemonControl($this->Manufacturer->id, 'start', $this->request->data);
-        return $this->flash(__('The manufacturer has been saved.'), array('action' => 'index'));
-      }
-      $this->set(array(
-        'message' => $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error',
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->Manufacturer, null);
+    $this->Manufacturer->create();
+    if ( $this->Manufacturer->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->Manufacturer->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->set(array(
+      'message' => $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**

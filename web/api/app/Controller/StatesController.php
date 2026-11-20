@@ -67,27 +67,31 @@ public function view($id = null) {
  */
 public function add() {
 
-  if ($this->request->is('post')) {
-
-    global $user;
-    $canEdit = (!$user) || ($user->System() == 'Edit');
-    if ( !$canEdit ) {
-      throw new UnauthorizedException(__('Insufficient privileges'));
-      return;
-    }
-
-    $this->pinRequestId($this->State, null);
-    $this->State->create();
-    if ($this->State->save($this->request->data)) {
-      $message = 'Saved';
-    } else {
-      $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
-    }
-    $this->set(array(
-      'message' => $message,
-      '_serialize' => array('message')
-    ));
+  if (!$this->request->is('post')) {
+    throw new BadRequestException(__('Invalid method. Should be post'));
   }
+
+  global $user;
+  $canEdit = (!$user) || ($user->System() == 'Edit');
+  if ( !$canEdit ) {
+    throw new UnauthorizedException(__('Insufficient privileges'));
+    return;
+  }
+
+  $this->pinRequestId($this->State, null);
+  $this->State->create();
+  $id = null;
+  if ($this->State->save($this->request->data)) {
+    $message = 'Saved';
+    $id = $this->State->id;
+  } else {
+    $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
+  }
+  $this->set(array(
+    'message' => $message,
+    'id' => $id,
+    '_serialize' => array('message', 'id')
+  ));
 }
 
 /**

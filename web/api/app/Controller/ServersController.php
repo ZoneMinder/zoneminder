@@ -84,25 +84,32 @@ class ServersController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->pinRequestId($this->Server, null);
-      $this->Server->create();
-      if ( $this->Server->save($this->request->data) ) {
-        return $this->flash(__('The server has been saved.'), array('action' => 'index'));
-      }
-      $this->set(array(
-        'message' => $this->Server->validationErrors ? $this->Server->validationErrors : 'Error',
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->Server, null);
+    $this->Server->create();
+    if ( $this->Server->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->Server->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->set(array(
+      'message' => $this->Server->validationErrors ? $this->Server->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**

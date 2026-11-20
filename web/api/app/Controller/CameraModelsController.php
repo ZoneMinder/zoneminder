@@ -87,25 +87,32 @@ class CameraModelsController extends AppController {
  * @return void
  */
   public function add() {
-    if ($this->request->is('post')) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if (!$canEdit) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->pinRequestId($this->CameraModel, null);
-      $this->CameraModel->create();
-      if ($this->CameraModel->save($this->request->data)) {
-        return $this->flash(__('The model has been saved.'), array('action' => 'index'));
-      }
-      $this->set(array(
-        'message' => $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error',
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if (!$canEdit) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->CameraModel, null);
+    $this->CameraModel->create();
+    if ($this->CameraModel->save($this->request->data)) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->CameraModel->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->set(array(
+      'message' => $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**

@@ -158,6 +158,10 @@ if ( $action == 'delete' ) {
     case 'network' :
     case 'mail' :
     case 'upload' :
+    # Read by zmc (image quality, MQTT publishing) and zmtelemetry when they start.
+    case 'images' :
+    case 'MQTT' :
+    case 'telemetry' :
       $restartWarning = true;
       break;
     case 'highband' :

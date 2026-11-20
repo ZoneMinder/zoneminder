@@ -93,9 +93,14 @@ class UsersController extends AppController {
         return;
       }
 
+      // save() takes the primary key from the data, so an Id in the body would
+      // update that user instead of creating one.
+      $this->pinRequestId($this->User, null);
       $this->User->create();
+      $id = null;
       if ($this->User->save($this->request->data)) {
         $message = 'Saved';
+        $id = $this->User->id;
       } else {
         $message = 'Error';
         // if there is a validation message, use it
@@ -108,9 +113,9 @@ class UsersController extends AppController {
       throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
-      'user'        => $this->User,
       'message'     => $message,
-      '_serialize'  => array('message')
+      'id'          => $id,
+      '_serialize'  => array('message', 'id')
     ));
 	}
 

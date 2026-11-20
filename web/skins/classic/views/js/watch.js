@@ -985,7 +985,8 @@ function streamReStart(oldId, newId) {
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
   if (volumeSlider) {
-    monitorStream.destroyVolumeSlider();
+    // A WebSite monitor opened directly never had a stream.
+    if (monitorStream) monitorStream.destroyVolumeSlider();
     volumeSlider.id = 'volumeSlider'+newId;
   }
   const controlMute = document.getElementById('controlMute'+oldId);
@@ -1282,8 +1283,9 @@ var secondsToCycle = 0;
 function nextCycleView() {
   const stream = (monitorStream) ? monitorStream.getAVStream() : null;
   const playerErrorLimitReached = monitorStream && monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.player) >= monitorStream.limitCountErrors;
-  if (stream && stream.readyState >= 2) secondsToCycle --;
-  if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
+  // A WebSite monitor has no video to wait for, so count down on it too.
+  if ((currentMonitor.monitorType == 'WebSite') || (stream && stream.readyState >= 2)) secondsToCycle --;
+  if (secondsToCycle<=0 || (monitorStream && monitorStream.fatalError) || playerErrorLimitReached) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);

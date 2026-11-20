@@ -380,6 +380,7 @@ sub handleMessage {
         return;
       }
       dropActions($id.'|cancel');
+      dropActionsWithPrefix($id.'|off|');
       zmTriggerEventOn($monitor, $score, $cause, $text);
       zmTriggerShowtext($monitor, $showtext) if defined($showtext);
       Info("Trigger '$trigger' '$cause'");
@@ -411,6 +412,7 @@ sub handleMessage {
     } # end if trigger is on or off
   } elsif ( $action eq 'cancel' ) {
     dropActions($id.'|cancel');
+    dropActionsWithPrefix($id.'|off|');
     zmTriggerEventCancel($monitor);
     zmTriggerShowtext($monitor, $showtext) if defined($showtext);
     Info('Cancelled event');
@@ -428,6 +430,16 @@ sub dropActions {
 
   foreach my $a_time ( keys %actions ) {
     @{$actions{$a_time}} = grep { $_->{message} ne $action_text } @{$actions{$a_time}};
+    delete $actions{$a_time} if !@{$actions{$a_time}};
+  }
+}
+
+# Forget pending timed actions whose message starts with this prefix
+sub dropActionsWithPrefix {
+  my $prefix = shift;
+
+  foreach my $a_time ( keys %actions ) {
+    @{$actions{$a_time}} = grep { index($_->{message}, $prefix) != 0 } @{$actions{$a_time}};
     delete $actions{$a_time} if !@{$actions{$a_time}};
   }
 }

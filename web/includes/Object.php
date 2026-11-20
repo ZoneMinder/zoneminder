@@ -479,12 +479,14 @@ class ZM_Object {
     return false;
   } // end function insert
 
+  # Returns whether the row was deleted.
   public function delete() {
     $class = get_class($this);
     $table = $class::$table;
-    dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'}));
+    $deleted = (dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'})) !== null);
     if ( isset($object_cache[$class]) and isset($object_cache[$class][$this->{'Id'}]) )
       unset($object_cache[$class][$this->{'Id'}]);
+    return $deleted;
   }
 
   public function lock() {

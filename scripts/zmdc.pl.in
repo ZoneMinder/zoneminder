@@ -226,10 +226,12 @@ CLIENT->autoflush();
 my $message = join(';', $command, ( $daemon ? $daemon : () ), @args);
 print(CLIENT  $message);
 shutdown(CLIENT, 1);
-# Read response with timeout to avoid hanging indefinitely
+# Read response with timeout to avoid hanging indefinitely. shutdown answers
+# once every daemon has exited or been sent KILL, which happens after KILL_DELAY.
+my $client_timeout = ( $command eq 'shutdown' ) ? ZMServer->KILL_DELAY + 10 : 30;
 my $client_rin = '';
 vec($client_rin, fileno(CLIENT), 1) = 1;
-while ( select(my $rout = $client_rin, undef, undef, 30) > 0 ) {
+while ( select(my $rout = $client_rin, undef, undef, $client_timeout) > 0 ) {
   my $line = <CLIENT>;
   last if !defined($line);
   chomp($line);

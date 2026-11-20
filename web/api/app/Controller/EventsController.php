@@ -664,7 +664,9 @@ class EventsController extends AppController {
 
     // Save the new value
     $this->Event->id = $id;
-    $this->Event->saveField('Archived', $archiveVal);
+    if (!$this->Event->saveField('Archived', $archiveVal)) {
+      throw new InternalErrorException(__('Failed to update the event'));
+    }
 
     $this->set(array(
       'archived' => $archiveVal,

@@ -1198,8 +1198,6 @@ if ( $level > 1 ) {
     }
     Error('zmaudit Storage DiskSpace resync did not complete') if !$storage_done;
   }
-
-  sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
 
 Term();

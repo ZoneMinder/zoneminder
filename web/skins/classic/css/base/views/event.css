@@ -401,6 +401,28 @@ svg.zones {
   width: 100%;
   height: 100%;
 }
+/* codec=auto (regression #6612): js/EventStream.js builds the player and the
+   #eventPlaceholder frame as siblings of #zoompan.  Without this they lay out
+   in normal flow and stack vertically — the placeholder appears on top with the
+   playing video underneath.  Overlay them in a single grid cell (the same
+   grid-area:1/1 idiom #videoFeed already uses) so the placeholder sits over the
+   player and removing it on player-ready leaves no gap.  Scoped to .zoompan-auto
+   so the forced-native (<video> server-rendered), zms and zmPanZoom layouts are
+   untouched. */
+.zoompan-auto {
+  display: grid;
+}
+.zoompan-auto > #eventPlaceholder,
+.zoompan-auto > #videoobj,
+.zoompan-auto > #evtStream {
+  grid-area: 1/1;
+}
+.zoompan-auto > #eventPlaceholder {
+  z-index: 6;
+  max-width: 100%;
+  height: auto;
+  pointer-events: none;
+}
 #downloadBtn {
   line-height: 1;
   font-size: 18px;

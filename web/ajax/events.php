@@ -346,7 +346,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
     '.$where.' 
     GROUP BY E.Id, Monitor
-    '.($sort?' ORDER BY '.$sort:'');
+    '.' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
 
     if ((int)($filter->limit()) and !$has_post_sql_conditions) {
       $sql .= ' LIMIT '.(int)($filter->limit());
@@ -418,7 +418,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       LEFT JOIN Tags AS T ON T.Id = ET.TagId 
       WHERE M.Deleted = false AND ('.$search_filter->sql().')
       GROUP BY E.Id'
-      .($sort ? ' ORDER BY '.$sort : '');
+      .' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
 
       $filtered_rows = dbFetchAll($sql);
       ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);

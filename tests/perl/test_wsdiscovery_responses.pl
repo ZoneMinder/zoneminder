@@ -8,7 +8,7 @@
 #
 # The multicast calls are replaced so this runs on loopback: each "camera" answers from its own
 # socket to 127.0.0.1 on the probe port, either all at the same moment or spread over 500 ms
-# (the WS-Discovery APP_MAX_DELAY).
+# (the WS-Discovery APP_MAX_DELAY), counted from when send_receive has opened its sockets.
 #
 # Run as: perl tests/perl/test_wsdiscovery_responses.pl
 #
@@ -28,29 +28,35 @@ if (!$have) {
 my $port = 20000 + $$ % 20000;
 my @delays_ms;
 my @children;
+my $go;
 {
   no warnings qw(redefine once prototype);
   *IO::Socket::Multicast::mcast_if = sub { 1 };
   *IO::Socket::Multicast::mcast_ttl = sub { 1 };
-  *IO::Socket::Multicast::mcast_add = sub { 1 };
+  # called once the receive sockets are open: let the cameras answer
+  *IO::Socket::Multicast::mcast_add = sub { close($go) if $go; undef $go; 1 };
   # one process per answer time: cameras that answer at the same time send back to back
   *IO::Socket::Multicast::mcast_send = sub {
     my %cameras_at;
     push @{$cameras_at{$delays_ms[$_ - 1]}}, $_ for 1 .. @delays_ms;
+    pipe(my $wait, $go) or die "pipe: $!";
     foreach my $delay (keys %cameras_at) {
       my $pid = fork();
       die "fork: $!" if !defined $pid;
       if (!$pid) {
+        close($go);
         my %socket_of = map {
           $_ => (IO::Socket::INET->new(Proto => 'udp', PeerAddr => '127.0.0.1', PeerPort => $port)
             or die "camera socket: $!")
         } @{$cameras_at{$delay}};
-        usleep(100000 + 1000 * $delay);
+        sysread($wait, my $eof, 1);
+        usleep(1000 * $delay);
         $socket_of{$_}->send("<ProbeMatch n=\"$_\"/>") for @{$cameras_at{$delay}};
         exit 0;
       }
       push @children, $pid;
     }
+    close($wait);
     return length $_[1];
   };
 }
@@ -77,6 +83,7 @@ sub probe {
   @children = ();
   my $transport = WSDiscovery::TransportUDP->new();
   $transport->send_receive(envelope => '<Probe/>', endpoint => "soap.udp://239.255.255.250:$port");
+  close($go) if $go;
   waitpid($_, 0) for @children;
   my %seen = map { $_ => 1 } @responses;
   return (scalar(@responses).' answers, '.scalar(keys %seen).' cameras', $transport->get_status());

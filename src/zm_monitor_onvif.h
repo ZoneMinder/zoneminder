@@ -91,6 +91,11 @@ std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const Syst
 // (wsa:ActionNotSupported, ter:ActionNotSupported) or the fault string.
 // subcode and fault_string may be null.
 bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string);
+
+// Whether an alarm that went active at started has been up for max_seconds or
+// longer at now. max_seconds of zero or less means no limit. For cameras that
+// never send the alarm-off notification (refs #4561, #3802).
+bool ONVIFAlarmExceedsMaxDuration(const SystemTimePoint &started, const SystemTimePoint &now, int max_seconds);
 #endif
 
 // Forward declaration
@@ -198,6 +203,7 @@ class ONVIF {
   struct AlarmEntry {
     std::string value;
     SystemTimePoint termination_time;
+    SystemTimePoint started;  // when the topic went active; kept across re-triggers
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
   // The topic/value of the most recent activation, kept so SetNoteSet can still
@@ -206,6 +212,7 @@ class ONVIF {
   std::string last_alarm_topic_;
   std::string last_alarm_value_;
   bool expire_alarms_enabled;
+  int max_alarm_duration_seconds;  // 0 = no limit
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;
 

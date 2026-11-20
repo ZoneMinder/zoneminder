@@ -62,6 +62,7 @@ set(TEST_SOURCES
   zm_onvif_alarm_latch.cpp
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp
+  zm_onvif_max_alarm.cpp
   zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
   zm_onvif_resubscribe.cpp

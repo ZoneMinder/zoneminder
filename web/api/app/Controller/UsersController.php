@@ -207,7 +207,7 @@ class UsersController extends AppController {
 		if ($this->User->delete()) {
 			$message = 'The user has been deleted.';
 		} else {
-			$message = 'The user could not be deleted. Please, try again.';
+			throw new InternalErrorException(__('The user could not be deleted.'));
 		}
 		$this->set(array(
 			'message' => $message,

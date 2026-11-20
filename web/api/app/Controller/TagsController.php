@@ -119,6 +119,9 @@ class TagsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -143,21 +146,22 @@ class TagsController extends AppController {
 			$this->Tag->create();
 
       if ( $this->Tag->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The tag has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Tag->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Tag");
         $this->set(array(
           'message' => $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error',
-          '_serialize' => array('message')
+          'id' => null,
+          '_serialize' => array('message', 'id')
         ));
         return;
       }
     } # end if post
-    $monitors = $this->Tag->Event->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**

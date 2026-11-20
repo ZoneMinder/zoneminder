@@ -1361,6 +1361,7 @@ None: No frames will be decoded, live view and thumbnails will not be available~
    'OPTIONS_ONVIF_Alarm_Text' => array(
     'Help' => '
      Text associated with event when alarm is activated.~~
+     Several values can be given separated by commas, for example MotionAlarm,DetectedSound.~~
      Some standard values:~~
      - AnalyticsService~~
      - ConfigurationChanged~~

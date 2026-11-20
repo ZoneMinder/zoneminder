@@ -58,6 +58,58 @@ switch ( $_REQUEST['action'] ) {
 
     ajaxResponse(array('response'=>$dbFetchResult));
     break;
+  case 'gettags' :
+    // Every tag with the number of events it is on, counting only events on
+    // monitors the user can see. A tag whose events are all hidden from this
+    // user is left out, as a hidden event lists none of its tags.
+    $counts = array();
+    $used = array();
+    foreach (dbFetchAll('SELECT ET.TagId, E.MonitorId, COUNT(*) AS Events FROM Events_Tags AS ET INNER JOIN Events AS E ON E.Id = ET.EventId GROUP BY ET.TagId, E.MonitorId') as $row) {
+      $used[$row['TagId']] = true;
+      if (visibleMonitor($row['MonitorId'])) {
+        $counts[$row['TagId']] = ($counts[$row['TagId']] ?? 0) + $row['Events'];
+      }
+    }
+    $tags = array();
+    foreach (dbFetchAll('SELECT Id, Name, CreateDate, LastAssignedDate FROM Tags ORDER BY Name') as $tag) {
+      $tag['Events'] = $counts[$tag['Id']] ?? 0;
+      if (!$tag['Events'] and isset($used[$tag['Id']])) continue;
+      $tags[] = $tag;
+    }
+    ajaxResponse(array('response'=>$tags));
+    break;
+  case 'renametag' :
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions to rename tags');
+    }
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
+    if ($tagId === '' or $tagName === '') ajaxError('renametag requires a numeric tid and a tag name');
+    if (mb_strlen($tagName, 'UTF-8') > 64) ajaxError('Tag names are limited to 64 characters');
+    if (!dbFetchOne('SELECT Id FROM Tags WHERE Id = ?', 'Id', array($tagId))) ajaxError('No such tag');
+    // Tag names are shared, so don't let a rename reach events on monitors this user can't see.
+    foreach (dbFetchAll('SELECT DISTINCT E.MonitorId FROM Events_Tags AS ET INNER JOIN Events AS E ON E.Id = ET.EventId WHERE ET.TagId = ?', NULL, array($tagId)) as $row) {
+      if (!visibleMonitor($row['MonitorId'])) ajaxError('The tag is on events you cannot see and cannot be renamed');
+    }
+    if (dbFetchOne('SELECT Id FROM Tags WHERE Name = ? AND Id != ?', 'Id', array($tagName, $tagId))) {
+      ajaxError('A tag named '.validHtmlStr($tagName).' already exists');
+    }
+    dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId));
+    ajaxResponse();
+    break;
+  case 'deletetag' :
+    // Only a tag that is on no event at all, whether the user can see it or not.
+    if (!canEdit('Events')) {
+      ajaxError('Insufficient permissions to delete tags');
+    }
+    $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
+    if ($tagId === '') ajaxError('deletetag requires a numeric tid');
+    if (dbFetchOne('SELECT TagId FROM Events_Tags WHERE TagId = ? LIMIT 1', 'TagId', array($tagId))) {
+      ajaxError('The tag is still on events and cannot be deleted');
+    }
+    dbQuery('DELETE FROM Tags WHERE Id = ?', array($tagId));
+    ajaxResponse();
+    break;
 } // end switch action
 
 ajaxError('Unrecognised action '.$_REQUEST['action']);

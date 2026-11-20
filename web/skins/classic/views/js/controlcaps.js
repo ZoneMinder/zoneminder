@@ -44,6 +44,7 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=controlcaps&action=delete&cids[]='+selections.join('&cids[]='))
       .done( function(data) {
+        if (data.result == 'Error') alert(data.message);
         tableControlCaps.bootstrapTable('refresh');
         window.location.reload(true);
       })

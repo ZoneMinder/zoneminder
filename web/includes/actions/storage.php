@@ -58,9 +58,16 @@ if ($action == 'save') {
       $error_message .= $storage->get_last_error();
     } // end if successful save
   }
-  // there is no view=storage, so need to redirect somewhere useful
-  $redirect = '?view=options&tab=storage';
-  $refreshParent = true;
+  if (!$error_message) {
+    // there is no view=storage, so need to redirect somewhere useful
+    $redirect = '?view=options&tab=storage';
+    $refreshParent = true;
+  } else {
+    // The modal form posts view=storage, which has no view file. Render the
+    // options page instead so that the error is shown.
+    $view = 'options';
+    $_REQUEST['tab'] = 'storage';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Storage");
 }

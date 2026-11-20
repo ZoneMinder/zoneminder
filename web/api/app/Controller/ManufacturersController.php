@@ -125,6 +125,7 @@ class ManufacturersController extends AppController {
     if ( !$this->Manufacturer->exists($id) ) {
       throw new NotFoundException(__('Invalid manufacturer'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->Manufacturer, $id);
     if ( $this->Manufacturer->save($this->request->data) ) {
       $message = 'Saved';

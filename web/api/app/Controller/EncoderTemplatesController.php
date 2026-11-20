@@ -79,6 +79,7 @@ class EncoderTemplatesController extends AppController {
     if (!$this->EncoderTemplate->exists($id)) {
       throw new NotFoundException(__('Invalid encoder template'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->EncoderTemplate, $id);
     if ($this->EncoderTemplate->save($this->request->data)) {
       $this->set(array(

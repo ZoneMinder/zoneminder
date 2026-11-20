@@ -128,6 +128,7 @@ class CameraModelsController extends AppController {
     if (!$this->CameraModel->exists($id)) {
       throw new NotFoundException(__('Invalid model'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->CameraModel, $id);
     if ($this->CameraModel->save($this->request->data)) {
       $message = 'Saved';

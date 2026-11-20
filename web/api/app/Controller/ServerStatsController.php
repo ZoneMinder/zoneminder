@@ -127,6 +127,7 @@ class ServerStatsController extends AppController {
     if ( !$this->ServerStat->exists($id) ) {
       throw new NotFoundException(__('Invalid server stat'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->ServerStat, $id);
     if ( $this->ServerStat->save($this->request->data) ) {
       $message = 'Saved';

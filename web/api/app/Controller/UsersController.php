@@ -196,6 +196,9 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->request->allowMethod('post', 'delete');
+		# User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+		$this->loadModel('UserPreference');
+		$this->UserPreference->deleteAll(array('UserPreference.UserId' => $id), false);
 		if ($this->User->delete()) {
 			$message = 'The user has been deleted.';
 		} else {

@@ -1648,7 +1648,8 @@ bool Image::WriteJpeg(const std::string &filename,
   // jpeg libs are not thread safe
   std::unique_lock<std::mutex> lck(jpeg_mutex);
 
-  int quality = quality_override ? quality_override : config.jpeg_file_quality;
+  // The option accepts any integer; there is a cached struct for each quality 0-100.
+  int quality = std::clamp(quality_override ? quality_override : config.jpeg_file_quality, 0, 100);
 
   jpeg_compress_struct *cinfo = writejpg_ccinfo[quality];
   FILE *outfile = nullptr;
@@ -1989,7 +1990,7 @@ bool Image::EncodeJpeg(JOCTET *outbuffer, size_t *outbuffer_size, int quality_ov
 
   std::unique_lock<std::mutex> lck(jpeg_mutex);
 
-  int quality = quality_override ? quality_override : config.jpeg_stream_quality;
+  int quality = std::clamp(quality_override ? quality_override : config.jpeg_stream_quality, 0, 100);
 
   struct jpeg_compress_struct *cinfo = encodejpg_ccinfo[quality];
 

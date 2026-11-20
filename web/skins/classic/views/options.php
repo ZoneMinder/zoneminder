@@ -285,7 +285,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $fileSet = isset($fileConfig[$name]);
-              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet;
+              // Readonly rows (ZM_DYN_DB_VERSION and the other DYNAMIC/version entries) are
+              // written by the daemons; editing them here corrupts version detection.
+              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet && empty($value['Readonly']);
               $secret = !empty($value['Private']) || $value['Type'] == 'password';
               // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
               // those who may change it: System=View can read this page, and the auth

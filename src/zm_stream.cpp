@@ -203,10 +203,7 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     // last_crop in the wrong units for every later frame. refs #3681
     Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
     last_scale = pre_scaled_by;
-    last_zoom = ZM_SCALE_BASE;
-    // This frame went out unzoomed, so a later zoom-in starts from the whole frame.
-    last_crop = Box();
-    last_crop_width = last_crop_height = 0;
+    unzoomedFrameSent();
     return image;
   }
 

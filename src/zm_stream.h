@@ -211,6 +211,13 @@ class StreamBase {
   // callers that have to colour convert anyway and can therefore scale in the
   // same swscale pass. 0 means the image is at full size. See #3681.
   Image *prepareImage(Image *image, int pre_scaled_by = 0);
+  // For a frame that went out unzoomed, through prepareImage or not, so a later
+  // zoom-in starts from the whole frame.
+  void unzoomedFrameSent() {
+    last_zoom = ZM_SCALE_BASE;
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
 
   // Dimensions a caller should produce the source image at so the scale folds
   // into a colour conversion it has to do anyway. Returns the scale used, which

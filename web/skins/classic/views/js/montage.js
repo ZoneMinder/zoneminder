@@ -20,6 +20,7 @@ var scrollBarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 var TimerHideShow = null;
 var webSiteReloadTimers = []; // intervals reloading WebSite monitors
+var waitingMonitorsPlacedInterval = null; // pending waitingMonitorsPlaced() poll
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -1021,39 +1022,47 @@ function checkEndMonitorsPlaced() {
 }
 
 function waitingMonitorsPlaced(action = null) {
-  const intervalWait = setInterval(() => {
-    if (checkEndMonitorsPlaced()) {
-      // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
-      //if (isPresetLayout(getCurrentNameLayout())) {
-      //  objGridStack.compact('list', true);
-      //}
-      if (action == 'startMonitors') {
-        startMonitors();
-        monitorInitComplete = true;
-      } else if (action == 'changeRatio') {
-        if (!isPresetLayout(getCurrentNameLayout())) {
-          clearInterval(intervalWait);
-          return;
-        }
-        if (objGridStack) {
-          objGridStack.destroy(false);
-        }
-
-        for (let i = 0, length = monitors.length; i < length; i++) {
-          const monitor = monitors[i];
-          // Need to clear the current positioning "X". Otherwise, the order of the monitors will be disrupted
-          const monitor_frame = $j('#monitor'+monitor.id);
-          if (!monitor_frame) {
-            console.log('Error finding frame for ' + monitor.id);
-            continue;
-          }
-          //monitor_wrapper
-          monitor_frame.closest('[gs-id="' + monitor.id + '"]').removeAttr('gs-x');
-        }
-        initGridStack();
-        // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
+  // Only one poll at a time: changeRatioForAll() calls this on every change.
+  clearInterval(waitingMonitorsPlacedInterval);
+  let attempts = 0;
+  waitingMonitorsPlacedInterval = setInterval(() => {
+    attempts++;
+    // A stream that never reports a width would poll forever, so after 10s
+    // (100 ticks) run the action anyway: the changeRatio step is what
+    // repositions the grid, and skipping it leaves the monitors misplaced.
+    if (!checkEndMonitorsPlaced() && attempts < 100) {
+      return;
+    }
+    clearInterval(waitingMonitorsPlacedInterval);
+    waitingMonitorsPlacedInterval = null;
+    // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
+    //if (isPresetLayout(getCurrentNameLayout())) {
+    //  objGridStack.compact('list', true);
+    //}
+    if (action == 'startMonitors') {
+      startMonitors();
+      monitorInitComplete = true;
+    } else if (action == 'changeRatio') {
+      if (!isPresetLayout(getCurrentNameLayout())) {
+        return;
       }
-      clearInterval(intervalWait);
+      if (objGridStack) {
+        objGridStack.destroy(false);
+      }
+
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        const monitor = monitors[i];
+        // Need to clear the current positioning "X". Otherwise, the order of the monitors will be disrupted
+        const monitor_frame = $j('#monitor'+monitor.id);
+        if (!monitor_frame) {
+          console.log('Error finding frame for ' + monitor.id);
+          continue;
+        }
+        //monitor_wrapper
+        monitor_frame.closest('[gs-id="' + monitor.id + '"]').removeAttr('gs-x');
+      }
+      initGridStack();
+      // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
     }
   }, 100);
 }

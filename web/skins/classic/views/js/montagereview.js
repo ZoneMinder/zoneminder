@@ -1754,14 +1754,34 @@ function loadFrames(zm_events) {
       return;
     }
 
+    // A failed fetch must drop the "loading" marker we set above, otherwise a
+    // closed event is skipped by the filter on every later call and its frames
+    // can never be loaded again until a page reload.
+    const clearLoadingMarkers = function(event_ids) {
+      for (let i=0; i<event_ids.length; i++) {
+        const e = zm_events[event_ids[i]];
+        if (e && e.FramesById && !e.FramesById.length) delete e.FramesById;
+      }
+    };
+
     let query = '';
+    let batch = [];
     while (ids.length) {
-      query += '/EventId:'+ids.shift();
+      const id = ids.shift();
+      query += '/EventId:'+id;
+      batch.push(id);
 
       if ((!ids.length) || (query.length > 1000)) {
+        // Snapshot the batch for this request: the loop keeps pushing into it
+        // and the ajax callbacks run later.
+        const batch_ids = batch;
+        batch = [];
         $j.ajax(zmAuth.appendTo(url+query+'.json'), {
           timeout: 0,
           success: function(data) {
+            if (data && data.result == 'Error') {
+              clearLoadingMarkers(batch_ids);
+            }
             if (data && data.frames && data.frames.length) {
               let last_frame = null;
 
@@ -1806,6 +1826,7 @@ function loadFrames(zm_events) {
           },
           error: function(jqXHR) {
             logAjaxFail(jqXHR);
+            clearLoadingMarkers(batch_ids);
             reject(Error("There was an error"));
           }
         }); // end ajax

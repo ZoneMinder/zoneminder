@@ -194,6 +194,12 @@ $statusData = array(
       'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+      // The event view moves between events without a page load, so its Download
+      // link needs the server-built URL (right host, auth relay) for each event.
+      'DownloadUrl' => array( 'postFunction' => function($row) {
+        $Event = new ZM\Event($row['Id']);
+        return $Event->DefaultVideo() ? $Event->getStreamSrc(array('mode'=>'mp4'), '&') : '';
+      }),
     ),
   ),
   'frames' => array(

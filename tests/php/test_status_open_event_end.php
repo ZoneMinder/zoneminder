@@ -13,6 +13,14 @@
 namespace ZM {
   function Debug($m) {}
   function Error($m) {}
+
+  // The event reply now also carries DownloadUrl, built from a ZM\Event. This
+  // test is about EndDateTime, so the stub only has to answer the two calls.
+  class Event {
+    public function __construct($idOrRow = null) {}
+    public function DefaultVideo() { return ''; }
+    public function getStreamSrc($args = array(), $querySep = '&') { return ''; }
+  }
 }
 
 namespace {

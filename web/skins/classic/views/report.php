@@ -123,7 +123,9 @@ months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 
 
 for (event_index=0; event_index < events.length; event_index++) {
   const event = events[event_index];
-  const event_start = new Date(event.StartDateTime);
+  // "YYYY-MM-DD HH:MM:SS" is not a format Date() must accept (Safari gives Invalid Date);
+  // with a T it is ISO 8601 local time everywhere.
+  const event_start = new Date(String(event.StartDateTime).replace(' ', 'T'));
   const day = event_start.getDate();
   const date_key = months[event_start.getMonth()] + ' ' + day;
   if (! (date_key in dataset_indexes)) {

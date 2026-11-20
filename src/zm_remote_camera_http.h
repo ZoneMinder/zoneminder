@@ -77,6 +77,9 @@ class RemoteCameraHttp : public RemoteCamera {
   static std::string ParseBoundary(const char *text);
   // Whether a part line opens with dashes followed by the boundary.
   static bool IsBoundaryLine(const char *line, const char *boundary, size_t len);
+  // The text with a backslash before each character that is not a letter or digit, so a
+  // PCRE pattern matches it literally.
+  static std::string QuoteRegex(const std::string &text);
   int PrimeCapture() override;
   int PreCapture() override;
   int Capture(std::shared_ptr<ZMPacket> &p) override;

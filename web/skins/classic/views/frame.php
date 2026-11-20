@@ -40,10 +40,11 @@ if (isset($_REQUEST['fid']) && in_array($_REQUEST['fid'], array('objdetect', 'ob
 # perhaps we should consider being explicit, like fid = maxscore
 if (!empty($fid)) {
   $sql = 'SELECT * FROM Frames WHERE EventId=? AND FrameId=?';
-  if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid))))
+  if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid)))) {
     $frame = array('EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0);
     $virtualFrame = $Event->find_virtual_frame($fid);
     if ($virtualFrame) $frame['Delta'] = $virtualFrame->Delta();
+  }
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
   if (!$frame) {
@@ -81,7 +82,7 @@ $scale = $scale ? $scale : 0;
 $imageData = $Event->getImageSrc($frame, $scale, 0);
 if (!$imageData) {
   ZM\Error("No data found for Event $eid frame $fid");
-  $imageData = array('hasAnalysisImage'=>0, 'thumbPath' => '', 'eventPath'=>'');
+  $imageData = array('hasAnalysisImage'=>0, 'thumbPath' => '', 'eventPath'=>'', 'imageClass'=>'normal');
 }
 
 $show = 'capture';

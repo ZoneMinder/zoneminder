@@ -26,11 +26,16 @@ if ( !canEdit('Devices') ) {
 
 $action = validStr($_REQUEST['action'] ?? '');
 if ( $action == 'delete' ) {
+  $failed = false;
   if ( isset($_REQUEST['markDids']) ) {
     foreach( (array)$_REQUEST['markDids'] as $markDid ) {
       if ( is_array($markDid) ) continue;
-      dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid));
+      if ( dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid)) === null ) $failed = true;
     }
+  }
+  if ( $failed ) {
+    ajaxError('Failed to delete device: '.dbLastError());
+    return;
   }
   ajaxResponse();
 } else {

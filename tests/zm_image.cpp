@@ -692,6 +692,46 @@ TEST_CASE("Image::EncodeJpeg cached struct no raw leak", "[Image]") {
   REQUIRE(actual == expected);
 }
 
+namespace {
+class JpegCacheProbe : public Image {
+ public:
+  static bool WriteCached(int quality) { return writejpg_ccinfo[quality] != nullptr; }
+  static bool EncodeCached(int quality) { return encodejpg_ccinfo[quality] != nullptr; }
+};
+}  // namespace
+
+// The quality options accept any integer, but a compressor is cached only for
+// each quality 0-100; a quality outside that indexed past the cache arrays.
+TEST_CASE("Image::WriteJpeg and EncodeJpeg clamp an out of range quality", "[Image]") {
+  Image::Deinitialise();  // empties the caches
+  bootstrap_image_config();
+  Image image(32, 24, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  image.Clear();
+  char path[] = "/tmp/zm_jpeg_quality_XXXXXX.jpg";
+  int fd = mkstemps(path, 4);
+  REQUIRE(fd >= 0);
+  close(fd);
+  std::vector<JOCTET> buf(1 << 20);
+  size_t size = 0;
+
+  const int file_quality = config.jpeg_file_quality;
+  const int stream_quality = config.jpeg_stream_quality;
+  config.jpeg_file_quality = 101;
+  config.jpeg_stream_quality = 101;
+  CHECK(image.WriteJpeg(path));
+  CHECK(image.EncodeJpeg(buf.data(), &size));
+  CHECK(JpegCacheProbe::WriteCached(100));
+  CHECK(JpegCacheProbe::EncodeCached(100));
+  config.jpeg_file_quality = file_quality;
+  config.jpeg_stream_quality = stream_quality;
+
+  CHECK(image.WriteJpeg(path, -1));
+  CHECK(image.EncodeJpeg(buf.data(), &size, -1));
+  CHECK(JpegCacheProbe::WriteCached(0));
+  CHECK(JpegCacheProbe::EncodeCached(0));
+  unlink(path);
+}
+
 TEST_CASE("Image::Fill polygon writes the expected pixels for each density", "[image]") {
   bootstrap_image_config();
   const int w = 16, h = 12;

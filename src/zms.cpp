@@ -219,12 +219,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
       //Debug(1, "Setting event_time to %s", SystemTimePointToString(event_time).c_str());
     } else if ( !strcmp(name, "time") ) {
-      double double_time = atof(value);
-      std::chrono::duration<double> event_time_seconds(double_time);
-      auto system_duration = std::chrono::duration_cast<std::chrono::system_clock::duration>(event_time_seconds);
-	    event_time = SystemTimePoint{system_duration};
-      //Debug(1, "Setting event_time to %s from %s %.2f %lf",
-          //SystemTimePointToString(event_time).c_str(), value, double_time, event_time_seconds.count());
+      event_time = StreamBase::ParseTimeParam(value);
     } else if ( !strcmp(name, "event") ) {
       event_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;

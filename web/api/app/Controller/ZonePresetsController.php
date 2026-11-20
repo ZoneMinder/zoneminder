@@ -67,15 +67,24 @@ class ZonePresetsController extends AppController {
    * @return void
    */
   public function add() {
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ( $this->request->is('post') ) {
       $this->pinRequestId($this->ZonePreset, null);
       $this->ZonePreset->create();
       if ( $this->ZonePreset->save($this->request->data) ) {
-        return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->ZonePreset->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       }
       $this->set(array(
         'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
-        '_serialize' => array('message')
+        'id' => null,
+        '_serialize' => array('message', 'id')
       ));
     }
   }
@@ -94,15 +103,18 @@ class ZonePresetsController extends AppController {
     if ( $this->request->is(array('post', 'put')) ) {
       $this->pinRequestId($this->ZonePreset, $id);
       if ( $this->ZonePreset->save($this->request->data) ) {
-        return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
+        $this->set(array(
+          'message' => 'Saved',
+          '_serialize' => array('message')
+        ));
+        return;
       }
       $this->set(array(
         'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
         '_serialize' => array('message')
       ));
     } else {
-      $options = array('conditions' => array('ZonePreset.' . $this->ZonePreset->primaryKey => $id));
-      $this->request->data = $this->ZonePreset->find('first', $options);
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
   }
 

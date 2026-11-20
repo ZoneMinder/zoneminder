@@ -289,7 +289,9 @@ sub runServer {
       # Check for state changes
       foreach my $monitor_id ( sort(keys(%monitor_hash) ) ) {
         my $monitor = $monitor_hash{$monitor_id};
-        my $state = zmGetMonitorState($monitor);
+        # loadTasks detaches each monitor once it has checked it, and zmc may have
+        # restarted since, so verify (and attach) before every read.
+        my $state = zmMemVerify($monitor) ? zmGetMonitorState($monitor) : undef;
         if ( !defined($state) ) {
           $reload = !undef;
           next;
@@ -411,6 +413,8 @@ sub addToMonitorList {
 } # end sub addToMonitorList
 
 sub loadTasks {
+  # The poll keeps monitors attached; detach them before dropping them.
+  zmMemInvalidate($_) foreach values(%monitor_hash);
   %monitor_hash = ();
 
   Debug('Loading tasks');

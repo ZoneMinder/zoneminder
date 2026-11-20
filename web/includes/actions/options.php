@@ -86,7 +86,7 @@ if ( $action == 'delete' ) {
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type,DefaultValue,Requires,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  $result = dbQuery('SELECT Name,Value,Type,DefaultValue,Requires,`System`,`Readonly` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
   if (!$result) {
     $error_message .= 'Error loading config for tab ' . htmlspecialchars($_REQUEST['tab']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
     return;
@@ -109,6 +109,9 @@ if ( $action == 'delete' ) {
         ZM\Debug('Not saving '.$config['Name'].': it is set in '.$fileConfig[$config['Name']]['File']);
       continue;
     }
+    // Readonly rows are maintained by the daemons (version detection, telemetry),
+    // so a posted value for one is not saved, and not counted as a change.
+    if (!empty($config['Readonly'])) continue;
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
       if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;

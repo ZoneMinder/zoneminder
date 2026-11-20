@@ -42,6 +42,9 @@ static RegExpr *status_expr = nullptr;
 static RegExpr *connection_expr = nullptr;
 static RegExpr *content_length_expr = nullptr;
 static RegExpr *content_type_expr = nullptr;
+static RegExpr *subheader_expr = nullptr;
+static RegExpr *content_expr = nullptr;
+static std::string multipart_boundary;
 #endif
 
 RemoteCameraHttp::RemoteCameraHttp(
@@ -481,6 +484,13 @@ int RemoteCameraHttp::GetResponse() {
               Error( "No content boundary found in header '%s'", header );
               return( -1 );
             }
+            if ( multipart_boundary != content_boundary ) {
+              multipart_boundary = content_boundary;
+              delete subheader_expr;
+              subheader_expr = nullptr;
+              delete content_expr;
+              content_expr = nullptr;
+            }
             mode = MULTI_IMAGE;
             state = SUBHEADER;
           }
@@ -500,13 +510,12 @@ int RemoteCameraHttp::GetResponse() {
         break;
       }
       case SUBHEADER : {
-        static RegExpr *subheader_expr = nullptr;
         static RegExpr *subcontent_length_expr = nullptr;
         static RegExpr *subcontent_type_expr = nullptr;
 
         if ( !subheader_expr ) {
           char subheader_pattern[256] = "";
-          snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", content_boundary );
+          snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", multipart_boundary.c_str() );
           subheader_expr = new RegExpr( subheader_pattern, PCRE2_DOTALL );
         }
         if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 ) {
@@ -586,11 +595,10 @@ int RemoteCameraHttp::GetResponse() {
               return -1;
             }
             bytes += buffer_len;
-            static RegExpr *content_expr = 0;
             if (mode == MULTI_IMAGE) {
               if (!content_expr) {
                 char content_pattern[256] = "";
-                snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", content_boundary);
+                snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", multipart_boundary.c_str());
                 content_expr = new RegExpr(content_pattern, PCRE2_DOTALL);
               }
               if (content_expr->Match( buffer, buffer.size()) == 2) {

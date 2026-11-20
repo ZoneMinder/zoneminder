@@ -37,14 +37,20 @@ if ( $action == 'save' ) {
   $old_ids = $group->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group->Id())) : array();
   $moved = array_merge(array_diff($old_ids, $new_ids), array_diff($new_ids, $old_ids));
   $new_parent = (($_REQUEST['newGroup']['ParentId'] ?? '') == '' ? null : $_REQUEST['newGroup']['ParentId']);
+  // The group modal posts view=group, which has no view file, so failures are
+  // shown on the Groups page; otherwise index.php sends the user to the console.
   if (!ZM\Group::validParent($group->Id(), $new_parent)) {
     ZM\Warning('Invalid parent group for group '.$group->Id());
+    $error_message .= 'A group cannot be placed under itself or one of its own groups.<br/>';
+    $view = 'groups';
     return;
   }
   // Re-parenting moves every monitor of this group and its children between ancestors.
   if ($group->Id() and ($new_parent != $group->ParentId())) $moved = array_merge($moved, $group->MonitorIds());
   if (!ZM\Group::canEditMembership($moved)) {
     ZM\Warning('Need edit permission on every monitor moved into or out of a group');
+    $error_message .= 'You need edit permission on every monitor moved into or out of the group.<br/>';
+    $view = 'groups';
     return;
   }
 
@@ -55,6 +61,7 @@ if ( $action == 'save' ) {
       )
     )) {
     $error_message .= validHtmlStr($group->get_last_error());
+    $view = 'groups';
     return;
   }
   dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));

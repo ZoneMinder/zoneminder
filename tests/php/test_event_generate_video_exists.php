@@ -54,6 +54,21 @@ try {
 check('existing generated video is returned', $got, 'Event-77.mp4');
 
 unlink($dir.'/Event-77.mp4');
+
+// An export gives its own directory so the video is not written to the events'
+// storage; a video already there is found, and the event directory stays empty.
+$outdir = $stubdir.'/out';
+mkdir($outdir, 0700);
+file_put_contents($outdir.'/Event-77.mp4', 'video');
+try {
+  $got = $event->GenerateVideo(0, 0, 0, 0, false, 'mp4', '', $outdir);
+} catch (\Throwable $e) {
+  $got = get_class($e);
+}
+check('video in the given output directory is returned', $got, 'Event-77.mp4');
+check('event directory is left untouched', glob($dir.'/*'), array());
+unlink($outdir.'/Event-77.mp4');
+rmdir($outdir);
 rmdir($dir);
 rmdir($stubdir.'/storage/1');
 rmdir($stubdir.'/storage');

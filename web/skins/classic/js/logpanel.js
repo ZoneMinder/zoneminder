@@ -74,6 +74,7 @@ function initLogPanel(panel) {
   let requestMissed = false; // AJAX request was skipped.
   let btnAutoRefresh = null;
   let autoRefresh = null;
+  let lastQuery = null; // The query of the last request sent, to tell a refresh from a new search
   let deleteProgressBar = null;
   let idsLength = 0;
   // The filter the table last queried with, so a clear all matches what is on
@@ -140,7 +141,11 @@ function initLogPanel(panel) {
   // Called by bootstrap-table to retrieve zm log data
   function ajaxRequest(params) {
     if (deferTableRequestWhileHidden(table)) return;
-    if (allowRequest !== true && autoRefresh === false) return;
+    // With auto-refresh paused only drop the scheduled refreshes, which repeat the
+    // last query. A search or advanced search changes it, and fires no event before
+    // bootstrap-table asks for data, so it would have been dropped too.
+    const query = JSON.stringify(params.data);
+    if (allowRequest !== true && autoRefresh === false && query === lastQuery) return;
     if (getIdSelections().length && allowRequest === false) {
       // We won't automatically refresh to avoid disturbing the user who has selected rows.
       console.debug("The user selected rows in the table, and the AJAX request was rejected.");
@@ -187,6 +192,7 @@ function initLogPanel(panel) {
       params.data.EndDateTime = $panel.find('.logPanel-end').val();
     }
 
+    lastQuery = query;
     currentFilter = logPanelFilterOf(params.data);
 
     const startTime = Date.now();

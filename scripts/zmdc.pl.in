@@ -325,7 +325,8 @@ sub run {
   setpgrp();
 
   # dbh got closed with the rest of the fd's above, so need to reconnect.
-  my $dbh = zmDbConnect(1);
+  # Assign the file-level $dbh: start() replaces it after it reconnects.
+  $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '

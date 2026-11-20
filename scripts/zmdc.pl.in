@@ -468,8 +468,9 @@ sub cPrint {
     # zmdc with SIGPIPE in the middle of e.g. a shutdown.
     # If the write fails the client is gone: close it here, or the unwritten
     # reply stays buffered and closing CLIENT later raises SIGPIPE anyway.
+    # CLIENT is not autoflushed, so flush here too or print only buffers.
     local $SIG{PIPE} = 'IGNORE';
-    close(CLIENT) if !print CLIENT @_;
+    close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
 }
 

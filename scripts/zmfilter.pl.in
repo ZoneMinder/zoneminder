@@ -472,6 +472,10 @@ sub generateVideo {
     return 0;
   } else {
     zmDbExecute('UPDATE `Events` SET `Videoed`=1 WHERE `Id`=?', $Event->{Id});
+    # zmvideo.pl may have stored a new DiskSpace; a later save writes every field back
+    $Event->{Videoed} = 1;
+    my $row = zmDbFetchOne('SELECT `DiskSpace` FROM `Events` WHERE `Id`=?', $Event->{Id});
+    $Event->{DiskSpace} = $$row{DiskSpace} if $row and defined $$row{DiskSpace};
     return ($format, $output) if wantarray();
   }
   return 1;
@@ -694,6 +698,7 @@ sub uploadArchFile {
     }
     unlink($archLocPath);
     zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
+    $Event->{Uploaded} = 1;
   }
   return 1;
 } # end sub uploadArchFile
@@ -992,13 +997,21 @@ sub sendSummaryEmail {
   foreach my $event (@events) {
     $body .= substituteTags($summary_part, $filter, $event, \@attachments, {html=>$html});
   }
+  # With AutoDelete, checkFilter builds its event objects from these rows after
+  # this, so carry over what making a video for %EV% or %EVM% changed.
+  my %sending = map { $$_{Id} => $_ } @events;
+  foreach my $row (grep { $sending{$$_{Id}} } @_) {
+    @$row{qw(Videoed DiskSpace)} = @{$sending{$$row{Id}}}{qw(Videoed DiskSpace)};
+  }
   return 0 if !$body;
   $body .= substituteTags($body_tail, $filter, undef, \@attachments, {html=>$html}) if defined $body_tail;
   Debug("Sending notification email '$subject'");
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
     foreach my $event (@events) {
-      $event->save({Emailed=>1});
+      # Not save(): these were loaded before the per-event actions changed them
+      zmDbExecute('UPDATE `Events` SET `Emailed`=1 WHERE `Id`=?', $$event{Id});
     }
+    $$_{Emailed} = 1 foreach grep { $sending{$$_{Id}} } @_;
     return 1;
   }
   return 0;
@@ -1296,6 +1309,7 @@ sub sendMessage {
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
     or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+  $Event->{Messaged} = 1;
 
   return 1;
 } # end sub sendMessage

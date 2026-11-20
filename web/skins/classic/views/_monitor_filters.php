@@ -262,7 +262,8 @@ function buildMonitorsFilters() {
 
   if (count($user->unviewableMonitorIds()) ) {
     $ids = $user->viewableMonitorIds();
-    $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
+    // IN () is a syntax error, so a user who can view no monitor matches nothing
+    $conditions[] = 'M.Id IN ('.(count($ids) ? implode(',',array_map(function(){return '?';}, $ids)) : '0').')';
     $values = array_merge($values, $ids);
   }
 

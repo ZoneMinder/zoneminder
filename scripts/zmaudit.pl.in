@@ -46,6 +46,7 @@ use POSIX;
 use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
+use Scalar::Util qw(looks_like_number);
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
@@ -866,7 +867,9 @@ if ( $level > 1 ) {
 
   # Prune the Logs table if required (excluding AUDIT entries)
   # A number less than or equal to zero means no limit
-  if ( $Config{ZM_LOG_DATABASE_LIMIT} and $Config{ZM_LOG_DATABASE_LIMIT} !~ /^-\d+$/ ) {
+  $Config{ZM_LOG_DATABASE_LIMIT} =~ s/^\s+|\s+$//g if defined $Config{ZM_LOG_DATABASE_LIMIT};
+  if ( $Config{ZM_LOG_DATABASE_LIMIT}
+    and !(looks_like_number($Config{ZM_LOG_DATABASE_LIMIT}) and $Config{ZM_LOG_DATABASE_LIMIT} <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
@@ -910,9 +913,10 @@ if ( $level > 1 ) {
   } # end if ZM_LOG_DATABASE_LIMIT
 
   # Prune AUDIT log entries separately with their own retention period
-  if ( $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} ) {
+  my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} // '';
+  $audit_limit =~ s/^\s+|\s+$//g;
+  if ( $audit_limit and !(looks_like_number($audit_limit) and $audit_limit <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
-    my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT};
     if ( $audit_limit =~ /^\d+$/ ) {
       # Number of rows
       my $sth = $dbh->prepare_cached('SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` = ?')

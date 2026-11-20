@@ -1,18 +1,21 @@
 #!/usr/bin/perl
 #
 # ZM_LOG_DATABASE_LIMIT: a number less than or equal to zero means no limit.
-# zmstats.pl and zmaudit.pl took a negative number for a time interval and ran
-# "DELETE ... now() - interval -1", which MySQL rejects: zmstats logged an
-# error every pass and zmaudit died on it.
+# zmstats.pl and zmaudit.pl must leave the Logs table alone for any such value,
+# with or without surrounding spaces, prune by row count for a value of digits
+# only and by interval otherwise, and build no invalid statement and print no
+# warning for the values below, including a missing setting.
+# ZM_LOG_AUDIT_DATABASE_LIMIT follows the same rules.
 #
-# Runs the Logs pruning block of each script against a stub database handle
-# and records the statements it issues.
+# Runs the Logs and audit pruning blocks of each script against a stub
+# database handle and records the statements they issue.
 #
 # Run as: perl tests/perl/test_log_database_limit.pl
 #
 use strict;
 use warnings;
 use FindBin;
+use Scalar::Util qw(looks_like_number);
 
 my $failures = 0;
 my $passes = 0;
@@ -58,27 +61,54 @@ foreach my $script (qw(zmstats.pl.in zmaudit.pl.in)) {
   open(my $fh, '<', $file) or die "Can't read $file: $!";
   my $src = do { local $/; <$fh> };
   close($fh);
-  my ($block) = $src =~ /^(\s*if \( \$Config\{ZM_LOG_DATABASE_LIMIT\} .*?\} # end if ZM_LOG_DATABASE_LIMIT\n)/ms;
+  my ($block) = $src =~ /^(\s*# Prune the Logs table if required.*?\} # end if ZM_LOG_AUDIT_DATABASE_LIMIT\n)/ms;
   check("$script: found the Logs pruning block", defined($block) ? 1 : 0, 1);
   next if !defined $block;
   my $prune = eval "sub { $block }" or die "Can't compile the block of $script: $@";
 
+  # prunes: 0 = none, 'count' = by row count, 'time' = by interval
   foreach my $case (
-    [ '0',       0 ],
-    [ '-1',      0 ],
-    [ '-100',    0 ],
-    [ '1000',    1 ],
-    [ '7 day',   1 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '0',       0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-1',      0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-100',    0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '00',      0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '0.0',     0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-1.5',    0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', ' -5',     0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-5 ',     0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '1000',    'count' ],
+    [ 'ZM_LOG_DATABASE_LIMIT', ' 1000',   'count' ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '7 day',   'time' ],
+    [ 'ZM_LOG_DATABASE_LIMIT', undef,     0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '',       0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1000',   'count' ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', ' 1000',  'count' ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1000 ',  'count' ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1 year', 'time' ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '0',      0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', ' 0',     0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '0 ',     0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '00',     0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '-1',     0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', undef,    0 ],
   ) {
-    my ($limit, $prunes) = @$case;
-    %Config = (ZM_LOG_DATABASE_LIMIT => $limit);
+    my ($name, $limit, $prunes) = @$case;
+    %Config = (ZM_LOG_DATABASE_LIMIT => '0', ZM_LOG_AUDIT_DATABASE_LIMIT => '', $name => $limit);
+    delete $Config{$name} if !defined $limit;
+    my $shown = defined $limit ? "'$limit'" : 'missing';
     @sql = ();
-    eval { $prune->(); 1 } or push @sql, "died: $@";
+    my @warnings;
+    {
+      local $SIG{__WARN__} = sub { push @warnings, @_ };
+      eval { $prune->(); 1 } or push @sql, "died: $@";
+    }
+    check("$script: $name $shown prints no warning", join('', @warnings), '');
     my @deletes = grep { /DELETE/ } @sql;
-    my @bad = grep { /interval\s+-/i or /^died/ } @sql;
-    check("$script: limit '$limit' issues no invalid statement", join(' | ', @bad), '');
-    check("$script: limit '$limit' ".($prunes ? 'prunes' : 'leaves the Logs table alone'),
-      (@deletes ? 1 : 0), $prunes);
+    my @bad = grep { (/interval/i and !/interval \d+ [a-z]+\)/i) or /^died/ } @sql;
+    my $kind = !@deletes ? 0 : (grep { /interval/i } @deletes) ? 'time' : 'count';
+    check("$script: $name $shown issues no invalid statement", join(' | ', @bad), '');
+    check("$script: $name $shown ".($prunes ? "prunes by $prunes" : 'leaves the Logs table alone'),
+      $kind, $prunes);
   }
 }
 

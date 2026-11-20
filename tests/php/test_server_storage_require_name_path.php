@@ -54,6 +54,7 @@ namespace {
     $GLOBALS['db_queries'][] = trim($sql);
     return true;
   }
+  function dbInsertId() { return 1; }
   function getFormChanges($values, $newValues, $types = false, $columns = false) {
     $changes = array();
     if (!is_array($newValues)) return $changes;

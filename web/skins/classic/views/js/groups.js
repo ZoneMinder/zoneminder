@@ -4,6 +4,9 @@ function newGroup() {
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
         insertModalHtml('groupModal', data.html);
+        // The page's data-on-* handlers were bound before this modal existed.
+        dataOnChange();
+        dataOnInput();
         $j('#groupModal').modal('show');
         $j('#newGroupMonitorIds').chosen({width: "100%"});
       })
@@ -25,6 +28,8 @@ function editGroup( element ) {
     $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
         .done(function(data) {
           insertModalHtml('groupModal', data.html);
+          dataOnChange();
+          dataOnInput();
           $j('#groupModal').modal('show');
           $j('#newGroupMonitorIds').chosen({width: "100%"});
         })

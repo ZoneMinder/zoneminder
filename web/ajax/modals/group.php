@@ -122,7 +122,7 @@ if ( !empty($_REQUEST['gid']) ) {
           </table>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary" name="action" value="save" id="groupModalSaveBtn"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>><?php echo translate('Save') ?></button>
+          <button type="submit" class="btn btn-primary" name="action" value="save" id="groupModalSaveBtn"<?php echo $newGroup->Id() ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

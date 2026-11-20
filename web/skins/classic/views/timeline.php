@@ -561,7 +561,7 @@ if ( $mode == 'overlay' ) {
   $top = 0;
   $barCount = 1;
   foreach ( array_keys($monitors) as $monitorId ) {
-    $chart['eventBars'][$monitorId] = array( 'top' => $top );
+    $chart['activityBars'][$monitorId] = array( 'top' => $top );
     $chart['eventBars'][$monitorId] = array( 'top' => $top+$chart['graph']['activityBarHeight']+1 );
     $top +=  $chart['graph']['activityBarHeight']+1+$chart['graph']['eventBarHeight']+1;
   }

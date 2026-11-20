@@ -203,7 +203,7 @@ function getLogPanelHTML($options=array()) {
           <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
 <?php } ?>
           <th data-field="Id" data-visible="false"></th>
-          <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
+          <th data-sortable="true" data-searchable="false" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"<?php echo $locked === null ? '' : ' data-visible="false"' ?>><?php echo translate('Component') ?></th>
 <?php if ($multipleServers) { ?>
           <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>

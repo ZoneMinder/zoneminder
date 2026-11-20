@@ -1044,8 +1044,9 @@ function changeScale() {
   const newSize = scaleToFit(monitorData[0].width, monitorData[0].height, feed, controls, $j('#imageAndPoints'));
   if (!newSize) return;
   feed.css('width', newSize.width+'px');
-  // Line the stream controls up with the video, which is centred in the column
-  controls.css({
+  // Line the stream controls and the zone test panel up with the video, which
+  // is centred in the column
+  controls.add('#zoneTestPanel').css({
     'width': newSize.width+'px',
     'margin-left': (feed.offset().left - $j('#imageAndPoints').offset().left)+'px'
   });
@@ -1135,9 +1136,11 @@ document.onvisibilitychange = () => {
       }
     }, 15*1000);
   } else {
-    //Start monitors when show page
+    //Start monitors when show page - unless a replay or still the zone
+    //tools show over the feed stopped them on purpose
+    const replaying = document.querySelector('.replaying');
     for (let i = 0, length = monitorData.length; i < length; i++) {
-      if (!monitors[i].started) {
+      if (!monitors[i].started && !replaying) {
         monitors[i].start();
       }
     }

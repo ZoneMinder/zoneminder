@@ -1341,6 +1341,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void Reload();
   void ReloadZones();
+  const std::vector<Zone> &Zones() const { return zones; }
+  // Zone has a const member and cannot be assigned, so a zone is replaced by
+  // swapping in a whole new list.
+  void SetZones(std::vector<Zone> &&new_zones) { zones = std::move(new_zones); }
   void ReloadLinkedMonitors();
 
   void LoadActions();

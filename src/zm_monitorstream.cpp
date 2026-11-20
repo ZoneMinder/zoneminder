@@ -361,6 +361,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     Image temp_image(filepath.c_str());
     return sendFrame(&temp_image, timestamp);
   } else {
+    unzoomedFrameSent();
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 

@@ -83,7 +83,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $changes = $filter->changes($_REQUEST['filter']);
       ZM\Debug('Changes: ' . print_r($changes, true));
 
-      if (count($changes)) {
+      // SaveAs always writes a new row, so pressing it on an unmodified filter
+      // must still make a copy; every other action needs something to change.
+      // save() inserts the filter's current values, so an empty $changes still
+      // produces a copy with the original settings.
+      if (count($changes) or ($action == 'SaveAs')) {
         $filter->set($changes); // apply changes so that canEdit can use new values
 
         // ZM_ALLOWED_COMMANDS narrows what "Execute command" may run. Refused
@@ -110,6 +114,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           }
           if (!$filter->save($changes)) {
             $error_message = $filter->get_last_error();
+            return;
+          }
+          if (($action == 'SaveAs') and !$filter->Id()) {
+            // No new Id means no copy exists; don't pretend by redirecting to the original.
+            $error_message .= 'Failed to save a copy of the filter.<br/>';
             return;
           }
           ZM\AuditAction('save', 'filter', $filter->Id(), 'Name: '.$filter->Name().' Action: '.$action);

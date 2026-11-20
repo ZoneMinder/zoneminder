@@ -20,6 +20,7 @@
 #include "zm_eventstream.h"
 
 #include <chrono>
+#include <string>
 #include <vector>
 
 namespace {
@@ -147,4 +148,16 @@ TEST_CASE("zms scale= is limited, and a negative value is not a huge one", "[Eve
   CHECK(StreamBase::ParseScaleParam("abc") == 100);
   CHECK(StreamBase::ParseScaleParam("-50") == 100);
   CHECK(StreamBase::ParseScaleParam("-1") == 100);
+}
+
+TEST_CASE("zms time= gives the time it names", "[EventStreamCmd]") {
+  // A double near 1.7e9 is up to 0.12 us off the decimal it was read from.
+  // Truncated to a nanosecond clock, about a quarter of two-decimal times came
+  // out just before the frame at that time, so the stream started a frame early.
+  const SystemTimePoint start(Seconds(1763600000));
+  for (int cs = 0; cs < 100; cs++) {
+    const std::string value = std::to_string(1763600000) + (cs < 10 ? ".0" : ".") + std::to_string(cs);
+    CAPTURE(value);
+    CHECK(StreamBase::ParseTimeParam(value.c_str()) == start + Milliseconds(10 * cs));
+  }
 }

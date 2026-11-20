@@ -300,6 +300,12 @@ class StreamBase {
     const long parsed = strtol(value, nullptr, 10);
     return clampScale(parsed > MAX_SCALE ? static_cast<int>(MAX_SCALE) : static_cast<int>(std::max(parsed, 0L)));
   }
+  // The time= query parameter of zms, in seconds. The double is often a hair
+  // below the time given, so it is rounded to whole microseconds, as frame times
+  // are; truncating it to a nanosecond clock landed just before that frame.
+  static SystemTimePoint ParseTimeParam(const char *value) {
+    return SystemTimePoint(std::chrono::round<Microseconds>(FPSeconds(atof(value))));
+  }
   void setStreamScale(int p_scale) {
     scale = clampScale(p_scale);
   }

@@ -660,7 +660,7 @@ function saveMonitorData(href = '') {
   $j('#saveConfirm').modal('hide');
 }
 
-function ll2dms(input) {
+function ll2dms() {
   const latitude = document.getElementById('newMonitor[Latitude]');
   if (latitude.value === '') return;
   if (latitude.value < -90) latitude.value=-90;
@@ -672,15 +672,10 @@ function ll2dms(input) {
   if (longitude.value > 180) longitude.value=180;
   const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
 
-  if (input.id == 'newMonitor[Latitude]') {
-    const dms = document.getElementById('LatitudeDMS');
-    dms.value = dmsCoords.latitude.toString(2);
-  } else if (input.id == 'newMonitor[Longitude]') {
-    const dms = document.getElementById('LongitudeDMS');
-    dms.value = dmsCoords.longitude.toString(2);
-  } else {
-    console.log("Unknown input in ll2dms");
-  }
+  // Both are needed to convert, so fill both: when the second coordinate is
+  // entered, the first one's DMS box was left empty.
+  document.getElementById('LatitudeDMS').value = dmsCoords.latitude.toString(2);
+  document.getElementById('LongitudeDMS').value = dmsCoords.longitude.toString(2);
   updateMarker();
 }
 

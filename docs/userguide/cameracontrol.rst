@@ -153,19 +153,19 @@ The standard set of parameters passed to control scripts is defined below,
 
   --address=<address> : This is the control address from the monitor definition. This will usually be a hostname or ip address for network cameras or a simple numeric camera id for other cameras.
 
-  --autostop : This indicates that an automatic timeout should be applied to '''stop''' the given command. It is a flag and takes no value; the timeout is the monitor's Auto Stop Timeout, set in decimal seconds on its Control tab. It will only be included for '''continuous''' commands, as listed below, and only when that timeout is set.
+  --autostop : This indicates that an automatic timeout should be applied to stop the given command. It is a flag and takes no value; the timeout is the monitor's Auto Stop Timeout, set in decimal seconds on its Control tab. It will only be included for the moveCon, zoomCon and focusCon commands listed below, only when that timeout is set and, if the camera has speed settings, only for speeds below 90% of the speed range.
 
-  --command=<command> : This specifies the command that the script should execute. Valid commands are given below.
+  --command=<command> : This specifies the command, the module method, that should be executed. Valid commands are given below.
 
-  --xcoord=<x>, --ycoord=<y> : This specifies the x and/or y coordinates for commands which require them. These will normally be absolute or mapped commands.
+  --xcoord=<x>, --ycoord=<y> : This specifies the x and y coordinates on the image for the moveMap command.
 
-  --speed=<speed> : This specifies the speed that the command should use, if appropriate.
+  --speed=<speed> : This specifies the speed that the command should use, if appropriate. It is used by the zoom, focus, iris and white balance commands; moveCon, moveRel and moveAbs use --panspeed and --tiltspeed instead.
 
-  --panspeed=<speed>'', ''--tiltspeed=<speed> : This indicates the specific pan and tilt speeds for diagonal movements which may allow a different motion rate for horizontal and vertical components.
+  --panspeed=<speed>, --tiltspeed=<speed> : This indicates the specific pan and tilt speeds for the moveCon, moveRel and moveAbs commands which may allow a different motion rate for horizontal and vertical components.
 
-  --step=<step> : This specifies the amount of motion that the command should use, if appropriate. Normally used for relative commands only.
+  --step=<step> : This specifies the amount of motion that the command should use, if appropriate. It is used by the relative and absolute zoom, focus, iris and white balance commands; moveRel and moveAbs use --panstep and --tiltstep instead.
 
-  --panstep=<step>'', ''--tiltstep=<step> : This indicates the specific pan and tilt steps for diagonal movements which may allow a different amount of motion for horizontal and vertical components.
+  --panstep=<step>, --tiltstep=<step> : This indicates the specific pan and tilt steps for the moveRel and moveAbs commands which may allow a different amount of motion for horizontal and vertical components.
 
   --preset=<preset> : This specifies the particular preset that relevant commands should operate on.
 

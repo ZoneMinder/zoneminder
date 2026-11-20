@@ -207,6 +207,17 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       }
     }
 
+    $sound_files = array();
+    foreach (glob(ZM_DIR_SOUNDS.'/*') ?: array() as $sound_file) {
+      if (is_file($sound_file)) $sound_files[basename($sound_file)] = basename($sound_file);
+    }
+    $sound_value = $configCats[$tab]['ZM_WEB_ALARM_SOUND']['Value'];
+    if ($sound_files) {
+      // Keep a configured file that is no longer in the directory selectable
+      if ($sound_value != '' && !isset($sound_files[$sound_value])) $sound_files[$sound_value] = $sound_value;
+      $configCats[$tab]['ZM_WEB_ALARM_SOUND']['Hint'] = $sound_files;
+    }
+
     $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
       'console'=>translate('Console'),
       'events'=>'Events',

@@ -1847,23 +1847,23 @@ function initPage() {
     videoEvent();
   });
 
-  // Manage the generate Live button
-  bindButton('#eventLiveBtn', 'click', null, function onLiveClick(evt) {
+  // Manage the generate Live, Edit and All Events buttons. getStat() rebuilds
+  // them on every event change, so they are handled by delegation on the table.
+  eventStatsTable.on('click', '#eventLiveBtn', function onLiveClick(evt) {
     evt.preventDefault();
     eventLive();
   });
 
-  // Manage the generate Edit button
-  bindButton('#eventEditBtn', 'click', null, function onEditClick(evt) {
+  eventStatsTable.on('click', '#eventEditBtn', function onEditClick(evt) {
     evt.preventDefault();
     eventEdit();
   });
 
-  // Manage the generate All Events button
-  bindButton('#eventAllEvents', 'click', null, function onAllEventsClick(evt) {
+  eventStatsTable.on('click', '#eventAllEvents', function onAllEventsClick(evt) {
     evt.preventDefault();
     viewAllEvents();
   });
+
   // Manage the Event STATISTICS Button
   bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();

@@ -172,10 +172,16 @@ if ( $size ne '' && $size !~ /^\w+$/ ) {
   print( STDERR "Invalid size '$size'\n" );
   pod2usage(-exitstatus => -1);
 }
-if ( $transforms ne '' && $transforms !~ /^[,\w=]+$/ ) {
+if ( $transforms ne '' && $transforms !~ /^[,\w=:.]+$/ ) {
   print( STDERR "Invalid transform '$transforms'\n" );
   pod2usage(-exitstatus => -1);
 }
+
+# Getopt has already guaranteed these are numbers, but it accepts forms such as
+# '.5', '1.', '+1' and '1e1' that the detaint regexes below would reject.
+$rate = sprintf('%g', $rate) if $rate ne '';
+$scale = sprintf('%g', $scale) if $scale ne '';
+$fps = sprintf('%g', $fps) if $fps ne '';
 
 my ( $detaint_format ) = $format =~ /^(\w+)$/;
 my ( $detaint_rate ) = $rate =~ /^(-?\d+(?:\.\d+)?)$/;
@@ -188,7 +194,7 @@ $rate = $detaint_rate;
 $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
-$transforms = $transforms =~ /^([,\w=]+)$/ ? $1 : '';
+$transforms = $transforms =~ /^([,\w=:.]+)$/ ? $1 : '';
 
 my $dbh = zmDbConnect();
 
@@ -260,7 +266,8 @@ foreach my $event_id ( @event_ids ) {
 if ( $concat_name ) {
   ($cwd) = $cwd =~ /(.*)/; # detaint
   chdir( $cwd );
-  ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
+  $concat_name =~ s/[^\-A-Za-z0-9_\.]/_/g;
+  ($concat_name) = $concat_name =~ /^([\-A-Za-z0-9_\.]*)$/;
 
   my $video_file = $concat_name . '.'. $detaint_format;
 

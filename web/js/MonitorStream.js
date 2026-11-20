@@ -657,6 +657,7 @@ function MonitorStream(monitorData) {
           clearTimeout(waitingTimer);
           if (streamStartedPlaying) {
             this.writeTextInfoBlock("");
+            this.createVolumeSlider();
             return;
           }
           if (hasDecodedFrames()) {

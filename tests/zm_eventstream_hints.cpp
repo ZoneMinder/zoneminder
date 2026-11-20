@@ -260,6 +260,12 @@ TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and str
   sws_freeContext(context);
 }
 
+TEST_CASE("VideoStream::OpenStream refuses a format with no video encoder", "[VideoStream]") {
+  // wav carries no video, so SetupCodec creates no stream or codec context.
+  VideoStream stream("pipe:", "wav", 0, 10.0, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, 32, 16);
+  CHECK_FALSE(stream.OpenStream());
+}
+
 namespace {
 
 // runStream() ends an mpeg stream by deleting the encoder; ~StreamBase deletes

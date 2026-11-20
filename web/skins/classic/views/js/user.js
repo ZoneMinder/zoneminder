@@ -22,7 +22,9 @@ function validateForm( form, newUser ) {
 
 function initPage() {
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    // A new user has no Id yet, and then a password is required.
+    const uid = this.elements['uid'];
+    if ( validateForm(this, !uid || !parseInt(uid.value)) ) {
       $j('#contentButtons').hide();
       return true;
     } else {

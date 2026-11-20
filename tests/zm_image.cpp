@@ -28,8 +28,11 @@ extern "C" {
 #include <jpeglib.h>
 }
 
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
+#include <sys/resource.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 namespace {
@@ -508,6 +511,36 @@ TEST_CASE("Image::ReadJpeg reallocates for a larger JPEG", "[image]") {
   CHECK(small.LineSize() >= big_w * 4);
   CHECK(small.Size() >= small.LineSize() * big_h);
   CHECK(small.Size() > small_size);
+}
+
+// A failed write (a full disk) ends in zm_jpeg_error_exit, which longjmps to
+// jpg_err.setjmp_buffer; WriteJpeg set that only for fifo writes, so the jump
+// went to a frame that had already returned, or to a buffer never set.
+TEST_CASE("Image::WriteJpeg returns false when the file cannot be written", "[Image]") {
+  bootstrap_image_config();
+  Image image(64, 48, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  image.Clear();
+  char path[] = "/tmp/zm_jpeg_write_error_XXXXXX.jpg";
+  int fd = mkstemps(path, 4);
+  REQUIRE(fd >= 0);
+  close(fd);
+
+  pid_t child = fork();
+  REQUIRE(child >= 0);
+  if (child == 0) {
+    alarm(10);
+    // Any write to the file now fails (EFBIG), as on a full disk.
+    signal(SIGXFSZ, SIG_IGN);
+    struct rlimit no_size = {0, 0};
+    setrlimit(RLIMIT_FSIZE, &no_size);
+    _exit(image.WriteJpeg(path) ? 1 : 0);
+  }
+  int status = 0;
+  REQUIRE(waitpid(child, &status, 0) == child);
+  unlink(path);
+  INFO("wait status " << status);
+  CHECK(WIFEXITED(status));
+  CHECK(WEXITSTATUS(status) == 0);
 }
 
 

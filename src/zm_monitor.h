@@ -967,6 +967,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void LoadCamera();
   const std::shared_ptr<Camera> getCamera() { return camera; }
+  static int SanitiseImageBufferCount(int count);
   bool connect();
   bool disconnect();
   inline bool isConnected() const { return mem_ptr != nullptr; }

@@ -80,6 +80,13 @@ function monitorMatchesSearch($monitor, $search) {
   return false;
 }
 
+// The Source filter matches what the Source column shows, or the Path, as the
+// filter bar does. The raw Host holds credentials and hides the port.
+function monitorMatchesSource($monitor, $regexp) {
+  $Monitor = new ZM\Monitor($monitor);
+  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path());
+}
+
 // Source, Server, Storage and Function are display values, not row columns.
 function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
   switch ($sort) {
@@ -238,8 +245,7 @@ function queryRequest() {
   if ($request_filters['Source']) {
     $regexp = monitorNameRegexp($request_filters['Source']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
-      // Match against Path field directly instead of creating Monitor object
-      return (preg_match($regexp, $monitor['Path']) || preg_match($regexp, $monitor['Device']) || preg_match($regexp, $monitor['Host']));
+      return monitorMatchesSource($monitor, $regexp);
     });
   }
   

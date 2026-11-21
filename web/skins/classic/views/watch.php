@@ -505,10 +505,11 @@ if ( $hasPtzControls ) {
 
 <!-- START table Events -->
 <?php
-if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
+// Always rendered so that moving from a WebSite monitor to a camera has a table to show
+if ( canView('Events') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
-      <div id="events" class="row justify-content-center table-responsive-sm">
+      <div id="events" class="row justify-content-center table-responsive-sm"<?php echo ($monitor->Type() == 'WebSite') ? ' style="display:none;"' : '' ?>>
         <table 
           id="eventList"
           data-locale="<?php echo i18n() ?>"
@@ -553,7 +554,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
         </table>
       </div>
 <?php
-} //end if ( canView('Events') && ($monitor->Type() != 'WebSite') )
+} //end if ( canView('Events') )
 ?>
 <!-- END table Events -->
 

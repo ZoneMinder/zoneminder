@@ -45,7 +45,8 @@ switch ( $_REQUEST['action'] ) {
     $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
     if ($tagName === '') ajaxError('createtag requires a tag name');
 
-    $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE Name = ?', NULL, array($tagName));
+    // Tag names differing only in case would look the same in the tag list, so reuse the existing tag.
+    $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE LOWER(Name) = LOWER(?) ORDER BY Name = ? DESC LIMIT 1', NULL, array($tagName, $tagName));
     if (!count($dbFetchResult)) {
       $sql = 'INSERT INTO Tags (Name, CreatedBy) VALUES (?, ?)';
       $values = array($tagName, $user->Id());
@@ -91,7 +92,7 @@ switch ( $_REQUEST['action'] ) {
     foreach (dbFetchAll('SELECT DISTINCT E.MonitorId FROM Events_Tags AS ET INNER JOIN Events AS E ON E.Id = ET.EventId WHERE ET.TagId = ?', NULL, array($tagId)) as $row) {
       if (!visibleMonitor($row['MonitorId'])) ajaxError('The tag is on events you cannot see and cannot be renamed');
     }
-    if (dbFetchOne('SELECT Id FROM Tags WHERE Name = ? AND Id != ?', 'Id', array($tagName, $tagId))) {
+    if (dbFetchOne('SELECT Id FROM Tags WHERE LOWER(Name) = LOWER(?) AND Id != ?', 'Id', array($tagName, $tagId))) {
       ajaxError('A tag named '.validHtmlStr($tagName).' already exists');
     }
     dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId));

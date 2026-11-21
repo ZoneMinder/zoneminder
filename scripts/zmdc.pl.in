@@ -521,9 +521,10 @@ sub start {
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{term_sent_at}))
         .", pid = $process->{pid}\n"
       );
+      # Keep it in %terminating_processes: the TERM is still on its way, and a
+      # daemon that ignores it must still be sent KILL so the reaper can restart it.
       $process->{keepalive} = !undef;
       $process->{delay} = 0;
-      delete $terminating_processes{$command};
     } else {
       dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))

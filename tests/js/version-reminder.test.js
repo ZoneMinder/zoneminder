@@ -40,7 +40,13 @@ const $j = function() {
 };
 // getJSON parses the body as JSON, so an HTML reply makes it fail.
 $j.getJSON = () => chain(false);
+let posted = null;
 $j.get = () => chain(true);
+// index.php ignores an action sent by GET, so the choice must be POSTed.
+$j.post = (url, data) => {
+  posted = {url, data};
+  return chain(true);
+};
 const ctx = {
   $j, thisUrl: 'index.php', console,
   logAjaxFail: () => {
@@ -57,3 +63,7 @@ handler.call({});
 assert.ok(reloaded, 'page was not reloaded after choosing a version reminder');
 assert.ok(!failed, 'version reminder request was treated as a failure');
 console.log('  ok version reminder reloads on an HTML reply');
+assert.ok(posted, 'version reminder choice was not sent by POST');
+assert.strictEqual(posted.data.action, 'version');
+assert.strictEqual(posted.data.option, 'hour');
+console.log('  ok version reminder choice is POSTed with the action');

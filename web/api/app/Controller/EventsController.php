@@ -248,7 +248,13 @@ class EventsController extends AppController {
 
     $settings['conditions'] = array($conditions, $mon_options);
 
-    if (!$this->request->query('sort')) {
+    // Only paginate() reads sort and direction from the query string, so apply them here
+    // for the unpaginated find() below as well.
+    $sort = $this->request->query('sort');
+    if (is_string($sort) and in_array($sort, array_keys($this->Event->schema()), true)) {
+      $direction = $this->request->query('direction');
+      $settings['order'] = array('Event.'.$sort => (is_string($direction) and strtolower($direction) == 'desc') ? 'desc' : 'asc');
+    } else if (!$sort) {
       $settings['order'] = array('Event.Id' => 'asc');
     }
 

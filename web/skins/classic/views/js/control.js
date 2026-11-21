@@ -21,8 +21,8 @@ function getControlResponse(respObj, respText) {
 function controlCmd(event) {
   const button = event.currentTarget || event.target;
   const control = (event.type == 'mouseup') ? 'moveStop' : button.getAttribute('value');
-  const xtell = button.getAttribute('data-xtell');
-  const ytell = button.getAttribute('data-ytell');
+  const xtell = parseInt(button.getAttribute('data-xtell')) || 0; // "0": that axis is not used
+  const ytell = parseInt(button.getAttribute('data-ytell')) || 0;
   const data = {};
 
   if (xtell || ytell) {

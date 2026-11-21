@@ -148,7 +148,6 @@ $disk_space_total = 0;
 $event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
-  $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $event_link = '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1';
   global $dateTimeFormatter;
 ?>

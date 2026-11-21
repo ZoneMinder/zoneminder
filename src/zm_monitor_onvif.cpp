@@ -1030,6 +1030,9 @@ void ONVIF::parse_onvif_options() {
 
   for (const std::string &option : Split(parent->onvif_options, ',')) {
     auto [key, value] = PairSplit(option, '=');
+    // "pull_timeout=5, subscription_timeout=120" must not lose the second option
+    key = TrimSpaces(key);
+    value = TrimSpaces(value);
     if (key.empty()) continue;
 
     if (key == "pull_timeout") {

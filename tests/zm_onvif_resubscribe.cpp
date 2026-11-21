@@ -271,4 +271,38 @@ TEST_CASE("ONVIF with max_retries 0 still makes the first attempt", "[onvif]") {
   REQUIRE(cam.count("create") >= 1);
 }
 
+namespace {
+
+class OptionsMonitor : public Monitor {
+ public:
+  explicit OptionsMonitor(const std::string &options) { onvif_options = options; }
+};
+
+class OptionsONVIF : public ONVIF {
+ public:
+  explicit OptionsONVIF(Monitor *m) : ONVIF(m) {}
+  int pull_timeout() const { return pull_timeout_seconds; }
+  int subscription_timeout() const { return subscription_timeout_seconds; }
+  int retries() const { return max_retries; }
+};
+
+}  // namespace
+
+TEST_CASE("ONVIF options separated by a comma and a space are all applied", "[onvif]") {
+  OptionsMonitor monitor("pull_timeout=5, subscription_timeout=120, max_retries=5");
+  OptionsONVIF onvif(&monitor);
+
+  REQUIRE(onvif.pull_timeout() == 5);
+  REQUIRE(onvif.subscription_timeout() == 120);
+  REQUIRE(onvif.retries() == 5);
+}
+
+TEST_CASE("ONVIF option names may have spaces around them", "[onvif]") {
+  OptionsMonitor monitor("pull_timeout = 5 ,subscription_timeout =120");
+  OptionsONVIF onvif(&monitor);
+
+  REQUIRE(onvif.pull_timeout() == 5);
+  REQUIRE(onvif.subscription_timeout() == 120);
+}
+
 #endif  // WITH_GSOAP

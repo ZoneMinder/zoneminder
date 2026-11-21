@@ -196,7 +196,12 @@ void Authenticator::checkAuthResponse(const std::string &response) {
     if ( strncasecmp(lines[i].c_str(), authenticate_match, authenticate_match_len) == 0 ) {
       authLine = lines[i];
       Debug(2, "Found auth line at %zu:", i);
-      //break;
+      // A camera may offer Basic and Digest on separate lines in either
+      // order. Prefer Digest so the password is not sent in the clear.
+      size_t value_start = lines[i].find_first_not_of(" \t", authenticate_match_len);
+      if ( value_start != std::string::npos &&
+           strncasecmp(lines[i].c_str() + value_start, "Digest ", 7) == 0 )
+        break;
     }
   }
   if ( !authLine.empty() ) {

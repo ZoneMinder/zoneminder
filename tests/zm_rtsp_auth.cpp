@@ -110,3 +110,25 @@ TEST_CASE("Authenticator Digest tolerates spaces around '='", "[rtsp_auth]") {
   CHECK(auth.realm() == "Cam");
   CHECK(auth.nonce() == "n1");
 }
+
+TEST_CASE("Authenticator prefers Digest over a later Basic challenge", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.checkAuthResponse(
+      "HTTP/1.1 401 Unauthorized\r\n"
+      "WWW-Authenticate: Digest realm=\"Cam\", nonce=\"n1\", qop=\"auth\"\r\n"
+      "WWW-Authenticate: Basic realm=\"Cam\"\r\n"
+      "\r\n");
+
+  CHECK(auth.auth_method() == zm::AUTH_DIGEST);
+  CHECK(auth.nonce() == "n1");
+}
+
+TEST_CASE("Authenticator uses Basic when only Basic is offered", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.checkAuthResponse(
+      "HTTP/1.1 401 Unauthorized\r\n"
+      "WWW-Authenticate: Basic realm=\"Cam\"\r\n"
+      "\r\n");
+
+  CHECK(auth.auth_method() == zm::AUTH_BASIC);
+}

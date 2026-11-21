@@ -394,10 +394,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 
@@ -518,10 +518,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 

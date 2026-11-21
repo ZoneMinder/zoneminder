@@ -54,13 +54,12 @@ if ( count($selected_monitor_ids) ) {
 } else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {
 # this should be redundant
   for ( $i=0; $i < count($displayMonitors); $i++ ) {
-    if ( $i == 0 ) {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'and', 'obr'=>'1'));
-    } else if ( $i == count($displayMonitors)-1 ) {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or', 'cbr'=>'1'));
-    } else {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or'));
-    }
+    $term = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>( $i == 0 ? 'and' : 'or' ));
+    if ( $i == 0 )
+      $term['obr'] = '1';
+    if ( $i == count($displayMonitors)-1 )
+      $term['cbr'] = '1';
+    $filter->addTerm($term);
   }
 }
 $filterQuery = $filter->querystring();

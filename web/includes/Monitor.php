@@ -1085,6 +1085,8 @@ class Monitor extends ZM_Object {
       Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
+    # The user's own View or Edit on this monitor decides before groups and role, as visibleMonitor() does.
+    if ($monitor_permission and in_array($monitor_permission->Permission(), array('View', 'Edit'))) return true;
 
     $group_permissions = $u->Group_Permissions();
 

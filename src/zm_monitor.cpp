@@ -4798,6 +4798,8 @@ int Monitor::PrimeCapture() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
@@ -4971,6 +4973,8 @@ int Monitor::Play() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",

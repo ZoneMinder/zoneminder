@@ -192,6 +192,26 @@ TEST_CASE("FfmpegCamera: a failed secondary reopen leaves no audio stream behind
   camera.reset();
 }
 
+TEST_CASE("FfmpegCamera: a re-prime onto a stream without audio drops the old audio stream") {
+  const std::string primary = "data/mp4/reprime-primary.mp4";
+  std::filesystem::copy_file(kWithAudio, primary, std::filesystem::copy_options::overwrite_existing);
+  SecondPathMonitor monitor("");
+  auto camera = std::make_unique<FfmpegCamera>(&monitor, primary, "", "", "", "", "",
+                                               160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+  REQUIRE(camera->getAudioStreamId() >= 0);
+
+  std::filesystem::copy_file(kVideoOnly, primary, std::filesystem::copy_options::overwrite_existing);
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  camera.reset();
+  std::filesystem::remove(primary);
+}
+
 TEST_CASE("FfmpegCamera: video packets from the secondary input are not delivered as video") {
   // The secondary input is only there for its audio. Its video stream carries
   // the same picture as the primary, and handing those packets on would queue

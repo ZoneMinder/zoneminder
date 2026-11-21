@@ -714,9 +714,10 @@ int FfmpegCamera::Close() {
 
   if ( mSecondFormatContext ) {
     mSecondFormatContext = nullptr;
-    mAudioStream = nullptr;
-    mAudioStreamId = -1;
   }
+  // The stream pointers point into the contexts just closed.
+  mAudioStream = nullptr;
+  mAudioStreamId = -1;
   mSecondInput.reset();
 
   return 0;

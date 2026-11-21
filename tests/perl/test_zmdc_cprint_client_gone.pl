@@ -30,25 +30,30 @@ sub check {
   else { $failures++; print "FAIL - $name\n  got:  $got\n  want: $want\n"; }
 }
 
-socketpair(my $server_end, my $client_end, AF_UNIX, SOCK_STREAM, PF_UNSPEC) or die "socketpair: $!";
-close($client_end);
+# The server's accepted CLIENT is not autoflushed, so a short reply is only
+# buffered by print and written when CLIENT is closed; try both.
+for my $autoflush (1, 0) {
+  socketpair(my $server_end, my $client_end, AF_UNIX, SOCK_STREAM, PF_UNSPEC) or die "socketpair: $!";
+  close($client_end);
 
-my $pid = fork();
-die "fork: $!" if !defined $pid;
-if (!$pid) {
-  open(CLIENT, '>&', $server_end) or exit(3);
-  select((select(CLIENT), $| = 1)[0]);
-  eval $cprint;
-  exit(4) if $@;
-  cPrint("running\n");
-  cPrint("still running\n");
-  # The server closes CLIENT after every request.
-  close(CLIENT);
-  exit(0);
+  my $pid = fork();
+  die "fork: $!" if !defined $pid;
+  if (!$pid) {
+    open(CLIENT, '>&', $server_end) or exit(3);
+    select((select(CLIENT), $| = 1)[0]) if $autoflush;
+    eval $cprint;
+    exit(4) if $@;
+    cPrint("running\n");
+    cPrint("still running\n");
+    # The server closes CLIENT after every request.
+    close(CLIENT);
+    exit(0);
+  }
+  waitpid($pid, 0);
+  my $status = $?;
+  check('zmdc survives writing to a client that has gone'.($autoflush ? '' : ' (buffered)'),
+    ($status & 127) ? 'signal '.($status & 127) : 'exit '.($status >> 8), 'exit 0');
 }
-waitpid($pid, 0);
-my $status = $?;
-check('zmdc survives writing to a client that has gone', ($status & 127) ? 'signal '.($status & 127) : 'exit '.($status >> 8), 'exit 0');
 
 print "$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

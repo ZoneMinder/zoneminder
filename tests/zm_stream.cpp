@@ -446,6 +446,28 @@ TEST_CASE("StreamBase::prepareImage keeps a zoomed view still from frame to fram
   CHECK(stream.crop().Hi().y_ == first.Hi().y_);
 }
 
+TEST_CASE("StreamBase::prepareImage keeps the crop inside the frame when zooming in and out at a corner", "[StreamBase]") {
+  // Each zoom maps the click through the previous crop, and at an edge the
+  // crop shrinks a little every time. Alternating at the bottom right corner
+  // turned it inside out, and Crop refused it until a zoom stop.
+  EnsureImageInit();
+  Image frame(352, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  TestStream stream;
+  stream.setClick(351, 239);
+  for (int i = 0; i < 100; i++) {
+    stream.setView(ZM_SCALE_BASE, i % 2 ? 120 : 110);
+    stream.prepare(&frame);
+    const Box &crop = stream.crop();
+    CAPTURE(i, crop.Lo().x_, crop.Lo().y_, crop.Hi().x_, crop.Hi().y_);
+    REQUIRE(crop.Lo().x_ >= 0);
+    REQUIRE(crop.Lo().y_ >= 0);
+    REQUIRE(crop.Lo().x_ < crop.Hi().x_);
+    REQUIRE(crop.Lo().y_ < crop.Hi().y_);
+    REQUIRE(crop.Hi().x_ <= 351);
+    REQUIRE(crop.Hi().y_ <= 239);
+  }
+}
+
 TEST_CASE("StreamBase::preScaleDimensions") {
   const int kWidth = 640;
   const int kHeight = 480;

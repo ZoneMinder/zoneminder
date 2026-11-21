@@ -132,6 +132,11 @@ foreach my $event_id (@ARGV) {
       Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
       next;
     }
+    if ($event->Scheme() eq 'Deep') {
+      # The new row would share the old one's directory, and deleting either would remove both
+      Warning("Event $event_id uses Deep storage, where the path does not depend on the id. Skipping renumbering.");
+      next;
+    }
 
     my $new_event = $event->clone();
     $new_event->Id(undef);

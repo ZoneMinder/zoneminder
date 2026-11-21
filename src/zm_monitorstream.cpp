@@ -361,6 +361,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     Image temp_image(filepath.c_str());
     return sendFrame(&temp_image, timestamp);
   } else {
+    unzoomedFrameSent();
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
@@ -911,9 +912,11 @@ void MonitorStream::runStream() {
           }
           // paused_image is only held while paused. PLAY after PAUSE leaves
           // delayed set without a buffer for one pass of the loop, and the
-          // next live frame carries the new zoom anyway.
-          if (paused_image && (last_zoom != zoom)) {
-            Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
+          // next live frame carries the new zoom anyway. With a buffer, the
+          // paused branch above already resends its own frame after a command.
+          if (paused_image && ((last_zoom != zoom) || (!buffered_playback && (last_scale != scale)))) {
+            Debug(2, "Sending 2 frames because change in zoom %d ?= %d or scale %d ?= %d",
+                  last_zoom, zoom.load(), last_scale, scale.load());
             if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
             if (!sendFrame(paused_image.get(), paused_timestamp))

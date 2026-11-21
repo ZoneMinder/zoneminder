@@ -1167,6 +1167,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !reuse_filepath_.empty();
 
     if (send_raw) {
+      unzoomedFrameSent();
       fprintf(stdout, "--" BOUNDARY "\r\n");
       if (!send_file(reuse_filepath_)) {
         Error("Can't send %s: %s", reuse_filepath_.c_str(), strerror(errno));

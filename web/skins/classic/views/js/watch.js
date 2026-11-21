@@ -515,7 +515,7 @@ function controlCmd(event) {
 
 function controlCmdImage(x, y) {
   const data = {};
-  data.scale = scale;
+  data.scale = SCALE_BASE; // x and y are already in monitor pixels
   data.control = imageControlMode;
   data.x = x;
   data.y = y;

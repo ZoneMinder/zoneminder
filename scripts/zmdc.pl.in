@@ -229,15 +229,25 @@ shutdown(CLIENT, 1);
 # Read response with timeout to avoid hanging indefinitely. shutdown answers
 # once every daemon has exited or been sent KILL, which happens after KILL_DELAY.
 my $client_timeout = ( $command eq 'shutdown' ) ? ZMServer->KILL_DELAY + 10 : 30;
+# Read unbuffered: select() can't see lines already sitting in a PerlIO buffer.
+binmode(CLIENT, ':pop');
 my $client_rin = '';
 vec($client_rin, fileno(CLIENT), 1) = 1;
+my $timed_out = 1;
 while ( select(my $rout = $client_rin, undef, undef, $client_timeout) > 0 ) {
   my $line = <CLIENT>;
-  last if !defined($line);
+  if ( !defined($line) ) {
+    $timed_out = 0;
+    last;
+  }
   chomp($line);
   print("$line\n");
 }
 close(CLIENT);
+if ( $timed_out ) {
+  print("Timed out after $client_timeout seconds waiting for zmdc.pl server to answer '$command'\n");
+  exit(-1);
+}
 
 exit;
 
@@ -468,8 +478,9 @@ sub cPrint {
     # zmdc with SIGPIPE in the middle of e.g. a shutdown.
     # If the write fails the client is gone: close it here, or the unwritten
     # reply stays buffered and closing CLIENT later raises SIGPIPE anyway.
+    # CLIENT is not autoflushed, so flush here too or print only buffers.
     local $SIG{PIPE} = 'IGNORE';
-    close(CLIENT) if !print CLIENT @_;
+    close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
 }
 

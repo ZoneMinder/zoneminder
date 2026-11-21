@@ -203,10 +203,7 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     // last_crop in the wrong units for every later frame. refs #3681
     Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
     last_scale = pre_scaled_by;
-    last_zoom = ZM_SCALE_BASE;
-    // This frame went out unzoomed, so a later zoom-in starts from the whole frame.
-    last_crop = Box();
-    last_crop_width = last_crop_height = 0;
+    unzoomedFrameSent();
     return image;
   }
 
@@ -316,6 +313,12 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
       last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
     last_crop_width = base_image_width;
     last_crop_height = base_image_height;
+    // Zooming in and out at an edge shrinks the crop a little each time, until it
+    // leaves the frame or turns inside out. Keep it in the frame, else use the whole frame.
+    last_crop = Box({std::max(last_crop.Lo().x_, 0), std::max(last_crop.Lo().y_, 0)},
+                    {std::min(last_crop.Hi().x_, base_image_width - 1), std::min(last_crop.Hi().y_, base_image_height - 1)});
+    if ((last_crop.Lo().x_ >= last_crop.Hi().x_) || (last_crop.Lo().y_ >= last_crop.Hi().y_))
+      last_crop = Box({0, 0}, {base_image_width - 1, base_image_height - 1});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {

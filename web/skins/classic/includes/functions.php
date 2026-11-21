@@ -915,6 +915,12 @@ function getStorageHTML() {
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
+  // Usage is measured on this web server's filesystem, so skip areas owned by another server.
+  if (defined('ZM_SERVER_ID') and ZM_SERVER_ID) {
+    $storage_areas = array_values(array_filter($storage_areas, function($S) {
+      return !$S->ServerId() or ($S->ServerId() == ZM_SERVER_ID);
+    }));
+  }
   $num_storage_areas = count($storage_areas);  
   
   $full_warning = 0;

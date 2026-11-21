@@ -206,6 +206,7 @@ class MonitorsController extends AppController {
       ))['Monitor']);
       if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
         $saved->zmcControl('start');
+        $saved->zmtrackControl('start');
       }
       //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
       $message = 'Saved';
@@ -277,6 +278,7 @@ class MonitorsController extends AppController {
           if ($saved->Controllable()) {
             $saved->sendControlCommand('start');
           }
+          $saved->zmtrackControl('start');
         }
       } else {
         $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);

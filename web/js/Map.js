@@ -128,18 +128,16 @@ var ZMMap = function() {
 
                 const url_to_zms = zmAuth.appendTo(server.urlToZMS()+'?scale=60&mode=single&monitor='+id);
                 const popup = '<a href="'+thisUrl+'?view=watch&mid='+monitor.Id+'">'+monitor.Name+'</a><br>Resolution: '+res+'<br>FPS: '+fps+'<br><a href="?view=watch&mid='+id+'"><img width="400" style="width: 200px;" src="'+url_to_zms+'"/></a><br/>Events: '+events;
-                if (event_summary.TotalEvents > 0) {
-                  if (monitor_status.Status == 'Connected') {
-                    L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoConectada})
-                        .addTo(this.map).bindPopup(popup);
-                    //.addTo(map).bindTooltip(popup);
-                    cant_connected += 1;
-                  } else {
-                    L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoDesconectada})
-                        .addTo(this.map).bindPopup(popup);
-                    //.addTo(map).bindTooltip(popup);
-                    cant_disconnected += 1;
-                  }
+                if (monitor_status.Status == 'Connected') {
+                  L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoConectada})
+                      .addTo(this.map).bindPopup(popup);
+                  //.addTo(map).bindTooltip(popup);
+                  cant_connected += 1;
+                } else if (event_summary.TotalEvents > 0) {
+                  L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoDesconectada})
+                      .addTo(this.map).bindPopup(popup);
+                  //.addTo(map).bindTooltip(popup);
+                  cant_disconnected += 1;
                 } else {
                   L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoError})
                       .addTo(this.map).bindPopup(popup);

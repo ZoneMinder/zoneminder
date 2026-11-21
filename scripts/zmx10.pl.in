@@ -530,7 +530,8 @@ sub loadTasks {
 sub addPendingTask {
   my $task = shift;
 
-  # The task that will end this one, e.g. start_alarm -> stop_alarm
+  # The task that will end this one, e.g. start_alarm -> stop_alarm,
+  # and the reverse, e.g. stop_alarm -> start_alarm
   my $pending_task;
   if ( $task->{type} eq 'device' ) {
     $pending_task = {
@@ -538,14 +539,15 @@ sub addPendingTask {
       monitor=>$task->{monitor},
       function=>$task->{function}
     };
-    $pending_task->{function} =~ s/start/stop/;
+    $pending_task->{function} =~ s/^start_/stop_/
+      or $pending_task->{function} =~ s/^stop_/start_/;
   } elsif ( $task->{type} eq 'monitor' ) {
     $pending_task = {
       type=>$task->{type},
       device=>$task->{device},
       function=>$task->{function}
     };
-    $pending_task->{function} =~ s/on/off/;
+    $pending_task->{function} = ($pending_task->{function} eq 'on') ? 'off' : 'on';
   }
 
   # Check whether we are just extending a previous pending task
@@ -602,6 +604,9 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmMonitorDisable($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } elsif( $class eq 'alarm' ) {
       if ( $instruction eq 'start' ) {
@@ -616,6 +621,9 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmTriggerEventCancel($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } # end switch class
   } elsif( $task->{type} eq 'monitor' ) {
@@ -626,6 +634,9 @@ sub processTask {
       }
     } elsif ( $task->{function} eq 'off' ) {
       $task->{device}->{appliance}->off();
+      if ( $task->{limit} ) {
+        addPendingTask($task);
+      }
     }
   }
 }

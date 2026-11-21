@@ -27,18 +27,26 @@ var Server = function() {
 
   _createClass(Server, [
     {
+      // The page's own port only applies to the server serving this page
+      // (no Id on a single server install, or this server's ZM_SERVER_ID).
+      key: 'isLocal',
+      value: function isLocal() {
+        return !this.Id || (typeof serverId !== 'undefined' && this.Id == serverId);
+      }
+    },
+    {
       key: 'url',
       value: function url() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
 
-        return location.protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
+        return location.protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (this.isLocal() && location.port ? ':' + location.port : ''))) + (this.PathPrefix && this.PathPrefix != 'null' ? this.PathPrefix : '');
       }
     },
     {
       key: 'urlToZMS',
       value: function urlToZMS() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return this.Protocol + '://' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
+        return this.Protocol + '://' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (this.isLocal() && location.port ? ':' + location.port : ''))) + (this.PathToZMS && this.PathToZMS != 'null' ? this.PathToZMS : '');
       }
     },
     {
@@ -51,7 +59,7 @@ var Server = function() {
         if (!this.Id) {
           return protocol + '//' + (port ? location.hostname + ':' + port : location.host) + path;
         }
-        return protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + path;
+        return protocol + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (this.isLocal() && location.port ? ':' + location.port : ''))) + path;
       }
     },
     {
@@ -65,7 +73,7 @@ var Server = function() {
       key: 'urlToJanus',
       value: function urlToJanus() {
         const port = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 0;
-        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (location.port ? ':' + location.port : ''))) + '/janus';
+        return (location.protocol=='https:'? 'https:' : this.Protocol+':') + '//' + this.Hostname + (port ? ':' + port : (this.Port ? ':' + this.Port : (this.isLocal() && location.port ? ':' + location.port : ''))) + '/janus';
       }
     }
   ]);

@@ -283,6 +283,8 @@ function applyPreset() {
     applyCheckMethod();
     form.elements['newZone[Area]'].value = 100;
     updateAllPixelDisplays();
+    // Loading with the button fires no input event, so the form is not told it changed
+    checkDirty();
   }
 }
 

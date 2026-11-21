@@ -1136,6 +1136,8 @@ document.onvisibilitychange = () => {
       }
     }, 15*1000);
   } else {
+    // Back before the 15 s ran out: the pending stop would kill a visible stream
+    TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page - unless a replay or still the zone
     //tools show over the feed stopped them on purpose
     const replaying = document.querySelector('.replaying');

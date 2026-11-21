@@ -591,7 +591,13 @@ function initPage() {
       const el = $j(this);
       const name = el.attr('name');
       if (urlParams.has(name)) {
-        el.val(urlParams.get(name));
+        const value = urlParams.get(name);
+        // buildFilterQuery joins a multiple select's values with commas
+        if (el.prop('multiple')) {
+          el.val(value === '' ? [] : value.split(',')).trigger('chosen:updated');
+        } else {
+          el.val(value);
+        }
       }
     });
 

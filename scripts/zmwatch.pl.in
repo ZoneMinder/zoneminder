@@ -232,6 +232,11 @@ while (!$zm_terminate) {
     if (!$capture_time) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
+      if (!$startup_time) {
+        # zmc has mapped the shared data but not set its startup time yet, so it is still starting.
+        Debug("Monitor $monitor->{Id} $monitor->{Name} has no startup time yet, not restarting");
+        next;
+      }
       my $startup_elapsed = $now - $startup_time;
       my $startup_limit = $monitor->WatchStartupLimit($Config{ZM_WATCH_MAX_DELAY});
       if ($startup_elapsed > $startup_limit) {

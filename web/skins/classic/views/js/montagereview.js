@@ -1056,6 +1056,15 @@ function setLive(value) {
   liveMode = value;
   var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
+  // Fit and scale are changed in script only, so carry the current values over
+  form.elements['fit'].value = (fitMode == 1) ? '1' : '0';
+  if (!form.elements['scale']) {
+    const scaleInput = document.createElement('input');
+    scaleInput.type = 'hidden';
+    scaleInput.name = 'scale';
+    form.appendChild(scaleInput);
+  }
+  form.elements['scale'].value = currentScale;
   form.submit();
   return false;
 }

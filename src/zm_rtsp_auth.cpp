@@ -62,6 +62,8 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
     // A new challenge starts a new nonce, so the nonce count starts again.
     nc = 1;
     fOpaque.clear();
+    // A challenge without a usable qop must not inherit the previous one.
+    fQop.clear();
     // Split on commas that are not inside a quoted value.
     StringVector subparts;
     std::string current;

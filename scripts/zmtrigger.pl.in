@@ -350,6 +350,8 @@ sub handleMessage {
   if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
+    dropActions($id.'|enable');
+    dropActions($id.'|disable');
     if ( $state eq 'enable' ) {
       zmMonitorEnable($monitor);
     } else {

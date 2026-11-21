@@ -1001,7 +1001,6 @@ function getEventResponse(respObj, respText) {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
-    $j('#zoomValue').html('1');
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
@@ -2305,6 +2304,12 @@ function fullscreenClicked() {
     console.log(content);
     openFullscreen(content);
   }
+}
+
+// Keeps the Zoom readout on the PanZoom scale, including for video.js events
+// where no zms status arrives to refresh it.
+function panZoomEventPanzoomchange(event) {
+  $j('#zoomValue').html(event.detail.scale.toFixed(1));
 }
 
 function panZoomIn(el) {

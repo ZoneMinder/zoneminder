@@ -168,7 +168,7 @@ echo getNavBarHTML();
 <?php
 if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type='Remote' ORDER BY Host") as $monitor ) {
+  foreach ( dbFetchAll("SELECT Id, Name, Host FROM Monitors WHERE Type='Remote' AND Deleted=false ORDER BY Host") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;

@@ -180,6 +180,10 @@ MAIN: while( $loop ) {
     } # end if
   } # end while can't connect to the db
 
+  # -M measures file age from $^T, the time the script started. Continuous mode
+  # runs for days, so without this files made after start would never look old.
+  $^T = time();
+
   my @Storage_Areas;
   my @all_Storage_Areas = ZoneMinder::Storage->find();
 

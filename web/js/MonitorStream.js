@@ -536,19 +536,20 @@ function MonitorStream(monitorData) {
     return suffix;
   };
 
-  // For RTSP2Web which still uses numeric channel IDs
+  // RTSP2Web only registers channel 0 (primary) and 1 (secondary).
+  // Restream channels are not available in RTSP2Web and fall back to 0.
   this.getNumericChannel = function(channel) {
     const channelMap = {
       'default': 0,
       'Primary': 0,
       'Secondary': 1,
       'CameraDirectSecondary': 1,
-      'Restream': 2,
-      'ZoneMinderPrimary': 2,
+      'Restream': 0,
+      'ZoneMinderPrimary': 0,
       'CameraDirectPrimary': 0,
       '0': 0,
       '1': 1,
-      '2': 2
+      '2': 0
     };
     return channelMap[channel] !== undefined ? channelMap[channel] : 0;
   };

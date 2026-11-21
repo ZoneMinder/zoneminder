@@ -1270,10 +1270,7 @@ function verNum($version) {
     $vFields[] = 0;
   }
   foreach ( $vFields as $vField ) {
-    $vField = sprintf('%02d', $vField);
-    while ( strlen($vField) < 2 ) {
-      $vField = '0'.$vField;
-    }
+    $vField = sprintf('%04d', $vField);
     $vNum .= $vField;
   }
   return $vNum;

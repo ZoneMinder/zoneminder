@@ -813,6 +813,15 @@ function streamNext(action) {
   }
 } // end function streamNext(action)
 
+// The event is gone: show the next one, or the previous one when it was the last.
+function eventDeleted() {
+  if (nextEventId == 0 && prevEventId != 0) {
+    streamPrev(true);
+    return;
+  }
+  streamNext(true);
+}
+
 function tagAndNext(action) {
   addTag(availableTags[0]);
   streamNext(action);
@@ -1487,7 +1496,7 @@ function manageDelConfirmModalBtns() {
             if (!vid) restartZmsStream();
             return;
           }
-          streamNext(true);
+          eventDeleted();
         })
         .fail(logAjaxFail);
   });
@@ -1911,7 +1920,7 @@ function initPage() {
     if (window.event.shiftKey) {
       $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
           .done(function(data) {
-            if (deleteAnswered(data)) streamNext(true);
+            if (deleteAnswered(data)) eventDeleted();
           })
           .fail(logAjaxFail);
     } else {

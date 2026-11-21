@@ -195,7 +195,12 @@ class Server extends ZM_Object {
     }
 
     $url = $this->Protocol().'://';
-		$url .= $this->Hostname();
+    $hostname = $this->Hostname();
+    # An IPv6 literal must be bracketed to be followed by a port.
+    if ( strpos($hostname, ':') !== false and $hostname[0] != '[' ) {
+      $hostname = '['.$hostname.']';
+    }
+    $url .= $hostname;
     if ( !$port ) {
       $port = $this->Port();
     }

@@ -743,8 +743,17 @@ function change_Path(event) {
     return;
   }
 
-  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
-  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  // The User and Pass fields hold the decoded values (the server decodes them
+  // the same way), so a %40 in the URL must not end up in them literally.
+  const decodeCredential = function(value) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value; // a lone % that is not an escape
+    }
+  };
+  const usernameValue = decodeCredential(pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos ));
+  const passwordValue = decodeCredential(pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos ));
   if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
@@ -768,7 +777,7 @@ function change_Path(event) {
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
   }
 }

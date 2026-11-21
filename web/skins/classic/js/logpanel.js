@@ -127,7 +127,8 @@ function initLogPanel(panel) {
   function processRows(rows) {
     $j.each(rows, function(ndx, row) {
       try {
-        row.Message = decodeURIComponent(row.Message.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'))
+        // Messages are stored as logged, not percent-encoded, so show them as they are.
+        row.Message = row.Message
             .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
             .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
       } catch (e) {

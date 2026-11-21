@@ -108,6 +108,7 @@ class FakeController {
   public $pinCalls = 0;
   function set($a) { $this->out = $a; }
   function requestCommandFields() { return array(); }
+  function resizeZones($id, $old, $new) {}
   function pinRequestId($model, $id) {
     $this->pinCalls++;
     $model->id = $id;

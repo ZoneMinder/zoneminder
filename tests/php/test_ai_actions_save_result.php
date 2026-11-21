@@ -4,6 +4,8 @@
  * on a failed INSERT/UPDATE (e.g. a duplicate unique Name) they must append an
  * 'Error saving ...' message, and must NOT set $redirect or $refreshParent;
  * on success they must set neither an error message nor skip the redirect.
+ * The modals post view=ai_class etc., which have no view file, so a failure
+ * must switch to the options page on the matching tab to show the error.
  *
  * Runs the real action files against stubbed globals.
  *
@@ -40,8 +42,8 @@ function run_action($file, $action, $request, $db_ok) {
   $_REQUEST = $request;
   $GLOBALS['db_ok'] = $db_ok;
   $fn = function ($action) use ($src) {
-    global $error_message, $redirect, $refreshParent;
-    $error_message = ''; $redirect = null; $refreshParent = null;
+    global $error_message, $redirect, $refreshParent, $view;
+    $error_message = ''; $redirect = null; $refreshParent = null; $view = null;
     try { eval($src); } catch (\Throwable $e) { return get_class($e).': '.$e->getMessage(); }
     return null;
   };
@@ -51,6 +53,8 @@ function run_action($file, $action, $request, $db_ok) {
     'error_message' => $GLOBALS['error_message'],
     'redirect' => $GLOBALS['redirect'],
     'refreshParent' => $GLOBALS['refreshParent'],
+    'view' => $GLOBALS['view'],
+    'tab' => $_REQUEST['tab'] ?? null,
     'problems' => $problems,
   );
   if ($ex) $state['problems'][] = $ex;
@@ -65,6 +69,7 @@ $cases = array(
 
 foreach ($cases as $case) {
   list($file, $key, $want_redirect) = $case;
+  $want_tab = substr($want_redirect, strlen('?view=options&tab='));
   echo "$file\n";
 
   echo "  db failure (duplicate Name):\n";
@@ -75,6 +80,8 @@ foreach ($cases as $case) {
         && strpos($s['error_message'], '&lt;b&gt;COCO') !== false);
   check('redirect stays unset', $s['redirect'] === null);
   check('refreshParent is not true', $s['refreshParent'] !== true);
+  check('renders the options page', $s['view'] === 'options');
+  check('on the '.$want_tab.' tab', $s['tab'] === $want_tab);
   check('raises no warnings', count($s['problems']) == 0);
 
   echo "  db success:\n";

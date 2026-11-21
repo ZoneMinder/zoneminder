@@ -49,8 +49,13 @@ if ($action == 'save') {
       $error_message .= 'Error saving dataset: '.validHtmlStr(dbLastError()).'<br/>';
     }
   }
-  if (!$error_message)
+  if (!$error_message) {
     $redirect = '?view=options&tab=ai_datasets';
+  } else {
+    // The modal posts view=ai_dataset, which has no view file, so show the error on the options page.
+    $view = 'options';
+    $_REQUEST['tab'] = 'ai_datasets';
+  }
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {

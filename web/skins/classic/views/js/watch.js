@@ -470,7 +470,9 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    control = 'moveStop';
+    // A released continuous zoom/focus/iris button stops its own axis.
+    const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
+    control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');

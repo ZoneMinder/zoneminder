@@ -709,8 +709,9 @@ sub getLoad {
   my $command = 'uptime';
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load averages?:\s+([\d.]+)/ms ) {
-    $load = $1;
+  # Locales with a decimal comma print "load average: 2,52, 1,58, 0,59"
+  if ( $uptime =~ /load averages?:\s+(\d+(?:[.,]\d+)?)/ms ) {
+    ($load = $1) =~ tr/,/./;
     Info("Load: $load");
   }
   return $load;

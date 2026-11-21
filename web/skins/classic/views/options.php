@@ -169,6 +169,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
   include('_options_ai_classes.php');
 }  // $tab == API/menu/encoderTemplates/ai_*
   else {
+  require_once('includes/config_values.php');
   $config = array();
   $configCats = array();
 
@@ -337,7 +338,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               } else if (is_array($value['Hint'])) {
                 $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
                 if (!$optionCanEdit) $attributes['disabled']='disabled';
-                echo htmlSelect("newConfig[$name]", $value['Hint'], $value['Value'], $attributes);
+                echo htmlSelect("newConfig[$name]", configSelectChoices($value['Hint'], $value['Value']), $value['Value'], $attributes);
               } else if (preg_match('/\|/', $value['Hint'])) {
                 $options = explode('|', $value['Hint']);
                 if (count($options) > 3) {
@@ -351,7 +352,7 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
                   }
                   $attributes = ['id'=>$name, 'class'=>'form-control-sm chosen'];
                   if (!$optionCanEdit) $attributes['disabled']='disabled';
-                  echo htmlSelect("newConfig[$name]", $html_options, $value['Value'], $attributes);
+                  echo htmlSelect("newConfig[$name]", configSelectChoices($html_options, $value['Value']), $value['Value'], $attributes);
                 } else { 
                   foreach ($options as $option) {
                     if (preg_match('/^([^=]+)=(.+)$/', $option)) {

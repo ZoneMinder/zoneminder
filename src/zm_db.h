@@ -60,6 +60,8 @@ class zmDbQueue {
   bool                    mTerminate;
   std::condition_variable mDoneCondition;
   bool                    mDone;
+  bool                    mBusy = false;
+  std::condition_variable mIdleCondition;
  public:
   // Log rows past this many waiting are dropped; other writes never are.
   static constexpr size_t kMaxQueuedLogRows = 5000;
@@ -71,6 +73,7 @@ class zmDbQueue {
   size_t logRowsQueued();
   size_t logRowsDropped();
   void process();
+  bool drain(std::chrono::milliseconds wait);
   void stop();
   // Returns false, leaving the thread detached, if it is still inside a query
   // after `wait`.

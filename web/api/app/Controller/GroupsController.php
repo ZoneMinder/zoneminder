@@ -171,6 +171,7 @@ class GroupsController extends AppController {
 		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

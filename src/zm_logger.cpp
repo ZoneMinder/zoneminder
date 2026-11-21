@@ -578,9 +578,11 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   }
   va_end(argPtr);
 
-  if ( static_cast<size_t>(logPtr - logString) >= sizeof(logString) ) {
-    // vsnprintf returns the length it wanted, not what it wrote, so a long
-    // message leaves logPtr past the buffer. Clamp before anything uses it.
+  // vsnprintf returns the length it wanted, not what it wrote, so a long
+  // message leaves logPtr past the buffer. Clamp before anything uses it.
+  // "]\n" and its NUL need three bytes, so a message ending in the last two
+  // is cut too: strncpy would otherwise overwrite the NUL without a new one.
+  if ( static_cast<size_t>(logPtr - logString) > sizeof(logString)-3 ) {
     logPtr = logString + sizeof(logString)-3;
   }
   char *syslogEnd = logPtr;

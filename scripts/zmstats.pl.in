@@ -56,6 +56,13 @@ $dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED');
 
 my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
 
+# ZM_STATS_UPDATE_INTERVAL of 0 (the integer option allows it) or a non-number
+# made sleep() return at once and the daemon ran its queries in a busy loop.
+sub statsInterval {
+  my $interval = $Config{ZM_STATS_UPDATE_INTERVAL};
+  return (defined($interval) and looks_like_number($interval) and $interval > 0) ? $interval : 60;
+}
+
 while (!$zm_terminate) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
     # Without this a TERM while the database is down is never acted on.
@@ -63,7 +70,7 @@ while (!$zm_terminate) {
     Info('Reconnecting to db');
     if ( !($dbh = zmDbConnect()) ) {
       #What we do here is not that important, so just skip this interval
-      sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+      sleep(statsInterval());
     }
   }
   last if $zm_terminate;
@@ -334,7 +341,7 @@ while (!$zm_terminate) {
     } while ($rows and ($rows == 100) and !$zm_terminate);
   }
 
-  sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+  sleep(statsInterval());
 } # end while (!$zm_terminate)
 
 Info('Stats Daemon exiting');

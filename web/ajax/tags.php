@@ -44,6 +44,7 @@ switch ( $_REQUEST['action'] ) {
     }
     $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
     if ($tagName === '') ajaxError('createtag requires a tag name');
+    if (mb_strlen($tagName, 'UTF-8') > 64) ajaxError('Tag names are limited to 64 characters');
 
     $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE Name = ?', NULL, array($tagName));
     if (!count($dbFetchResult)) {

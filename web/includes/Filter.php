@@ -424,7 +424,7 @@ class Filter extends ZM_Object {
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? array_filter([Server::find_one(array('Id'=>$server_id))]) : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case

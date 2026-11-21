@@ -1228,6 +1228,7 @@ bool ONVIF::Renew() {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
     setHealthy(false);
+    ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
     return false;
   }
 
@@ -1249,6 +1250,7 @@ bool ONVIF::Renew() {
       soap_end(soap);
       cleanup_subscription();
       setHealthy(false);
+      ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
       return false;
     }
   }

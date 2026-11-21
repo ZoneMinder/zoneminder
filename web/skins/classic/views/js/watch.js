@@ -1000,6 +1000,9 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
   controlWhatDisplay(oldId, newId);
   eventListTable.bootstrapTable('destroy');
+  // A WebSite monitor has no events to list
+  // (css() rather than show() so the .hidden class of the PTZ/events toggle still applies)
+  $j('#events').css('display', (currentMonitor.monitorType == 'WebSite') ? 'none' : '');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);

@@ -291,7 +291,7 @@ function buildControlCommand($monitor) {
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
         $tempY = $y;
-        $y = $height - $x;
+        $y = $width - $x;
         $x = $tempY;
         break;
       case 'ROTATE_180' :
@@ -300,7 +300,7 @@ function buildControlCommand($monitor) {
         break;
       case 'ROTATE_270' :
         $tempX = $x;
-        $x = $width - $y;
+        $x = $height - $y;
         $y = $tempX;
         break;
       case 'FLIP_HORI' :

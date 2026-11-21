@@ -94,7 +94,7 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -109,7 +109,7 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("Attempted to send to %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Attempted to send to %s and got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -149,7 +149,8 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
    postData += "}" "}";
 
   // postData carries the camera URLs with their credentials: do not log it.
-  Debug(1, "Sending stream %s (%s) to %s", parent->Name(), url_for_log(rtsp_path).c_str(), endpoint.c_str());
+  Debug(1, "Sending stream %s (%s) to %s", parent->Name(), url_for_log(rtsp_path).c_str(),
+        url_for_log(endpoint).c_str());
 
   CURLcode res;
   std::string response;
@@ -172,7 +173,7 @@ int Monitor::RTSP2WebManager::add_to_RTSP2Web() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -234,7 +235,7 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("RTSP2Web: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -247,7 +248,7 @@ int Monitor::RTSP2WebManager::remove_from_RTSP2Web() {
   }
 
   if (res != CURLE_OK) {
-    Warning("Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
   } else {
     Debug(1, "Removed stream from RTSP2Web: %s", remove_newlines(response).c_str());
   }

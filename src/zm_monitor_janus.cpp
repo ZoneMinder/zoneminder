@@ -134,7 +134,7 @@ int Monitor::JanusManager::check_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -150,7 +150,8 @@ int Monitor::JanusManager::check_janus() {
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
     // postData holds ZM_JANUS_SECRET: never log it.
-    Warning("JANUS Attempted to query stream %u at %s and got %s", parent->id, endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Attempted to query stream %u at %s and got %s", parent->id, url_for_log(endpoint).c_str(),
+            curl_easy_strerror(res));
     janus_session = "";
     janus_handle = "";
     return -1;
@@ -229,7 +230,8 @@ int Monitor::JanusManager::add_to_janus() {
   postData += ", \"video\" : true}}";
   // postData holds ZM_JANUS_SECRET, the stream pin, the camera's credentials
   // and the restream auth hash: log what is sent, not the values.
-  Debug(1, "JANUS Sending create for stream %u (%s) to %s", parent->id, url_for_log(rtsp_path).c_str(), endpoint.c_str());
+  Debug(1, "JANUS Sending create for stream %u (%s) to %s", parent->id, url_for_log(rtsp_path).c_str(),
+        url_for_log(endpoint).c_str());
 
   CURLcode res;
   std::string response;
@@ -251,7 +253,7 @@ int Monitor::JanusManager::add_to_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -324,7 +326,7 @@ int Monitor::JanusManager::remove_from_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -338,7 +340,7 @@ int Monitor::JanusManager::remove_from_janus() {
   }
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
   } else {
     Debug(1, "JANUS Removed stream: %s", response.c_str());
   }
@@ -379,7 +381,7 @@ int Monitor::JanusManager::get_janus_session() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -394,7 +396,7 @@ int Monitor::JanusManager::get_janus_session() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -432,7 +434,7 @@ int Monitor::JanusManager::get_janus_handle() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -447,7 +449,7 @@ int Monitor::JanusManager::get_janus_handle() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 

@@ -46,6 +46,7 @@ set(TEST_SOURCES
   zmu_helpers.cpp
   zm_monitor_ondemand.cpp
   zm_monitor_privacy.cpp
+  zm_monitor_substitute.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp

@@ -4088,52 +4088,59 @@ bool Monitor::Decode() {
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";
 
+  // Expand the strftime macros first. strftime returns 0 when the result does
+  // not fit, so grow the buffer and retry before giving up.
+  std::vector<char> time_buf(256);
+  tm ts_tm = {};
+  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
+  bool time_expanded = false;
+  while (true) {
+    time_buf[0] = 0;
+    if (strftime(time_buf.data(), time_buf.size(), format.c_str(), localtime_r(&ts_time_t, &ts_tm))) {
+      time_expanded = true;
+      break;
+    }
+    if (time_buf.size() >= 8192) {
+      break;
+    }
+    time_buf.resize(std::min<size_t>(time_buf.size() * 2, 8192));
+  }
+
+  // If even the largest buffer was too small, fall back to the raw format
+  // rather than returning an empty label.
+  const std::string expanded = time_expanded ? std::string(time_buf.data()) : format;
+
   std::string text;
   text.reserve(1024);
 
-  // Expand the strftime macros first
-  char label_time_text[256];
-  tm ts_tm = {};
-  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
-  strftime(label_time_text, sizeof(label_time_text), format.c_str(), localtime_r(&ts_time_t, &ts_tm));
-
-  const char *s_ptr = label_time_text;
-  char *d_ptr = text.data();
-
-  while (*s_ptr && ((unsigned int)(d_ptr - text.data()) < text.capacity())) {
-    if (*s_ptr == config.timestamp_code_char[0]) {
-      const auto max_len = text.capacity() - (d_ptr - text.data());
-      bool found_macro = false;
-      int rc = 0;
-      switch ( *(s_ptr+1) ) {
+  const char code_char = config.timestamp_code_char[0];
+  for (size_t i = 0; i < expanded.size() && text.size() < 1024; i++) {
+    if (expanded[i] == code_char && i + 1 < expanded.size()) {
+      switch (expanded[i+1]) {
       case 'N' :
-        rc = snprintf(d_ptr, max_len, "%s", name.c_str());
-        found_macro = true;
-        break;
+        text.append(name);
+        i++;
+        continue;
       case 'Q' :
-        rc = snprintf(d_ptr, max_len, "%s", trigger_data->trigger_showtext);
-        found_macro = true;
-        break;
-      case 'f' :
+        if (trigger_data) text.append(trigger_data->trigger_showtext);
+        i++;
+        continue;
+      case 'f' : {
         typedef std::chrono::duration<int64, std::centi> Centiseconds;
         Centiseconds centi_sec = std::chrono::duration_cast<Centiseconds>(
                                    ts_time.time_since_epoch() - std::chrono::duration_cast<Seconds>(ts_time.time_since_epoch()));
-        rc = snprintf(d_ptr, max_len, "%02lld", static_cast<long long int>(centi_sec.count()));
-        found_macro = true;
-        break;
-      }
-      if (rc < 0 || static_cast<size_t>(rc) > max_len) {
-        break;
-      }
-      d_ptr += rc;
-      if (found_macro) {
-        s_ptr += 2;
+        char centi_buf[16];
+        snprintf(centi_buf, sizeof(centi_buf), "%02lld", static_cast<long long int>(centi_sec.count()));
+        text.append(centi_buf);
+        i++;
         continue;
       }
+      }
     }
-    *d_ptr++ = *s_ptr++;
-  } // end while
-  *d_ptr = '\0';
+    text.push_back(expanded[i]);
+  } // end for
+
+  if (text.size() > 1024) text.resize(1024);
   return text;
 }
 

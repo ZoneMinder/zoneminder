@@ -293,8 +293,10 @@ function logFilter() {
     $end_time = is_string($_REQUEST['EndDateTime']) ? strtotime($_REQUEST['EndDateTime']) : false;
     if ($end_time) {
       if ($where) $where .= ' AND ';
-      $where .= 'TimeKey <= ?';
-      $query['values'][] = $end_time;
+      // TimeKey carries fractions of a second but the view shows whole seconds,
+      // so the End time covers its whole second.
+      $where .= 'TimeKey < ?';
+      $query['values'][] = $end_time + 1;
     } else {
       ZM\Warning("Unable to parse EndDateTime ".print_r($_REQUEST['EndDateTime'], true). " into a timestamp");
     }

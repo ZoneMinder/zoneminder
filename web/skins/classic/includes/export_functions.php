@@ -868,6 +868,8 @@ function exportFileList(
 
   if ($exportMisc) {
     foreach ($files as $file) {
+      // Pages left behind by an earlier export link to files that are not in this one
+      if (preg_match('/^zmEvent(?:Detail|Frames|Images)\.html$/', $file)) continue;
       $exportFileList[$file] = $file;
     }
     $files = array();

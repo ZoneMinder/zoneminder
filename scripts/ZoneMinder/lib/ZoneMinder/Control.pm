@@ -630,6 +630,18 @@ sub keepAliveDue {
   return 1;
 }
 
+# Seconds the daemon may wait in select() before the next keepAlive is due.
+# Waiting the whole interval after every command lets the gap between pings
+# reach twice the interval: a command just before a ping is due restarts a full
+# wait, and the ping then comes a whole interval later.
+sub keepAliveWait {
+  my ($self, $interval, $now) = @_;
+  $now = time() if !defined $now;
+  return $interval if !defined $self->{last_keepalive} or $now < $self->{last_keepalive};
+  my $left = $interval - ($now - $self->{last_keepalive});
+  return $left > 1 ? $left : 1;
+}
+
 sub guess_credentials {
   my $self = shift;
 

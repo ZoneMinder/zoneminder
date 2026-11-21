@@ -971,8 +971,9 @@ sub recover_timestamps {
   if ( @capture_jpgs ) {
     $$Event{Frames} = scalar @capture_jpgs;
     $$Event{SaveJPEGs} |= 1;
-    # can get start and end times from stat'ing first and last jpg
-    @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
+    # can get start and end times from stat'ing first and last jpg,
+    # in frame order: numbers past the zero padding do not sort as text
+    @capture_jpgs = sort { ($a =~ /^(\d+)/)[0] <=> ($b =~ /^(\d+)/)[0] } @capture_jpgs;
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];

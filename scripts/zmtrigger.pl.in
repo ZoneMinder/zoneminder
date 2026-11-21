@@ -302,6 +302,7 @@ exit;
 sub loadMonitors {
   $monitor_reload_time = time();
 
+  my %old_monitors = %monitors; # Keep prior state/event so alarms that started or ended since the last poll are not swallowed
   %monitors = ();
   foreach my $monitor ( ZoneMinder::Monitor->find(
     Deleted=>0,
@@ -309,8 +310,14 @@ sub loadMonitors {
     ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
     )) {
     if ($monitor->connect()) { # This will re-init shared memory
-      $monitor->{LastState} = zmGetMonitorState($monitor);
-      $monitor->{LastEvent} = zmGetLastEvent($monitor);
+      my $old = $old_monitors{$monitor->{Id}};
+      if ($old and defined($old->{LastState})) {
+        $monitor->{LastState} = $old->{LastState};
+        $monitor->{LastEvent} = $old->{LastEvent};
+      } else {
+        $monitor->{LastState} = zmGetMonitorState($monitor);
+        $monitor->{LastEvent} = zmGetLastEvent($monitor);
+      }
     }
     $monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow

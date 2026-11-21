@@ -364,6 +364,17 @@ sub extractInserts {
       next;
     }
 
+    # A statement can span several lines (controls.sql has some); join them
+    # up to the line that ends it.
+    if ($line =~ /^\s*INSERT\s/i) {
+      while ($line !~ /;\s*$/) {
+        my $next = <$FH>;
+        last if !defined $next;
+        chomp $next;
+        $line .= ' '.$next;
+      }
+    }
+
     next if $line !~ /^\s*INSERT\s+INTO\s+`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*\((.*)\)\s*;\s*$/i;
     my ($table, $collist, $values) = ($1, $2, $3);
     next if !grep { lc $_ eq lc $table } @$tables;

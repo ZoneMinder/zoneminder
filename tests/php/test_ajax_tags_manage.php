@@ -39,8 +39,8 @@ function dbFetchOne($sql, $col=null, $params=array()) {
     foreach ($GLOBALS['tags'] as $t) if ($t['Id'] == $params[0]) return array('Id'=>$t['Id']);
     return false;
   }
-  if (strpos($sql, 'Name = ? AND Id != ?') !== false) {
-    foreach ($GLOBALS['tags'] as $t) if ($t['Name'] === $params[0] and $t['Id'] != $params[1]) return array('Id'=>$t['Id']);
+  if (strpos($sql, 'LOWER(Name) = LOWER(?) AND Id != ?') !== false) {
+    foreach ($GLOBALS['tags'] as $t) if (strtolower($t['Name']) === strtolower($params[0]) and $t['Id'] != $params[1]) return array('Id'=>$t['Id']);
     return false;
   }
   if (strpos($sql, 'FROM Events_Tags WHERE TagId') !== false) {

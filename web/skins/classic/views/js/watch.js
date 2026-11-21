@@ -12,6 +12,7 @@ var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
+var watchRate = null; /* Rate picked on this page, null until the user changes it */
 var currentMonitor;
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
@@ -911,6 +912,10 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  // The rate rendered into the other monitors' streams is the one from page load
+  if (watchRate !== null && monitorStream.url_to_zms) {
+    monitorStream.url_to_zms = monitorStream.url_to_zms.replace(/&maxfps=[^&]*/, '') + '&maxfps=' + watchRate;
+  }
 
   monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
@@ -1401,6 +1406,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
+  watchRate = newvalue;
   setCookie('zmWatchRate', newvalue);
 }
 

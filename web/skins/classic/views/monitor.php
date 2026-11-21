@@ -82,6 +82,8 @@ if (isset($_REQUEST['dupId'])) {
     $monitor->Name(mb_substr('Clone of '.$monitor->Name(), 0, 64));
   }
   $monitor->Id($mid);
+  // Like a new monitor, the copy gets its own colour so the two can be told apart in graphs
+  $monitor->WebColour(random_colour());
 }
 
 if (ZM_OPT_X10 && empty($x10Monitor)) {

@@ -313,8 +313,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
-    // Trigger autorefresh of the widget bar stats on the navbar
-    if ( $j('.navbar').length ) {
+    // Trigger autorefresh of the widget bar stats on the navbar. A refresh
+    // time of 0 means off; setInterval would treat it as "as fast as possible".
+    if ( $j('.navbar').length && navBarRefresh > 0 ) {
       setInterval(getNavBar, navBarRefresh);
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown

@@ -134,6 +134,7 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

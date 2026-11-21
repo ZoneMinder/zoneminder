@@ -567,6 +567,7 @@ sub zmGetMonitorActions {
 sub zmMonitorEnable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -575,6 +576,7 @@ sub zmMonitorEnable {
 sub zmMonitorDisable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -583,6 +585,7 @@ sub zmMonitorDisable {
 sub zmMonitorSuspend {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -591,6 +594,7 @@ sub zmMonitorSuspend {
 sub zmMonitorResume {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});

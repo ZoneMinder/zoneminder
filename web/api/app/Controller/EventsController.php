@@ -437,6 +437,7 @@ class EventsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->Event, $id);
     $monitorId = $this->requestField('Event', 'MonitorId');
     if ($monitorId !== null and $monitorId != $event['Event']['MonitorId']) {

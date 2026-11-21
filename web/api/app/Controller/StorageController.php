@@ -136,6 +136,7 @@ class StorageController extends AppController {
     if ( !$this->Storage->exists($id) ) {
       throw new NotFoundException(__('Invalid storage area'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->Storage, $id);
     if ( $this->Storage->save($this->request->data) ) {
       $message = 'Saved';

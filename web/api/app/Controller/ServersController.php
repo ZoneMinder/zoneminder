@@ -132,6 +132,7 @@ class ServersController extends AppController {
     if ( !$this->Server->exists($id) ) {
       throw new NotFoundException(__('Invalid server'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->Server, $id);
     if ( $this->Server->save($this->request->data) ) {
       $message = 'Saved';

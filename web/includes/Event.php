@@ -535,14 +535,15 @@ class Event extends ZM_Object {
     $eventPath = $Event->Path();
 
     if ( $frame and !is_array($frame) ) {
+      $requestedFrameId = $frame;
       Debug("Assuming that $frame is an Id");
-      $f = Frame::find_one(['Id'=>$frame]);
+      $f = Frame::find_one(['Id'=>$requestedFrameId]);
       if ($f) {
         $frame = (array)$f;
       } else {
-        $frame = $this->find_virtual_frame($frame);
+        $frame = $this->find_virtual_frame($requestedFrameId);
         if (!$frame)
-          $frame = array('FrameId'=>$frame, 'Type'=>'', 'Delta'=>0);
+          $frame = array('FrameId'=>$requestedFrameId, 'Type'=>'', 'Delta'=>0);
       }
     }
 
@@ -552,7 +553,7 @@ class Event extends ZM_Object {
       Debug('Frame not specified, using snapshot');
       $frame = array('FrameId'=>'snapshot', 'Type'=>'', 'Delta'=>0);
     } else {
-      $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyze.jpg', $frame['FrameId']);
+      $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-analyse.jpg', $frame['FrameId']);
       if ( ! file_exists( $eventPath.'/'.$captureImage ) ) {
         $captureImage = sprintf('%0'.ZM_EVENT_IMAGE_DIGITS.'d-capture.jpg', $frame['FrameId']);
         if ( !file_exists($eventPath.'/'.$captureImage) ) {

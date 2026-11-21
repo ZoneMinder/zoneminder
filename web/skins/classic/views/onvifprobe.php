@@ -83,6 +83,8 @@ function probeCameras($localIp) {
             );
         foreach ( preg_split('|,\s*|', $matches[3]) as $attr_val ) {
           if ( preg_match('|(.+)=\'(.*)\'|', $attr_val, $tokens) ) {
+            // Scope values are URI encoded in the WS-Discovery reply (AXIS%20M1065-L).
+            $tokens[2] = rawurldecode($tokens[2]);
             if ( $tokens[1] == 'hardware' ) {
               $camera['model'] = $tokens[2];
             } else if ( $tokens[1] == 'name' ) {

@@ -219,6 +219,29 @@ if ($action == 'save') {
           $newA = $newW * $newH;
           $oldA = $oldMonitor->Width() * $oldMonitor->Height();
 
+          // Coordinates without a decimal point are pixels to zmc. Turn those
+          // zones into percentage zones at the old size first, otherwise the
+          // rotation below writes them with decimals, which zmc reads as
+          // percentages, and a resize leaves them covering the wrong area.
+          foreach ( $zones as &$zone ) {
+            if ( $oldA <= 0 or strpos($zone['Coords'], '.') !== false ) continue;
+            $points = coordsToPoints($zone['Coords']);
+            if ( !$points ) continue;
+            convertPixelPointsToPercent($points, $oldMonitor->Width(), $oldMonitor->Height(), true);
+            $zonePixelArea = getPolyArea($points) / 10000.0 * $oldA;
+            $newZone = $zone;
+            $newZone['Units'] = 'Percent';
+            $newZone['Coords'] = pointsToCoords($points);
+            convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
+            $zoneChanges = getFormChanges($zone, $newZone, $types);
+            if ( count($zoneChanges) ) {
+              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id']));
+            }
+            $zone = $newZone;
+          }
+          unset($zone);
+
           if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
             // Rotation: swap x,y percentage coords
             foreach ( $zones as $zone ) {

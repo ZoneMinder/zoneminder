@@ -19,6 +19,7 @@
 
 #include "zm_regexp.h"
 #include "zm_remote_camera.h"
+#include "zm_remote_camera_http.h"
 #include <cstring>
 
 TEST_CASE("SplitUserInfo") {
@@ -75,5 +76,21 @@ TEST_CASE("RegExpr failed match leaves no stale data") {
   REQUIRE(re.MatchString(0) == nullptr);
   REQUIRE(re.MatchLength(0) == 0);
   REQUIRE(re.MatchString(1) == nullptr);
+}
+
+TEST_CASE("RemoteCameraHttp::QuoteRegex matches a multipart boundary literally", "[RemoteCameraHttp]") {
+  REQUIRE(RemoteCameraHttp::QuoteRegex("frame") == "frame");
+  REQUIRE(RemoteCameraHttp::QuoteRegex("a(b)+c?") == "a\\(b\\)\\+c\\?");
+
+  // RFC 2046 allows ( ) + . ? and more in a boundary.
+  for (const char *boundary : {"frame", "a(b)c", "frame+1", "what?", "x(", "=_Part_(1)+2/3:4,5'6"}) {
+    const std::string pattern = "^(?:--)?" + RemoteCameraHttp::QuoteRegex(boundary) + "\r?\n";
+    RegExpr re(pattern.c_str());
+    const std::string line = std::string("--") + boundary + "\r\n";
+    REQUIRE(re.Match(line.c_str(), line.size()) == 1);
+  }
+
+  RegExpr dot(("^" + RemoteCameraHttp::QuoteRegex("a.b") + "$").c_str());
+  REQUIRE(dot.Match("axb", 3) == 0);
 }
 #endif

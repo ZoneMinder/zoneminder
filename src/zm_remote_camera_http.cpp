@@ -25,6 +25,7 @@
 #include "zm_regexp.h"
 #include "zm_utils.h"
 #include <arpa/inet.h>
+#include <cctype>
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -345,6 +346,15 @@ bool RemoteCameraHttp::IsBoundaryLine(const char *line, const char *boundary, si
   return dashes >= 2 && strncasecmp(line + dashes, boundary, len) == 0;
 }
 
+std::string RemoteCameraHttp::QuoteRegex(const std::string &text) {
+  std::string quoted;
+  for (const char c : text) {
+    if (!isalnum(static_cast<unsigned char>(c))) quoted += '\\';
+    quoted += c;
+  }
+  return quoted;
+}
+
 int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
   // The length is read from the camera link, usually plain HTTP, and decides how much is
   // buffered for one frame. No encoding of a frame is larger than twice its raw size, so a
@@ -514,9 +524,8 @@ int RemoteCameraHttp::GetResponse() {
         static RegExpr *subcontent_type_expr = nullptr;
 
         if ( !subheader_expr ) {
-          char subheader_pattern[256] = "";
-          snprintf( subheader_pattern, sizeof(subheader_pattern), "^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", multipart_boundary.c_str() );
-          subheader_expr = new RegExpr( subheader_pattern, PCRE2_DOTALL );
+          const std::string subheader_pattern = stringtf("^((?:\r?\n){0,2}?(?:--)?%s\r?\n.+?\r?\n\r?\n)", QuoteRegex(multipart_boundary).c_str());
+          subheader_expr = new RegExpr( subheader_pattern.c_str(), PCRE2_DOTALL );
         }
         if ( subheader_expr->Match( (char *)buffer, (int)buffer ) == 2 ) {
           subheader = subheader_expr->MatchString( 1 );
@@ -597,9 +606,8 @@ int RemoteCameraHttp::GetResponse() {
             bytes += buffer_len;
             if (mode == MULTI_IMAGE) {
               if (!content_expr) {
-                char content_pattern[256] = "";
-                snprintf(content_pattern, sizeof(content_pattern), "^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", multipart_boundary.c_str());
-                content_expr = new RegExpr(content_pattern, PCRE2_DOTALL);
+                const std::string content_pattern = stringtf("^(.+?)(?:\r?\n)*(?:--)?%s\r?\n", QuoteRegex(multipart_boundary).c_str());
+                content_expr = new RegExpr(content_pattern.c_str(), PCRE2_DOTALL);
               }
               if (content_expr->Match( buffer, buffer.size()) == 2) {
                 content_length = content_expr->MatchLength( 1 );

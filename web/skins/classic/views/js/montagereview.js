@@ -1278,7 +1278,8 @@ function changeFilters(e) {
     minTimeSecs = minStartDateTime.valueOf()/1000;
     maxTime = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
     maxTimeSecs = maxStartDateTime.valueOf()/1000;
-    rangeTimeSecs = maxTimeSecs - minTimeSecs;
+    // inclusive, as montagereview.js.php emits it; never 0 when min equals max
+    rangeTimeSecs = maxTimeSecs - minTimeSecs + 1;
     // On any change, jump to beginning ? No...
     if (currentTimeSecs < minTimeSecs) {
       // console.log("currentTimeSecs < minTimeSecs setting to ", minTimeSecs, minTime);

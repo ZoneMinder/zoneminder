@@ -59,9 +59,13 @@ function streamKey(stream) {
 
 function decorateStreams(streams) {
   const rows = [];
+  const seen = {};
   for (const i in streams) {
     const stream = streams[i];
-    const key = streamKey(stream);
+    let key = streamKey(stream);
+    // A CSV can list the same url on several rows with different names, so keep each row's own entry.
+    if (seen[key]) key += '#' + i;
+    seen[key] = true;
     if (stream.Monitor) {
       stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+key+'"/>';
     } else if (stream.url && user.Monitors == 'Create') {

@@ -258,7 +258,10 @@ class HostController extends AppController {
     # cannot view a monitor was being told that it exists and how much disk it
     # uses. Report only on the monitors it may see.
     if ($mid) {
-      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid)));
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid, 'Monitor.Deleted' => 0)));
+      if (!$one) {
+        throw new NotFoundException(__('Invalid monitor'));
+      }
       $zm_monitor = new ZM\Monitor($one['Monitor']);
       if (!$zm_monitor->canView()) {
         throw new UnauthorizedException(__('Insufficient Privileges'));

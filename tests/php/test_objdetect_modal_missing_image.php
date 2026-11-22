@@ -16,6 +16,7 @@ namespace ZM {
 
   class Event {
     public static $dirs = array();
+    public static $hidden = array();
     private $path;
 
     public function __construct($path) {
@@ -26,6 +27,10 @@ namespace ZM {
       $id = isset($criteria['Id']) ? $criteria['Id'] : null;
       if (!isset(self::$dirs[$id])) return null;
       return new Event(self::$dirs[$id]);
+    }
+
+    public function canView() {
+      return !in_array($this->path, self::$hidden, true);
     }
 
     public function Path() {
@@ -92,6 +97,12 @@ namespace {
 
   $gif = render_modal(3);
   check('an event with only objdetect.gif renders an img', strpos($gif, '<img') !== false);
+
+  // An event the user may not view answers like an unknown one.
+  \ZM\Event::$hidden = array($dirs['b']);
+  $hidden = render_modal(2);
+  check('an event the user cannot view renders nothing', $hidden === '');
+  \ZM\Event::$hidden = array();
 
   $missing = render_modal(999);
   check('an unknown event renders nothing', $missing === '');

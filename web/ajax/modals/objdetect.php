@@ -9,7 +9,8 @@ if ( !validInt($eid) ) {
 }
 
 $Event = ZM\Event::find_one(array('Id'=>$eid));
-if ( !$Event ) {
+if ( !$Event or !$Event->canView() ) {
+  // An event the user may not view is treated as unknown, as views/image.php does.
   ZM\Error("Event $eid not found");
   return;
 }

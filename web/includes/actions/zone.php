@@ -135,6 +135,9 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
           $val = number_format(max(0, min(100, floatval($val))), 2, '.', '');
         }
         $cleanData[$field] = $val;
+      } else if ( $field == 'OverloadFrames' || $field == 'ExtendAlarmFrames' ) {
+        // NOT NULL columns, a blank input (a new zone's default) saves as 0 like the zone itself
+        $cleanData[$field] = 0;
       } else {
         $cleanData[$field] = null;
       }

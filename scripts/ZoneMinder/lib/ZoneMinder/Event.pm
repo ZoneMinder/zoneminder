@@ -278,7 +278,7 @@ sub GenerateVideo {
   chdir($event_path);
   # Name is user editable; keep the output file inside the event directory.
   ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
-  $video_name =~ s/^\./_/;
+  $video_name =~ s/^[-.]/_/;
 
   my @file_parts;
   if ( $rate ) {

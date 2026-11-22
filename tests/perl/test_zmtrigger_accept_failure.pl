@@ -17,6 +17,7 @@ BEGIN {
 use lib "$root/scripts/ZoneMinder/lib";
 
 use ZoneMinder::Trigger::Channel::Inet;
+use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Connection;
 
 my ($passes, $failures) = (0, 0);
@@ -41,6 +42,20 @@ my $spawned = eval { $conn->accept() };
 check('connection accept does not die', $@ ? "died: $@" : 'ok', 'ok');
 check('failed connection accept does not spawn a connection',
   defined($spawned) ? 'defined' : 'undef', 'undef');
+
+# The Unix socket channel takes the same accept path and is on by default.
+my $unix = ZoneMinder::Trigger::Channel::Unix->new(path => '/nonexistent/zmtrigger.sock');
+open(my $ufh, '<', '/dev/null') or die "Can't open /dev/null: $!";
+$unix->{handle} = $ufh;
+my $uaccepted = eval { $unix->accept() };
+check('unix channel accept does not die', $@ ? "died: $@" : 'ok', 'ok');
+check('failed unix channel accept returns nothing',
+  defined($uaccepted) ? 'defined' : 'undef', 'undef');
+my $uconn = ZoneMinder::Trigger::Connection->new(name => 'unix', mode => 'rw',
+  channel => $unix);
+my $uspawned = eval { $uconn->accept() };
+check('failed unix connection accept does not spawn a connection',
+  defined($uspawned) ? 'defined' : 'undef', 'undef');
 
 print "$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

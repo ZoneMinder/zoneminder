@@ -79,7 +79,7 @@ sub open
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
-        $ADDRESS .= ':80';
+        $ADDRESS .= ($PROTOCOL eq 'https://') ? ':443' : ':80';
     }
 
     use LWP::UserAgent;

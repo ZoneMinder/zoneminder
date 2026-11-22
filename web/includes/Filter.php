@@ -1356,7 +1356,7 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['id'])) {
-            $html .= ' id="'.$term['id'].'"';
+            $html .= ' id="'.validHtmlStr($term['id']).'"';
           } else {
             $html .= ' id="filter[Query][terms]['.$i.'][val]"';
           }
@@ -1366,13 +1366,13 @@ class Filter extends ZM_Object {
           $html .= ' value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'').'"';
 
           if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
-          $html .= ' placeholder="'.$term['placeholder'].'"/>'.PHP_EOL;
+          $html .= ' placeholder="'.validHtmlStr($term['placeholder']).'"/>'.PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
-            $html .= ' data-cookie="'.$term['cookie'].'"';
+            $html .= ' data-cookie="'.validHtmlStr($term['cookie']).'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
           $html .= '/></span>'.PHP_EOL;

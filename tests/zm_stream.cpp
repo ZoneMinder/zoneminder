@@ -23,9 +23,12 @@
 #include "zm_image.h"
 #include "zm_signal.h"
 
+#include <atomic>
 #include <cerrno>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -582,4 +585,35 @@ TEST_CASE("StreamBase::setStreamReplayRate treats 0 as normal speed", "[StreamBa
   CHECK(stream.replayRate() == ZM_RATE_BASE);
   stream.setStreamReplayRate(-200);
   CHECK(stream.replayRate() == -200);
+}
+
+TEST_CASE("StreamBase command thread idles when its comms are not open", "[StreamBase]") {
+  auto measure_cpu_seconds = [](int connkey) {
+    TestStream stream;
+    stream.setStreamQueue(connkey);
+    std::atomic<double> cpu{0.0};
+
+    zm_terminate = false;
+    std::thread command_thread([&stream, &cpu]() {
+      stream.commandLoop();
+      timespec ts = {};
+      clock_gettime(CLOCK_THREAD_CPUTIME_ID, &ts);
+      cpu = ts.tv_sec + ts.tv_nsec / 1e9;
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+    zm_terminate = true;
+    command_thread.join();
+    zm_terminate = false;
+
+    // A spinning loop would use about 0.6 s of CPU over the 600 ms wait.
+    CHECK(cpu.load() < 0.2);
+  };
+
+  SECTION("connkey -1") {
+    measure_cpu_seconds(-1);
+  }
+
+  SECTION("connkey 0") {
+    measure_cpu_seconds(0);
+  }
 }

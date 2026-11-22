@@ -80,6 +80,7 @@ $SLANG = array(
     '24BitColour'           => '24 bit colour',
     '32BitColour'           => '32 bit colour',
     '8BitGrey'              => '8 bit greyscale',
+    'AddAlias'              => 'Add alias, then Enter',
     'AddNewClass'           => 'Add New Class',
     'AddNewControl'         => 'Add New Control',
     'AddNewDataset'         => 'Add New Dataset',

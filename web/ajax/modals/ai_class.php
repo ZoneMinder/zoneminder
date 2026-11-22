@@ -73,7 +73,14 @@ if ($result) {
               </tr>
               <tr class="Aliases">
                 <th scope="row"><?php echo translate('Aliases') ?></th>
-                <td><input type="text" name="newClass[Aliases]" value="<?php echo validHtmlStr($class['Aliases']) ?>" placeholder="PeopleDetect,Human"/></td>
+                <td>
+                  <input type="hidden" name="newClass[Aliases]" id="classAliases" value="<?php echo validHtmlStr($class['Aliases']) ?>"/>
+                  <div class="tags-container" id="classAliasTags">
+                    <div class="tag-dropdown">
+                      <input type="text" id="classAliasInput" class="tag-input" placeholder="<?php echo translate('AddAlias') ?>"/>
+                    </div>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>

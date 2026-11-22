@@ -103,9 +103,51 @@ function getClassModal(cid) {
   $j.getJSON(thisUrl + '?request=modal&modal=ai_class&id=' + cid)
       .done(function(data) {
         insertModalHtml('ClassModal', data.html);
+        initAliasTags();
         $j('#ClassModal').modal('show');
       })
       .fail(logAjaxFail);
+}
+
+// A class's aliases are edited as tags, like an event's, and saved in the
+// hidden input as the comma list zmc reads.
+function initAliasTags() {
+  const hidden = $j('#classAliases');
+  const input = $j('#classAliasInput');
+  const aliases = () => hidden.val().split(',').map((a) => a.trim()).filter((a) => a.length);
+
+  function render() {
+    $j('#classAliasTags .tag').remove();
+    aliases().forEach(function(alias) {
+      const tag = $j('<div>', {class: 'tag'});
+      tag.append($j('<span>', {class: 'tag-text', text: alias}));
+      tag.append($j('<span>', {class: 'tag-remove', text: '\u00D7'}).click(function() {
+        hidden.val(aliases().filter((a) => a !== alias).join(','));
+        render();
+      }));
+      $j('#classAliasTags .tag-dropdown').before(tag);
+    });
+  }
+
+  function addTyped() {
+    const list = aliases();
+    input.val().split(/[\s,]+/).forEach(function(alias) {
+      if (alias.length && !list.some((a) => a.toLowerCase() == alias.toLowerCase())) list.push(alias);
+    });
+    hidden.val(list.join(','));
+    input.val('');
+    render();
+  }
+
+  input.on('keydown', function(evt) {
+    // Enter would submit the form; it adds the alias instead, as on the event page.
+    if (['Enter', ' ', ','].includes(evt.key)) {
+      evt.preventDefault();
+      addTyped();
+    }
+  });
+  input.on('blur', addTyped); // so an alias typed but not entered is still saved
+  render();
 }
 
 function enableClassModal() {

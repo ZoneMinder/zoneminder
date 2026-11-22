@@ -75,5 +75,45 @@ $dbh = StubDbh->new('0');
 check('force enables despite stored 0', telemetryEnabled($dbh, 1) ? 1 : 0, 1);
 check('force skips database lookup', $dbh->{calls}, 0);
 
+# The main loop must not exit when telemetry is off (zmdc would restart it
+# every 30 seconds) and must not upload; it sleeps and checks again.
+my ($loop) = $source =~ /^(my \$lastCheck = .*?^\} # end while)/ms;
+check('main loop is found', defined $loop);
+if (defined $loop) {
+  $loop =~ s/\bsleep\(/tsleep(/g;
+  $loop =~ s/\bexit\(/texit(/g;
+  my @enabled_seq;
+  my ($uploads, $sleeps, @infos) = (0, 0);
+  {
+    package LoopStub;
+    our $dbh_value;
+    sub ping { 1 }
+    sub selectrow_array { return shift @enabled_seq }
+  }
+  our %Config = (ZM_TELEMETRY_LAST_UPLOAD => 0);
+  our ($interval, $force) = (10, 0);
+  no warnings qw(redefine once);
+  *main::tsleep = sub { die "stop\n" if ++$sleeps > 3 };
+  *main::texit = sub { die "exit\n" };
+  *main::Info = sub { push @infos, $_[0] };
+  *main::Debug = *main::Warning = sub {};
+  *main::collectData = sub {};
+  *main::jsonEncode = sub { '{}' };
+  *main::sendData = sub { $uploads++; 1 };
+  *ZoneMinder::Database::zmDbDo = sub {};
+  my $code = 'my $dbh = bless {}, "LoopStub"; my $interval = 10; my $force = 0; our %Config; '.$loop.' 1;';
+  @enabled_seq = (0, 0, 1, 0);
+  $sleeps = 0;
+  my $ok = eval $code;
+  check('loop keeps running while telemetry is off (ends only via the test stop)', $@, "stop\n");
+  check('loop uploaded only while on', $uploads, 1);
+  check('state changes are logged once each', scalar(@infos), 3);
+  @enabled_seq = (0, 0, 0, 0);
+  ($uploads, $sleeps, @infos) = (0, 0);
+  eval $code;
+  check('loop uploads nothing while off', $uploads, 0);
+  check('off is logged once, not every pass', scalar(@infos), 1);
+}
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

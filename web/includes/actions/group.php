@@ -64,11 +64,24 @@ if ( $action == 'save' ) {
     $view = 'groups';
     return;
   }
-  dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id));
   $group_id = $group->Id();
+  if (dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($group_id)) === NULL) {
+    $error_message .= 'Error clearing group monitors: '.htmlspecialchars(dbLastError()).'<br/>';
+    $view = 'groups';
+    return;
+  }
   if ($group_id and isset($_REQUEST['newGroup']['MonitorIds'])) {
+    $failed = false;
     foreach ( $new_ids as $mid ) {
-      dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid));
+      if (dbQuery('INSERT INTO `Groups_Monitors` (`GroupId`,`MonitorId`) VALUES (?,?)', array($group_id, $mid)) === NULL) {
+        $error_message .= 'Error adding monitor '.$mid.' to group: '.htmlspecialchars(dbLastError()).'<br/>';
+        $failed = true;
+        break;
+      }
+    }
+    if ($failed) {
+      $view = 'groups';
+      return;
     }
   }
   ZM\AuditAction((!empty($_REQUEST['gid']) ? 'update' : 'create'), 'group', $group->Id(), 'Name: '.$_REQUEST['newGroup']['Name']);

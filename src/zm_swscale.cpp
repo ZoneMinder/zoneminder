@@ -73,9 +73,9 @@ int SWScale::Convert(
   }
   zm_sws_set_ranges(swscale_ctx, orig_format, orig_out_format);
   /* Do the conversion */
-  if (!sws_scale(swscale_ctx,
+  if (sws_scale(swscale_ctx,
                  in_frame->data, in_frame->linesize, 0, in_frame->height,
-                 out_frame->data, out_frame->linesize)) {
+                 out_frame->data, out_frame->linesize) <= 0) {
     Error("swscale conversion failed");
     return -10;
   }
@@ -143,14 +143,15 @@ int SWScale::Convert(
   /* Check the buffer sizes against the layout each alignment implies */
   size_t needed_insize = GetBufferSize(in_pf, width, height, in_alignment);
   if (needed_insize > in_buffer_size) {
-    Warning(
-      "The input buffer size does not match the expected size for the input format. Required: %zu for %dx%d %d align %d Available: %zu",
+    Error(
+      "The input buffer is undersized for the input format. Required: %zu for %dx%d %d align %d Available: %zu",
       needed_insize,
       width,
       height,
       in_pf,
       in_alignment,
       in_buffer_size);
+    return -9;
   }
   size_t needed_outsize = GetBufferSize(out_pf, new_width, new_height, out_alignment);
   if (needed_outsize > out_buffer_size) {
@@ -188,10 +189,10 @@ int SWScale::Convert(
   }
 
   /* Do the conversion */
-  if ( !sws_scale(swscale_ctx,
+  if ( sws_scale(swscale_ctx,
                   input_avframe->data, input_avframe->linesize,
                   0, height,
-                  output_avframe->data, output_avframe->linesize) ) {
+                  output_avframe->data, output_avframe->linesize) <= 0 ) {
     Error("swscale conversion failed");
     return -10;
   }

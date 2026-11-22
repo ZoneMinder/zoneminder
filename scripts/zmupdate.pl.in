@@ -134,15 +134,13 @@ if ($updateDir) {
   }
 }
 
-my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
-die "Unable to connect to db\n" if !$dbh;
-
-#When putting the user and password on the command line, we will enclose in quotes, so escape any quotes.
+# ZoneMinder::Config already connected with the zm.conf credentials; reconnect when they differ
+my $reconnect = ( $dbUser ne $Config{ZM_DB_USER} or $dbPass ne $Config{ZM_DB_PASS} );
 $Config{ZM_DB_USER} = $dbUser;
-$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
-# we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
-$dbPass =~ s/'/\\'/g;
+
+my $dbh = zmDbConnect($reconnect, { mysql_multi_statements=>1 } );
+die "Unable to connect to db\n" if !$dbh;
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) ) {
   if ( $Config{ZM_DYN_DB_VERSION} ) {
@@ -168,7 +166,7 @@ if ($check) {
   my $lastCheck = $Config{ZM_DYN_LAST_CHECK};
 
   if ( !$currVersion ) {
-    $currVersion = $Config{ZM_VERSION};
+    $currVersion = ZM_VERSION;
     zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
@@ -203,8 +201,10 @@ if ($check) {
           print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
           exit(0);
         }
+        $lastVersion = $latestVersion;
       } else {
         Error('Error check failed: \''.$res->status_line().'\'');
+        exit(1) if $interactive;
       }
     }
     sleep(3600);
@@ -287,19 +287,17 @@ About to convert saved events to deep storage, please ensure that ZoneMinder is 
 This process is not easily reversible. Are you sure you wish to proceed?
 
 Press \'y\' to continue or \'n\' to abort : ');
-  my $response = <STDIN>;
-  chomp($response);
+  my $response = readAnswer();
   while ( $response !~ /^[yYnN]$/ ) {
     print("Please press 'y' to continue or 'n' to abort only : ");
-    $response = <STDIN>;
-    chomp($response);
+    $response = readAnswer();
   }
 
   if ( $response =~ /^[yY]$/ ) {
     print("Converting all events to deep storage.\n");
 
     chdir($Config{ZM_PATH_WEB});
-    my $sql = 'SELECT *, unix_timestamp(StartTime) AS UnixStartTime FROM Events';
+    my $sql = 'SELECT *, unix_timestamp(StartDateTime) AS UnixStartTime FROM Events';
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute();
     if ( !$res ) {
@@ -342,15 +340,18 @@ if ( $freshen ) {
   print("\nFreshening configuration in database\n");
   migratePaths();
   migratePasswords();
-  ZoneMinder::Config::loadConfigFromDB();
-  ZoneMinder::Config::saveConfigToDB();
+  if ( !ZoneMinder::Config::loadConfigFromDB() ) {
+    Fatal("Unable to load configuration from the database, aborting freshen.");
+  }
+  ZoneMinder::Config::saveConfigToDB()
+    or Fatal('Failed to save the configuration to the database');
 }
 
 # Don't do innoDB upgrade if not interactive
 if ( $interactive ) {
 # Now check for MyISAM Tables
   my @MyISAM_Tables;
-  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`='zm' AND `engine` = 'MyISAM'";
+  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`=DATABASE() AND `engine` = 'MyISAM'";
   my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
 
@@ -367,8 +368,7 @@ However, the recommended database engine is InnoDB.
 Hint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.
 
 Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
-    my $response = <STDIN>;
-    chomp( $response );
+    my $response = readAnswer();
     if ( $response =~ /^[yY]$/ ) {
       $dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
       print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
@@ -384,7 +384,8 @@ Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
 } # end if interactive
 
 if ( $version ) {
-  my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+  my ( $detaint_version ) = $version =~ /^(\d+(?:\.\d+)+)/;
+  die( "Unable to extract a version number from '$version'\n" ) if ! defined( $detaint_version );
   $version = $detaint_version;
 
   my $start_zm = 0;
@@ -397,21 +398,18 @@ if ( $version ) {
 
     if ( systemStatus() eq 'running' ) { 
       print"\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
-      my $response = <STDIN>;
-      chomp($response);
-      if ( $response !~ /Yy/ ) {
+      my $response = readAnswer();
+      if ( $response !~ /^\s*[nN]/ ) {
         packageControl('stop');
         $start_zm = 1;
       }
     }
 
     print("\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : ");
-    my $response = <STDIN>;
-    chomp($response);
+    my $response = readAnswer();
     while ( $response !~ /^[yYnN]$/ ) {
       print("Please press 'y' for a backup or 'n' to continue only : ");
-      $response = <STDIN>;
-      chomp($response);
+      $response = readAnswer();
     }
 
     if ( $response =~ /^[yY]$/ ) {
@@ -420,8 +418,7 @@ if ( $version ) {
       if ($super) {
         $command .= ' --defaults-file=/etc/mysql/debian.cnf';
       } elsif ($dbUser) {
-        $command .= ' -u\''.$dbUser.'\'';
-        $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+        $command .= ' -u'.shellQuote($dbUser);
       }
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
@@ -437,14 +434,19 @@ if ( $version ) {
       print("Creating backup to $backup. This may take several minutes.\n");
       ($command) = $command =~ /(.*)/; # detaint
       print("Executing '$command'\n") if logDebugging();
-      my $output = qx($command);
-      my $status = $? >> 8;
+      my ( $output, $status );
+      {
+        local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
+        $output = qx($command);
+        $status = $?;
+      }
       if ( $status || logDebugging() ) {
         chomp( $output );
         print( "Output: $output\n" );
       }
       if ( $status ) {
-        die( "Command '$command' exited with status: $status\n" );
+        my $signal = $status & 127;
+        die( "Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n" );
       } else {
         print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
       }
@@ -1014,6 +1016,22 @@ sub patchDB_using_do {
   }
 } # end sub patchDB_using_do
 
+# Read one line of the user's answer, stopping instead of asking forever when
+# stdin is closed or at end of file.
+sub readAnswer {
+  my $response = <STDIN>;
+  die("\nNo answer available on stdin, aborting.\n") if !defined($response);
+  chomp($response);
+  return $response;
+}
+
+# Quote a value for a POSIX shell by wrapping it in single quotes.
+sub shellQuote {
+  my $value = shift;
+  $value =~ s/'/'\\''/g;
+  return "'$value'";
+}
+
 sub patchDB {
   my $dbh = shift;
   my $version = shift;
@@ -1023,8 +1041,7 @@ sub patchDB {
   if ($super) {
     $command .= ' --defaults-file=/etc/mysql/debian.cnf';
   } elsif ($dbUser) {
-    $command .= ' -u\''.$dbUser.'\'';
-    $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+    $command .= ' -u'.shellQuote($dbUser);
   }
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
@@ -1039,14 +1056,19 @@ sub patchDB {
 
   print("Executing '$command'\n") if logDebugging();
   ($command) = $command =~ /(.*)/; # detaint
-  my $output = qx($command);
-  my $status = $? >> 8;
+  my ( $output, $status );
+  {
+    local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
+    $output = qx($command);
+    $status = $?;
+  }
   if ( $status || logDebugging() ) {
     chomp($output);
     print("Output: $output\n");
   }
   if ( $status ) {
-    die("Command '$command' exited with status: $status\n");
+    my $signal = $status & 127;
+    die("Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n");
   }
   print("\nDatabase successfully upgraded to version $version.\n");
 } # end sub patchDB

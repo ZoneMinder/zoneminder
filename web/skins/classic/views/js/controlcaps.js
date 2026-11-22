@@ -1,6 +1,7 @@
 var tableControlCaps;
 var addNewBtnControlCaps;
 var editBtnControlCaps;
+var cloneBtnControlCaps;
 var deleteBtnControlCaps;
 
 // Manage the Add New Control button
@@ -11,6 +12,14 @@ function addNewControl(el) {
 
 // Manage the Edit Control button
 function editControl(el) {
+  var selection = getIdSelections();
+
+  url = el.getAttribute('data-url');
+  window.location.assign(url+selection);
+}
+
+// Manage the Clone Control button
+function cloneControl(el) {
   var selection = getIdSelections();
 
   url = el.getAttribute('data-url');
@@ -35,6 +44,7 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=controlcaps&action=delete&cids[]='+selections.join('&cids[]='))
       .done( function(data) {
+        if (data.result == 'Error') alert(data.message);
         tableControlCaps.bootstrapTable('refresh');
         window.location.reload(true);
       })
@@ -50,6 +60,7 @@ function initPageControlCaps() {
 
     addNewBtnControlCaps.prop('disabled', (selections.length || !canEdit.Control));
     editBtnControlCaps.prop('disabled', !((selections.length == 1) && canEdit.Control));
+    cloneBtnControlCaps.prop('disabled', !((selections.length == 1) && canEdit.Control));
     deleteBtnControlCaps.prop('disabled', !(selections.length && canEdit.Control));
   });
 
@@ -92,6 +103,7 @@ document.addEventListener("DOMContentLoaded", () => {
   tableControlCaps = $j('#controlTable');
   addNewBtnControlCaps = $j('#addNewBtn');
   editBtnControlCaps = $j('#editBtn');
+  cloneBtnControlCaps = $j('#cloneBtn');
   deleteBtnControlCaps = $j('#deleteBtn');
 
   initPageControlCaps();

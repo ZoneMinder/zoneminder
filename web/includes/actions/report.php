@@ -27,6 +27,13 @@ if (!empty($_REQUEST['id'])) {
 global $redirect;
 global $error_message;
 
+if (!empty($_REQUEST['id']) and !$report->Id()) {
+  // Saving a report that failed to load would insert a new row
+  ZM\Warning('Report '.$_REQUEST['id'].' not found');
+  $redirect = '?view=reports';
+  return;
+}
+
 if ($report->Id() and !$report->canEdit()) {
   ZM\Warning('You do not have permission to edit report '.$report->Id());
   $redirect = '?view=reports';
@@ -34,7 +41,7 @@ if ($report->Id() and !$report->canEdit()) {
 }
 
 if ($action == 'save') {
-  $changes = $report->changes($_REQUEST['Report']);
+  $changes = $report->changes(isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array());
   if (!$report->Id()) {
     $changes['CreatedBy'] = $user->Id();
   }

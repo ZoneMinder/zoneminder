@@ -571,12 +571,18 @@ if(NOT ZM_NO_MQTT)
   endif (MOSQUITTOPP_FOUND)
 endif()
 
-# mysqlclient (using find_library and find_path)
-  find_library(MYSQLCLIENT_LIBRARIES mysqlclient PATH_SUFFIXES mysql)
+# MySQL client library (using find_library and find_path). Either name works:
+# libmysqlclient (MySQL, or MariaDB Connector/C through its compatibility
+# package, headers under include/mysql) or libmariadb (MariaDB Connector/C on
+# its own, as Gentoo's dev-db/mariadb-connector-c and Fedora's
+# mariadb-connector-c-devel install it: libmariadb.so and include/mariadb/mysql.h,
+# no libmysqlclient names). mysqlclient is tried first in every directory, so a
+# system with both keeps the library it built against before.
+  find_library(MYSQLCLIENT_LIBRARIES NAMES mysqlclient mariadb PATH_SUFFIXES mysql mariadb)
 if(MYSQLCLIENT_LIBRARIES)
   set(HAVE_LIBMYSQLCLIENT 1)
   list(APPEND ZM_BIN_LIBS "${MYSQLCLIENT_LIBRARIES}")
-  find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h PATH_SUFFIXES mysql)
+  find_path(MYSQLCLIENT_INCLUDE_DIR mysql.h PATH_SUFFIXES mysql mariadb)
   if(MYSQLCLIENT_INCLUDE_DIR)
     list(APPEND ZM_INCLUDE_DIRS "${MYSQLCLIENT_INCLUDE_DIR}")
     set(CMAKE_REQUIRED_INCLUDES "${MYSQLCLIENT_INCLUDE_DIR}")
@@ -656,6 +662,13 @@ endif()
 
 
 find_package(GSOAP 2.8.91)
+# The gsoap plugins are built against OpenSSL whatever the crypto backend
+if (GSOAP_FOUND)
+  find_package(OpenSSL)
+  if (NOT OPENSSL_FOUND OR NOT GSOAP_SSL_CXX_LIBRARIES)
+    set(GSOAP_FOUND FALSE)
+  endif()
+endif()
 if (GSOAP_FOUND)
   set(optlibsfound "${optlibsfound} gsoap")
 else()

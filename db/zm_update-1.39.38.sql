@@ -20,7 +20,6 @@
 -- than failing to open. Leaving it costs a log line and keeps the evidence.
 --
 UPDATE `Monitors` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
-UPDATE `Controls` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
 UPDATE `MonitorPresets` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
 
 --
@@ -32,7 +31,6 @@ UPDATE `MonitorPresets` SET `Type` = 'Ffmpeg' WHERE `Type` = 'Libvlc';
 -- whoever has to decide what to do with it.
 --
 UPDATE `Monitors` SET `Type` = 'Ffmpeg', `Capturing` = 'None' WHERE `Type` = 'NVSocket';
-UPDATE `Controls` SET `Type` = 'Ffmpeg' WHERE `Type` = 'NVSocket';
 UPDATE `MonitorPresets` SET `Type` = 'Ffmpeg' WHERE `Type` = 'NVSocket';
 
 --
@@ -43,5 +41,27 @@ ALTER TABLE `Monitors`
   MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';
 ALTER TABLE `MonitorPresets`
   MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';
-ALTER TABLE `Controls`
-  MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local';
+
+--
+-- Controls.Type is dropped in 1.39.39, but databases have been seen reaching
+-- this script without it already, so both statements that touch it are
+-- guarded. Unguarded, the UPDATE fails with ERROR 1054 and the upgrade stops
+-- here, leaving the package unconfigured.
+--
+set @exist := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE table_schema = DATABASE()
+                  AND table_name = 'Controls' AND column_name = 'Type');
+
+set @sqlstmt := if(@exist > 0,
+  "UPDATE `Controls` SET `Type` = 'Ffmpeg' WHERE `Type` IN ('Libvlc', 'NVSocket')",
+  "SELECT 'Controls.Type has already been dropped'");
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+set @sqlstmt := if(@exist > 0,
+  "ALTER TABLE `Controls` MODIFY `Type` enum('Local','Remote','File','Ffmpeg','cURL','WebSite','VNC') NOT NULL default 'Local'",
+  "SELECT 'Controls.Type has already been dropped'");
+PREPARE stmt FROM @sqlstmt;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;

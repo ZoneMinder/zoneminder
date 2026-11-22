@@ -229,7 +229,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     Debug(1, "Got PAN command, to %d,%d", x.load(), y.load());
     break;
   case CMD_SCALE :
-    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
+    scale = clampScale(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
     Debug(1, "Got SCALE command, to %d", scale.load());
     break;
   case CMD_QUIT :
@@ -361,6 +361,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     Image temp_image(filepath.c_str());
     return sendFrame(&temp_image, timestamp);
   } else {
+    unzoomedFrameSent();
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
@@ -416,7 +417,6 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }
   Image *send_image = prepareImage(image);
 
-  fputs("--" BOUNDARY "\r\n", stdout);
   // Calculate how long it takes to actually send the frame
   TimePoint send_start_time = std::chrono::steady_clock::now();
 
@@ -440,6 +440,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     /* double pts = */ vid_stream->EncodeImage(*send_image, config.mpeg_timed_frames, delta_time.count());
   } else {
+    fputs("--" BOUNDARY "\r\n", stdout);
     reserveTempImgBuffer(send_image->Size());
 
     size_t img_buffer_size = 0;
@@ -530,7 +531,7 @@ void MonitorStream::runStream() {
 
   if (!monitor) {
     Error("Cannot stream monitor %d: not loaded", monitor_id);
-    if (type == STREAM_JPEG)
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
     sendTextFrame("Not connected");
     zm_terminate = true;
@@ -543,7 +544,7 @@ void MonitorStream::runStream() {
   // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
 
-  if (type == STREAM_JPEG)
+  if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   updateFrameRate(monitor->GetFPS());
@@ -554,6 +555,7 @@ void MonitorStream::runStream() {
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
+  TimePoint capture_wait_start{};  // when capture was first found missing, unset while it is running
 
   // Periodic RSS trace so a runaway nph-zms can be caught in the act. refs #5006
   TimePoint last_mem_report = stream_start_time;
@@ -669,9 +671,10 @@ void MonitorStream::runStream() {
       // Timeout if we've never received a frame and have been waiting too long.
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-      if (now - stream_start_time > wait_timeout) {
+      if (capture_wait_start == TimePoint{}) capture_wait_start = now;
+      if (now - capture_wait_start > wait_timeout) {
         logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()),
                 static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
                 );
         zm_terminate = true;
@@ -680,6 +683,7 @@ void MonitorStream::runStream() {
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    if (last_read_index != monitor->image_buffer_count) capture_wait_start = TimePoint{};
     if (stopped) {
       // Stopped halts playback but keeps the connection, so that a later
       // command can resume on the same process. Hold the last frame and
@@ -763,13 +767,17 @@ void MonitorStream::runStream() {
             delayed = true;
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
-            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / replay_rate.load();
+            const int rate = replay_rate.load();
+            // Above 1x each pass moves on by several slots instead of waiting
+            // for the video time, so that the rate holds at any maxfps.
+            const int slots_per_pass = std::max(1, (abs(rate) + ZM_RATE_BASE / 2) / ZM_RATE_BASE);
+            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / rate;
             TimePoint::duration actual_delta_time = now - last_frame_sent.load();
 
             // If the next frame is due
-            if (actual_delta_time > expected_delta_time) {
+            if (slots_per_pass > 1 || actual_delta_time > expected_delta_time) {
               // Debug( 2, "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time );
-              if ((temp_index % frame_mod) == 0) {
+              if (slots_per_pass > 1 || (temp_index % frame_mod) == 0) {
                 Debug(2, "Sending delayed frame %d", temp_index);
                 // Send the next frame
                 if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
@@ -779,7 +787,13 @@ void MonitorStream::runStream() {
                 last_frame_timestamp = swap_image->timestamp;
                 // frame_sent = true;
               }
-              temp_read_index = MOD_ADD(temp_read_index, (replay_rate > 0 ? 1 : -1), temp_image_buffer_count);
+              temp_read_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+              for (int skip = slots_per_pass - 1; skip > 0; skip--) {
+                int next_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+                if (next_index == temp_write_index || !temp_image_buffer[next_index].valid)
+                  break;
+                temp_read_index = next_index;
+              }
             }
           }
         } else if (step != 0) {
@@ -880,7 +894,7 @@ void MonitorStream::runStream() {
             break;
           }
           frame_count++;
-          if (frame_count == 0) {
+          if (frame_count == 1) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if (!sendFrame(send_image, last_frame_timestamp)) {
@@ -898,9 +912,11 @@ void MonitorStream::runStream() {
           }
           // paused_image is only held while paused. PLAY after PAUSE leaves
           // delayed set without a buffer for one pass of the loop, and the
-          // next live frame carries the new zoom anyway.
-          if (paused_image && (last_zoom != zoom)) {
-            Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom.load());
+          // next live frame carries the new zoom anyway. With a buffer, the
+          // paused branch above already resends its own frame after a command.
+          if (paused_image && ((last_zoom != zoom) || (!buffered_playback && (last_scale != scale)))) {
+            Debug(2, "Sending 2 frames because change in zoom %d ?= %d or scale %d ?= %d",
+                  last_zoom, zoom.load(), last_scale, scale.load());
             if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
             if (!sendFrame(paused_image.get(), paused_timestamp))
@@ -968,9 +984,10 @@ void MonitorStream::runStream() {
           sendTextFrame("Waiting for initial capture");
           // Timeout if we've never received a frame from capture
           Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-          if (now - stream_start_time > wait_timeout) {
+          if (capture_wait_start == TimePoint{}) capture_wait_start = stream_start_time;
+          if (now - capture_wait_start > wait_timeout) {
             logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for initial capture after %" PRIi64 " seconds",
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()));
             zm_terminate = true;
             continue;
           }
@@ -991,8 +1008,13 @@ void MonitorStream::runStream() {
 
       double capture_fps = monitor->GetFPS();
       double fps = ((max_fps > 0.0) && (capture_fps > max_fps)) ? max_fps : capture_fps;
+      // Live frames go out at fps whatever the rate. Replaying from the buffer
+      // waits longer below 1x; above 1x it keeps the pace and skips slots.
+      double rate_scale = 1.0;
+      if (delayed && rate && abs(rate) < ZM_RATE_BASE)
+        rate_scale = static_cast<double>(ZM_RATE_BASE) / abs(rate);
       double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
-                                  * (rate ? abs(rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
+                                  * rate_scale;
       Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, max_fps, rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);
@@ -1134,6 +1156,10 @@ void MonitorStream::SingleImage(int scale) {
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -1159,6 +1185,10 @@ void MonitorStream::SingleImageZip(int scale) {
   Image scaled_image;
 
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

@@ -81,20 +81,22 @@ sub open
 sub close
 {
     my $self = shift;
-    $self->{device}->close();
+    $self->{device}->close() if $self->{device};
     $self->{state} = 'closed';
 }
 
 sub read
 {
     my $self = shift;
+    return( undef ) if !$self->{device};
     my $buffer = $self->{device}->lookfor();
     if ( !$buffer || !length($buffer) )
     {
         return( undef );
     }
     Debug( "Read '$buffer' (".length($buffer)." bytes)\n" );
-    return( $buffer );
+    # lookfor strips the line terminator
+    return( $buffer."\n" );
 }
 
 sub write

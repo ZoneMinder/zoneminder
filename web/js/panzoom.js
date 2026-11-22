@@ -72,6 +72,12 @@ var zmPanZoom = {
       //if (!('canvas' in params)) params.canvas = this.canvas;
       if (!('touchAction' in params)) params.touchAction = this.touchAction;
 
+      // Re-enabling must not leave the previous wheel listener behind
+      const previous = this.panZoom[objPanZoom];
+      if (previous && previous.wheelHandler && previous.target && previous.target.parentElement) {
+        previous.target.parentElement.removeEventListener('wheel', previous.wheelHandler);
+      }
+
       //Direct initialization Panzoom
       this.panZoom[objPanZoom] = Panzoom(params['obj'], params);
       this.panZoom[objPanZoom].target = params['obj'];
@@ -79,12 +85,13 @@ var zmPanZoom = {
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
       // Binds to shift || alt + wheel
-      params['obj'].parentElement.addEventListener('wheel', function(event) {
-        if (!_this.shifted && !_this.alted) {
+      const wheelHandler = function(event) {
+        // Read the modifiers from the event, tracked key state goes stale when the window loses focus
+        if (!event.shiftKey && !event.altKey) {
           return;
         }
 
-        if (_this.shifted && _this.alted) {
+        if (event.shiftKey && event.altKey) {
           event.preventDefault(); //Avoid page scrolling
           if (!_this.panZoom[objPanZoom].additional) return;
 
@@ -95,14 +102,16 @@ var zmPanZoom = {
           const y = objDim.y;
           const scale = (event.deltaY < 0) ? _this.panZoom[objPanZoom].getScale() * Math.exp(_this.panZoomStep)/*scrolling up*/ : _this.panZoom[objPanZoom].getScale() / Math.exp(_this.panZoomStep)/*scrolling down*/;
           _this.panZoom[objPanZoom].zoomToPoint(scale, {clientX: x, clientY: y});
-        } else if (_this.shifted && !_this.alted) {
+        } else if (event.shiftKey && !event.altKey) {
           if (!_this.panZoom[id]) return;
           _this.panZoom[id].zoomWithWheel(event);
         } else {
           return;
         }
         _this.setTriggerChangedMonitors(id);
-      });
+      };
+      this.panZoom[objPanZoom].wheelHandler = wheelHandler;
+      params['obj'].parentElement.addEventListener('wheel', wheelHandler);
 
       const nameSpace = '.panzoom_' + id;
       $j(document).off(nameSpace).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {
@@ -127,6 +136,10 @@ var zmPanZoom = {
       const nameSpace = '.panzoom_' + params['id'];
       $j(document).off(nameSpace);
       const obj = this.panZoom[params['id']].target;
+      const wheelHandler = this.panZoom[params['id']].wheelHandler;
+      if (wheelHandler && obj.parentElement) {
+        obj.parentElement.removeEventListener('wheel', wheelHandler);
+      }
       // #videoFeed - Event page, #monitorX - Montage & Watch page
       const el = document.getElementById('videoFeed');
       const wrapper = el ? el : document.getElementById('monitor'+params['id']);

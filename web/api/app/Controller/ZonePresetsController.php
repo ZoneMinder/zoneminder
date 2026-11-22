@@ -31,7 +31,12 @@ class ZonePresetsController extends AppController {
    * @return void
    */
   public function index() {
-    $zonePresets = $this->ZonePreset->find('all');
+    $options = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $options['conditions'] = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->ZonePreset->schema()));
+    }
+    $zonePresets = $this->ZonePreset->find('all', $options);
     $this->set(array(
       'zonePresets' => $zonePresets,
       '_serialize' => array('zonePresets')
@@ -50,7 +55,10 @@ class ZonePresetsController extends AppController {
       throw new NotFoundException(__('Invalid zone preset'));
     }
     $options = array('conditions' => array('ZonePreset.' . $this->ZonePreset->primaryKey => $id));
-    $this->set('zonePreset', $this->ZonePreset->find('first', $options));
+    $this->set(array(
+      'zonePreset' => $this->ZonePreset->find('first', $options),
+      '_serialize' => array('zonePreset')
+    ));
   }
 
   /**
@@ -59,11 +67,25 @@ class ZonePresetsController extends AppController {
    * @return void
    */
   public function add() {
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ( $this->request->is('post') ) {
+      $this->pinRequestId($this->ZonePreset, null);
       $this->ZonePreset->create();
       if ( $this->ZonePreset->save($this->request->data) ) {
-        return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->ZonePreset->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       }
+      $this->set(array(
+        'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
+        'id' => null,
+        '_serialize' => array('message', 'id')
+      ));
     }
   }
 
@@ -79,12 +101,20 @@ class ZonePresetsController extends AppController {
       throw new NotFoundException(__('Invalid zone preset'));
     }
     if ( $this->request->is(array('post', 'put')) ) {
+      $this->pinRequestId($this->ZonePreset, $id);
       if ( $this->ZonePreset->save($this->request->data) ) {
-        return $this->flash(__('The zone preset has been saved.'), array('action' => 'index'));
+        $this->set(array(
+          'message' => 'Saved',
+          '_serialize' => array('message')
+        ));
+        return;
       }
+      $this->set(array(
+        'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
+        '_serialize' => array('message')
+      ));
     } else {
-      $options = array('conditions' => array('ZonePreset.' . $this->ZonePreset->primaryKey => $id));
-      $this->request->data = $this->ZonePreset->find('first', $options);
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
   }
 
@@ -102,9 +132,13 @@ class ZonePresetsController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
     if ( $this->ZonePreset->delete() ) {
-      return $this->flash(__('The zone preset has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The zone preset could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The zone preset could not be deleted.'));
     }
   }
 } // end class ZonePresetsController

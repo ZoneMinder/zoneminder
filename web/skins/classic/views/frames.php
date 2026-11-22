@@ -26,8 +26,12 @@ if ( !canView('Events') ) {
 require_once('includes/Frame.php');
 require_once('includes/Filter.php');
 
-$eid = validInt($_REQUEST['eid']);
+$eid = isset($_REQUEST['eid']) ? validInt($_REQUEST['eid']) : '';
 $Event = new ZM\Event($eid);
+if (!$Event->canView()) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Frames').' - '.$Event->Id());
 getBodyTopHTML();

@@ -55,10 +55,10 @@ foreach (ZM\Server::find() as $server) $server_names[$server->Id()] = $server->N
 
 $focusWindow = true;
 xhtmlHeaders(__FILE__, translate('ScheduledTasks'));
+getBodyTopHTML();
+echo getNavBarHTML();
 ?>
-<body>
   <div id="page">
-    <?php echo getNavBarHTML() ?>
     <div id="content" class="container-fluid p-3">
       <h2><?php echo translate('ScheduledTasks') ?></h2>
       <p class="form-text"><?php echo translate('ScheduledTasksHelp') ?></p>
@@ -76,7 +76,7 @@ if (!empty($_REQUEST['error'])) {
             <i class="material-icons">add_circle</i>
             <span class="text">&nbsp;<?php echo translate('CronAddTask') ?></span>
           </button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete"
+          <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteCronTask"
             title="<?php echo translate('Delete') ?>" disabled="disabled">
             <i class="material-icons">delete</i>
             <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
@@ -135,5 +135,3 @@ foreach ($jobs as $job) {
     </div>
   </div>
 <?php xhtmlFooter() ?>
-</body>
-</html>

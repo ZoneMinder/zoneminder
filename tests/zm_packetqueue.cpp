@@ -444,3 +444,94 @@ TEST_CASE("PacketQueue: get_newest_packet finds the newest matching video packet
 
   queue.free_it(analysis_it);
 }
+
+namespace {
+
+std::shared_ptr<ZMPacket> audio_packet() {
+  auto packet = std::make_shared<ZMPacket>();
+  packet->packet->stream_index = 1;
+  packet->keyframe = 1;
+  packet->codec_type = AVMEDIA_TYPE_AUDIO;
+  packet->timestamp = std::chrono::system_clock::now();
+  return packet;
+}
+
+}  // namespace
+
+// Video and audio alternate: V0 A V1 A V2 A V3 A V4 A V5, with the event's
+// snapshot on V5. The pre-event window is a number of video packets, so the
+// start must not depend on where the audio packets sit.
+TEST_CASE("PacketQueue: pre-event count is in video packets with audio interleaved") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.addStream();
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(3);
+
+  packetqueue_iterator *holder_it = queue.get_video_it(false);
+  REQUIRE(holder_it != nullptr);
+
+  std::vector<std::shared_ptr<ZMPacket>> video;
+  for (int i = 0; i < 6; i++) {
+    video.push_back(decoded_video_packet(i == 0));
+    REQUIRE(queue.queuePacket(video.back()));
+    if (i < 5) REQUIRE(queue.queuePacket(audio_packet()));
+  }
+  while (queue.increment_it(holder_it, false)) {}
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  while (*(*analysis_it) != video[5]) REQUIRE(queue.increment_it(analysis_it, false));
+
+  SECTION("the event starts on the third video packet before the snapshot") {
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 3);
+    REQUIRE(*(*start) == video[2]);
+    queue.free_it(start);
+  }
+
+  SECTION("a window ending on a video packet is unchanged") {
+    packetqueue_iterator *start = queue.get_event_start_packet_it(*analysis_it, 2);
+    REQUIRE(*(*start) == video[3]);
+    queue.free_it(start);
+  }
+
+  SECTION("decoded images are kept back to that packet") {
+    queue.releaseDecoded();
+    REQUIRE(video[1]->image == nullptr);
+    REQUIRE(video[2]->image != nullptr);
+    REQUIRE(video[5]->image != nullptr);
+  }
+
+  queue.stop();
+  queue.clear();
+}
+
+// Audio packets carry AV_PKT_FLAG_KEY, so keyframe is set on every one of them.
+// queuePacket() holds everything back until the first video keyframe, but the
+// keyframe test let an audio packet through, which put audio at the front of the queue
+// ahead of the first video keyframe and parked a waiting iterator on it.
+TEST_CASE("PacketQueue: nothing is queued before the first video keyframe") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.addStream();
+  queue.setKeepKeyframes(false);
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(2);
+
+  // The analysis thread's iterator, waiting at the end of an empty queue.
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  REQUIRE(analysis_it != nullptr);
+
+  REQUIRE_FALSE(queue.queuePacket(audio_packet()));
+  REQUIRE_FALSE(queue.queuePacket(video_packet(0)));
+  REQUIRE(queue.size() == 0);
+
+  auto key = video_packet(1);
+  REQUIRE(queue.queuePacket(key));
+  REQUIRE(queue.queuePacket(audio_packet()));
+  REQUIRE(queue.size() == 2);
+  REQUIRE(*(*analysis_it) == key);
+  REQUIRE(queue.packet_count(1) == 1);
+
+  queue.free_it(analysis_it);
+  queue.stop();
+  queue.clear();
+}

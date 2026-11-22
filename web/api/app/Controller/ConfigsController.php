@@ -116,9 +116,11 @@ class ConfigsController extends AppController {
       $configs = $visible;
     }
 
+    # References into $configs itself: a reference to the loop's copy $c is lost
+    # once the loop moves on, and the conf.d values below never reached the response.
     $config_by_name = [];
-    foreach ($configs as $c) {
-      $config_by_name[$c['Config']['Name']] = &$c['Config'];
+    foreach (array_keys($configs) as $i) {
+      $config_by_name[$configs[$i]['Config']['Name']] = &$configs[$i]['Config'];
     }
 
     global $zm_config;
@@ -217,12 +219,25 @@ class ConfigsController extends AppController {
 			if (!empty($config['Config']['Readonly'])) {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
-			if ($this->Config->save($this->request->data)) {
-				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
+			// Config.Name is the primary key, so a Name in the body would move the save
+			// to another row than the one validated here.
+			$this->pinRequestId($this->Config, $id);
+			$value = $this->requestField('Config', 'Value');
+			if (($config['Config']['Name'] == 'ZM_AUTH_HASH_SECRET') and ($value !== null)
+				and !authHashSecretValid($value)) {
+				throw new BadRequestException(__('ZM_AUTH_HASH_SECRET must be at least %d characters long', ZM_AUTH_HASH_SECRET_MIN_LENGTH));
 			}
+			if ($this->Config->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
+			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
-			$this->request->data = $this->Config->find('first', $options);
+			$this->view($id);
 		}
 	}
 
@@ -247,9 +262,13 @@ class ConfigsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Config->delete()) {
-			return $this->flash(__('The config has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The config could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The config could not be deleted.'));
 		}
 	}
 

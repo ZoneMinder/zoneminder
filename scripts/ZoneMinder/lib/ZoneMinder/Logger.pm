@@ -111,7 +111,6 @@ use DBI;
 use Carp;
 require POSIX;
 use IO::Handle;
-use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
 use Sys::Syslog;
 
@@ -270,9 +269,9 @@ sub initialise( @ ) {
   if ( defined($ENV{LOG_PRINT}) ) {
     $tempTermLevel = $ENV{LOG_PRINT} ? DEBUG : $this->{termLevel};
   } elsif ( defined($options{termLevel}) ) {
-    $tempFileLevel = $options{termLevel};
+    $tempTermLevel = $options{termLevel};
   } else {
-    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
+    $tempTermLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
   }
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
@@ -549,7 +548,7 @@ sub openFile {
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
     Error('Can\'t get uid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
-    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webGid;
+    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_GROUP}) if ! defined $webGid;
     if ( $> == 0 ) {
       # If we are root, we want to make sure that www-data or whatever owns the file
       chown($webUid, $webGid, $this->{logFile} ) or
@@ -618,11 +617,13 @@ sub logPrint {
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
-        if ( ! ZoneMinder::Database::zmDbConnect() ) {
+        my $connected = ZoneMinder::Database::zmDbConnect();
+        # Restore the level even when the connection is down so later calls retry.
+        $this->{databaseLevel} = $oldlevel;
+        if ( ! $connected ) {
           #print(STDERR "Can't log to database: ");
           return;
         }
-        $this->{databaseLevel} = $oldlevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
@@ -794,6 +795,7 @@ sub Dump {
   my $var = shift;
   my $label = shift;
   $label = 'VAR' unless defined($label);
+  require Data::Dumper;
   fetch()->logPrint(DEBUG, Data::Dumper->Dump([ $var ], [ $label ]));
 }
 

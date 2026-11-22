@@ -77,7 +77,7 @@ class AppController extends Controller {
         # This is here because historically we allowed user=&pass= in the api. web-ui auth uses username=&password=
         $username = $this->request->query('user') ? $this->request->query('user') : $this->request->data('user');
         $password = $this->request->query('pass') ? $this->request->query('pass') : $this->request->data('pass');
-        if ( $username and $password ) {
+        if ( is_string($username) and is_string($password) and $username and $password ) {
           $ret = validateUser($username, $password);
           $user = $ret[0];
           $retstatus = $ret[1];
@@ -150,12 +150,6 @@ class AppController extends Controller {
           return;
         } 
       } # end if token
-
-      if ( $user and ( $user->APIEnabled() != 1 ) ) {
-        ZM\Error('API disabled for: '.$user->Username());
-        throw new UnauthorizedException(__('API disabled for: '.$user->Username()));
-        $user = null;
-      }
 
       // We need to reject methods that are not authenticated
       // besides login and logout

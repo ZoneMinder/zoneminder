@@ -33,15 +33,15 @@ if ( !$archivetype ) {
 
 switch ($archivetype) {
   case 'tar.gz':
-    $mimetype = 'gzip';
+    $mimetype = 'application/gzip';
     $file_ext = 'tar.gz';
     break;
   case 'tar':
-    $mimetype = 'tar';
+    $mimetype = 'application/x-tar';
     $file_ext = 'tar';
     break;
   case 'zip':
-    $mimetype = 'zip';
+    $mimetype = 'application/zip';
     $file_ext = 'zip';
     break;
   default:
@@ -66,10 +66,15 @@ if ( is_readable($filename_path) and pathWithinExportDir($filename_path, ZM_DIR_
   while (ob_get_level()) {
     ob_end_clean();
   }
-  header("Content-type: application/$mimetype");
-  header("Content-Disposition: inline; filename=$filename");
+  header("Content-type: $mimetype");
+  header('Content-Disposition: '.contentDispositionAttachment($filename));
   header('Content-Length: '.filesize($filename_path));
   set_time_limit(0);
+  # A client that disconnects mid-download aborts the script, so delete in a
+  # shutdown function to keep the archive from being left behind.
+  register_shutdown_function(function() use ($filename_path) {
+    @unlink($filename_path);
+  });
   if ( !@readfile($filename_path) ) {
     ZM\Error("Error sending $filename_path");
   }

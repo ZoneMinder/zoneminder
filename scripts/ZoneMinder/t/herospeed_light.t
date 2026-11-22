@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 128;
+use Test::More tests => 133;
 use MIME::Base64 qw(encode_base64);
 use Digest::SHA qw(sha256_hex);
 
@@ -139,6 +139,23 @@ is($P->can('CMD_MOVEPOINT')->(), 40, 'goto preset is 40');
 is($P->can('CMD_PRESET_SET')->(), 44, 'store preset is 44');
 is($P->can('LED_WARM')->(), 0, 'warm light is ledMode 0');
 is($P->can('LED_IR')->(), 1, 'ir light is ledMode 1');
+
+# --- auto stop ------------------------------------------------------------
+# The stop sent after AutoStopTimeout has to end the motion that was started.
+{
+  my @sent;
+  no warnings 'redefine';
+  local *ZoneMinder::Control::Herospeed::ptz = sub { push @sent, $_[1]; 1 };
+  local *ZoneMinder::Control::Herospeed::usleep = sub {};
+  my $h = bless { Monitor => { AutoStopTimeout => 500000 } }, $P;
+  my %stop = (moveConUp => 0, zoomConTele => 26, zoomConWide => 26,
+              focusConNear => 27, focusConFar => 27);
+  for my $m (sort keys %stop) {
+    @sent = ();
+    $h->$m({speed => 4});
+    is($sent[-1], $stop{$m}, "$m auto stops with optType $stop{$m}");
+  }
+}
 
 
 # --- time configuration ---------------------------------------------------

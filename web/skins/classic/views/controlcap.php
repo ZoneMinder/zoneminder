@@ -37,11 +37,24 @@ $tabs['presets'] = translate('Presets');
 
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) :'main';
 
-if ( isset($_REQUEST['Control']) ) {
+if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
   $Control = $_REQUEST['Control'];
 } else {
   if ( !empty($_REQUEST['cid']) ) {
     $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+  } else if ( !empty($_REQUEST['dupId']) ) {
+    // Clone: start from an existing control, saved as a new one since cid stays empty
+    $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['dupId']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+    unset($Control['Id']);
+    $Control['Name'] = mb_substr('Clone of '.$Control['Name'], 0, 64);
   } else {
     $Control = array(
       'Name' => translate('New'),

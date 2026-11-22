@@ -13,6 +13,17 @@ use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
 
 use ZoneMinder::Filter;
 
+{
+  no warnings qw(redefine once);
+  # sql_quote asks the database handle to quote; there is none here.
+  *ZoneMinder::Filter::sql_quote = sub {
+    my $v = shift;
+    return q(NULL) if !defined $v;
+    $v =~ s/'/''/g;
+    return "'$v'";
+  };
+}
+
 my $failures = 0;
 my $passes = 0;
 

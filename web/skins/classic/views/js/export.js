@@ -7,16 +7,10 @@ function configureExportButton() {
     return;
   }
 
-  let haveEventChecked = 0;
-  for (let i=0, len=form.elements['eids[]'].length; i<len; i++) {
-    if (form.elements['eids[]'][i].checked) {
-      haveEventChecked ++;
-      break;
-    }
-  }
+  const haveEvent = form.querySelectorAll('input[name="eids[]"]').length > 0;
 
-  form.elements['exportButton'].disabled = (
-    haveEventChecked &&
+  form.elements['exportButton'].disabled = !(
+    haveEvent &&
     (
       form.elements['exportDetail'].checked ||
       form.elements['exportFrames'].checked ||
@@ -49,6 +43,7 @@ function exportProgress() {
 
 function exportResponse(respObj, respText) {
   clearInterval(exportTimer);
+  exportTimer = null;
   if (respObj.result != 'Ok') {
     $j('#exportProgressTicker').text(respObj.message);
   } else {
@@ -59,7 +54,10 @@ function exportResponse(respObj, respText) {
 }
 
 function exportEvents( ) {
-  $j('#exportProgress').removeClass('hidden');
+  // A second click while an export runs would start a second server export
+  // into the same directory and leak the first progress timer.
+  if (exportTimer) return;
+  $j('#exportProgress').removeClass('hidden errorText');
   $j('#exportProgress').addClass('warnText');
   $j('#exportProgressText').text(exportProgressString);
 
@@ -72,14 +70,18 @@ function exportEvents( ) {
     error: exportFail
   });
 
+  // A second click while the first export runs would otherwise orphan its
+  // ticker, which then overwrites the result with dots for good.
+  clearInterval(exportTimer);
   exportTimer = setInterval(exportProgress, 500);
 }
 
-function exportFail() {
+function exportFail(jqxhr, textStatus, error) {
   clearInterval(exportTimer);
+  exportTimer = null;
   $j('#exportProgress').addClass('errorText');
   $j('#exportProgressTicker').text('Failed export');
-  logAjaxFail();
+  logAjaxFail(jqxhr, textStatus, error);
 }
 
 function getEventDetailModal(eid) {

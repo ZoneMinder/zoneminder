@@ -55,6 +55,10 @@ use JSON::MaybeXS qw(encode_json decode_json);
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
+# Used when the Controls row has no pan/tilt/zoom speed, so the UI sends none.
+my $DefaultPanSpeed = 50;       # Should be between 1 and 100
+my $DefaultTiltSpeed = 50;      # Should be between 1 and 100
+my $DefaultZoomSpeed = 50;      # Should be between 1 and 100
 
 my %config_types = (
   'LAPI/V1.0/System/DeviceBasicInfo'           => {},
@@ -108,7 +112,7 @@ sub PutCmd {
     Error('No cmd specified in PutCmd');
     return;
   }
-  my $req = HTTP::Request->new(PUT => $$self{BaseURL}.'/'.$cmd);
+  my $req = HTTP::Request->new(PUT => $self->fullUrl($cmd));
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
@@ -275,9 +279,9 @@ sub moveVector {
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }
   # Calculate movement speeds
-  my $x = $pandirection  * $self->getParam( $params, 'panspeed', 0 );
-  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', 0 );
-  my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
+  my $x = $pandirection  * $self->getParam( $params, 'panspeed', $DefaultPanSpeed );
+  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', $DefaultTiltSpeed );
+  my $z = $zoomdirection * $self->getParam( $params, 'speed', $DefaultZoomSpeed );
   # Create the XML
   my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
   # Send it to the camera
@@ -336,7 +340,7 @@ sub focusConNear {
   $self->Focus(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -370,7 +374,7 @@ sub focusConFar {
   $self->Focus($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -394,6 +398,10 @@ sub focusRelFar {
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
 }
+sub focusStop {
+  my $self = shift;
+  $self->Focus(0);
+}
 #
 # Iris controls all call Iris with a +/- speed
 #
@@ -415,7 +423,7 @@ sub irisConClose {
   $self->Iris(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -451,7 +459,7 @@ sub irisConOpen {
   $self->Iris($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Open {
@@ -475,6 +483,10 @@ sub irisRelOpen {
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
+}
+sub irisStop {
+  my $self = shift;
+  $self->Iris(0);
 }
 
 #

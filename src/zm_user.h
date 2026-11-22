@@ -36,8 +36,8 @@ class User {
 
  protected:
   int id;
-  char username[32+1];
-  char password[64+1];
+  char username[192+1] = {};
+  char password[64+1] = {};
   bool enabled;
   Permission stream;
   Permission events;

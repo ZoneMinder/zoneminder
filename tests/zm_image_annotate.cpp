@@ -156,3 +156,36 @@ TEST_CASE("Image::Annotate accepts an out-of-range label size", "[Image][Annotat
   REQUIRE_NOTHROW(image.centreCoord("AB", static_cast<int>(size)));
   REQUIRE(frame.GuardIntact());
 }
+
+TEST_CASE("Image::centreCoord handles multi-line text with empty lines and null text", "[Image][Annotate]") {
+  LoadFixtureFont();
+
+  GuardedFrame frame(100, 100, ZM_COLOUR_RGB32);
+  Image image = frame.MakeImage();
+
+  Vector2 coord = image.centreCoord("AB\n\nCD", 1);
+  CHECK(coord.x_ == 40);
+  CHECK(coord.y_ == 35);
+
+  Vector2 coord_leading = image.centreCoord("\nAB", 1);
+  CHECK(coord_leading.x_ == 40);
+  CHECK(coord_leading.y_ == 40);
+
+  Vector2 coord_null = image.centreCoord(nullptr, 1);
+  CHECK(coord_null.x_ == 50);
+  CHECK(coord_null.y_ == 50);
+}
+
+TEST_CASE("Image::Annotate respects BGR subpixel order in RGB24 images", "[Image][Annotate]") {
+  LoadFixtureFont();
+
+  GuardedFrame frame(64, 24, ZM_COLOUR_RGB24);
+  Image image(static_cast<int>(frame.width), static_cast<int>(frame.height),
+              ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_BGR, frame.backing.data(), 0u);
+  image.Annotate("A", Vector2(0, 0), 1, kRGBRed, kRGBBlue);
+
+  REQUIRE(frame.GuardIntact());
+  CHECK(frame.backing[0] == 255);
+  CHECK(frame.backing[1] == 0);
+  CHECK(frame.backing[2] == 0);
+}

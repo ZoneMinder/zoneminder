@@ -114,8 +114,11 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-    my ( $PROTOCOL, $USER, $PASS, $ADDR, $PORT ) 
-        = $self->{Monitor}->{ControlAddress} =~ /^(https?):\/\/(.*):(.*)@(.*):(\d+)$/;
+    # Split the userinfo on its first colon: a password may contain colons.
+    # The @ is matched greedily so a password may contain one too.
+    my ( $PROTOCOL, $USERINFO, $ADDR, $PORT )
+        = $self->{Monitor}->{ControlAddress} =~ /^(https?):\/\/(.*)@(.*):(\d+)$/;
+    my ( $USER, $PASS ) = split /:/, $USERINFO, 2;
     my $URL = $PROTOCOL."://".$ADDR.":".$PORT."/decoder_control.cgi?command=".$cmd;
 
     Debug( "ControlAddress from camera Control setting:".urlForLog($self->{Monitor}->{ControlAddress}) );
@@ -194,6 +197,19 @@ sub moveConRight
     Debug( "Move Right" );
     $self->sendCmd( $cmd );
     $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
+}
+
+# The camera stops each direction with its own command and the module does not
+# track which direction is moving, so stop them all.  Stopping a direction that
+# is already still is a no-op, and the web ui sends this on every mouseup.
+sub moveStop
+{
+    my $self = shift;
+    Debug( "Move Stop" );
+    $self->sendCmd( "1" ); # Up stop
+    $self->sendCmd( "3" ); # Down stop
+    $self->sendCmd( "5" ); # Left stop
+    $self->sendCmd( "7" ); # Right stop
 }
 
 sub moveConUpRight

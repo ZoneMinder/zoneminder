@@ -95,7 +95,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     Debug(4, "No iterators so no one needs us to queue packets.");
     return false;
   }
-  if (!packet_counts[video_stream_id] and !add_packet->keyframe) {
+  if (!packet_counts[video_stream_id]
+      and !(add_packet->keyframe and add_packet->packet->stream_index == video_stream_id)) {
     Debug(4, "No video keyframe so no one needs us to queue packets.");
     return false;
   }
@@ -473,6 +474,9 @@ void PacketQueue::releaseDecoded() {
       --it;
     }
     if (pre_event > 0) return;  // the whole queue is still within reach of an event
+    // The walk above stepped past the last video packet it counted; if that is
+    // an audio packet, the video packet before it is still in the window.
+    while (it != pktQueue.begin() and (*it)->packet->stream_index != video_stream_id) --it;
     const uint64_t pre_event_start = (*it)->queue_index;
     if (keep_keyframes) {
       while (it != pktQueue.begin() and !((*it)->packet->stream_index == video_stream_id and (*it)->keyframe)) --it;
@@ -787,6 +791,7 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   auto at_front = [this, &it]() {
     return (*it) == pktQueue.begin() or (*std::prev(*it))->queue_index < released_before_;
   };
+  const bool want_pre_event = pre_event_count > 0;
   //ZM_DUMP_PACKET(packet->packet, "snapshot packet");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
@@ -803,6 +808,16 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
       pre_event_count --;
     (*it)--;
     packet = *(*it);
+  }
+
+  // The walk counts the snapshot packet and then steps back once more, so with
+  // audio packets in between it can land on an audio packet just short of the
+  // last video packet it should include. Move back onto that video packet.
+  if (want_pre_event and !pre_event_count) {
+    while (!at_front() and packet->packet->stream_index != video_stream_id) {
+      (*it)--;
+      packet = *(*it);
+    }
   }
 
   // it either points to beginning or we have seen pre_event_count video packets.

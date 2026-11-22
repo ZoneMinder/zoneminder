@@ -111,7 +111,7 @@ class ZM_Object {
           if ( count($value) ) {
             $func = function(){return '?';};
             $fields[] = '`'.$field.'` IN ('.implode(',', array_map($func, $value)). ')';
-            $values += $value;
+            array_push($values, ...array_values($value));
           } else {
             $fields[] = 'FALSE /*`'.$field.'` IN () */'; # evaluates to false
           }
@@ -155,6 +155,7 @@ class ZM_Object {
     if ( 
         ( count($parameters) == 1 ) and
         isset($parameters['Id']) and
+        is_scalar($parameters['Id']) and
         isset($cache[$parameters['Id']]) ) {
       return $cache[$parameters['Id']];
     }
@@ -478,12 +479,14 @@ class ZM_Object {
     return false;
   } // end function insert
 
+  # Returns whether the row was deleted.
   public function delete() {
     $class = get_class($this);
     $table = $class::$table;
-    dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'}));
+    $deleted = (dbQuery("DELETE FROM `$table` WHERE Id=?", array($this->{'Id'})) !== null);
     if ( isset($object_cache[$class]) and isset($object_cache[$class][$this->{'Id'}]) )
       unset($object_cache[$class][$this->{'Id'}]);
+    return $deleted;
   }
 
   public function lock() {

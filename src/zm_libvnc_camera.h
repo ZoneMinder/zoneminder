@@ -5,6 +5,25 @@
 #include "zm_camera.h"
 #include "zm_swscale.h"
 
+// Names tried when loading libvncclient. The unversioned name only exists
+// when the -dev package is installed; the runtime package (which is all the
+// ZoneMinder packages depend on) ships just the versioned soname.
+static const char *const zm_libvnc_names[] = {
+  "libvncclient.so",
+  "libvncclient.so.1",
+  "libvncclient.so.0",
+  nullptr
+};
+
+// Returns the first handle load() gives for one of the names, or nullptr.
+template <typename Loader>
+void *zm_libvnc_open(Loader load) {
+  for (const char *const *name = zm_libvnc_names; *name; ++name) {
+    if (void *handle = load(*name)) return handle;
+  }
+  return nullptr;
+}
+
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
 

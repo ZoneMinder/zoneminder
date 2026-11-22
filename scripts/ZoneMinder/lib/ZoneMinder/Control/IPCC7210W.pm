@@ -107,6 +107,12 @@ sub cameraReset
 	$self->sendCmd( $cmd );
 }
 
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset( @_ );
+}
+
 
 #Up Arrow
 sub moveConUp
@@ -250,7 +256,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=4&onestep=0&";
+	my $cmd = "decoder_control.cgi?command=25&onestep=0&";
 	$self->sendCmd( $cmd );
 }
 

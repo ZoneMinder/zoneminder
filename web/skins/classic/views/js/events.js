@@ -64,15 +64,18 @@ function ajaxRequest(params) {
       }
       var rows = processRows(data.rows);
       // Store footer totals data
-      if (data.footerData) {
-        footerData = data.footerData;
-      }
+      footerData = data.footerData || {DiskSpace: '', Length: 0};
       // rearrange the result into what bootstrap-table expects
       params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
     },
     error: function(jqXHR, textStatus, errorThrown) {
       // Every reload aborts the request in flight, so those are not failures.
       if (jqXHR.statusText == 'abort') return;
+      // A dead session returns 401 here; go to login rather than leave a dead table.
+      if (typeof authFailureAction === 'function' && authFailureAction(jqXHR.status) == 'login') {
+        goToLogin();
+        return;
+      }
       // Without this the table sits on "Loading, please wait" for good, which
       // is what a large result set exhausting the PHP memory limit looks like
       // from here: the request 500s and nothing ever says so. logAjaxFail only
@@ -88,6 +91,7 @@ function ajaxRequest(params) {
 }
 
 function processRows(rows) {
+  if (!rows) return [];
   $j.each(rows, function(ndx, row) {
     var eid = row.Id;
     var archived = row.Archived == yesString ? archivedString : '';
@@ -96,23 +100,26 @@ function processRows(rows) {
     row.Id = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + eid + '</a>';
     row.Name = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Name + '</a>' +
         '<br/><div class="small text-muted">' + archived + emailed + '</div>';
-    if ( canEdit.Monitors ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + row.Notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
-    if ( row.Notes.indexOf('detected:') >= 0 ) {
-      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + row.Notes + '</u></div></div></a>';
-    } else if ( row.Notes != 'Forced Web: ' ) {
-      row.Cause = row.Cause + '<br/><div class="small text-muted">' + row.Notes + '</div>';
+    if ( typeof canView !== 'undefined' && canView.Events ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
+    const notes = row.Notes || '';
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    if ( notes.indexOf('detected:') >= 0 ) {
+      row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + notes + '</u></div></div></a>';
+    } else if ( notes && notes != 'Forced Web: ' ) {
+      row.Cause = row.Cause + '<br/><div class="small text-muted">' + notes + '</div>';
     }
     row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
     row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
     row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
-    row.Location = row.Latitude+', '+row.Longitude;
+    row.Location = (parseFloat(row.Latitude) || parseFloat(row.Longitude)) ? row.Latitude+', '+row.Longitude : '';
     row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
     row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
-    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-    date.setSeconds(row.Length);
-    row.Length = date.toISOString().substr(11, 8);
+    // Not a Date: its time of day wraps at 24 hours, and events can run longer.
+    const totalSecs = Math.floor(row.Length) || 0;
+    row.Length = String(Math.floor(totalSecs / 3600)).padStart(2, '0') + ':' +
+        String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0') + ':' +
+        String(totalSecs % 60).padStart(2, '0');
     if (ZM_DATETIME_FORMAT_PATTERN) {
       if (window.DateTime) {
         row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
@@ -219,21 +226,24 @@ function unarchiveEvents(event_ids) {
     url: thisUrl + '?request=events&task=unarchive',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#unarchiveConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         unarchiveEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#unarchiveConfirm').modal('hide');
@@ -252,21 +262,24 @@ function deleteEvents(event_ids) {
     url: thisUrl + '?request=events&task=delete',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
         $j('#deleteConfirm').modal('hide');
       } else {
-        if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
-          ticker.innerHTML = '.';
-        } else {
-          ticker.innerHTML = ticker.innerHTML + '.';
+        // The modal holding the ticker is not loaded when shift-click skips it
+        if (ticker) {
+          if ( ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10 ) {
+            ticker.innerHTML = '.';
+          } else {
+            ticker.innerHTML = ticker.innerHTML + '.';
+          }
         }
         deleteEvents(event_ids);
       }
     },
-    fail: function(jqxhr) {
+    error: function(jqxhr) {
       logAjaxFail(jqxhr);
       $j('#eventTable').bootstrapTable('refresh');
       $j('#deleteConfirm').modal('hide');
@@ -320,6 +333,29 @@ function getObjdetectModal(eid) {
       });
 }
 
+// Enable or disable buttons based on current selection and user rights
+function updateToolbarButtons() {
+  const selections = table.bootstrapTable('getSelections');
+
+  viewButton.prop('disabled', !(selections.length && canView.Events));
+  archiveButton.prop('disabled', !(selections.length && canEdit.Events));
+  if (!(getArchivedSelections() && canEdit.Events)) {
+    unarchiveButton.prop('disabled', true);
+    if (!getArchivedSelections()) {
+      unarchiveButton.prop('title', 'Please select an event that is archived.');
+    } else {
+      unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
+    }
+  } else {
+    unarchiveButton.prop('disabled', false);
+    unarchiveButton.prop('title', unarchiveString);
+  }
+  editButton.prop('disabled', !(selections.length && canEdit.Events));
+  exportButton.prop('disabled', !(selections.length && canView.Events));
+  downloadButton.prop('disabled', !(selections.length && canView.Events));
+  deleteButton.prop('disabled', !(selections.length && canEdit.Events));
+}
+
 function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
@@ -333,29 +369,17 @@ function initPage() {
     table.bootstrapTable('hideColumn', 'Emailed');
   }
 
-  // enable or disable buttons based on current selection and user rights
+  // The table drops its selection on every reload without any uncheck event, so
+  // the buttons are re-evaluated after each load as well as on selection changes.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    const selections = table.bootstrapTable('getSelections');
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table', updateToolbarButtons);
 
-    viewButton.prop('disabled', !(selections.length && canView.Events));
-    archiveButton.prop('disabled', !(selections.length && canEdit.Events));
-    if (!(getArchivedSelections() && canEdit.Events)) {
-      unarchiveButton.prop('disabled', true);
-      if (!getArchivedSelections()) {
-        unarchiveButton.prop('title', 'Please select an event that is archived.');
-      } else {
-        unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
-      }
-    } else {
-      unarchiveButton.prop('disabled', false);
-      unarchiveButton.prop('title', unarchiveString);
-    }
-    editButton.prop('disabled', !(selections.length && canEdit.Events));
-    exportButton.prop('disabled', !(selections.length && canView.Events));
-    downloadButton.prop('disabled', !(selections.length && canView.Events));
-    deleteButton.prop('disabled', !(selections.length && canEdit.Events));
+  table.on('sort.bs.table', function(evt, name, order) {
+    const sortField = (name == 'Monitor') ? 'MonitorName' : name;
+    // Columns the event view has no matching order for keep the previous one
+    if (['Id', 'Name', 'Cause', 'MonitorName', 'StartDateTime', 'EndDateTime', 'Length', 'Frames',
+      'AlarmFrames', 'TotScore', 'AvgScore', 'MaxScore', 'DiskSpace'].indexOf(sortField) < 0) return;
+    sortQuery = '&sort_field=' + sortField + '&sort_asc=' + (order == 'asc' ? '1' : '0');
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -385,6 +409,12 @@ function initPage() {
     window.location.assign('?view=timeline'+filterQuery);
   });
 
+  // Manage the TAGS Button
+  document.getElementById('tagsBtn').addEventListener('click', function onTagsClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=tags');
+  });
+
   // Manage the FILTER Button
   document.getElementById('filterBtn').addEventListener('click', function onFilterClick(evt) {
     evt.preventDefault();
@@ -411,9 +441,14 @@ function initPage() {
       url: thisUrl + '?request=events&task=archive',
       data: {'eids[]': selections},
       success: function(data) {
+        // ajaxError() answers 200 with result=Error; events that could not
+        // be archived come back in message (a list).
+        if (data.message && (data.result == 'Error' || data.message.length)) {
+          alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+        }
         $j('#eventTable').bootstrapTable('refresh');
       },
-      fail: logAjaxFail
+      error: logAjaxFail
     });
   });
 
@@ -556,7 +591,13 @@ function initPage() {
       const el = $j(this);
       const name = el.attr('name');
       if (urlParams.has(name)) {
-        el.val(urlParams.get(name));
+        const value = urlParams.get(name);
+        // buildFilterQuery joins a multiple select's values with commas
+        if (el.prop('multiple')) {
+          el.val(value === '' ? [] : value.split(',')).trigger('chosen:updated');
+        } else {
+          el.val(value);
+        }
       }
     });
 
@@ -569,7 +610,10 @@ function initPage() {
     filterEvents({}, {skipPushState: true});
   });
 
-  table.bootstrapTable('resetSearch');
+  // Drop a search text restored from the cookie. resetSearch also sets the page
+  // to 1 and stores that, so it is skipped when there is nothing to clear and the
+  // page the cookie remembers is kept when coming back from the event view.
+  if (table.bootstrapTable('getOptions').searchText) table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }
@@ -630,7 +674,7 @@ function filterEvents(clickedElement, options) {
 
 // Footer formatter for total duration
 function totalLengthFormatter(data) {
-  if (footerData.Length) {
+  if (footerData && footerData.Length) {
     const totalSeconds = Math.floor(footerData.Length);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -644,7 +688,7 @@ function totalLengthFormatter(data) {
 
 // Footer formatter for total disk space
 function totalDiskSpaceFormatter(data) {
-  return footerData.DiskSpace || '';
+  return (footerData && footerData.DiskSpace) || '';
 }
 
 $j(document).ready(function() {

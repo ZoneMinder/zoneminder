@@ -18,6 +18,14 @@ function deleteReports(ids) {
 
   $j.getJSON(thisUrl + '?request=reports&task=delete&ids[]='+chunk.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          window.location.reload();
+          return;
+        }
+        if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         if (ids.length) {
           if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
             ticker.innerHTML = '.';

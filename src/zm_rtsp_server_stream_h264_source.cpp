@@ -65,7 +65,11 @@ std::list< std::pair<unsigned char*, size_t> > H264_ZoneMinderStreamSource::spli
       break;
     }
 
-    frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
+    // Zero padding before the next start code is not part of the NAL (a NAL
+    // never ends in 0x00); size still spans it so the next search is right
+    size_t nalSize = size;
+    while (nalSize > 1 and buffer[nalSize-1] == 0) nalSize--;
+    frameList.push_back(std::pair<unsigned char*,size_t>(buffer, nalSize));
     if (!bufSize) break;
 
     buffer = this->extractFrame(&buffer[size], bufSize, size);
@@ -128,7 +132,11 @@ H265_ZoneMinderStreamSource::splitFrames(unsigned char* frame, size_t &frameSize
       break;
     }
 
-    frameList.push_back(std::pair<unsigned char*,size_t>(buffer, size));
+    // Zero padding before the next start code is not part of the NAL (a NAL
+    // never ends in 0x00); size still spans it so the next search is right
+    size_t nalSize = size;
+    while (nalSize > 1 and buffer[nalSize-1] == 0) nalSize--;
+    frameList.push_back(std::pair<unsigned char*,size_t>(buffer, nalSize));
 
     buffer = this->extractFrame(&buffer[size], bufSize, size);
   }  // end while buffer

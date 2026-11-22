@@ -1,7 +1,3 @@
-if(POLICY CMP0007)
-    cmake_policy(SET CMP0007 OLD)
-endif(POLICY CMP0007)
-
 if (NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")
     message(FATAL_ERROR "Cannot find install manifest: \"@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt\"")
 endif(NOT EXISTS "@CMAKE_CURRENT_BINARY_DIR@/install_manifest.txt")

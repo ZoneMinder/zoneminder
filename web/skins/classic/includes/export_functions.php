@@ -238,7 +238,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
-      <script nonce="<?php echo $cspNonce; ?>">
+      <script>
         document.addEventListener('DOMContentLoaded', function() {
           if (typeof videojs === 'undefined') {
             console.error('videojs is not loaded');
@@ -617,6 +617,8 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStr
 <h2><?php echo translate('Images') ?> Master</h2>
 <?php
   $events = ZM\Event::find(array('Id'=>$eids));
+  $eventMonitorId = array();
+  $eventPath = array();
 
 	foreach ($events as $event) {
 		//get monitor id and event id
@@ -866,6 +868,8 @@ function exportFileList(
 
   if ($exportMisc) {
     foreach ($files as $file) {
+      // Pages left behind by an earlier export link to files that are not in this one
+      if (preg_match('/^zmEvent(?:Detail|Frames|Images)\.html$/', $file)) continue;
       $exportFileList[$file] = $file;
     }
     $files = array();
@@ -938,6 +942,7 @@ function exportEvents(
   $export_listFile = 'zmFileList.txt';
   $exportFileList = array();
   $html_eventMaster = '';
+  $copy_failed = false;
 
   if (!is_array($eids)) {
     $eids = array($eids);
@@ -975,21 +980,32 @@ function exportEvents(
      #if ( preg_match('/\.html$/', $file) )
         #continue;
       if ($exportStructure == 'flat') {
-        if (false !== strpos($file, strval($event->Id()))) {
-          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$file). ' 2>&1';
-          $exportFileList[] = $file;
-        } else {
-          $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
-          $exportFileList[] = $event->Id().'_'.$file;
-        }
+        $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'_'.$file). ' 2>&1';
+        $exportFileList[] = $event->Id().'_'.$file;
       } else {
         $cmd = 'cp -as -- '.escapeshellarg($event->Path().'/'.$file).' '.escapeshellarg($export_dir.'/'.$event->Id().'/'.$file). ' 2>&1';
         $exportFileList[] = $event->Id().'/'.$file;
       }
+      // exec() appends to $output, so reset it or the Debug line below (and any
+      // failure report) accumulates every file's output across the whole export.
+      $output = array();
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      // A failed copy must not pass silently: the archive would be handed back
+      // missing files. Surface it and fail the export, as the tar/zip step does.
+      if ($return != 0) {
+        ZM\Error('Failed to copy export file (status '.$return.') for command \''.$cmd.'\': '.implode('; ', $output));
+        $copy_failed = true;
+      }
     } # end foreach event_exportFile
   } # end foreach event
+
+  if ($copy_failed) {
+    ZM\Error('Export aborted: one or more event files could not be copied');
+    chdir(ZM_DIR_EXPORTS);
+    deletePath($export_dir);
+    return false;
+  }
 
   if (!(
     @symlink(ZM_PATH_WEB.'/'.ZM_SKIN_PATH.'/js/jquery.min.js', $export_dir.'/jquery.min.js')
@@ -1017,10 +1033,12 @@ function exportEvents(
   $listFile = $export_dir.'/'.$export_listFile;
   if (!($fp = fopen($listFile, 'w'))) {
     ZM\Error("Can't open event export list file '$listFile'");
+    chdir(ZM_DIR_EXPORTS);
+    deletePath($export_dir);
     return false;
   }
   foreach ($exportFileList as $exportFile) {
-    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    $exportFile = $export_root.($connkey?'_'.$connkey:'').'/'.$exportFile;
     fwrite($fp, $exportFile.PHP_EOL);
   }
   fwrite($fp, $listFile.PHP_EOL);
@@ -1059,19 +1077,19 @@ function exportEvents(
   @unlink($archive_path);
   $command .= ' '.escapeshellarg($export_root.($connkey?'_'.$connkey:'').'/');
   ZM\Debug($command);
+  $output = array(); // exec() appends, and $output still holds the last per-file copy output
   exec($command, $output, $status);
   if ($status) {
     ZM\Error("Command '$command' returned with status $status");
     if (isset($output[0])) {
       ZM\Error('First line of output is \''.$output[0].'\'');
     }
+    deletePath($export_dir);
+    @unlink($archive_path);
     return false;
   }
 
-  // clean up temporary files
-  if (!empty($html_eventMaster)) {
-    unlink($monitorPath.'/'.$html_eventMaster);
-  }
+  deletePath($export_dir);
 
   return '?view=archive&type='.$exportFormat.'&connkey='.$connkey.'&file='.$archive;
 } // end function exportEvents

@@ -91,6 +91,11 @@ std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const Syst
 // (wsa:ActionNotSupported, ter:ActionNotSupported) or the fault string.
 // subcode and fault_string may be null.
 bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string);
+
+// Whether an alarm that went active at started has been up for max_seconds or
+// longer at now. max_seconds of zero or less means no limit. For cameras that
+// never send the alarm-off notification (refs #4561, #3802).
+bool ONVIFAlarmExceedsMaxDuration(const SystemTimePoint &started, const SystemTimePoint &now, int max_seconds);
 #endif
 
 // Forward declaration
@@ -142,7 +147,7 @@ class ONVIF {
   // momentary pulse clears once it has been seen (refs #5301).
   void observeAlarm() { alarm_.observe(); }
   bool isHealthy() const { return healthy_.load(std::memory_order_acquire); }
-  void setHealthy(bool p_healthy) { healthy_.store(p_healthy, std::memory_order_release); }
+  void setHealthy(bool p_healthy);
 #ifdef WITH_GSOAP
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); }
 #else
@@ -198,6 +203,7 @@ class ONVIF {
   struct AlarmEntry {
     std::string value;
     SystemTimePoint termination_time;
+    SystemTimePoint started;  // when the topic went active; kept across re-triggers
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
   // The topic/value of the most recent activation, kept so SetNoteSet can still
@@ -206,6 +212,7 @@ class ONVIF {
   std::string last_alarm_topic_;
   std::string last_alarm_value_;
   bool expire_alarms_enabled;
+  int max_alarm_duration_seconds;  // 0 = no limit
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
   std::mutex alarms_mutex;
 
@@ -218,13 +225,15 @@ class ONVIF {
   bool InitSoapContext();
   void Subscribe();
   void WaitForMessage();
+  void ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesResponse);
+  void ClearAlarms();
   void SetNoteSet(Event::StringSet &noteSet);
   void enable_soap_logging(const std::string &log_path);
   void disable_soap_logging();
   void cleanup_subscription();
   bool interpret_alarm_value(const std::string &value);
   bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
-  bool matches_topic_filter(const std::string &topic, const std::string &filter);
+  static bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);

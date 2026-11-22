@@ -45,7 +45,6 @@ use ZoneMinder::Logger qw(:all);
 sub new
 {
     my $class = shift;
-    my $path = shift;
     my $self = ZoneMinder::Trigger::Connection->new( @_ );
     bless( $self, $class );
     return $self;
@@ -70,7 +69,7 @@ sub putMessages
 
     if ( @$messages )
     {
-        my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
+        my $buffer = join( "\n", map { ( my $m = $_ ) =~ s/\|/-/g; $m } @$messages );
         $buffer .= "\n";
         if ( !$self->{channel}->write( $buffer ) )
         {

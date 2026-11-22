@@ -19,6 +19,7 @@ namespace ZM {
     public function save($a) { $GLOBALS['done'][] = 'Snapshot::save'; return true; }
     public function Id() { return 5; }
     public function Events() { return array(); }
+    public function EventIds() { return array(1); }
   }
   class Snapshot_Event {
     public function save($a) { $GLOBALS['done'][] = 'Snapshot_Event::save'; return true; }

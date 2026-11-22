@@ -44,6 +44,19 @@ class TestLink : public Monitor::MonitorLink {
   }
 };
 
+class TestZoneLink : public Monitor::MonitorLink {
+ public:
+  TestZoneLink(const std::shared_ptr<Monitor> &source, unsigned int zid, int zindex)
+    : MonitorLink(source, zid) {
+    zone_index = zindex;
+  }
+  void Attach(SourceMonitor::Data *data, volatile int *scores = nullptr) {
+    shared_data = data;
+    zone_scores = scores;
+    connected = true;
+  }
+};
+
 }  // namespace
 
 // A link reports the source monitor's alarm status: its frame score while it
@@ -68,6 +81,14 @@ TEST_CASE("MonitorLink score follows the source's alarm state", "[MonitorLink]")
     REQUIRE(link.score() == 42);
     REQUIRE(link.hasAlarmed());
   }
+  SECTION("alarm: a packet with no score still counts as alarmed") {
+    // Audio packets and frames skipped by motion detection leave
+    // last_frame_score at 0 while the source stays in ALARM.
+    data.state = Monitor::ALARM;
+    data.last_frame_score = 0;
+    REQUIRE(link.score() == 1);
+    REQUIRE(link.hasAlarmed());
+  }
   SECTION("alert: keeps the linked event open") {
     data.state = Monitor::ALERT;
     data.last_frame_score = 0;
@@ -78,6 +99,72 @@ TEST_CASE("MonitorLink score follows the source's alarm state", "[MonitorLink]")
     REQUIRE(link.score() == 0);
     data.last_frame_score = 17;  // left over from the source's last alarm
     data.last_event_id = 1235;
+    REQUIRE(link.score() == 0);
+  }
+}
+
+// A zmc that dies without cleaning up leaves valid set in the mapping. The link
+// must see the stale heartbeat as disconnected so that it reconnects instead of
+// reporting the source's last state forever.
+TEST_CASE("MonitorLink treats a stale heartbeat as disconnected", "[MonitorLink]") {
+  EnsureConfig();
+  SourceMonitor::Data data = {};
+  data.valid = 1;
+  data.state = Monitor::ALARM;
+  TestLink link(std::make_shared<SourceMonitor>());
+  link.Attach(&data);
+
+  data.heartbeat_time = time(nullptr);
+  REQUIRE(link.isConnected());
+
+  data.heartbeat_time = time(nullptr) - 3600;
+  REQUIRE_FALSE(link.isConnected());
+}
+
+TEST_CASE("MonitorLink zone score follows source monitor state and zone id", "[MonitorLink]") {
+  EnsureConfig();
+  SourceMonitor::Data data = {};
+  data.valid = 1;
+  data.state = Monitor::IDLE;
+
+  int mock_zone_scores[4] = { 0, 85, 0, 0 };
+
+  SECTION("non-existent zone in ALARM returns 0 and does not fall back to whole monitor") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 999, -1);
+    link.Attach(&data, mock_zone_scores);
+
+    data.state = Monitor::ALARM;
+    data.last_frame_score = 42;
+    REQUIRE(link.score() == 0);
+  }
+
+  SECTION("valid zone in IDLE returns 0 even with leftover zone score") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 2, 1);
+    link.Attach(&data, mock_zone_scores);
+
+    // Verify zone score is reported while in ALARM
+    data.state = Monitor::ALARM;
+    data.last_frame_score = 99;
+    CHECK(link.score() == 85);
+
+    // Transitioning to IDLE must return 0 rather than stale zone score
+    data.state = Monitor::IDLE;
+    REQUIRE(link.score() == 0);
+  }
+
+  SECTION("valid zone in ALERT returns sentinel 1") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 2, 1);
+    link.Attach(&data, mock_zone_scores);
+
+    data.state = Monitor::ALERT;
+    REQUIRE(link.score() == 1);
+  }
+
+  SECTION("zone that can't be found in ALERT returns 0 like ALARM") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 999, -1);
+    link.Attach(&data, mock_zone_scores);
+
+    data.state = Monitor::ALERT;
     REQUIRE(link.score() == 0);
   }
 }

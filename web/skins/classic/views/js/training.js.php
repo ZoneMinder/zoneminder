@@ -23,7 +23,7 @@ const trainingTranslations = <?php
     'TrainingSelectBoxFirst', 'TrainingTotalClasses', 'TrainingTotalImages',
     'TrainingUnsaved', 'AcceptDetection', 'ConfirmDeleteTrainingData',
     'DrawBox', 'Frame', 'GoToFrame', 'ImagesPerClass', 'NewLabel',
-    'NoDetectionData', 'SelectLabel',
+    'NoDetectionData', 'SelectLabel', 'TrainingSavedLoaded', 'TrainingEditAnnotation',
   ];
   $t = [];
   foreach ($translationKeys as $k) $t[$k] = translate($k);

@@ -9,18 +9,18 @@ class FilterComponent extends Component {
 	 * These came from https://dev.mysql.com/doc/refman/8.0/en/non-typed-operators.html
 	 */
 	public $twoOperandSQLOperands = array(
-					      'AND',
-					      '&&',
+					      //'AND',
+					      //'&&',
 					      '=',
 					      //':=',
 					      //'BETWEEN ... AND ...',
 					      //'BINARY',
-					      '&',
-					      '~',
+					      //'&',
+					      //'~',
 					      //'|',
-					      '^',
+					      //'^',
 					      //'CASE',
-					      'DIV',
+					      //'DIV',
 					      '/',
 					      '=',
 					      '<=>',
@@ -36,9 +36,9 @@ class FilterComponent extends Component {
 					      '<',
 					      '<=',
 					      'LIKE',
-					      '-',
-					      '%',
-					      'MOD',
+					      //'-',
+					      //'%',
+					      //'MOD',
 					      //'NOT',
 					      //'!',
 					      //'NOT BETWEEN ... AND ...',
@@ -52,13 +52,13 @@ class FilterComponent extends Component {
 					      // monitors/events.
 					      //'||',
 					      //'OR',
-					      '+',
+					      //'+',
 					      'REGEXP',
 					      '>>',
 					      'RLIKE',
-					      'SOUNDS LIKE',
+					      //'SOUNDS LIKE',
 					      //'*',
-					      '-',
+					      //'-',
 					      //'XOR',
                 'IN',
 					      );
@@ -194,10 +194,44 @@ class FilterComponent extends Component {
 						throw new BadRequestException('Unknown filter field: ' . $bare);
 					}
 				}
+        if ($operator == 'IS' or $operator == 'IS NOT') {
+          // CakePHP only writes IS [NOT] NULL for a null value
+          if (!is_string($value) or strcasecmp($value, 'NULL')) {
+            throw new BadRequestException('Invalid value for '.$operator.': '.(is_string($value) ? $value : 'array'));
+          }
+          $value = null;
+          $operator = ($operator == 'IS') ? '' : '!=';
+        }
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
         } else if ($operator == 'IN') {
-          $value = explode(',', $value);
+          $raw = $value;
+          if (is_string($value)) {
+            $trimmed = trim($value);
+            if (strlen($trimmed) >= 2 && $trimmed[0] === '(' && substr($trimmed, -1) === ')') {
+              $trimmed = substr($trimmed, 1, -1);
+            }
+            $parts = explode(',', $trimmed);
+            $value = array();
+            foreach ($parts as $part) {
+              $part = trim($part);
+              if ($part !== '') {
+                $value[] = $part;
+              }
+            }
+          } else if (is_array($value)) {
+            $cleaned = array();
+            foreach ($value as $part) {
+              $part = is_string($part) ? trim($part) : $part;
+              if ($part !== '' && $part !== null) {
+                $cleaned[] = $part;
+              }
+            }
+            $value = $cleaned;
+          }
+          if (!count($value)) {
+            throw new BadRequestException('Invalid value for IN: ' . (is_string($raw) ? $raw : 'array'));
+          }
         }
 
 				$lhs = $matches['field'] . ($operator?' ' . $operator:'');

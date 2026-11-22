@@ -133,7 +133,7 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
     my $temps = time();
     #PP - cleaned this up so it picks up the full auth from Control Devices
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/CGIProxy.fcgi?cmd=".$cmd."&".$self->{Monitor}->{ControlDevice} );
@@ -258,6 +258,7 @@ sub moveConLeft
     my $self = shift;
     my $params = shift;
     my $panspeed = $self->getParam( $params, 'panspeed' );
+    $panspeed = abs($panspeed - 4);
     # Normalisation en cas de valeur erronée dans la base de données
     if ( $panspeed > 4 ) {
             $panspeed = 4;
@@ -719,6 +720,14 @@ sub presetGoto
                         $cmd = "ptzGotoPresetPoint%26name%3D$preset";
                         $self->sendCmd( $cmd );
                        }
+}
+
+sub presetHome
+{
+    my $self = shift;
+    Debug( "Home Preset" );
+    my $cmd = "ptzReset";
+    $self->sendCmd( $cmd );
 }
 
 1;

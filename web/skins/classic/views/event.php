@@ -103,7 +103,7 @@ $codecs = array(
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
-if (isset($_REQUEST['codec'])) {
+if (isset($_REQUEST['codec']) and is_string($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
 } else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {
@@ -132,7 +132,7 @@ else
   $streamMode = 'video';
 
 $replayMode = '';
-if (isset($_REQUEST['replayMode'])) {
+if (isset($_REQUEST['replayMode']) and is_string($_REQUEST['replayMode'])) {
   if (isset($replayModes[$_REQUEST['replayMode']])) {
     $replayMode = $_REQUEST['replayMode'];
   } else {
@@ -143,7 +143,7 @@ if (isset($_REQUEST['replayMode'])) {
     $replayMode = $_COOKIE['replayMode'];
   } else {
     ZM\Warning('Invalid value for replayMode in cookies. Removing.');
-    zm_setcookie('replayMode', '', time()-86400);
+    zm_setcookie('replayMode', '', array('expires'=>time()-86400));
   }
 } else {
   $preference = $user->Preference('replayMode');
@@ -176,8 +176,9 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
-if (count($filter->terms())==1 and $filter->has_term('Id')) {
-  # Special case, coming from filter specifying this exact event.
+$idTerm = $filter->has_term('Id');
+if (count($filter->terms())==1 and $idTerm and !is_array($idTerm['val']) and strpos($idTerm['val'], ',') === false) {
+  # Special case, coming from filter specifying this exact event. A list of events is kept.
   $filter->terms([]);
   $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
 }
@@ -270,7 +271,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
@@ -383,9 +384,9 @@ if ($video_tag) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
       } else if (ZM_AUTH_RELAY == 'plain') {
-        $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '') . '&amp;pass=' . ($_SESSION['password'] ?? '');
       } else if (ZM_AUTH_RELAY == 'none') {
-        $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '');
       }
     }
   }

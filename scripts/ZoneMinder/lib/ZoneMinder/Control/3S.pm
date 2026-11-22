@@ -105,6 +105,13 @@ sub cameraReset
     $self->sendCmd( $cmd );
 }
 
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+    my $self = shift;
+    $self->cameraReset();
+}
+
 #Custom#
 #Move X or Y Axis
 sub Up
@@ -438,22 +445,6 @@ sub focusRelFar
     my $step = $self->getParam( $params, 'step' );
     Debug( "Focus Far" );
     my $cmd = "/ptz.cgi?rfocus=$step";
-    $self->sendCmd( $cmd );
-}
-
-sub focusAuto
-{
-    my $self = shift;
-    Debug( "Focus Auto" );
-    my $cmd = "/ptz.cgi?Autofocus=on";
-    $self->sendCmd( $cmd );
-}
-
-sub focusMan
-{
-    my $self = shift;
-    Debug( "Focus Manual" );
-    my $cmd = "/ptz.cgi?Autofocus=off";
     $self->sendCmd( $cmd );
 }
 

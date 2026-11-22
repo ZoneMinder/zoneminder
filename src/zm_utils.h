@@ -97,6 +97,11 @@ std::string ClientAddress(const std::string &remote_addr,
                           const std::string &forwarded_for,
                           const std::string &trusted_proxies);
 
+// The host part of a URL: an IPv6 literal (contains ':') is wrapped in
+// brackets unless it already is, so a port can follow it. Matches
+// Server::Url() in web/includes/Server.php.
+std::string UrlHost(const std::string &host);
+
 // Separator characters between entries in a monitor's Options field. The ui
 // offers a textarea, so an option may be on its own line as well as after a
 // comma. av_dict_parse_string() takes a set of separator characters and skips
@@ -192,6 +197,10 @@ std::string url_for_log(const std::string &url);
 std::string request_for_log(const std::string &request);
 
 std::string UriEncode(const std::string &value);
+// url with user:pass@ inserted after its scheme://, as stored (not encoded: a
+// value already percent-encoded by the operator must reach the camera as is). A url without a scheme is taken to be RTSP. Any scheme is
+// kept: "rtsps://host" must not become "rtsp://u:p@rtsps://host".
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass);
 // The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so
 // "http://host:1984" and "http://host:1984/api" both give the latter.
 std::string Go2RTCApiEndpoint(std::string path);

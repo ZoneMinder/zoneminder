@@ -25,9 +25,8 @@ $builtinKeys = array_keys(getMenuItemFunctions());
           <i class="material-icons" title="<?php echo translate('Click and drag rows to change order') ?>">swap_vert</i>
           <span class="text"><?php echo translate('Sort') ?></span>
         </button>
-        <button type="submit" name="action" value="resetmenu" class="btn btn-warning"
+        <button type="submit" name="action" value="resetmenu" id="resetMenuBtn" class="btn btn-warning"
           title="<?php echo translate('Reset to default values') ?>"
-          onclick="return confirm('<?php echo addslashes(translate('Reset menu items to defaults?')) ?>');"
         ><i class="material-icons">restart_alt</i>
           <span class="text"><?php echo translate('Reset') ?></span>
         </button>
@@ -116,6 +115,7 @@ $builtinKeys = array_keys(getMenuItemFunctions());
                     </select>
                     <input type="text" name="items[<?php echo $id ?>][Icon]" class="form-control form-control-sm iconNameInput"
                       id="iconName-<?php echo $id ?>"
+                      data-default-icon="<?php echo htmlspecialchars(ZM\MenuItem::$defaultIcons[$item->MenuKey()] ?? 'menu') ?>"
                       value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>"
                       placeholder="<?php echo $effIconType == 'image' ? 'graphics/menu/icon.png' : htmlspecialchars($effIcon) ?>"
                       style="width:<?php echo $effIconType == 'image' ? '200' : '140' ?>px;<?php echo $effIconType == 'none' ? 'display:none;' : '' ?>"
@@ -138,3 +138,10 @@ $builtinKeys = array_keys(getMenuItemFunctions());
     </div>
   </div>
 </form>
+<?php if ($canEdit) { ?>
+<script nonce="<?php echo $cspNonce ?>">
+document.getElementById('resetMenuBtn').addEventListener('click', function(ev) {
+  if (!confirm(<?php echo json_encode(translate('Reset menu items to defaults?')) ?>)) ev.preventDefault();
+});
+</script>
+<?php } ?>

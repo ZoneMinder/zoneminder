@@ -24,6 +24,17 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+bool SplitUserInfo(std::string &host, std::string &user, std::string &pass) {
+  std::string::size_type authIndex = host.rfind('@');
+  if (authIndex == std::string::npos) return false;
+  std::string auth = host.substr(0, authIndex);
+  host.erase(0, authIndex+1);
+  authIndex = auth.find(':');
+  user = auth.substr(0, authIndex);
+  pass = (authIndex == std::string::npos) ? std::string() : auth.substr(authIndex+1);
+  return true;
+}
+
 RemoteCamera::RemoteCamera(
   const Monitor *monitor,
   const std::string &p_protocol,
@@ -76,16 +87,10 @@ void RemoteCamera::Initialise() {
 
 
   // Cache as much as we can to speed things up
-  std::string::size_type authIndex = host.rfind('@');
-
-  if (authIndex != std::string::npos) {
-    auth = host.substr(0, authIndex);
-    host.erase(0, authIndex+1);
+  if (SplitUserInfo(host, username, password)) {
+    // Basic credentials are always user:pass, even with an empty password.
+    auth = username+":"+password;
     auth64 = Base64Encode(auth);
-
-    authIndex = auth.rfind(':');
-    username = auth.substr(0,authIndex);
-    password = auth.substr(authIndex+1, auth.length());
   } else if (!username.empty()) {
     auth = username;
     if(!password.empty()) auth += ":"+password;
@@ -93,6 +98,7 @@ void RemoteCamera::Initialise() {
   }
 
   mNeedAuth = false;
+  delete mAuthenticator;
   mAuthenticator = new zm::Authenticator(username, password);
 
   struct addrinfo hints;

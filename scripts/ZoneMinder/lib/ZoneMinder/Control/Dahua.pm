@@ -16,6 +16,7 @@ our $ADDRESS = '';
 our $PROTOCOL = 'http://';
 
 use Time::HiRes qw(usleep);
+use URI::Escape qw(uri_escape_utf8);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
@@ -68,7 +69,7 @@ sub open
     # channel "0", here.
     $self->{dahua_channel_number} = "0";
 
-    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/ ) ) {
         $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
         $USERNAME = $+{USERNAME} if $+{USERNAME};
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
@@ -343,7 +344,7 @@ sub moveRelUpRight
 {
     my $self = shift;
     Debug("Move Up Right");
-    $self->_sendMomentaryPtzCommand("RightUp", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("RightUp", 4, 4, 0, 500);
 }
 
 sub moveRelLeft
@@ -460,7 +461,7 @@ sub presetSet
     my $new_label_name = $control_preset_row->{'Label'};
 
     $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, $new_label_name, 0);
+    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
 }
 
 sub presetGoto
@@ -483,7 +484,7 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    $self->_sendPtzCommand("Reset", 0, 0, 0, 0);
+    return $self->reboot();
 }
 
 sub reboot

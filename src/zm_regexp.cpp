@@ -64,6 +64,10 @@ RegExpr::~RegExpr() {
 int RegExpr::Match( const char *subject_string, PCRE2_SIZE subject_length, uint32_t flags ) {
   match_string = subject_string;
 
+  for( int i = 0; i < max_matches; i++ ) {
+    match_valid[i] = false;
+  }
+
   n_matches = pcre2_match( regex, (PCRE2_SPTR)subject_string, subject_length, 0, flags, match_data, NULL );
   match_vectors = pcre2_get_ovector_pointer( match_data );
 
@@ -74,14 +78,11 @@ int RegExpr::Match( const char *subject_string, PCRE2_SIZE subject_length, uint3
     return( n_matches = 0 );
   }
 
-  for( int i = 0; i < max_matches; i++ ) {
-    match_valid[i] = false;
-  }
   return( n_matches );
 }
 
 const char *RegExpr::MatchString( int match_index ) const {
-  if ( match_index > n_matches ) {
+  if ( match_index < 0 || match_index >= n_matches ) {
     return( 0 );
   }
   if ( !match_valid[match_index] ) {
@@ -99,7 +100,7 @@ const char *RegExpr::MatchString( int match_index ) const {
 }
 
 int RegExpr::MatchLength( int match_index ) const {
-  if ( match_index > n_matches ) {
+  if ( match_index < 0 || match_index >= n_matches ) {
     return( 0 );
   }
   return( (int)(match_vectors[(2*match_index)+1]-match_vectors[2*match_index]) );

@@ -32,6 +32,7 @@ require ZoneMinder::Base;
 require ZoneMinder::Object;
 require ZoneMinder::Server;
 require ZoneMinder::General;
+require File::Path;
 
 use parent qw(Exporter ZoneMinder::Object);
 
@@ -45,7 +46,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 
 use vars qw/ $serial $table $primary_key %fields %defaults $debug/;
 $serial = $primary_key = 'Id';
@@ -110,9 +110,12 @@ sub s3 {
         require Net::Amazon::S3::Vendor::Generic;
         my $vendor = undef;
         if ($aws_host) {
+          # Net::Amazon::S3 uses https unless told otherwise
+          my $use_https = ($aws_host !~ /^http:\/\//i);
           $aws_host =~ s/^https?:\/\///ig;
           $vendor = Net::Amazon::S3::Vendor::Generic->new(
             host=>$aws_host,
+            use_https => $use_https,
             authorization_method => 'Net::Amazon::S3::Signature::V4',
             use_virtual_host => 0,
           );
@@ -165,10 +168,21 @@ sub delete_path {
     my $bucket = $self->bucket();
     if ($s3 and $bucket) {
       eval {
-        if ($bucket->delete_key($$self{aws_subpath}.$path)) {
+        # S3 has no directories: an event path is only a prefix of its file keys.
+        my $key = $self->aws_subpath().$path;
+        my $list = $bucket->list_all({prefix => $key.'/'});
+        if ($list) {
+          my @keys = map { $$_{key} } @{$$list{keys}};
+          @keys = ($key) if !@keys;
           $deleted = 1;
+          foreach my $s3_key (@keys) {
+            if (!$bucket->delete_key($s3_key)) {
+              $deleted = 0;
+              Error("Failed to delete $s3_key from S3:".$s3->err . ': ' . $s3->errstr);
+            }
+          }
         } else {
-          Error('Failed to delete from S3:'.$s3->err . ': ' . $s3->errstr);
+          Error("Failed to list $key in S3:".$s3->err . ': ' . $s3->errstr);
         }
       };
       Error($@) if $@;
@@ -179,13 +193,18 @@ sub delete_path {
     my $storage_path = $self->Path();
     ($storage_path) = ($storage_path =~ /^(.*)$/); # De-taint
     ($path) = ($path =~ /^(.*)$/); # De-taint
-    if (!$Config{ZM_PATH_RM}) {
-      Info('No value set for ZM_PATH_RM.  ZM_PATH_RM should have been set automatically by the distro in '.$Config{ZM_CONFIG_DIR}.'/conf.d/01-system-paths.conf. Defaulting to /bin/rm');
-      $Config{ZM_PATH_RM} = '/bin/rm';
+    if (($path eq '') or ($path eq '.')) {
+      Error("Refusing to delete the storage area itself: path is empty or '.'");
+      return;
     }
-    my $command = "$Config{ZM_PATH_RM} -rf $storage_path/$path 2>&1";
-    if (ZoneMinder::General::executeShellCommand($command)) {
-      Error("Error deleting event directory at $storage_path/$path using $command");
+    my $full = "$storage_path/$path";
+    File::Path::remove_tree($full, { error => \my $errors });
+    if (@$errors) {
+      my @messages = map {
+        my ($file, $msg) = %$_;
+        $file eq '' ? $msg : "$file: $msg";
+      } @$errors;
+      Error("Error deleting event path at $full: ".join('; ', @messages));
     }
   }
 } # end sub delete_path
@@ -250,7 +269,7 @@ ZoneMinder::Storage - Perl modules for Storage objects
 
   use ZoneMinder::Storage;
   my $Storage = ZoneMinder::Storage->find_one(Name=>'Default');
-  my @S3Areas = ZoneMinder::Stroage->find(Type=>'s3fs');
+  my @S3Areas = ZoneMinder::Storage->find(Type=>'s3fs');
   etc...
 
 =head1 DESCRIPTION

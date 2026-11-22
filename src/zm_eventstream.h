@@ -65,6 +65,7 @@ class EventStream : public StreamBase {
     int             last_frame_id;  // Highest frame id known about. Can be < frame_count in incomplete events
     SystemTimePoint start_time;
     SystemTimePoint end_time;
+    bool            in_progress;    // EndDateTime was NULL when the event was loaded
     Microseconds duration;
     std::string path;
     int             n_frames;       // # of frame rows returned from database
@@ -121,6 +122,13 @@ class EventStream : public StreamBase {
   // that arrived just too late, still plays.
   static bool HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev);
 
+  // Where MODE_SINGLE playback goes when it runs off either end of the event.
+  static int LoopedFrameId(int frame_id, int num_frames);
+  // The 1-based frame a stream starts on for a requested frame id.
+  static int InitialFrameId(int requested, size_t num_frames);
+  // Spacing of the frames made up for an event that has none in the Frames table.
+  static Microseconds SyntheticFrameDelta(int frame_count, Microseconds duration);
+
  protected:
   static constexpr Milliseconds STREAM_PAUSE_WAIT = Milliseconds(250);
 
@@ -128,6 +136,7 @@ class EventStream : public StreamBase {
 
   StreamMode mode;
   bool forceEventChange;
+  SystemTimePoint::duration time_to_event;  // wait for the loaded event to start, guarded by mutex
 
   // The neighbour hints the UI pushes via CMD_SET_EVENT, one per direction, and
   // whether this stream has a UI sending them at all. See ChooseNeighbour.
@@ -154,6 +163,9 @@ class EventStream : public StreamBase {
 
   std::mutex  mutex;
   int curr_frame_id;
+  // Frame shown and the position it advanced to, so a pause can step back onto it
+  int advanced_from;
+  int advanced_to;
   SystemTimePoint curr_stream_time;
   bool  send_frame;
   TimePoint start;     // clock time when started the event
@@ -170,6 +182,8 @@ class EventStream : public StreamBase {
   bool loadInitialEventData(int monitor_id, SystemTimePoint event_time);
 
   bool checkEventLoaded();
+  // Start at the beginning of the loaded event, or at event_time if it is inside it.
+  void startAtTime(SystemTimePoint event_time);
   bool waitingForHint() const { return hint_wait_start != TimePoint(); }
   void processCommand(const CmdMsg *msg) override;
   bool sendFrame(Microseconds delta);
@@ -182,11 +196,14 @@ class EventStream : public StreamBase {
   EventStream() :
     mode(DEFAULT_MODE),
     forceEventChange(false),
+    time_to_event(0),
     ui_managed(false),
     hint_wait_prev(false),
     end_stop(false),
     end_stop_prev(false),
     curr_frame_id(0),
+    advanced_from(0),
+    advanced_to(0),
     send_frame(false),
     event_data(nullptr),
     storage(nullptr),

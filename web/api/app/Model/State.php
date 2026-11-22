@@ -36,6 +36,20 @@ class State extends AppModel {
 				'rule' => array('isUnique'),
 				'message' => 'A state with this name already exists',
 			),
+			// zmpkg.pl treats these names as commands, so such a state could never be applied
+			'notReserved' => array(
+				'rule' => array('custom', '/^(?!(?:start|stop|restart|status|logrot|version)$)/'),
+				'message' => 'A run state cannot be named start, stop, restart, status, logrot or version',
+			),
+		),
+		// The column has no default, so a state added without one is refused by MySQL.
+		'Definition' => array(
+			'required' => array(
+				'rule' => array('maxLength', 65535),
+				'required' => 'create',
+				'allowEmpty' => true,
+				'message' => 'A state needs a Definition',
+			),
 		),
 	);
 

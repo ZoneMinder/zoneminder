@@ -154,6 +154,8 @@ function exportEvent() {
   while (i < 1000) { // We believe that more than 1000 links cannot be generated.
     downloadLink = document.getElementById('downloadLink'+i);
     if (downloadLink) {
+      // Each extra link was added after a <br>, which has to go with it.
+      if (downloadLink.previousSibling && downloadLink.previousSibling.nodeName == 'BR') downloadLink.previousSibling.remove();
       downloadLink.remove();
       i++;
     } else {

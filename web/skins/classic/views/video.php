@@ -35,15 +35,33 @@ if (!canView('Monitors', $event->MonitorId())) {
 }
 
 $monitor = $event->Monitor();
-if ( isset($_REQUEST['rate']) )
+// Not the monitor view's $rates and $scales: those hold Stop, negative rates, Auto,
+// fit_to_width and 640px entries, none of which zmvideo.pl can turn into a video
+// (rate 0.25-100, scale 0.25-4).
+$videoRates = array();
+foreach ($rates as $value => $label) {
+  if ($value > 0) $videoRates[$value] = $label;
+}
+$videoScales = array(
+  25 => '1/4x', 50 => '1/2x', 75 => '3/4x', 100 => '1x', 150 => '1.5x',
+  200 => '2x', 300 => '3x', 400 => '4x',
+);
+
+// The monitor's DefaultScale can be Auto, fit_to_width or 640px, which reScale() cannot
+// multiply; only a number is a scale to start from.
+$defaultRate = $monitor->DefaultRate();
+$defaultScale = $monitor->DefaultScale();
+if (isset($_REQUEST['rate']))
   $rate = validInt($_REQUEST['rate']);
 else
-  $rate = reScale(RATE_BASE, $monitor->DefaultRate(), ZM_WEB_DEFAULT_RATE);
+  $rate = reScale(RATE_BASE, is_numeric($defaultRate) ? $defaultRate : 0, ZM_WEB_DEFAULT_RATE);
+if (!isset($videoRates[$rate])) $rate = RATE_BASE;
 
-if ( isset($_REQUEST['scale']) )
+if (isset($_REQUEST['scale']))
   $scale = validInt($_REQUEST['scale']);
 else
-  $scale = reScale(SCALE_BASE, $monitor->DefaultScale(), ZM_WEB_DEFAULT_SCALE);
+  $scale = reScale(SCALE_BASE, is_numeric($defaultScale) ? $defaultScale : 0, is_numeric(ZM_WEB_DEFAULT_SCALE) ? ZM_WEB_DEFAULT_SCALE : 0);
+if (!isset($videoScales[$scale])) $scale = SCALE_BASE;
 
 $event_path = $event->Path();
 
@@ -100,10 +118,10 @@ if (isset($_REQUEST['deleteIndex'])) {
     unset($videoFiles[$deleteIndex]);
   }
 } else if (isset($_REQUEST['downloadIndex'])) {
-  if (!count($videoFiles)) {
-    ZM\Warning("No video files found for $eid. Downloading not possible.");
+  $downloadIndex = validInt($_REQUEST['downloadIndex']);
+  if (!isset($videoFiles[$downloadIndex])) {
+    ZM\Warning("No video file at index $downloadIndex for $eid. Downloading not possible.");
   } else {
-    $downloadIndex = validInt($_REQUEST['downloadIndex']);
     ZM\Debug("Download $downloadIndex, file: " . $videoFiles[$downloadIndex]);
     header('Pragma: public');
     header('Expires: 0');
@@ -143,7 +161,7 @@ echo getNavBarHTML();
     </div>
     <div id="content">
 <?php
-if (isset($_REQUEST['showIndex'])) {
+if (isset($_REQUEST['showIndex']) and isset($videoFiles[validInt($_REQUEST['showIndex'])])) {
   $showIndex = validInt($_REQUEST['showIndex']);
   $path_parts = pathinfo($videoFiles[$showIndex]);
 
@@ -151,10 +169,10 @@ if (isset($_REQUEST['showIndex'])) {
   $height = $event->Height();
 
   foreach (explode('-', $path_parts['filename']) as $option) {
-    if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
-      $scale = (int)(preg_replace('/_/', '.', $temp_matches[1]) );
-      $width = $width * $scale;
-      $height = $height * $scale;
+    if ( preg_match('/^s(\d+(?:_\d+)?)$/', $option, $temp_matches) ) {
+      $fileScale = (float)(preg_replace('/_/', '.', $temp_matches[1]) );
+      $width = (int)round($width * $fileScale);
+      $height = (int)round($height * $fileScale);
     } elseif ( preg_match('/^S(\d+)x(\d+)$/', $option, $temp_matches) ) {
       $width = $temp_matches[1];
       $height = $temp_matches[2];
@@ -180,11 +198,11 @@ if (isset($_REQUEST['showIndex'])) {
             </tr>
             <tr>
               <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('FrameRate') ?></th>
-              <td><?php echo buildSelect('rate', $rates) ?></td>
+              <td><?php echo buildSelect('rate', $videoRates) ?></td>
             </tr>
             <tr>
               <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('VideoSize') ?></th>
-              <td><?php echo buildSelect('scale', $scales) ?></td>
+              <td><?php echo buildSelect('scale', $videoScales) ?></td>
             </tr>
             <tr>
               <th class="text-nowrap text-right pr-3" scope="row"><?php echo translate('Transform') ?></th>
@@ -238,15 +256,16 @@ if (isset($_REQUEST['showIndex'])) {
         $path_parts = pathinfo($file);
 
         foreach (explode('-', $path_parts['filename']) as $option) {
-          if ( preg_match('/^r(.+)$/', $option, $temp_matches) ) {
-            $rate = (int)(100 * preg_replace( '/_/', '.', $temp_matches[1] ) );
-            $rateText = isset($rates[$rate])?$rates[$rate]:($rate."x");
-          } elseif ( preg_match('/^F(.+)$/', $option, $temp_matches) ) {
-            $rateText = $temp_matches[1].'fps';
-          } else if ( preg_match('/^s(.+)$/', $option, $temp_matches) ) {
-            $scale = (int)(100 * preg_replace('/_/', '.', $temp_matches[1]) );
-            $scaleText = isset($scales[$scale])?$scales[$scale]:($scale.'x');
-          } elseif ( preg_match('/^S(.+)$/', $option, $temp_matches) ) {
+          // Only the options zmvideo.pl writes; the event name in front can hold any word
+          if ( preg_match('/^r(\d+(?:_\d+)?)$/', $option, $temp_matches) ) {
+            $fileRate = (int)round(100 * (float)preg_replace('/_/', '.', $temp_matches[1]));
+            $rateText = isset($rates[$fileRate])?$rates[$fileRate]:($fileRate."x");
+          } elseif ( preg_match('/^[FR](\d+(?:_\d+)?)$/', $option, $temp_matches) ) {
+            $rateText = preg_replace('/_/', '.', $temp_matches[1]).'fps';
+          } else if ( preg_match('/^s(\d+(?:_\d+)?)$/', $option, $temp_matches) ) {
+            $fileScale = (int)round(100 * (float)preg_replace('/_/', '.', $temp_matches[1]));
+            $scaleText = isset($videoScales[$fileScale])?$videoScales[$fileScale]:($fileScale.'x');
+          } elseif ( preg_match('/^S(\d+x\d+)$/', $option, $temp_matches) ) {
             $scaleText = $temp_matches[1];
           }
         } # end foreach option in filename

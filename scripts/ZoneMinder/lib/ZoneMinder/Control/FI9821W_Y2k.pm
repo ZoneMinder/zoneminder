@@ -112,7 +112,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice}, 2;
 	if ( ! $password ) {
 		$password = $user;
 		$user = 'admin';
@@ -246,6 +246,7 @@ sub moveConLeft
     my $self = shift;
     my $params = shift;
     my $panspeed = $self->getParam( $params, 'panspeed' );
+    $panspeed = abs($panspeed - 4);
     # Normalisation en cas de valeur erronée dans la base de données
     if ( $panspeed > 4 ) {
             $panspeed = 4;

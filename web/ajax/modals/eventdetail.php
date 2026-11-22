@@ -45,6 +45,8 @@ if ( $eid ){ // Single Event Mode
     if ( !isset($newEvent) ) {
       $newEvent = $row;
     } else {
+      if ( $newEvent['Name'] && $newEvent['Name'] != $row['Name'] )
+        $newEvent['Name'] = '';
       if ( $newEvent['Cause'] && $newEvent['Cause'] != $row['Cause'] )
         $newEvent['Cause'] = '';
       if ( $newEvent['Notes'] && $newEvent['Notes'] != $row['Notes'] )
@@ -79,7 +81,7 @@ if ( $eid ){ // Single Event Mode
             <tbody>
               <tr>
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newEvent[Name]" value="<?php echo validHtmlStr($newEvent['Name']) ?>" size="32"/></td>
+                <td><input type="text" name="newEvent[Name]" value="<?php echo validHtmlStr($newEvent['Name']) ?>" size="32" maxlength="64"/></td>
               </tr>
               <tr>
                 <th scope="row"><?php echo translate('Cause') ?></th>
@@ -93,7 +95,7 @@ if ( $eid ){ // Single Event Mode
           </table>
       </div>
       <div class="modal-footer">
-        <button type="submit" name="action" id="eventDetailSaveBtn" class="btn btn-primary" value="save" <?php echo !canEdit('Events') ? $disabled : $null .'>'. translate('Save') ?></button>
+        <button type="submit" id="eventDetailSaveBtn" class="btn btn-primary" <?php echo !canEdit('Events') ? $disabled : $null .'>'. translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
       </div>
       </form>

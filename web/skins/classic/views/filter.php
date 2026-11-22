@@ -188,7 +188,7 @@ if (ZM_OPT_USE_AUTH) {
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user->Id(),
-  ['Id'=>'filter[UserId]', 'class'=>'chosen']
+  ['Id'=>'filter[UserId]', 'class'=>'chosen', 'data-on-change-this'=>'updateButtons']
   );
   echo '</p>'.PHP_EOL;
 }
@@ -307,7 +307,7 @@ if ( canEdit('System') ) {
 ?>
             <p>
               <label for="filter[AutoExecute]"><?php echo translate('FilterExecuteEvents') ?></label>
-              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
 <?php

@@ -18,6 +18,27 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+# Return 'codec WIDTHxHEIGHT' of the first video stream of $path, or '' if the
+# file is missing, empty or has no readable video stream.
+function videoStreamSignature($path) {
+  if (!is_file($path) or !filesize($path)) return '';
+  $output = [];
+  exec(ZM_PATH_FFMPEG.' -hide_banner -i '.escapeshellarg($path).' 2>&1', $output);
+  if (preg_match('/Stream #\S+: Video: (\w+)[^\n]*?, (\d+)x(\d+)/', implode("\n", $output), $m)) {
+    return $m[1].' '.$m[2].'x'.$m[3];
+  }
+  return '';
+}
+
+# Remove what a failed downloadEvents() call created: its export directory and
+# the partial archive. The working directory is left first as it is about to go.
+function removeFailedDownload($export_dir, $archive_path) {
+  chdir(DIR_EXPORTS_DOWNLOAD);
+  if ($export_dir and is_dir($export_dir)) deletePath($export_dir);
+  if ($archive_path and file_exists($archive_path)) @unlink($archive_path);
+  return false;
+}
+
 function downloadEvents(
   $eids,
   $export_root,
@@ -66,24 +87,38 @@ function downloadEvents(
   chmod($export_dir, 0700);
   if (!chdir($export_dir)) {
     ZM\Error("Can't chdir to $export_dir");
-    return;
+    return removeFailedDownload($export_dir, '');
   }
 
   if (!is_array($eids)) {
     $eids = array($eids);
   }
   $events_by_monitor_id = [];
+  $generatedVideos = [];
+  $generated_dir = $export_dir.'/generated';
+  if (!(@mkdir($generated_dir) or is_dir($generated_dir))) {
+    ZM\Error("Can't create directory '$generated_dir' for generated videos");
+    return removeFailedDownload($export_dir, '');
+  }
   foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
       global $user;
-      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
     if (!isset($events_by_monitor_id[$event->MonitorId()])) $events_by_monitor_id[$event->MonitorId()] = [];
     $events_by_monitor_id[$event->MonitorId()][] = $event;
 
-    if (!$event->DefaultVideo()) $event->GenerateVideo();
+    if (!$event->DefaultVideo()) {
+      # Only build a video from the images when the event has no usable one.
+      $existing = findVideoEventFile($event, '*');
+      if ($existing === '' or !filesize($existing)) {
+        # Written under the export directory, not the events' storage, which may be nearly full.
+        $generated = $event->GenerateVideo(0, 0, 0, 0, false, 'mp4', '', $generated_dir);
+        if ($generated) $generatedVideos[$event->Id()] = $generated_dir.'/'.$generated;
+      }
+    }
   }
 
   $exportFileList = [];
@@ -92,6 +127,9 @@ function downloadEvents(
   if ($exportFormat == 'tar' || $exportFormat == 'zip') {
     $archiveFileName = $export_root.'.'.$exportFormat;
     $archive_path = DIR_EXPORTS_DOWNLOAD.'/'.$archiveFileName;
+    # tar --append and zip add to an existing archive, so an earlier download
+    # of the same name that was never fetched would bring its events along.
+    @unlink($archive_path);
   }
 
   foreach (array_keys($events_by_monitor_id) as $mid) {
@@ -105,81 +143,108 @@ function downloadEvents(
       return strtotime($a->StartDateTime) <=> strtotime($b->StartDateTime);
     });
 
-    $eventFileList = '';
-    $minTimeSecs = -1;
-    $minTime = '';
-    $maxTimeSecs = -1;
-    $maxTime = '';
+    # Events whose video streams differ cannot be joined with -c copy, so each
+    # set of matching events is merged into a file of its own.
+    $groups = [];
     foreach ($events_by_monitor_id[$mid] as $event) {
-      $filePath = findVideoEventFile($event, "mp4");
+      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, '*');
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;
       }
-      if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
-        $minTimeSecs = $event->StartDateTimeSecs();
-        $minTime = $event->StartDateTime();
+      $signature = videoStreamSignature(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.basename($filePath));
+      if ($signature === '') {
+        ZM\Warning('The video file '.$filePath.' of event '.$event->Id().' is empty or unreadable, not exporting it.');
+        continue;
+      }
+      $groups[$signature][] = [$event, $filePath];
+    }
+
+    foreach ($groups as $group) {
+      $eventFileList = '';
+      $minTimeSecs = -1;
+      $minTime = '';
+      $maxTimeSecs = -1;
+      $maxTime = '';
+      foreach ($group as list($event, $filePath)) {
+        if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
+          $minTimeSecs = $event->StartDateTimeSecs();
+          $minTime = $event->StartDateTime();
+        }
+
+        $endSecs = $event->EndDateTimeSecs();
+        if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
+          $maxTimeSecs = $endSecs;
+          $maxTime = $event->EndDateTime();
+        }
+
+        $fileName = basename($filePath);
+        if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
+        $eventFileList .= 'file \''.(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.$fileName).'\''.PHP_EOL;
       }
 
-      $endSecs = $event->EndDateTimeSecs();
-      if ($endSecs and ($maxTimeSecs == -1 or $maxTimeSecs < $endSecs)) {
-        $maxTimeSecs = $endSecs;
-        $maxTime = $event->EndDateTime();
+      if ($eventFileList === '') {
+        ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
+        continue;
       }
 
-      $fileName = basename($filePath);
-      if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
-      $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
-    }
-
-    if ($eventFileList === '') {
-      ZM\Warning('No event files were found for exporting monitor events with ID='.$mid);
-      continue;
-    }
-
-    if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
-    $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
-    if (($fp = fopen('event_files.txt', 'w'))) {
-      fwrite($fp, $eventFileList);
-      fclose($fp);
-    } else {
-      ZM\Error("Can't open event images export file 'event_files.txt'");
-    }
-    $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
-    exec($cmd, $output, $return);
-    ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
-    $exportFileList[] = $mergedFileName;
-    @unlink('event_files.txt');
-
-    # We're sending one file at a time to the archive. This will significantly save disk space.
-    $command = '';
-    if ($exportFormat == 'tar') {
-      # We can't just create a tar.gz file and add files to it. We first add everything to the 'tar' file, and then to the 'gz' file.
-      $command = 'tar --append --dereference';
-      if ($exportStructure == 'flat') {
-        $command .= getFlatCommandForTar();
+      if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
+      $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
+      for ($n = 2; in_array($mergedFileName, $exportFileList); $n++) {
+        $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
       }
-      $command .= ' --file='.escapeshellarg($archive_path);
-    } else if ($exportFormat == 'zip') {
-      $command .= 'zip ';
-      $command .= ($exportStructure == 'flat' ? ' -j ' : '').escapeshellarg($archive_path);
-      $command .= $exportCompressed ? ' -9' : ' -0';
-    } else if ($exportFormat == 'noArchive') {
+      if (($fp = fopen('event_files.txt', 'w'))) {
+        fwrite($fp, $eventFileList);
+        fclose($fp);
+      } else {
+        ZM\Error("Can't open event images export file 'event_files.txt'");
+      }
+      $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+      $output = array();
+      exec($cmd, $output, $return);
+      ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
+      @unlink('event_files.txt');
+      if ($return != 0) {
+        ZM\Error('Failed to merge the events of monitor '.$mid.' (status '.$return.'): '.implode('; ', array_slice($output, -3)));
+        return removeFailedDownload($export_dir, $archive_path);
+      }
+      $exportFileList[] = $mergedFileName;
 
-    }
+      # We're sending one file at a time to the archive. This will significantly save disk space.
+      $command = '';
+      if ($exportFormat == 'tar') {
+        # We can't just create a tar.gz file and add files to it. We first add everything to the 'tar' file, and then to the 'gz' file.
+        $command = 'tar --append --dereference';
+        if ($exportStructure == 'flat') {
+          $command .= getFlatCommandForTar();
+        }
+        $command .= ' --file='.escapeshellarg($archive_path);
+      } else if ($exportFormat == 'zip') {
+        $command .= 'zip ';
+        $command .= ($exportStructure == 'flat' ? ' -j ' : '').escapeshellarg($archive_path);
+        $command .= $exportCompressed ? ' -9' : ' -0';
+      } else if ($exportFormat == 'noArchive') {
 
-    if ($command) {
-      $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
-      if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return false;
-    }
+      }
+
+      if ($command) {
+        $command .= ' -- '.escapeshellarg($mergedFileName); # Name of the file to be added
+        if (executeShelCommand($command, $deleteFile = $mergedFileName) === false) return removeFailedDownload($export_dir, $archive_path);
+      }
+    } # end foreach group
   } # end foreach monitor
+
+  deletePath($generated_dir);
 
   if (count($exportFileList) === 0) {
    ZM\Warning('No events were found for export.');
-   return false;
+   return removeFailedDownload($export_dir, $archive_path);
   }
 
-  generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList);
+  if (generateFileList($exportFormat, $exportStructure, $archive_path, $exportCompressed, $export_dir, $export_root, $exportFileList) === false
+    and $archive_path) {
+    return removeFailedDownload($export_dir, $archive_path);
+  }
 
   chdir(DIR_EXPORTS_DOWNLOAD);
 
@@ -188,7 +253,7 @@ function downloadEvents(
     //$exportCompressed = true; // For debugging
     if ($exportCompressed) {
       $command = 'gzip -- '.escapeshellarg($archive_path); # Name of the file to be archived
-      if (executeShelCommand($command) === false) return false;
+      if (executeShelCommand($command) === false) return removeFailedDownload($export_dir, $archive_path);
       $archiveFileName .= '.gz';
     }
   } else if ($exportFormat == 'zip') {

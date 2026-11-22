@@ -4,4 +4,4 @@ Type=Link
 Name=ZoneMinder
 Comment=
 Icon=@PKGDATADIR@/icons/16x16/icon.xpm
-URL=http://localhost/zm/\r
+URL=http://localhost/zm/

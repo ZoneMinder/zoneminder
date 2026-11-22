@@ -176,10 +176,7 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   $dbConn = zmDbConn();
-  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
-    return $dbConn->quote(stripslashes($string));
-  else
-    return $dbConn->quote($string);
+  return $dbConn->quote($string);
 }
 
 // The bound values of a failed statement, for its Error line: those go to the
@@ -213,7 +210,9 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       // Integers are bound as integers, so that LIMIT ? still works when
       // prepares are emulated (a string would be quoted).
       foreach ($params as $key => $value) {
-        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        // A bool bound as a string is '' for false, which strict mode rejects for a number column.
+        $type = is_int($value) ? PDO::PARAM_INT : (is_bool($value) ? PDO::PARAM_BOOL : PDO::PARAM_STR);
+        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, $type);
       }
       if (!$result->execute()) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
@@ -292,6 +291,7 @@ function dbFetchAssoc($sql, $indexCol, $dataCol=false) {
   $result = dbQuery($sql);
 
   $dbRows = array();
+  if ( !$result ) return $dbRows;
   while( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[$dbRow[$indexCol]] = $dataCol ? $dbRow[$dataCol] : $dbRow;
   return $dbRows;
@@ -313,7 +313,7 @@ function dbFetchNext($result, $col=false) {
 
 function dbNumRows($sql, $params=NULL) {
   $result = dbQuery($sql, $params);
-  return $result->rowCount();
+  return $result ? $result->rowCount() : 0;
 }
 
 function dbInsertId() {

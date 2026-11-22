@@ -61,8 +61,8 @@ void zmLoadStaticConfig() {
       for (unsigned int i = 0; i < pglob.gl_pathc; i++) {
         process_configfile(pglob.gl_pathv[i]);
       }
+      globfree(&pglob);
     }
-    globfree(&pglob);
     closedir(configSubFolder);
   }
 }
@@ -167,14 +167,14 @@ void process_configfile(char const *configFile) {
 
     // Remove trailing white space and trailing quotes
     char *temp_ptr = line_ptr+strlen(line_ptr)-1;
-    while ( *temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') {
+    while ( temp_ptr >= line_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t' || *temp_ptr == '\'' || *temp_ptr == '\"') ) {
       *temp_ptr-- = '\0';
     }
 
     // Now look for the '=' in the middle of the line
     temp_ptr = strchr(line_ptr, '=');
     if ( !temp_ptr ) {
-      Warning("Invalid data in %s: '%s'", configFile, line.data());
+      Warning("Invalid data in %s: '%s'", configFile, raw.c_str());
       continue;
     }
 
@@ -188,10 +188,20 @@ void process_configfile(char const *configFile) {
       temp_ptr--;
     } while ( temp_ptr >= name_ptr && (*temp_ptr == ' ' || *temp_ptr == '\t') );
 
+    if ( *name_ptr == '\0' ) {
+      Warning("Invalid data in %s: '%s'", configFile, raw.c_str());
+      continue;
+    }
+
     // Remove leading white space and leading quotes from the value part
-    white_len = strspn(val_ptr, " \t");
-    white_len += strspn(val_ptr, "\'\"");
-    val_ptr += white_len;
+    val_ptr += strspn(val_ptr, " \t");
+    val_ptr += strspn(val_ptr, "\'\"");
+
+    // Uppercase option names so lowercase / mixed-case keys in files match
+    // daemon config bindings (which are uppercase), matching Perl's uc($name).
+    for (char *p = name_ptr; *p; ++p) {
+      *p = static_cast<char>(toupper(static_cast<unsigned char>(*p)));
+    }
 
     staticConfig.file_options[name_ptr] = val_ptr;
 
@@ -266,14 +276,19 @@ ConfigItem::ConfigItem() : cfg_type_(CFG_UNKNOWN), accessed_(false) {
 }
 
 ConfigItem::ConfigItem(const char *p_name, const char *p_value, const char *const p_type)
-    : name_(p_name), value_(p_value), type_(p_type), cfg_type_(CFG_UNKNOWN), accessed_(false) {
+    : name_(p_name ? p_name : ""),
+      value_(p_value ? p_value : ""),
+      type_(p_type ? p_type : ""),
+      cfg_type_(CFG_UNKNOWN),
+      accessed_(false) {
   cfg_value_.integer_value = 0;
 }
 
 void ConfigItem::ConvertValue() const {
   if ( type_ == "boolean" ) {
     cfg_type_ = CFG_BOOLEAN;
-    cfg_value_.boolean_value = (bool)strtol(value_.c_str(), nullptr, 0);
+    std::string val = ConfigFileValue(value_, "boolean");
+    cfg_value_.boolean_value = (bool)strtol(val.c_str(), nullptr, 0);
   } else if ( type_ == "integer" ) {
     cfg_type_ = CFG_INTEGER;
     cfg_value_.integer_value = strtol(value_.c_str(), nullptr, 10);
@@ -296,7 +311,8 @@ bool ConfigItem::BooleanValue() const {
   if ( cfg_type_ != CFG_BOOLEAN ) {
     Warning("Attempt to fetch boolean value for %s, actual type is %s. Try running 'zmupdate.pl -f' to reload config.",
             name_.c_str(), type_.c_str());
-    return !value_.empty() && value_ != "0";
+    std::string val = ConfigFileValue(value_, "boolean");
+    return !val.empty() && val != "0";
   }
 
   return cfg_value_.boolean_value;
@@ -358,17 +374,7 @@ void Config::ApplyItem(const char *name, const char *value, const char *type) {
     return;
   }
 
-  // Store ConfigItem to own the string memory for const char* members
-  auto [item_it, inserted] = items_.emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(name),
-      std::forward_as_tuple(name, value, type));
-  if (!inserted) {
-    // Replace existing item
-    item_it->second = ConfigItem(name, value, type);
-  }
-
-  const ConfigItem &item = item_it->second;
+  const ConfigItem item(name, value, type);
   const MemberBinding &binding = bind_it->second;
 
   switch (binding.type) {
@@ -382,7 +388,7 @@ void Config::ApplyItem(const char *name, const char *value, const char *type) {
       *static_cast<double*>(binding.ptr) = item.DecimalValue();
       break;
     case MemberBinding::STRING:
-      *static_cast<const char**>(binding.ptr) = item.StringValue();
+      *static_cast<const char**>(binding.ptr) = strings_.insert(item.StringValue()).first->c_str();
       break;
   }
 }
@@ -401,11 +407,16 @@ void Config::Load() {
     return;
   }
 
+  // Start over from the defaults, so that a reload drops a value set back to
+  // its default, but in a separate Config: other threads keep reading the
+  // members during a reload and must not see a default the database overrides.
+  Config fresh;
+
   int loaded = 0;
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     if (dbrow[0] && dbrow[1] && dbrow[2]) {
       if (bindings_.count(dbrow[0])) {
-        ApplyItem(dbrow[0], dbrow[1], dbrow[2]);
+        fresh.ApplyItem(dbrow[0], dbrow[1], dbrow[2]);
         loaded++;
       }
     }
@@ -414,14 +425,39 @@ void Config::Load() {
 
   Debug(1, "Config loaded: %d items overriding compiled-in defaults (%zu registered)",
         loaded, bindings_.size());
-  ApplyFileOptions();
+  fresh.ApplyFileOptions();
+
+  for (const auto &entry : bindings_) {
+    const MemberBinding &to = entry.second;
+    const MemberBinding &from = fresh.bindings_.at(entry.first);
+    switch (to.type) {
+      case MemberBinding::BOOL:
+        *static_cast<bool*>(to.ptr) = *static_cast<bool*>(from.ptr);
+        break;
+      case MemberBinding::INT:
+        *static_cast<int*>(to.ptr) = *static_cast<int*>(from.ptr);
+        break;
+      case MemberBinding::DOUBLE:
+        *static_cast<double*>(to.ptr) = *static_cast<double*>(from.ptr);
+        break;
+      case MemberBinding::STRING:
+        *static_cast<const char**>(to.ptr) =
+          strings_.insert(*static_cast<const char**>(from.ptr)).first->c_str();
+        break;
+    }
+  }
 }
 
 std::string ConfigFileValue(const std::string &value, const char *type) {
-  if (strcmp(type, "boolean") != 0) return value;
+  if (!type || strcmp(type, "boolean") != 0) return value;
   // The Config table stores 1/0; a person editing a file may write a word.
+  size_t start = value.find_first_not_of(" \t\r\n");
+  if (start == std::string::npos) return value;
+  size_t end = value.find_last_not_of(" \t\r\n");
   std::string word;
-  for (char c : value) word += static_cast<char>(tolower(static_cast<unsigned char>(c)));
+  for (size_t i = start; i <= end; ++i) {
+    word += static_cast<char>(tolower(static_cast<unsigned char>(value[i])));
+  }
   if (word == "yes" or word == "true" or word == "on") return "1";
   if (word == "no" or word == "false" or word == "off") return "0";
   return value;
@@ -435,7 +471,11 @@ void Config::ApplyFileOptions() {
     const char *type = "string";
     switch (bind_it->second.type) {
       case MemberBinding::BOOL: type = "boolean"; break;
-      case MemberBinding::INT: type = "integer"; break;
+      case MemberBinding::INT:
+        // A hexadecimal option such as ZM_SHM_KEY is an int member too.
+        type = (option.second.compare(0, 2, "0x") == 0 or option.second.compare(0, 2, "0X") == 0)
+               ? "hexadecimal" : "integer";
+        break;
       case MemberBinding::DOUBLE: type = "decimal"; break;
       case MemberBinding::STRING: break;
     }

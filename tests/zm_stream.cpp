@@ -61,6 +61,7 @@ class TestStream : public StreamBase {
     y = p_y;
   }
   const Box &crop() const { return last_crop; }
+  int replayRate() const { return replay_rate; }
   void commandLoop() {
     checkCommandQueue();
   }
@@ -342,6 +343,131 @@ TEST_CASE("StreamBase::prepareImage keeps a zoom across a change of resolution")
   CHECK(sent->Height() == 480);
 }
 
+TEST_CASE("StreamBase::prepareImage zooms out within a smaller frame after a change of resolution", "[StreamBase]") {
+  // Zoom out sends no click, so the last zoom-in point, given in the old
+  // frame's pixels, can be past the edge of the new frame.
+  EnsureImageInit();
+  TestStream stream;
+  stream.setClick(1880, 210);
+  Image large(1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  for (int zoom = 110; zoom <= 140; zoom += 10) {
+    stream.setView(ZM_SCALE_BASE, zoom);
+    stream.prepare(&large);
+  }
+
+  Image small(352, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  stream.prepare(&small);
+  for (int zoom = 130; zoom >= 110; zoom -= 10) {
+    stream.setView(ZM_SCALE_BASE, zoom);
+    stream.prepare(&small);
+    const Box &crop = stream.crop();
+    CAPTURE(zoom, crop.Lo().x_, crop.Lo().y_, crop.Hi().x_, crop.Hi().y_);
+    CHECK(crop.Lo().x_ < crop.Hi().x_);
+    CHECK(crop.Lo().y_ < crop.Hi().y_);
+    CHECK(crop.Hi().x_ <= 351);
+    CHECK(crop.Hi().y_ <= 239);
+    // Still the right-hand side of the picture, where the click was.
+    CHECK(crop.Hi().x_ > 176);
+  }
+}
+
+TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame", "[StreamBase]") {
+  // Zooming out to 100% shows the whole frame again. A later zoom-in click is
+  // in that whole-frame view, so it must not be mapped through the crop left
+  // behind by the earlier zoom.
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+  TestStream fresh;
+  fresh.setView(ZM_SCALE_BASE, 200);
+  fresh.setClick(320, 240);
+  fresh.prepare(&frame);
+  const Box expected = fresh.crop();
+
+  TestStream used;
+  used.setView(ZM_SCALE_BASE, 200);
+  used.setClick(600, 440);
+  used.prepare(&frame);
+  used.setView(ZM_SCALE_BASE, 100);
+  used.prepare(&frame);
+  used.setView(ZM_SCALE_BASE, 200);
+  used.setClick(320, 240);
+  used.prepare(&frame);
+
+  CHECK(used.crop().Lo().x_ == expected.Lo().x_);
+  CHECK(used.crop().Lo().y_ == expected.Lo().y_);
+  CHECK(used.crop().Hi().x_ == expected.Hi().x_);
+  CHECK(used.crop().Hi().y_ == expected.Hi().y_);
+}
+
+TEST_CASE("StreamBase::prepareImage starts a new zoom from the whole frame after a pre-scaled frame", "[StreamBase]") {
+  // Event playback at a scale other than 100% sends unzoomed frames pre-scaled,
+  // so zooming out there must also drop the crop of the earlier zoom.
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  Image half(320, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+  TestStream fresh;
+  fresh.setView(50, 200);
+  fresh.setClick(320, 240);
+  fresh.prepare(&frame);
+  const Box expected = fresh.crop();
+
+  TestStream used;
+  used.setView(50, 200);
+  used.setClick(600, 440);
+  used.prepare(&frame);
+  used.setView(50, 100);
+  used.prepare(&half, 50);
+  used.setView(50, 200);
+  used.setClick(320, 240);
+  used.prepare(&frame);
+
+  CHECK(used.crop().Lo().x_ == expected.Lo().x_);
+  CHECK(used.crop().Lo().y_ == expected.Lo().y_);
+  CHECK(used.crop().Hi().x_ == expected.Hi().x_);
+  CHECK(used.crop().Hi().y_ == expected.Hi().y_);
+}
+
+TEST_CASE("StreamBase::prepareImage keeps a zoomed view still from frame to frame", "[StreamBase]") {
+  EnsureImageInit();
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  TestStream stream;
+  stream.setView(ZM_SCALE_BASE, 150);
+  stream.setClick(100, 100);
+  stream.prepare(&frame);
+  const Box first = stream.crop();
+
+  for (int i = 0; i < 30; i++) stream.prepare(&frame);
+
+  CHECK(stream.crop().Lo().x_ == first.Lo().x_);
+  CHECK(stream.crop().Lo().y_ == first.Lo().y_);
+  CHECK(stream.crop().Hi().x_ == first.Hi().x_);
+  CHECK(stream.crop().Hi().y_ == first.Hi().y_);
+}
+
+TEST_CASE("StreamBase::prepareImage keeps the crop inside the frame when zooming in and out at a corner", "[StreamBase]") {
+  // Each zoom maps the click through the previous crop, and at an edge the
+  // crop shrinks a little every time. Alternating at the bottom right corner
+  // turned it inside out, and Crop refused it until a zoom stop.
+  EnsureImageInit();
+  Image frame(352, 240, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  TestStream stream;
+  stream.setClick(351, 239);
+  for (int i = 0; i < 100; i++) {
+    stream.setView(ZM_SCALE_BASE, i % 2 ? 120 : 110);
+    stream.prepare(&frame);
+    const Box &crop = stream.crop();
+    CAPTURE(i, crop.Lo().x_, crop.Lo().y_, crop.Hi().x_, crop.Hi().y_);
+    REQUIRE(crop.Lo().x_ >= 0);
+    REQUIRE(crop.Lo().y_ >= 0);
+    REQUIRE(crop.Lo().x_ < crop.Hi().x_);
+    REQUIRE(crop.Lo().y_ < crop.Hi().y_);
+    REQUIRE(crop.Hi().x_ <= 351);
+    REQUIRE(crop.Hi().y_ <= 239);
+  }
+}
+
 TEST_CASE("StreamBase::preScaleDimensions") {
   const int kWidth = 640;
   const int kHeight = 480;
@@ -396,4 +522,64 @@ TEST_CASE("StreamBase::preScaleDimensions") {
     REQUIRE(width == kWidth);
     REQUIRE(height == kHeight);
   }
+}
+
+TEST_CASE("StreamBase scale validation") {
+  EnsureImageInit();
+
+  SECTION("clampScale bounds the scale a client can ask for") {
+    REQUIRE(StreamBase::clampScale(0) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(-5) == ZM_SCALE_BASE);
+    REQUIRE(StreamBase::clampScale(1) == 1);
+    REQUIRE(StreamBase::clampScale(50) == 50);
+    REQUIRE(StreamBase::clampScale(1600) == 1600);
+    REQUIRE(StreamBase::clampScale(3000) == 1600);
+    REQUIRE(StreamBase::clampScale(65535) == 1600);
+  }
+
+  SECTION("prepareImage sends the unscaled image when the scaled size is invalid") {
+    // 1600% of 1920x1080 is 30720x17280, which ffmpeg rejects, and a scale of
+    // 0 gives 0x0. Both used to leave the scratch image empty and encode it.
+    for (int scale : {0, 1600, 3000, 65535}) {
+      TestStream stream;
+      stream.setView(scale, ZM_SCALE_BASE);
+      Image image(1920, 1080, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+      Image *sent = stream.prepare(&image);
+
+      REQUIRE(sent != nullptr);
+      REQUIRE(sent->Width() == 1920);
+      REQUIRE(sent->Height() == 1080);
+    }
+  }
+
+  SECTION("preScaleDimensions declines a scaled size ffmpeg rejects") {
+    TestStream stream;
+    stream.setView(1600, ZM_SCALE_BASE);
+    int width = 1920;
+    int height = 1080;
+
+    REQUIRE(stream.preScale(1920, 1080, width, height) == 0);
+    REQUIRE(width == 1920);
+    REQUIRE(height == 1080);
+  }
+
+  SECTION("a normal scale still scales") {
+    TestStream stream;
+    stream.setView(200, ZM_SCALE_BASE);
+    Image image(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+
+    Image *sent = stream.prepare(&image);
+
+    REQUIRE(sent->Width() == 1280);
+    REQUIRE(sent->Height() == 960);
+  }
+}
+
+TEST_CASE("StreamBase::setStreamReplayRate treats 0 as normal speed", "[StreamBase]") {
+  TestStream stream;
+  stream.setStreamReplayRate(0);
+  CHECK(stream.replayRate() == ZM_RATE_BASE);
+  stream.setStreamReplayRate(-200);
+  CHECK(stream.replayRate() == -200);
 }

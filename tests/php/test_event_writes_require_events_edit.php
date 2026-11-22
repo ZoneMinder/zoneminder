@@ -35,6 +35,7 @@ namespace ZM {
     public function DefaultScale() { return 100; }
   }
   class Event {
+    public function Archived() { return 0; }
     // Object::__construct() takes an array as the row itself, without loading it.
     private $row = null;
     public function __construct($id) { if (is_array($id)) $this->row = $id; }
@@ -51,7 +52,7 @@ namespace ZM {
     public function Monitor() { return new Monitor(); }
     public function Path() { return $GLOBALS['event_path']; }
     public function DefaultVideo() { return $GLOBALS['default_video'] ?? ''; }
-    public function delete() { $GLOBALS['queries'][] = 'Event::delete'; }
+    public function delete() { $GLOBALS['queries'][] = 'Event::delete'; return true; }
   }
 }
 
@@ -99,6 +100,7 @@ namespace {
   function dbQuery($sql, $params = array()) { $GLOBALS['queries'][] = trim($sql); return true; }
   function dbNumRows($sql, $params = array()) { $GLOBALS['queries'][] = trim($sql); return 0; }
   function dbInsertId() { return 1; }
+  function dbFetchOne($sql, $col = null, $params = array()) { $GLOBALS['queries'][] = trim($sql); return 1; }
   function ajaxResponse($data = array()) { throw new StopRequest('response'); }
   function ajaxError($message, $code = 200) { throw new StopRequest('error'); }
   function xhtmlHeaders($file, $title) { if (empty($GLOBALS['render'])) throw new StopRequest('render'); }

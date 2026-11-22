@@ -1,7 +1,8 @@
 <?php
 // Security regression test: the API tab of Options renders for System=View, but
-// its two POST handlers (updateSelected: set Users.APIEnabled for every user;
+// its two POST handlers (updateSelected: revoke the tokens of the users marked;
 // revokeAllTokens: bump every Users.TokenMinExpiry) must only run for System=Edit.
+// The API can no longer be disabled per user (#4908), so nothing writes APIEnabled.
 //
 // Includes the real web/skins/classic/views/_options_api.php with the web
 // helpers it calls stubbed, and records the SQL it sends to dbQuery().
@@ -15,7 +16,6 @@ namespace ZM {
     public static function find($a = array(), $b = array()) { return array(new User()); }
     public function Id() { return 1; }
     public function Username() { return 'admin'; }
-    public function APIEnabled() { return 1; }
   }
 }
 
@@ -73,7 +73,7 @@ namespace {
   }
 
   $writes = array(
-    'updateSelected' => array('updateSelected' => '', 'apiUids' => array('1')),
+    'updateSelected' => array('updateSelected' => '', 'tokenUids' => array('1')),
     'revokeAllTokens' => array('revokeAllTokens' => ''),
   );
 
@@ -84,23 +84,26 @@ namespace {
     check("System=View $name page still renders", strpos($html, 'contentTable') !== false, true);
 
     render_api_tab('Edit', $post);
-    check("System=Edit $name updates Users", count($GLOBALS['queries']) > 0 &&
-      strpos($GLOBALS['queries'][0], 'UPDATE `Users`') === 0, true);
+    check("System=Edit $name revokes tokens", count($GLOBALS['queries']) > 0 &&
+      strpos($GLOBALS['queries'][0], 'UPDATE `Users` SET `TokenMinExpiry`') === 0, true);
   }
 
   $html = render_api_tab('View', array());
   check('System=View sees the write buttons disabled',
     preg_match_all('/id="(updateSelected|revokeAllTokens)" disabled="disabled"/', $html), 2);
-  check('System=View sees the per-user checkboxes disabled',
-    preg_match_all('/name="(tokenUids|apiUids)\[\]"[^>]*disabled="disabled"/', $html), 2);
+  check('System=View sees the per-user revoke checkbox disabled',
+    preg_match_all('/name="tokenUids\[\]"[^>]*disabled="disabled"/', $html), 1);
+  check('The API tab has no per-user API enable checkbox', strpos($html, 'apiUids') === false, true);
   $html = render_api_tab('Edit', array());
   check('System=Edit sees the write buttons enabled',
     substr_count($html, 'disabled="disabled"'), 0);
 
-  render_api_tab('Edit', array('revokeAllTokens' => '', 'updateSelected' => ''));
+  render_api_tab('Edit', array('revokeAllTokens' => '', 'updateSelected' => '', 'tokenUids' => array('1')));
   check('System=Edit with both buttons runs both handlers',
-    count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'TokenMinExpiry') !== false; })) >= 1 &&
-    count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'APIEnabled') !== false; })) >= 1, true);
+    count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'WHERE `Id`') === false; })) === 1 &&
+    count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'WHERE `Id`') !== false; })) === 1, true);
+  check('Nothing writes APIEnabled',
+    count(array_filter($GLOBALS['queries'], function($q) { return strpos($q, 'APIEnabled') !== false; })), 0);
 
   echo "\n$passes passed, $failures failed\n";
   exit($failures ? 1 : 0);

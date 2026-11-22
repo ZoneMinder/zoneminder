@@ -366,8 +366,19 @@ sub ptz {
 }
 
 sub ptz_move {
-  my ($self, $params, $optType) = @_;
-  my $speed = clamp_speed($self->getParam($params, 'speed'));
+  my ($self, $params, $optType, @keys) = @_;
+  @keys = ('speed') if !@keys;
+  # The web ui sends panspeed/tiltspeed for pan and tilt moves and speed only
+  # for zoom, focus and iris, so try the given keys in order without letting
+  # getParam log a missing one.
+  my $picked;
+  foreach my $k (@keys) {
+    if (defined $params->{$k}) {
+      $picked = $params->{$k};
+      last;
+    }
+  }
+  my $speed = clamp_speed($picked);
   return $self->ptz($optType, speed => $speed);
 }
 
@@ -375,32 +386,32 @@ sub ptz_move {
 # the monitor has an AutoStopTimeout, in which case it expects us to stop
 # ourselves after that long.
 sub ptz_move_auto {
-  my ($self, $params, $optType) = @_;
-  my $ok = $self->ptz_move($params, $optType);
+  my ($self, $params, $optType, $stopType, @keys) = @_;
+  my $ok = $self->ptz_move($params, $optType, @keys);
   return $ok if !$ok;
   if ($self->{Monitor}{AutoStopTimeout}) {
     usleep($self->{Monitor}{AutoStopTimeout});
-    $self->moveStop($params);
+    $self->ptz(defined $stopType ? $stopType : CMD_STOP);
   }
   return 1;
 }
 
-sub moveConUp        { $_[0]->ptz_move_auto($_[1], CMD_UP) }
-sub moveConDown      { $_[0]->ptz_move_auto($_[1], CMD_DOWN) }
-sub moveConLeft      { $_[0]->ptz_move_auto($_[1], CMD_LEFT) }
-sub moveConRight     { $_[0]->ptz_move_auto($_[1], CMD_RIGHT) }
-sub moveConUpLeft    { $_[0]->ptz_move_auto($_[1], CMD_LEFTUP) }
-sub moveConUpRight   { $_[0]->ptz_move_auto($_[1], CMD_RIGHTUP) }
-sub moveConDownLeft  { $_[0]->ptz_move_auto($_[1], CMD_LEFTDOWN) }
-sub moveConDownRight { $_[0]->ptz_move_auto($_[1], CMD_RIGHTDOWN) }
+sub moveConUp        { $_[0]->ptz_move_auto($_[1], CMD_UP, undef, 'tiltspeed', 'panspeed') }
+sub moveConDown      { $_[0]->ptz_move_auto($_[1], CMD_DOWN, undef, 'tiltspeed', 'panspeed') }
+sub moveConLeft      { $_[0]->ptz_move_auto($_[1], CMD_LEFT, undef, 'panspeed', 'tiltspeed') }
+sub moveConRight     { $_[0]->ptz_move_auto($_[1], CMD_RIGHT, undef, 'panspeed', 'tiltspeed') }
+sub moveConUpLeft    { $_[0]->ptz_move_auto($_[1], CMD_LEFTUP, undef, 'panspeed', 'tiltspeed') }
+sub moveConUpRight   { $_[0]->ptz_move_auto($_[1], CMD_RIGHTUP, undef, 'panspeed', 'tiltspeed') }
+sub moveConDownLeft  { $_[0]->ptz_move_auto($_[1], CMD_LEFTDOWN, undef, 'panspeed', 'tiltspeed') }
+sub moveConDownRight { $_[0]->ptz_move_auto($_[1], CMD_RIGHTDOWN, undef, 'panspeed', 'tiltspeed') }
 sub moveStop         { $_[0]->ptz(CMD_STOP) }
 
-sub zoomConTele { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_IN) }
-sub zoomConWide { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_OUT) }
+sub zoomConTele { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_IN, CMD_ZOOM_STOP) }
+sub zoomConWide { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_OUT, CMD_ZOOM_STOP) }
 sub zoomStop    { $_[0]->ptz(CMD_ZOOM_STOP) }
 
-sub focusConNear { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_NEAR) }
-sub focusConFar  { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_FAR) }
+sub focusConNear { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_NEAR, CMD_FOCUS_STOP) }
+sub focusConFar  { $_[0]->ptz_move_auto($_[1], CMD_FOCUS_FAR, CMD_FOCUS_STOP) }
 sub focusStop    { $_[0]->ptz(CMD_FOCUS_STOP) }
 sub focusAuto    { $_[0]->ptz(CMD_ONEKEYFOCUS) }
 

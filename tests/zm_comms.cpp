@@ -22,9 +22,12 @@
 #include "zm_comms.h"
 #include <array>
 #include <cstdlib>
+#include <string>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <sys/un.h>
 #include <unistd.h>
 
 namespace {
@@ -190,6 +193,27 @@ TEST_CASE("ZM::SockAddrUnix") {
       REQUIRE(addr2->getAddrSize() == sizeof(sockaddr_un));
     }
   }
+}
+
+TEST_CASE("ZM::SockAddrUnix refuses a path longer than sun_path") {
+  // A path that does not fit in sun_path must be rejected, not truncated to a different file.
+  std::string longPath = "/tmp/" + std::string(sizeof(sockaddr_un::sun_path), 'a');
+  zm::SockAddrUnix addr;
+  REQUIRE_FALSE(addr.resolve(longPath.c_str(), ""));
+
+  // A path of exactly sizeof(sun_path)-1 characters still fits.
+  std::string fitting = "/tmp/" + std::string(sizeof(sockaddr_un::sun_path) - 1 - 5, 'b');
+  REQUIRE(fitting.size() == sizeof(sockaddr_un::sun_path) - 1);
+  REQUIRE(addr.resolve(fitting.c_str(), ""));
+
+  // bind on an over-long path must fail and must not create the truncated file.
+  zm::TcpUnixServer server;
+  REQUIRE_FALSE(server.bind(longPath.c_str()));
+  std::string truncated = longPath.substr(0, sizeof(sockaddr_un::sun_path) - 1);
+  struct stat st;
+  bool exists = ::stat(truncated.c_str(), &st) == 0;
+  if (exists) ::unlink(truncated.c_str());
+  REQUIRE_FALSE(exists);
 }
 
 TEST_CASE("ZM::UdpInetSocket basics") {

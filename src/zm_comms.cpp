@@ -24,6 +24,7 @@
 #include <cerrno>
 #include <cstdarg>
 #include <cstdio>       // for snprintf
+#include <cstring>
 #include <fcntl.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
@@ -205,8 +206,12 @@ bool zm::SockAddrInet::resolve(int port, const char *proto) {
 bool zm::SockAddrUnix::resolve(const char *path, const char *proto) {
   memset(&mAddrUn, 0, sizeof(mAddrUn));
 
-  strncpy(mAddrUn.sun_path, path, sizeof(mAddrUn.sun_path));
-  mAddrUn.sun_path[sizeof(mAddrUn.sun_path) - 1] = '\0';
+  if (strlen(path) >= sizeof(mAddrUn.sun_path)) {
+    Error("Unix socket path '%s' is longer than the %zu bytes sun_path allows", path, sizeof(mAddrUn.sun_path) - 1);
+    return false;
+  }
+
+  memcpy(mAddrUn.sun_path, path, strlen(path));
   mAddrUn.sun_family = AF_UNIX;
 
   return true;

@@ -419,7 +419,8 @@ function collectData() {
       $limit_offset = validInt($_REQUEST['offset']) . ', ';
     if ( !empty($limit) )
       $sql .= ' limit '.$limit_offset.$limit;
-    if ( isset($limit) && ($limit == 1) ) {
+    $single = (isset($entitySpec['limit']) && $entitySpec['limit'] == 1);
+    if ( $single ) {
       if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
         if (isset($entitySpec['object'])) {
           ZM\Debug("Have object".$entitySpec['object']);

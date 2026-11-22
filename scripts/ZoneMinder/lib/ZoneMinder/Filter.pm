@@ -406,7 +406,7 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
-              } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+              } elsif ( uc($temp_value) eq 'CURDATE()' or uc($temp_value) eq 'NOW()' ) {
                 # For Date/StartDate/EndDate the value is consumed by
                 # _dateRangeSQL below; leave it raw.  For CurrentDate
                 # (left side is to_days(NOW()), a constant), preserve
@@ -742,8 +742,9 @@ sub str_repeat {
 # $value is either 'YYYY-MM-DD HH:MM:SS' (quoted), or CURDATE()/NOW().
 sub _dateBounds {
   my $value = shift;
-  if ( $value eq 'CURDATE()' or $value eq 'NOW()' ) {
-    return ($value, "$value + INTERVAL 1 DAY");
+  # NOW() is the current day, so its bounds are midnight like CURDATE()'s
+  if ( uc($value) eq 'CURDATE()' or uc($value) eq 'NOW()' ) {
+    return ('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
   }
   my $stripped = $value;
   $stripped =~ s/^'(.+)'$/$1/;

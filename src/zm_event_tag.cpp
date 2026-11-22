@@ -78,7 +78,7 @@ Event_Tag::Event_Tag(uint64_t p_tag_id, uint64_t p_event_id, SystemTimePoint p_a
 Event_Tag::~Event_Tag() {
 }
 
-int Event_Tag::save() {
+uint64_t Event_Tag::save() {
   std::string sql = stringtf("INSERT INTO `Events_Tags` (`TagId`, `EventId`, `AssignedDate`, `AssignedBy`)"
       " VALUES (%" PRIu64 ", %" PRIu64 ", from_unixtime(%" PRId64 "), %d)",
       tag_id,
@@ -86,7 +86,7 @@ int Event_Tag::save() {
       static_cast<int64>(std::chrono::system_clock::to_time_t(assigned_on)),
       assigned_by
       );
-  int rc;
+  uint64_t rc;
   //do {
     rc = zmDbDoInsert(sql);
   //} while (!rc and !zm_terminate);

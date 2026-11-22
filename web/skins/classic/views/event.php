@@ -68,6 +68,15 @@ if (isset($_REQUEST['scale'])) {
 //}
 $scale = '10'; // temporarily to adapt the new algorithm, not used in new calculations!
 
+# The size changeScale() last gave this monitor's video. Opening the page at it keeps the video
+# from resizing after load, which in gapless playback (a page load per event) happened on every
+# event. changeScale() still corrects it if the window or the layout has changed.
+$videoSizeStyle = '';
+$videoSizeCookie = 'zmEventVideoSize'.$Event->MonitorId();
+if (isset($_COOKIE[$videoSizeCookie]) and preg_match('/^(\d{1,5})x(\d{1,5})$/', $_COOKIE[$videoSizeCookie], $videoSize)) {
+  $videoSizeStyle = ' style="width:'.intval($videoSize[1]).'px;height:'.intval($videoSize[2]).'px;"';
+}
+
 $streamQualitySelected = '0';
 if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_REQUEST['streamQuality'];
@@ -90,10 +99,11 @@ if (isset($_REQUEST['showZones'])) {
 $codecs = array(
   'auto'  => translate('Auto'),
   'MP4'   => translate('MP4'),
+  'MP4HLS'=> ['Name'=> 'MP4 HLS', 'disabled'=> (!file_exists($Event->Path() . '/index.m3u8'))],
   'MJPEG' => translate('MJPEG'),
 );
 $codec = 'auto';
-if (isset($_REQUEST['codec'])) {
+if (isset($_REQUEST['codec']) and is_string($_REQUEST['codec'])) {
   $codec = $_REQUEST['codec'];
   $_SESSION['zmEventCodec'.$Event->MonitorId()] = $codec;
 } else if ( isset($_SESSION['zmEventCodec'.$Event->MonitorId()]) ) {
@@ -101,8 +111,8 @@ if (isset($_REQUEST['codec'])) {
 } else {
   $codec = $monitor->DefaultCodec();
 }
-if (!isset($codecs[$codec])) {
-  ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
+if (!isset($codecs[$codec]) || (is_array(($codecs[$codec])) && $codecs[$codec]['disabled'])) {
+  if (!isset($codecs[$codec])) ZM\Warning("Invalid value for Codec: $codec, reverting to auto");
   $codec = 'auto';
   unset($_SESSION['zmEventCodec'.$Event->MonitorId()]);
 }
@@ -122,7 +132,7 @@ else
   $streamMode = 'video';
 
 $replayMode = '';
-if (isset($_REQUEST['replayMode'])) {
+if (isset($_REQUEST['replayMode']) and is_string($_REQUEST['replayMode'])) {
   if (isset($replayModes[$_REQUEST['replayMode']])) {
     $replayMode = $_REQUEST['replayMode'];
   } else {
@@ -133,7 +143,7 @@ if (isset($_REQUEST['replayMode'])) {
     $replayMode = $_COOKIE['replayMode'];
   } else {
     ZM\Warning('Invalid value for replayMode in cookies. Removing.');
-    zm_setcookie('replayMode', '', time()-86400);
+    zm_setcookie('replayMode', '', array('expires'=>time()-86400));
   }
 } else {
   $preference = $user->Preference('replayMode');
@@ -150,8 +160,7 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-$video_tag = ($codec == 'MP4') ||
-  str_ends_with($Event->DefaultVideo(), '.m3u8') ||
+$video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
   ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 
@@ -167,8 +176,9 @@ if ( !isset($_REQUEST['filter']) ) {
 }
 parseSort();
 $filter = ZM\Filter::parse($_REQUEST['filter']);
-if (count($filter->terms())==1 and $filter->has_term('Id')) {
-  # Special case, coming from filter specifying this exact event.
+$idTerm = $filter->has_term('Id');
+if (count($filter->terms())==1 and $idTerm and !is_array($idTerm['val']) and strpos($idTerm['val'], ',') === false) {
+  # Special case, coming from filter specifying this exact event. A list of events is kept.
   $filter->terms([]);
   $filter->addTerm(['attr' => 'MonitorId', 'op' => '=', 'val' => $Event->MonitorId(), 'cnj' => 'and']);
 }
@@ -261,7 +271,7 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplayOptions[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplayOptions[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
@@ -272,32 +282,39 @@ if ( $Event->Id() and !file_exists($Event->Path()) )
       </div>
     </div>
 <?php if ( $Event->Id() ) { ?>
-    <div class="tags-container">
-      <div class="tag-dropdown">
-        <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
-        <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput">
-        <div class="tag-dropdown-content"></div>
-      </div>
-      <button type="button" id="tagPrevBtn" title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
-        <i class="material-icons md-18" 
-          style="-moz-transform: scaleX(-1);
-            -o-transform: scaleX(-1);
-            -webkit-transform: scaleX(-1);
-            transform: scaleX(-1);
-            filter: FlipH;
-            -ms-filter: 'FlipH';">
-            label</i>
-      </button>
-      <button type="button" id="tagNextBtn" title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
-        <i class="material-icons md-18">label</i>
-      </button>
-    </div>
 <!-- BEGIN VIDEO CONTENT ROW -->
     <div id="inner-content">
       <div class="d-flex flex-row px-3">
         <div class="container-fluid">
           <div class="row row-cols-1 row-cols-sm-2">
-            <div id = "eventStats" class="col col-sm-4 eventStats">
+<?php
+# Lay the stats out the way showEventStats() would, so the video's column has its final width at
+# the first paint instead of changing after load. The details show unless the cookie says off,
+# matching getEvtStatsCookie(); the column itself stays for the tags input.
+$showEventStats = !(isset($_COOKIE['zmEventStats']) and $_COOKIE['zmEventStats'] == 'off');
+?>
+            <div id = "eventStats" class="col <?php echo $showEventStats ? 'col-sm-3' : 'col-sm-12' ?> eventStats">
+              <div class="tags-container">
+                <div class="tag-dropdown">
+                  <!-- input type has to be "search" (not "text") so that the Enter button (not Next) works on mobile Chrome browser. -->
+                  <input type="search" id="tagInput" class="tag-input" placeholder="Add tag" data-role="tagsinput"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?>>
+                  <div class="tag-dropdown-content"></div>
+                </div>
+                <button type="button" id="tagPrevBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the previous event') ?>" class="inactive" data-on-click-true="tagAndPrev">
+                  <i class="material-icons md-18"
+                    style="-moz-transform: scaleX(-1);
+                      -o-transform: scaleX(-1);
+                      -webkit-transform: scaleX(-1);
+                      transform: scaleX(-1);
+                      filter: FlipH;
+                      -ms-filter: 'FlipH';">
+                      label</i>
+                </button>
+                <button type="button" id="tagNextBtn"<?php echo canEdit('Events') ? '' : ' disabled="disabled"' ?> title="<?php echo translate('Apply the last tag, then play the next event') ?>" class="inactive" data-on-click-true="tagAndNext">
+                  <i class="material-icons md-18">label</i>
+                </button>
+              </div><!--tags-container-->
+              <div id="eventStatsDetails"<?php echo $showEventStats ? '' : ' style="display:none;"' ?>>
               <!-- VIDEO STATISTICS TABLE -->
               <table id="eventStatsTable" class="table-sm table-borderless">
                 <!-- EVENT STATISTICS POPULATED BY JAVASCRIPT -->
@@ -335,8 +352,9 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
 }
 ?>
               </div><!-- id="frames" -->
+              </div><!-- id="eventStatsDetails" -->
             </div><!-- id="eventStats" -->
-            <div id="wrapperEventVideo" class="col col-sm-8 pl-0 pr-0">
+            <div id="wrapperEventVideo" class="col <?php echo $showEventStats ? 'col-sm-9' : 'col-sm-12' ?> pl-0 pr-0">
               <div id="eventVideo">
               <!-- VIDEO CONTENT -->
                 <div id="videoFeed">
@@ -353,9 +371,12 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                     <div id="zoompan" class="zoompan">
 <?php
 if ($video_tag) {
-  // Use HLS byte-range playback if m3u8 manifest exists on disk
-  $has_hls = str_ends_with($Event->DefaultVideo(), '.m3u8')
-    && file_exists($Event->Path() . '/index.m3u8');
+  // Prefer HLS byte-range playback when the manifest exists on disk and the
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
   if ($has_hls) {
     $Server = $Event->Server();
     $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
@@ -363,14 +384,14 @@ if ($video_tag) {
       if (ZM_AUTH_RELAY == 'hashed') {
         $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
       } else if (ZM_AUTH_RELAY == 'plain') {
-        $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '') . '&amp;pass=' . ($_SESSION['password'] ?? '');
       } else if (ZM_AUTH_RELAY == 'none') {
-        $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '');
       }
     }
   }
 ?>
-                  <video id="videoobj" class="video-js"
+                  <video id="videoobj" class="video-js"<?php echo $videoSizeStyle ?>
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
                    <?php echo $scale ? 'height="'.reScale($Event->Height(), $scale).'"' : '' ?>
                     controls autoplay preload="auto"
@@ -401,7 +422,11 @@ if ($video_tag) {
                         autoplay: true,
                         preload: 'auto',
                         playbackRates: rates,
-                        liveui: <?php echo $has_hls && !$Event->EndDateTime() ? 'true' : 'false' ?>,
+                        // liveui replaces the seekbar with a live-edge-only control,
+                        // which makes it impossible to scrub back through the already-
+                        // recorded portion of an in-progress event. Always false so the
+                        // standard seekbar is rendered.
+                        liveui: false,
                         liveTracker: {
                           trackingThreshold: 0
                         }
@@ -456,7 +481,10 @@ if ($video_tag) {
                   </div><!--"#videoFeedStream"-->
                   <div id="progressBar" style="width: 100%;">
                     <div id="alarmCues" style="width: 100%;"></div>
-                    <div class="progressBox" id="progressBox" title="" style="width: 0%;"></div>
+                    <?php # progressBox is the replay position fill. ZM_WEB_SHOW_PROGRESS turns
+                          # the progress display off while keeping the bar itself, which is what
+                          # you click to jump around the event. See #4850. ?>
+                    <div class="progressBox" id="progressBox" title="" style="width: 0%;<?php echo ZM_WEB_SHOW_PROGRESS ? '' : 'display:none;' ?>"></div>
                     <div id="indicator" style="display: none;"></div>
                   </div><!--progressBar-->
                   <svg class="zones" id="zones<?php echo $monitor->Id() ?>" style="display:<?php echo $showZones ? 'block' : 'none'; ?>" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -470,7 +498,7 @@ if ($video_tag) {
                 </div><!--videoFeed-->
 <?php
 if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
-                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization">
+                <audio-motion id="audioVisualization'.$monitor->Id().'" class="audio-visualization hidden">
                   <div id="audioControlPanel'.$monitor->Id().'" class="audio-control-panel">
                     <div id="volumeControls'.$monitor->Id().'" class="disabled volume">
                       <div id="volumeSlider'.$monitor->Id().'" data-volume="50" data-muted="true" class="volumeSlider noUi-horizontal noUi-base noUi-round"></div>
@@ -481,56 +509,59 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
                 </audio-motion>
 ' . PHP_EOL;
 ?>
-                <div class="monitorStatus">
-                  <span class="MonitorName"><?php echo $monitor->Name() . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
-                  <span class="stream-info-status-track"></span>
-                </div>
-                <p id="dvrControls">
-                  <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
-                  <i class="material-icons md-18">skip_previous</i>
-                  </button>
-                  <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
-                  <i class="material-icons md-18">fast_rewind</i>
-                  </button>
-                  <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
-                  <i class="material-icons md-18">chevron_left</i>
-                  </button>
-                  <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
-                  <i class="material-icons md-18">pause</i>
-                  </button>
-                  <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
-                  <i class="material-icons md-18">play_arrow</i>
-                  </button>
-                  <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
-                  <i class="material-icons md-18">chevron_right</i>
-                  </button>
-                  <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
-                  <i class="material-icons md-18">fast_forward</i>
-                  </button>
-                  <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
-                  <i class="material-icons md-18">zoom_out</i>
-                  </button>-->
-                  <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
-                  <i class="material-icons md-18">fullscreen</i>
-                  </button>
-                  <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
-                  <i class="material-icons md-18">skip_next</i>
-                  </button>
-                </p>
-                <div id="replayStatus">
-                  <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
-                  <span id="rate"><?php echo translate('Rate') ?>: 
+                <div id="eventControls">
+                  <div class="monitorStatus">
+                    <span class="MonitorName"><?php echo validHtmlStr($monitor->Name()) . " (". translate('ID'). "=" . $monitor->Id() . ")"; ?>  </span>
+                    <span class="stream-info-status-track"></span>
+                  </div>
+                  <p id="dvrControls">
+                    <button type="button" id="prevBtn" title="<?php echo translate('Prev') ?>" class="inactive" data-on-click-true="streamPrev">
+                    <i class="material-icons md-18">skip_previous</i>
+                    </button>
+                    <button type="button" id="fastRevBtn" title="<?php echo translate('Rewind') ?>" class="inactive" data-on-click-true="streamFastRev">
+                    <i class="material-icons md-18">fast_rewind</i>
+                    </button>
+                    <button type="button" id="slowRevBtn" title="<?php echo translate('StepBack') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowRev">
+                    <i class="material-icons md-18">chevron_left</i>
+                    </button>
+                    <button type="button" id="pauseBtn" title="<?php echo translate('Pause') ?>" class="inactive" data-on-click="pauseClicked">
+                    <i class="material-icons md-18">pause</i>
+                    </button>
+                    <button type="button" id="playBtn" title="<?php echo translate('Play') ?>" class="active" disabled="disabled" data-on-click="playClicked">
+                    <i class="material-icons md-18">play_arrow</i>
+                    </button>
+                    <button type="button" id="slowFwdBtn" title="<?php echo translate('StepForward') ?>" class="unavail" disabled="disabled" data-on-click-true="streamSlowFwd">
+                    <i class="material-icons md-18">chevron_right</i>
+                    </button>
+                    <button type="button" id="fastFwdBtn" title="<?php echo translate('FastForward') ?>" class="inactive" data-on-click-true="streamFastFwd">
+                    <i class="material-icons md-18">fast_forward</i>
+                    </button>
+                    <!--<button type="button" id="zoomOutBtn" title="<?php echo translate('ZoomOut') ?>" class="unavail" disabled="disabled" data-on-click="clickZoomOut">
+                    <i class="material-icons md-18">zoom_out</i>
+                    </button>-->
+                    <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="fullscreenClicked">
+                    <i class="material-icons md-18">fullscreen</i>
+                    </button>
+                    <button type="button" id="nextBtn" title="<?php echo translate('Next') ?>" class="inactive" data-on-click-true="streamNext">
+                    <i class="material-icons md-18">skip_next</i>
+                    </button>
+                  </p>
+                  <div id="replayStatus">
+                    <span id="mode"><?php echo translate('Mode') ?>: <span id="modeValue">Replay</span></span>
+                    <span id="rate"><?php echo translate('Rate') ?>: 
 <?php 
-  #rates are defined in skins/classic/includes/config.php
-  echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
+    #rates are defined in skins/classic/includes/config.php
+    echo htmlSelect('rate', $rates, intval($rate), array('id'=>'rateValue'));
 ?>
-                  <span id="progress"><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
-                  <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
-                  <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
+                    </span>
+                    <span id="progress"<?php echo ZM_WEB_SHOW_PROGRESS ? '' : ' style="display:none;"' ?>><?php echo translate('Progress') ?>: <span id="progressValue">0</span>s</span>
+                    <span id="currentTime"><?php echo translate('Time') ?>: <span id="currentTimeValue"></span></span>
+                    <span id="zoom"><?php echo translate('Zoom') ?>: <span id="zoomValue">1</span>x</span>
 <?php if (!$video_tag) { ?>
-                  <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
+                    <span id="fps"><?php echo translate('FPS') ?>: <span id="fpsValue"></span></span>
 <?php } ?>
-                </div>
+                  </div><!--replayStatus-->
+                </div><!--eventControls-->
               </div><!--eventVideo-->
             </div><!--wrapperEventVideo-->
           </div><!-- class="row" -->
@@ -558,6 +589,7 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
   <link href="skins/<?php echo $skin ?>/js/video-js.css" rel="stylesheet">
   <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
+  <script src="<?php echo cache_bust('skins/classic/views/js/event-zms-hints.js') ?>"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));
   echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);

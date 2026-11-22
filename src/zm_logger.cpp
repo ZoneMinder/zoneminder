@@ -41,14 +41,51 @@ Logger *Logger::smInstance = nullptr;
 
 Logger::StringMap Logger::smCodes;
 Logger::IntMap Logger::smSyslogPriorities;
+std::atomic<bool> Logger::smDoLogRotate(false);
+std::atomic<int> Logger::smLevelChange(0);
+// Changed from a signal handler, which is only safe on a lock-free atomic.
+static_assert(std::atomic<int>::is_always_lock_free, "SIGUSR1/2 handler needs a lock-free atomic");
+thread_local int Logger::smDatabaseLogPaused = 0;
 
 void Logger::usrHandler(int sig) {
-  Logger *logger = fetch();
+  // SIGHUP means reload, which for zmc costs a camera reconnect and a gap in
+  // recording. logrotate only needs the file handle dropped, so it sends
+  // SIGWINCH instead. Just flag it, the next logPrint does the work.
+  if (sig == SIGWINCH) {
+    smDoLogRotate = true;
+    return;
+  }
+  // Logging from here takes log_mutex, glibc's syslog and tzset locks and
+  // dbQueue's mutex. A signal landing on a thread that already holds one of
+  // them waits on itself forever. Only record the change; the next log call
+  // applies it from normal context (see fetch()).
   if (sig == SIGUSR1)
-    logger->level(logger->level()+1);
+    smLevelChange++;
   else if (sig == SIGUSR2)
-    logger->level(logger->level()-1);
-  Info("Logger - Level changed to %d %s", logger->level(), smCodes[logger->level()].c_str());
+    smLevelChange--;
+}
+
+Logger *Logger::fetchSlow() {
+  if (!smInstance) {
+    smInstance = new Logger();
+    Options options;
+    smInstance->initialise("undef", options);
+  }
+  if (smLevelChange.load(std::memory_order_relaxed))
+    smInstance->applyLevelChange();
+  return smInstance;
+}
+
+void Logger::applyLevelChange() {
+  int change = smLevelChange.exchange(0);
+  if (!change) return;
+  Level new_level;
+  {
+    std::lock_guard<std::recursive_mutex> lck(log_mutex);
+    // limit() first: level() ignores anything at or below NOOPT.
+    new_level = level(limit(mLevel + change));
+  }
+  Info("Logger - Level changed to %d %s", new_level, smCodes[new_level].c_str());
 }
 
 Logger::Logger() :
@@ -111,12 +148,15 @@ Logger::~Logger() {
 void Logger::initialise(const std::string &id, const Options &options) {
   char *envPtr;
 
+  // A level change still pending was meant for the configuration being replaced.
+  smLevelChange = 0;
+
   if ( !id.empty() )
     this->id(id);
 
   std::string tempLogFile;
 
-  if ( (envPtr = getTargettedEnv("LOG_FILE")) ) {
+  if ( (envPtr = getTargettedEnv("LOG_FILE")) and *envPtr ) {
     tempLogFile = envPtr;
   } else if ( options.mLogFile.size() ) {
     tempLogFile = options.mLogFile;
@@ -185,11 +225,9 @@ void Logger::initialise(const std::string &id, const Options &options) {
       }
     }  // end foreach target
   } else {
-    // if we don't have debug turned on, then the max effective log level is INFO
-    if ( tempSyslogLevel > INFO ) tempSyslogLevel = INFO;
-    if ( tempFileLevel > INFO ) tempFileLevel = INFO;
-    if ( tempTerminalLevel > INFO ) tempTerminalLevel = INFO;
-    if ( tempDatabaseLevel > INFO ) tempDatabaseLevel = INFO;
+    // if we don't have debug turned on, then the max effective log level is INFO.
+    // Only cap the overall level. The per-target levels stay as configured so
+    // that raising the level with SIGUSR1 sends debug to the targets set for it.
     if ( tempLevel > INFO ) tempLevel = INFO;
   }  // end if config.log_debug
 
@@ -222,6 +260,9 @@ void Logger::initialise(const std::string &id, const Options &options) {
     if ( sigaction(SIGUSR2, &action, 0) < 0) {
       Fatal("sigaction(), error = %s", strerror(errno));
     }
+    if ( sigaction(SIGWINCH, &action, 0) < 0) {
+      Fatal("sigaction(), error = %s", strerror(errno));
+    }
   }
 
   mInitialised = true;
@@ -235,6 +276,20 @@ void Logger::initialise(const std::string &id, const Options &options) {
         mLogFile.c_str(),
         smCodes[mSyslogLevel].c_str()
        );
+}
+
+void Logger::reinitialise(const std::string &id, const Options &options) {
+  // Under log_mutex, so no thread writes through a target while it is reopened.
+  std::lock_guard<std::recursive_mutex> lck(log_mutex);
+  // Start from what a new instance would have: the log path from the static
+  // config, and syslog closed so that openlog() is called again with the id.
+  mLogPath = staticConfig.PATH_LOGS;
+  if (mSyslogLevel > NOLOG) {
+    closeSyslog();
+    mSyslogLevel = NOLOG;
+  }
+  // initialise() closes the log file; the next write reopens it.
+  initialise(id, options);
 }
 
 void Logger::terminate() {
@@ -377,7 +432,7 @@ Logger::Level Logger::syslogLevel(Logger::Level syslogLevel) {
 void Logger::logFile(const std::string &logFile) {
   bool addLogPid = false;
   std::string tempLogFile = logFile;
-  if (tempLogFile[tempLogFile.length()-1] == '+') {
+  if (!tempLogFile.empty() and tempLogFile[tempLogFile.length()-1] == '+') {
     tempLogFile.resize(tempLogFile.length()-1);
     addLogPid = true;
   }
@@ -392,6 +447,9 @@ void Logger::openFile() {
     if ( (mLogFileFP = fopen(mLogFile.c_str(), "a")) == nullptr ) {
       mFileLevel = NOLOG;
       Error("fopen() for %s %zu, error = %s", mLogFile.c_str(), mLogFile.size(), strerror(errno));
+    } else {
+      // The crash handler writes to this file with write(2), not through the Logger.
+      zmSetCrashLogFile(fileno(mLogFileFP));
     }
   } else {
     puts("Called Logger::openFile() without a filename");
@@ -414,10 +472,27 @@ void Logger::closeDatabase() {
 
 void Logger::openSyslog() {
   (void) openlog(mId.c_str(), LOG_PID|LOG_NDELAY, LOG_LOCAL1);
+  // The crash handler can't call syslog(); it sends to its own socket instead.
+  zmSetCrashSyslog(mId.c_str());
 }
 
 void Logger::closeSyslog() {
   (void) closelog();
+}
+
+bool Logger::throttle(const char *file, int line, int key, Microseconds interval,
+                      uint64 &suppressed, TimePoint now) {
+  std::lock_guard<std::recursive_mutex> lck(log_mutex);
+  Throttle &state = mThrottles[{file, line, key}];
+  if (state.have_last && (now - state.last) < interval) {
+    state.suppressed++;
+    return false;
+  }
+  suppressed = state.suppressed;
+  state.suppressed = 0;
+  state.last = now;
+  state.have_last = true;
+  return true;
 }
 
 void Logger::logPrint(bool hex, const char *filepath, int line, int level, const char *fstring, ...) {
@@ -426,6 +501,13 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     Panic("Invalid logger level %d", level);
 
   log_mutex.lock();
+
+  if (smDoLogRotate.exchange(false)) {
+    // logrotate has renamed the file out from under us. Drop the handle and the
+    // write below reopens it at the original path.
+    closeFile();
+  }
+
   // Can we save some cycles by having these as members and not allocate them on the fly? I think so.
   char            timeString[64];
   char            logString[4096]; // SQL TEXT can hold 64k so we could go up to 32k here but why?
@@ -495,12 +577,15 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     logPtr += vsnprintf(logPtr, sizeof(logString)-(logPtr-logString), fstring, argPtr);
   }
   va_end(argPtr);
-  char *syslogEnd = logPtr;
 
-  if ( static_cast<size_t>(logPtr - logString) >= sizeof(logString) ) {
-    // vsnprintf won't exceed the the buffer, but it might hit the end.
+  // vsnprintf returns the length it wanted, not what it wrote, so a long
+  // message leaves logPtr past the buffer. Clamp before anything uses it.
+  // "]\n" and its NUL need three bytes, so a message ending in the last two
+  // is cut too: strncpy would otherwise overwrite the NUL without a new one.
+  if ( static_cast<size_t>(logPtr - logString) > sizeof(logString)-3 ) {
     logPtr = logString + sizeof(logString)-3;
   }
+  char *syslogEnd = logPtr;
   strncpy(logPtr, "]\n", sizeof(logString)-(logPtr-logString));
 
   if (level <= mTerminalLevel) {
@@ -525,7 +610,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
     }
   }  // end if level <= mFileLevel
 
-  if (level <= mDatabaseLevel) {
+  if (level <= mDatabaseLevel and !smDatabaseLogPaused) {
     if (zmDbConnected) {
       std::string escapedString = zmDbEscapeString({syslogStart, syslogEnd});
 
@@ -536,7 +621,7 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
                                  "( %jd.%06" PRIi64 ", '%s', %d, %d, %d, '%s', '%s', '%s', %d )",
                                  static_cast<intmax_t>(now_sec), static_cast<int64>(now_frac.count()), mId.c_str(), staticConfig.SERVER_ID, tid, level, classString,
                                  escapedString.c_str(), file, line);
-      dbQueue.push(std::move(sql_string));
+      dbQueue.push(std::move(sql_string), true, level == FATAL or level == PANIC);
     }
   }  // end if level <= mDatabaseLevel
 
@@ -548,7 +633,12 @@ void Logger::logPrint(bool hex, const char *filepath, int line, int level, const
   log_mutex.unlock();
   if (level == FATAL || level == PANIC) {
     zm_terminate = true;
-    dbQueue.stop();
+    if (!dbQueue.stop(std::chrono::seconds(5))) {
+      // The queue thread is stuck in a query to an unresponsive database and
+      // holds the connection, so it cannot be closed or joined.
+      if (level == PANIC) abort();
+      _exit(-1);
+    }
     zmDbClose();
     logTerm();
     if (level == PANIC) abort();
@@ -564,6 +654,17 @@ void logInit(const char *name, const Logger::Options &options) {
 
   Logger::smInstance = new Logger();
   Logger::smInstance->initialise(name, options);
+}
+
+void logReload(const char *name, const Logger::Options &options) {
+  if (!Logger::smInstance) {
+    logInit(name, options);
+    return;
+  }
+  // Other threads keep logging through the instance Logger::fetch() gave them
+  // (the dbQueue thread, the stream socket threads), so re-initialise it in
+  // place instead of deleting it.
+  Logger::smInstance->reinitialise(name, options);
 }
 
 void logTerm() {

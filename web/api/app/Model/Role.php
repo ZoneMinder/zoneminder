@@ -11,6 +11,10 @@ class Role extends AppModel {
             'required' => array(
                 'rule' => array('notEmpty'),
                 'message' => 'A role name is required'
+            ),
+            'unique' => array(
+                'rule' => array('isUnique'),
+                'message' => 'A role with that name already exists'
             )
         )
     );

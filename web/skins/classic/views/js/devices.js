@@ -29,39 +29,22 @@ function enableDeviceModal() {
   });
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal(key) {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=' + key)
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
-
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
-    if ( ! canEdit.Device ) {
-      enoperm();
-      return;
-    }
+  if ( ! canEdit.Devices ) {
+    enoperm();
+    return;
+  }
 
-    var selections = getIdSelections();
+  var selections = getIdSelections();
 
-    evt.preventDefault();
-    $j.getJSON(thisUrl + '?request=devices&action=delete&markDids[]='+selections.join('&markDids[]='))
-        .done( function(data) {
-          $j('#devicesTable').bootstrapTable('refresh');
-          window.location.reload(true);
-        })
-        .fail(logAjaxFail);
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener("click", function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
-  });
+  $j.getJSON(thisUrl + '?request=devices&action=delete&markDids[]='+selections.join('&markDids[]='))
+      .done( function(data) {
+        if (data.result == 'Error') alert(data.message);
+        $j('#devicesTable').bootstrapTable('refresh');
+        window.location.reload(true);
+      })
+      .fail(logAjaxFail);
 }
 
 // Returns the event id's of the selected rows
@@ -75,10 +58,14 @@ function getIdSelections() {
 function processClicks(event, field, value, row, $element) {
   if ( field == 'On' || field == 'Off' ) {
     var key = row.KeyString.replace(/(<([^>]+)>)/gi, '');
-    var url = '?request=device&action=device&command=' + field + '&key=' + key;
+    var url = '?request=device&action=device&command=' + field + '&key=' + encodeURIComponent(key);
     console.log('Url sent to device: ' + url);
     $j.getJSON(thisUrl + url)
         .done(function(data) {
+          if (data.result == 'Error') {
+            alert(data.message);
+            return;
+          }
           // TODO - verify if either of these are needed
           $j('#devicesTable').bootstrapTable('refresh');
           window.location.reload(true);
@@ -91,9 +78,9 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  if ( canEdit.Device ) enableDeviceModal();
+  if ( canEdit.Devices ) enableDeviceModal();
 
-  newDeviceBtn.prop('disabled', !canEdit.Device);
+  newDeviceBtn.prop('disabled', !canEdit.Devices);
 
   // Manage the BACK button
   document.getElementById("backBtn").addEventListener("click", function onBackClick(evt) {
@@ -112,17 +99,13 @@ function initPage() {
 
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEdit.Device ) {
+    if ( ! canEdit.Devices ) {
       enoperm();
       return;
     }
 
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    getDelConfirmModal('ConfirmDeleteDevices');
   });
-
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal('ConfirmDeleteDevices');
 
   // enable or disable buttons based on current selection and user rights
   table.on('check.bs.table uncheck.bs.table ' +
@@ -130,7 +113,7 @@ function initPage() {
   function() {
     selections = table.bootstrapTable('getSelections');
 
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Device));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Devices));
   });
 
   // Process mouse clicks on the table cells

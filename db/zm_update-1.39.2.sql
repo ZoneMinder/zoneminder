@@ -3,6 +3,14 @@
 -- so that zones are resolution-independent.
 --
 
+-- Coords is tinytext (255 bytes).  The percentage form is longer than the pixel
+-- form it replaces -- up to 13 bytes per point ("100.00,100.00") against 9
+-- ("1920,1080") -- so a zone with enough points can overflow and be silently
+-- truncated by the conversion below, which destroys the polygon.  Widen the
+-- column first.  See also zm_update-1.39.23.sql, which does the same for
+-- installations that are already past this version.
+ALTER TABLE Zones MODIFY `Coords` TEXT NOT NULL;
+
 DELIMITER //
 
 DROP PROCEDURE IF EXISTS `zm_update_zone_coords_to_percent` //
@@ -84,7 +92,14 @@ BEGIN
     END LOOP coord_loop;
 
     IF v_new_coords != '' THEN
-      UPDATE Zones SET Coords = v_new_coords WHERE Id = v_zone_id;
+      -- Rescale Area in the same statement so it can only ever be applied to a
+      -- zone whose Coords were actually just converted.  A zone that was skipped
+      -- above (already percent) keeps its Area untouched, which is what makes
+      -- re-running this file safe.
+      UPDATE Zones
+        SET Coords = v_new_coords,
+            Area = IF(Area > 0, ROUND(Area * 10000.0 / (v_mon_width * v_mon_height)), Area)
+        WHERE Id = v_zone_id;
     END IF;
 
   END LOOP read_loop;
@@ -96,12 +111,6 @@ DELIMITER ;
 
 CALL zm_update_zone_coords_to_percent();
 DROP PROCEDURE IF EXISTS `zm_update_zone_coords_to_percent`;
-
--- Recalculate Area from pixel-space to percentage-space (100x100 = 10000 for full frame)
-UPDATE Zones z
-  JOIN Monitors m ON z.MonitorId = m.Id
-  SET z.Area = ROUND(z.Area * 10000.0 / (m.Width * m.Height))
-  WHERE m.Width > 0 AND m.Height > 0 AND z.Area > 0;
 
 -- Update Units to Percent for all zones, and set as new default
 UPDATE Zones SET Units = 'Percent' WHERE Units = 'Pixels';

@@ -1,3 +1,6 @@
+<?php
+  global $chart;
+?>
 .chartSize {
     width: <?php echo $chart['width'] ?>px;
     height: <?php echo $chart['height'] ?>px;

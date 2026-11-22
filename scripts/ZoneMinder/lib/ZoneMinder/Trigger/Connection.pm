@@ -41,6 +41,7 @@ our $VERSION = $ZoneMinder::Base::VERSION;
 use ZoneMinder::Logger qw(:all);
 
 use Carp;
+use Time::HiRes;
 
 our $AUTOLOAD;
 
@@ -134,9 +135,24 @@ sub getMessages
     my $self = shift;
     my $buffer = $self->{channel}->read();
 
-    return( undef ) if ( !defined($buffer) );
+    if ( !defined($buffer) )
+    {
+        # End of input, hand over any unterminated last message first
+        return( undef ) if ( !defined($self->{partial}) || $self->{partial} eq '' );
+        $buffer = delete( $self->{partial} ) . "\n";
+    }
+    elsif ( defined($self->{partial}) )
+    {
+        $buffer = delete( $self->{partial} ) . $buffer;
+    }
 
     my @messages = split( /\r?\n/, $buffer );
+    if ( $buffer !~ /\n$/ && @messages )
+    {
+        # Message not finished yet, keep it for the next read
+        $self->{partial} = pop( @messages );
+        $self->{partial_time} = Time::HiRes::time();
+    }
     return( \@messages );
 }
 
@@ -165,6 +181,13 @@ sub putMessages
 
 sub timedActions
 {
+    my $self = shift;
+    # Clients that never terminate their message still get it handled
+    if ( defined($self->{partial}) && Time::HiRes::time() - $self->{partial_time} >= 1 )
+    {
+        return( [ delete( $self->{partial} ) ] );
+    }
+    return( undef );
 }
 
 sub DESTROY
@@ -237,9 +260,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

@@ -121,47 +121,6 @@ hr {
 }
 
 /*
- * Tabbed headings
- */
-ul.tabList {
-    float: left;
-    list-style: none;
-    padding: 0;
-    margin: 0 0 -4px 0;
-    white-space: nowrap;
-    text-align: left;
-}
-
-ul.tabList li {
-    float: left;
-    border: 1px solid;
-    color: #333333;
-    border: #7f7fb2 solid 1px;
-    border-bottom-width: 0;
-    margin: 0 2px 0 0;
-    background: #dddddd;
-    text-align: center;
-    padding: 3px 4px;
-}
-
-ul.tabList li a {
-    text-decoration: none;
-}
-
-ul.tabList li:hover {
-    background-color: #eeeeee;
-}
-
-ul.tabList li.active {
-    background-color: #ffffff;
-    border-bottom: #7f7fb2 dotted 1px;
-}
-
-ul.tabList li.active a {
-    font-weight: bold;
-}
-
-/*
  * Major league table for multiple inputs or presentation
  */
 
@@ -526,4 +485,23 @@ input[type=submit]:disabled,
   background-color: #aaaaaa;
   */
   border-color: #bbbbbb;
+}
+
+/* Log panel level colours; see css/base/skin.css. */
+.logPanel tr.log-fat td {
+    background-color:#ffcccc;
+    font-weight: bold;
+}
+
+.logPanel tr.log-err td {
+    background-color:#ffcccc;
+}
+
+.logPanel tr.log-war td {
+    background-color: #ffe4b5;
+}
+
+.logPanel tr.log-dbg td {
+    color: #666666;
+    font-style: italic;
 }

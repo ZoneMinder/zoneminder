@@ -73,9 +73,11 @@ sub sendCmd
 
     my $result = undef;
 
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( POST=>"http://".$self->{Monitor}->{ControlAddress}."/PANTILTCONTROL.CGI" );
+    $req->content_type( "application/x-www-form-urlencoded" );
+    $req->content( $cmd );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -94,7 +96,7 @@ sub moveConUp
 {
     my $self = shift;
     Debug( "Move Up" );
-    my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=1";
+    my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=1";
     $self->sendCmd( $cmd );
 }
 
@@ -102,7 +104,7 @@ sub moveConDown
 {
     my $self = shift;
     Debug( "Move Down" );
-    my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=7";
+    my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=7";
     $self->sendCmd( $cmd );
 }
 
@@ -110,7 +112,7 @@ sub moveConLeft
 {
     my $self = shift;
     Debug( "Move Left" );
-    my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=3";
+    my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=3";
     $self->sendCmd( $cmd );
 }
 
@@ -118,39 +120,53 @@ sub moveConRight
 {
     my $self = shift;
     Debug( "Move Right" );
-    my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=5";
+    my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=5";
     $self->sendCmd( $cmd );
 }
 
 sub moveConUpRight
 {
-    moveConUp();
-    moveConRight();
+    my $self = shift;
+    $self->moveConUp();
+    $self->moveConRight();
 }
 
 sub moveConUpLeft
 {
-    moveConUp();
-    moveConLeft();
+    my $self = shift;
+    $self->moveConUp();
+    $self->moveConLeft();
 }
 
 sub moveConDownRight
 {
-    moveConDown();
-    moveConRight();
+    my $self = shift;
+    $self->moveConDown();
+    $self->moveConRight();
 }
 
 sub moveConDownLeft
 {
-    moveConDown();
-    moveConLeft();
+    my $self = shift;
+    $self->moveConDown();
+    $self->moveConLeft();
 }
 
 sub presetHome
 {
     my $self = shift;
     Debug( "Home Preset" );
-    my $cmd = "PanSingleMoveDegree=1\nTiltSingleMoveDegree=1\nPanTiltSingleMove=4";
+    my $cmd = "PanSingleMoveDegree=1&TiltSingleMoveDegree=1&PanTiltSingleMove=4";
+    $self->sendCmd( $cmd );
+}
+
+sub presetGoto
+{
+    my $self = shift;
+    my $params = shift;
+    my $preset = $self->getParam( $params, 'preset', 1 );
+    Debug( "Goto Preset $preset" );
+    my $cmd = "PanTiltPresetPositionMove=$preset";
     $self->sendCmd( $cmd );
 }
 
@@ -200,9 +216,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

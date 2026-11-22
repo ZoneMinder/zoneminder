@@ -15,10 +15,6 @@ ZoneMinder is an integrated set of applications which provide a complete surveil
 Before creating an issue in our github forum, please read our posting rules:
 https://github.com/ZoneMinder/ZoneMinder/wiki/Github-Posting-Rules
 
-## Our Dockerfile has moved
-Please file issues against the ZoneMinder Dockerfile here: 
-https://github.com/ZoneMinder/zmdockerfiles
-
 ## Installation Methods
 
 ### Install from a Package Repository
@@ -35,6 +31,30 @@ This is the recommended method to install ZoneMinder onto your system. ZoneMinde
 - Gentoo via [Portage Overlays](http://gpo.zugaina.org/www-misc/zoneminder)
 
 If a repository that hosts ZoneMinder packages is not available for your distro, then you are encouraged to build your own package, rather than build from source.  While each distro is different in ways that set it apart from all the others, they are often similar enough to allow you to adapt another distro's package building instructions to your own.
+
+### Run with Docker
+
+Official images for amd64 and arm64 are on [Docker Hub](https://hub.docker.com/r/zoneminder/zoneminder)
+as `zoneminder/zoneminder`, and on the
+[GitHub Container Registry](https://github.com/ZoneMinder/zmdockerfiles/pkgs/container/zoneminder)
+as `ghcr.io/zoneminder/zoneminder`. CI rebuilds them every day from the zmrepo packages.
+
+- `latest`: the newest release. It moves to each new minor release (1.40, 1.42) when zmrepo publishes it.
+- `1.38`, `1.38.6` and so on: pin a release series or an exact version.
+- `dev`: nightly builds of master. Don't run them on a system you rely on.
+- Each tag has an `-es` version with the event server ([zmeventnotificationNg](https://github.com/ZoneMinder/zmeventnotificationNg)): `latest-es`, `1.38-es`.
+
+The [zmdockerfiles](https://github.com/ZoneMinder/zmdockerfiles) repo has a compose file that runs
+ZoneMinder with MariaDB, and an optional object detection container:
+
+```bash
+git clone https://github.com/ZoneMinder/zmdockerfiles.git
+cd zmdockerfiles
+cp .env.example .env     # set ZM_DB_PASS, MARIADB_ROOT_PASSWORD and TZ
+docker compose up -d
+```
+
+Then open http://localhost:8080/zm. File Docker issues in the zmdockerfiles repo.
 
 ### Building from Source is Discouraged
 
@@ -62,12 +82,6 @@ For example, let's say I have created a new ZoneMinder package that contains the
 ```
 
 Note that zmeditconfigdata.sh is intended to be called, from the root build folder, prior to running cmake or configure.
-
-#### Docker
-
-Docker is a system to run applications inside isolated containers. ZoneMinder, and the ZM webserver, will run using the 
-Dockerfile contained in this repository. However, there is still work needed to ensure that the main ZM features work 
-properly and are documented. 
 
 ## Contribution Model and Development
 

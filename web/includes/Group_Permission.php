@@ -8,6 +8,7 @@ require_once('User.php');
 require_once('Group.php');
 
 class Group_Permission extends ZM_Object {
+  protected static $setters = array('Group', 'User');
   protected static $table = 'Groups_Permissions';
   protected $defaults = array(
       'Id'          =>  null,

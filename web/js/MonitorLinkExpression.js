@@ -39,7 +39,7 @@ function tokenize(expr) {
       let third = second_index+1;
 
       for (; third<expr.length; third++) {
-        if (expr.at(i) != character) break;
+        if (expr.at(third) != character) break;
       }
       if (third != second_index+1) {
         tokens[tokens.length] = {type: character, value: expr.substring(second_index, third)};
@@ -47,6 +47,7 @@ function tokenize(expr) {
         tokens[tokens.length] = {type: character, value: character};
       }
       first_index = third;
+      second_index = third - 1;
     }
     second_index++;
   } // end for second_index
@@ -102,6 +103,12 @@ function expr_to_ui(expr, container) {
     } // end foreach token
   }
   brackets --;
+  // Offer at least as many brackets as the expression already has in a row
+  for (let i = 0; i < tokens.length; i++) {
+    if ((tokens[i].type == '(' || tokens[i].type == ')') && tokens[i].value.length > brackets) {
+      brackets = tokens[i].value.length;
+    }
+  }
 
   for (let token_index = 0; token_index < tokens.length; token_index++) {
     const token = tokens[token_index];
@@ -119,16 +126,16 @@ function expr_to_ui(expr, container) {
           }
         } // end foreach zone
       } // end foreach monitor
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '(' || token.type == ')') {
       const select = $j('<select></select>');
-      select.append('<option value="0"></option>');
+      select.append('<option value=""></option>');
       for (var i = 1; i <= brackets; i++) { // build bracket options
         select.append('<option value="' + token.type.repeat(i) + '">' + token.type.repeat(i) + '</option>');
       }
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '()') {
@@ -140,14 +147,15 @@ function expr_to_ui(expr, container) {
       for (let i = 1; i <= brackets; i++) { // build bracket options
         select.append('<option value="' + String(")").repeat(i) + '">' + String(")").repeat(i) + '</option>');
       }
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else {
       const select = $j('<select></select>');
       select.append('<option value="|">or</option>');
       select.append('<option value="&">and</option>');
-      select.val(token.type);
+      // ',' is the same as '|' to the parser
+      select.val(token.type == ',' ? '|' : token.type);
       select.on('change', update_expr);
       token.html = select;
     }
@@ -196,7 +204,8 @@ function ui_to_expr(container, expr_input) {
   let expr = '';
   const children = container.children();
   for (let i = 0; i < children.length; i++) {
-    expr += $j(children[i]).val();
+    const value = $j(children[i]).val();
+    if (value !== null && value !== undefined) expr += value;
   }
   expr_input.val(expr);
 }

@@ -67,14 +67,14 @@ sub open {
   $self->loadMonitor();
 
   if ($self->{Monitor}->{ControlAddress} and ($self->{Monitor}->{ControlAddress} ne 'user:pass@ip')) {
-    Debug("Getting connection details from Control Address " . $self->{Monitor}->{ControlAddress});
+    Debug("Getting connection details from Control Address " . urlForLog($self->{Monitor}->{ControlAddress}));
     if ( $self->{Monitor}->{ControlAddress} !~ /^\w+:\/\// ) {
       # Has no scheme at the beginning, so won't parse as a URI
       $self->{Monitor}->{ControlAddress} = 'http://'.$self->{Monitor}->{ControlAddress};
     }
     $uri = URI->new($self->{Monitor}->{ControlAddress});
   } elsif ($self->{Monitor}->{Path}) {
-    Debug("Getting connection details from Path " . $self->{Monitor}->{Path});
+    Debug("Getting connection details from Path " . urlForLog($self->{Monitor}->{Path}));
     $uri = URI->new($self->{Monitor}->{Path});
     $uri->scheme('http');
     $uri->port(80);
@@ -87,13 +87,20 @@ sub open {
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 
-  my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
-  Debug("Have username: $username password: $password host: $host from authority:" . $uri->authority());
+  my ( $username, $password );
+  if ( my $userinfo = $uri->userinfo() ) {
+    ( $username, $password ) = split( /:/, $userinfo, 2 );
+  }
+  my $host = $uri->host();
+  Debug("Have username: $username host: $host");
   
   $uri->userinfo(undef);
 
   #  my $realm = $self->{Monitor}->{ControlDevice};
-  ($channel, $camera, $realm) = split /:/, $self->{Monitor}->{ControlDevice};
+  ($channel, $camera, $realm) = split /:/, ($self->{Monitor}->{ControlDevice} // '');
+  $channel //= 1;
+  $camera //= 1;
+  $realm //= '';
 
   $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
   my $url = 'cgi-bin/cmd/encoder?PTZ_VENDOR';
@@ -425,14 +432,14 @@ sub irisRelClose {
 sub irisAuto {
   my $self = shift;
   Debug('Iris Auto');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
   $self->sendCmd( \@cmd );
 }
 
 sub irisMan {
   my $self = shift;
   Debug('Iris Manual');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
   $self->sendCmd( \@cmd );
 }
 
@@ -499,9 +506,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 Copyright (C) 2001-2008  Philip Coombes
 Copyright (C) 2025  V.Nikolaev
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

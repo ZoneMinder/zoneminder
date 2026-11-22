@@ -329,7 +329,7 @@ sub focusRelNear {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelNear($params);
     }
@@ -347,7 +347,7 @@ sub focusRelFar {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelFar($params);
     }
@@ -447,7 +447,7 @@ sub presetHome {
 
 sub reboot {
   my $self = shift;
-  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
+  my $response = $self->sendCmd('/axis-cgi/admin/restart.cgi');
   return $response->is_success;
 }
 
@@ -587,9 +587,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

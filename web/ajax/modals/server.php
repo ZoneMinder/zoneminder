@@ -20,7 +20,7 @@ if ( $sid and ! $Server->Id() ) return;
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('Server') .' - '. $Server->Name() ?></h5>
+        <h5 class="modal-title"><?php echo translate('Server') .' - '. validHtmlStr($Server->Name()) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -37,7 +37,7 @@ if ( $sid and ! $Server->Id() ) return;
             <tbody>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newServer[Name]" value="<?php echo validHtmlStr($Server->Name()) ?>"/></td>
+                <td><input type="text" name="newServer[Name]" value="<?php echo validHtmlStr($Server->Name()) ?>" maxlength="64"/></td>
               </tr>
               <tr class="Protocol">
                 <th scope="row"><?php echo translate('Protocol') ?></th>
@@ -49,7 +49,7 @@ if ( $sid and ! $Server->Id() ) return;
               </tr>
               <tr class="Port">
                 <th scope="row"><?php echo translate('Port') ?></th>
-                <td><input type="number" name="newServer[Port]" value="<?php echo validCardinal($Server->Port()) ?>" step="1" min="1" max="65536"/></td>
+                <td><input type="number" name="newServer[Port]" value="<?php echo validCardinal($Server->Port()) ?>" step="1" min="1" max="65535"/></td>
               </tr>
               <tr class="PathToIndex">
                 <th scope="row"><?php echo translate('PathToIndex') ?></th>

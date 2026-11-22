@@ -7,7 +7,7 @@
     <div class="col button-block">
       <div id="contentButtons">
         <button type="button" id="NewStorageBtn" value="<?php echo translate('AddNewStorage') ?>" disabled="disabled"><?php echo translate('AddNewStorage') ?></button>
-        <button type="submit" class="btn-danger" name="deleteBtn" value="Delete" disabled="disabled"><?php echo translate('Delete') ?></button>
+        <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteStorage" disabled="disabled"><?php echo translate('Delete') ?></button>
       </div>
     </div>
     <div class="wrapper-scroll-table">
@@ -52,8 +52,8 @@
                 <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space() ? $Storage->event_disk_space() : 0) ); ?></td>
                 <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"
 <?php
-    echo ($Storage->EventCount() or !$canEdit) ? ' disabled="disabled"' : '';
-    echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : '';
+    echo ($Storage->EventCount() or $Storage->MonitorCount() or !$canEdit) ? ' disabled="disabled"' : '';
+    echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ($Storage->MonitorCount() ? ' title="Can\'t delete as long as monitors use this storage."' : '');
 ?>
                 /></td>
               </tr>

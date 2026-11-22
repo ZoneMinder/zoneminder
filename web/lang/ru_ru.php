@@ -76,14 +76,51 @@ $SLANG = array(
     '24BitColour'          => '24-битный цвет',
     '32BitColour'          => '32-битный цвет',          // Added - 2011-06-15
     '8BitGrey'             => '8-битный серый цвет',
+    'Aborted'              => 'Прервано',
+    'Account Details'      => 'Детали аккаунта',
     'Action'               => 'Действие',
+    'Actions'              => 'Действия',
+    'ActionTrigger'        => 'Когда',
+    'ActionTarget'          => 'Устройство',
+    'ActionType'            => 'Тип действия',
+    'ActionAudioFile'       => 'Звук',
+    'ActionTriggerEventStart' => 'Начало события',
+    'ActionTriggerEventEnd'   => 'Конец события',
+    'ActionTriggerAlarm'      => 'Начало тревоги',
+    'ActionTriggerAlarmEnd'   => 'Конец тревоги',
+    'ActionTriggerManual'     => 'Ручной запуск',
+    'ActionLightOn'           => 'Включить свет',
+    'ActionLightOff'          => 'Выключить свет',
+    'ActionIndicatorLightOn'  => 'Включить индикатор света',
+    'ActionIndicatorLightOff' => 'Выключить индикатор света',
+    'ActionAudioPlay'         => 'Играть звук',
+    'ActionAudioStop'         => 'Остановить звук',
+    'ActionsHelp'             => 'Действия, выполняемые данным монитором при срабатывании сигнала тревоги. Устройство, выполняющее действие, не обязательно должно быть самим монитором: например, камера может активировать динамик, расположенный в другом месте. В списке предлагаются только те устройства, функциональные возможности которых поддерживают соответствующее действие.',
+    'ActionsRemoveHelp'       => 'Чтобы удалить действие, установите для него Устройство = «Нет» и сохраните изменения.',
+    'ActionsNoCapableDevices' => 'Ни у одного монитора нет элемента управления, поддерживающего подсветку или воспроизведение звука, поэтому пока не с чем взаимодействовать. Сначала добавьте для монитора элемент управления с поддержкой подсветки (Can Light) или воспроизведения звука (Can Play Audio).',
+    'AI Datasets'             => 'Данные для ИИ',
+    'AI Models'               => 'Модели ИИ',
+    'AI Classes'              => 'Классы ИИ',
+    'DeviceClass'           => 'Класс устройства',
+    'DeviceClassCamera'     => 'Камера',
+    'DeviceClassSpeaker'    => 'Динамик',
+    'CanAudioPlay'          => 'Возможно воспроизведение аудио',
+    'CanAudioVolume'        => 'Возможна регулировка громкости аудио',
+    'MinAudioFile'          => 'Минимальный ID аудиофайла',
+    'MaxAudioFile'          => 'Максимальный ID аудиофайла',
+    'AudioStop'             => 'Остановить воспроизведение аудио',
+    'AudioVolume'           => 'Громкость',
     'Actual'               => 'Реальный',
     'AddNewControl'        => 'Добавить профиль управления PTZ',
+    'AddNewEncoderTemplate' => 'Добавить шаблон',
     'AddNewMonitor'        => 'Добавить монитор',
+    'AddNewModel'          => 'Добавить модель',
     'AddNewServer'         => 'Добавить сервер',         // Added - 2018-08-30
     'AddNewStorage'        => 'Добавить хранилище',        // Added - 2018-08-30
     'AddNewUser'           => 'Добавить пользователя',
     'AddNewZone'           => 'Добавить зону',
+    'AI Model'             => 'Модель ИИ',
+    'AJAXRequestError'     => 'Ошибка AJAX запроса',
     'Alarm'                => 'Тревога',
     'AlarmBrFrames'        => 'Кадры<br/>тревоги',
     'AlarmFrame'           => 'Кадр тревоги',
@@ -99,6 +136,7 @@ $SLANG = array(
     'AnalysisSource'       => 'Канал для анализа',
     'AnalysisUpdateDelay'  => 'Задержка обновления анализа',  // Added - 2015-07-23
     'Apply'                => 'Применить',
+    'ApplyEncoderTemplate' => 'Применить шаблон',
     'ApplyingStateChange'  => 'Изменение состояния сервиса',
     'ArchArchived'         => 'Только в архиве',
     'ArchUnarchived'       => 'Только не в архиве',
@@ -137,8 +175,18 @@ $SLANG = array(
     'AttrSystemLoad'       => 'Нагрузка проц.',
     'AttrTotalScore'       => 'Сумм. оценка',
     'AudioMotionVersionOK' => 'Установлена корректная версия "{AudioMotionVersionInstalled}"',
-    'AudioMotionVersionNotInstalled' => 'Требуется установка audio motion analyzer версии "{AudioMotionVersionRequired}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
-    'AudioMotionVersionWrongVersion' => 'Требуется версия анализатора "{AudioMotionVersionRequired}", но у Вас установлена "{AudioMotionVersionInstalled}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired} или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionNotInstalled' => 'Требуется установка audio motion analyzer версии "{AudioMotionVersionRequired}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioMotionVersionWrongVersion' => 'Требуется версия анализатора "{AudioMotionVersionRequired}", но у Вас установлена "{AudioMotionVersionInstalled}"~~Ссылка для загрузки: https://cdn.jsdelivr.net/npm/audiomotion-analyzer@{AudioMotionVersionRequired}/src/audioMotion-analyzer.js или https://github.com/hvianna/audioMotion-analyzer/releases/tag/{AudioMotionVersionRequired}',
+    'AudioDetection'       => 'Обнаружение звука',
+    'AudioDetectionHelp'   => 'Оценка уровня громкости звука (наряду с обнаружением движения).',
+    'AudioDetectionSettings'=> 'Настройки обнаружения звука',
+    'AudioThreshold'            => 'Порог громкости',
+    'AudioThresholdHelp'        => 'Уровень (от 0 до 100), при достижении или превышении которого срабатывает тревога. Значение 0 отключает функцию обнаружения звука. Сначала измерьте уровень фонового шума и установите пороговое значение выше этого уровня.',
+    'AudioLevelNow'             => 'Текущий уровень',
+    'AudioLevelNowHelp'         => 'Показания в реальном времени, отображаемые по той же шкале (от 0 до 100), что и порог срабатывания. Понаблюдайте за ними в тишине, чтобы определить уровень фонового шума, а затем создайте шум, чтобы увидеть рабочий диапазон. Измерение выполняется только при открытой странице, поэтому в остальное время ресурсы не расходуются.',
+    'AudioAlarmScore'           => 'Оценка звукового сигнала тревоги',
+    'AudioAlarmScoreHelp'       => 'Оценка добавляется к кадру, когда уровень звука превышает пороговое значение.',
+    'Audio detection only available with FFMPEG' => 'Функция обнаружения звука доступна только при использовании FFMPEG.',
     'Auth'                 => 'Авторизация',
     'Auto'                 => 'Авто',
     'AutoStopTimeout'      => 'Тайм-аут автоостановки',
@@ -155,7 +203,6 @@ $SLANG = array(
     'BadDevice'            => 'Неправильный путь к устройству',
     'BadFPSReportInterval' => 'Период обновления индикации скорости должен быть целочисленным, не менее 0',
     'BadFormat'            => 'Неправильный формат',
-    'BadFrameSkip'         => 'Количество пропускаемых кадров должно быть целочисленным, не менее 0',
     'BadHeight'            => 'Неправильная высота',
     'BadHost'              => 'Неправильный IP или имя хоста. Указывается без http://',
     'BadImageBufferCount'  => 'Размер буфера изображения должен быть целым числом (2 или более)',
@@ -163,7 +210,8 @@ $SLANG = array(
     'BadLabelY'            => 'Y координата ярлыка должна быть целочисленной, не менее 0',
     'BadMaxFPS'            => 'Ограничение скорости записи должно быть положительным',
     'BadMotionFrameSkip'   => 'Количество пропускаемых кадров движения должно быть целочисленным, не менее 0',
-    'BadNameChars'         => 'Имя может содержать только латинские буквы, цифры и символы пробела, плюса, минуса и подчеркивания',
+    'BadNameChars'         => 'Имя может содержать только буквы, цифры, круглые скобки, косую черту и символы пробела, точки, минуса, двоеточия и подчеркивания',
+    'BadNameCharsList'     => 'Имя монитора содержит недопустимые символы, такие как:',
     'BadPalette'           => 'Неправильная палитра', // Added - 2009-03-31
     'BadPath'              => 'Неправильный путь',
     'BadPort'              => 'Неправильный порт',
@@ -241,9 +289,11 @@ $SLANG = array(
     'ChooseLogFormat'      => 'Выбрать формат лога',    // Edited - 2019-03-25
     'ChooseLogSelection'   => 'Выбор логирования', // Added - 2011-06-17
     'ChoosePreset'         => 'Выберите предустановку',
+    'ClearLogs'            => 'Удалить логи',
     'Clear'                => 'Очистить',                  // Added - 2011-06-16
     'CloneMonitor'         => 'Клонировать',                  // Edited - 2019-03-25
     'Close'                => 'Закрыть',
+    'Codec'                => 'Кодек',
     'Colour'               => 'Цвет',
     'Collapsed'            => 'Свернуто',
     'Command'              => 'Команда',
@@ -252,7 +302,15 @@ $SLANG = array(
     'Config'               => 'Конфигурация',
     'ConfiguredFor'        => 'настроен на',
     'ConfirmAction'        => 'Подтвердите действие',
+    'ClearAllLogs'         => 'Удалить ВСЕ логи',
+    'ClearFilteredLogs'    => 'Удалить все отфильтрованные логи',
+    'ConfirmClearAllLogs'  => 'Не выбрано ни одной строки, поэтому будут УДАЛЕНЫ ВСЕ записи журнала. Вы уверены?',
+    'ConfirmClearFilteredLogs' => 'Не выбрано ни одной строки, поэтому будут удалены все записи журнала, соответствующие текущему фильтру. Вы уверены?',
+    'ConfirmClearLogs'     => 'Вы уверены, что хотите удалить выбранные записи из журнала?',
+    'ConfirmClearLogsTitle'=> 'Подтверждение очистки журналов',
     'ConfirmDeleteControl' => 'Внимание! Удаление элемента управления приведет к тому, что все мониторы, которые его используют, станут неуправляемыми.<br><br>Вы уверены, что хотите удалить?',
+    'ConfirmDeleteFiles'   => 'Вы действительно хотите удалить выбранные файлы?',
+    'ConfirmDeleteGroups'  => 'Вы действительно хотите удалить выбранные группы?',
     'ConfirmDeleteDevices' => 'Вы действительно хотите удалить выбранные устройства?',
     'ConfirmDeleteEvents'  => 'Вы действительно хотите удалить выбранные события?',
     'ConfirmDeleteLayout'  => 'Вы действительно хотите удалить текущий шаблон?',
@@ -271,6 +329,22 @@ $SLANG = array(
     'ControlDevice'        => 'Управляемое устройство',
     'ControlType'          => 'Тип управления',
     'Controllable'         => 'Управляемая',
+    'Copy'                 => 'Копия',
+    'Create'               => 'Создавать',
+    'CronCommand'          => 'Команда',
+    'CronCommandHelp'      => 'Запускается от имени веб-пользователя. Символ процента необходимо записывать как `\\%`, поскольку cron воспринимает неэкранированный знак процента как признак конца команды.',
+    'CronWhen'             => 'Когда',
+    'CronAddTask'          => 'Добавить задачу',
+    'CronEditTask'         => 'Изменить задачу',
+    'CronAdvanced'         => 'Ввести в формате `cron`',
+    'CronAdvancedHelp'     => 'Воспользуйтесь элементами выбора или введите пять полей cron напрямую, если нужно задать что-то специфичное, что нельзя задать с помощью элементов выбора.',
+    'CronAnyServer'        => 'Каждый сервер',
+    'CronScheduleAsCron'   => '(как в поле cron ниже)',
+    'CronNoTasks'          => 'Запланированных задач пока нет.',
+    'CronBadSchedule'      => 'Это расписание не подходит для запуска. Ожидается пять полей cron, например "0 3 * * *".',
+    'CronBadCommand'       => 'Эту команду невозможно выполнить. Она не должна быть пустой, должна располагаться в одну строку, а любые знаки процента должны быть записаны как `\\%`.',
+    'CronWriteFailed'      => 'Сохранено, но записать данные в crontab не удалось, поэтому задача выполняться не будет. Причину можно узнать в журнале.',
+    'CronConfirmDelete'    => 'Удалить выбранные запланированные задачи?',
     'Current'              => 'Текущий',                // Added - 2015-04-18
     'Custom Label'         => 'Надпись',
     'Cycle'                => 'Цикл',
@@ -278,6 +352,7 @@ $SLANG = array(
     'DateTime'             => 'Дата/Время',              // Added - 2011-06-16
     'Day'                  => 'День',
     'Debug'                => 'Отладка', // Added - 2019-03-25
+    'Default'              => 'По умолчанию',
     'Default Player'       => 'Плеер по умолчанию',
     'DefaultRate'          => 'Скорость по умолчанию',
     'DefaultScale'         => 'Масштаб по умолчанию',
@@ -288,6 +363,7 @@ $SLANG = array(
     'DeleteAndNext'        => 'Удалить &amp; след.',
     'DeleteAndPrev'        => 'Удалить &amp; пред.',
     'DeleteSavedFilter'    => 'Удалить сохраненный фильтр',
+    'DeletingRowsFromTable'=> 'Удаляем строки из таблицы',
     'Description'          => 'Описание',
     'DetectedCameras'      => 'Найденные камеры',       // Added - 2009-03-31
     'DetectedProfiles'     => 'Найденные профили',      // Added - 2015-04-18
@@ -320,13 +396,25 @@ $SLANG = array(
     'Duration'             => 'Длительность',
     'Edit'                 => 'Редактирование',
     'EditLayout'           => 'Редактирование шаблона',            // Added - 2019-03-25
+    'Effective Permission' => 'Действующее разрешение',
     'Email'                => 'Email',
     'EnableAlarms'         => 'Разрешить тревогу',
     'Enabled'              => 'Включен',
+    'EncoderTemplate'      => 'Шаблон кодировщика',
+    'EncoderTemplates'     => 'Шаблоны кодировщиков',
+    'EncoderTemplatesDescription' => 'Наборы параметров для кодировщиков FFmpeg. Выберите нужный в разделе «Параметры кодировщика» на странице редактирования монитора.',
+    'EditEncoderTemplate'  => 'Изменить шаблон кодировщика',
+    'NewEncoderTemplate'   => 'Новый шаблон кодировщика',
+    'EncoderHWAccelDevice' => 'Устройство аппаратного ускорения кодировщика',
+    'EncoderHWAccelName'   => 'Тип аппаратного ускорения кодировщика',
     'EnterNewFilterName'   => 'Введите новое название фильтра',
+    'Enter password to include it in the QR code' => 'Введите пароль, чтобы он был включен в QR-код',
     'Error'                => 'Ошибка',
     'ErrorBrackets'        => 'Ошибка: количество открывающих и закрывающих скобок должно быть одинаковым',
+    'ErrorDeletingRowFromLogTable' => 'Ошибка удаления строки из таблицы логов',
+    'ErrorUpdatingLogTable'=> 'Ошибка обновления таблицы логов',
     'ErrorValidValue'      => 'Ошибка: проверьте что все термы имеют действительное значение',
+    'ErrorVerifyingMonitorName'=> 'Ошибка: проверка имени монитора невозможна, поскольку имя отсутствует',
     'Etc'                  => 'и т.д.',
     'Event'                => 'Событие',
     'Event Close Mode'     => 'Режим закрытия события',
@@ -362,12 +450,14 @@ $SLANG = array(
     'Feed'                 => 'Feed',
     'Ffmpeg'               => 'Ffmpeg',                 // Added - 2009-02-08
     'File'                 => 'Файл',
+    'file'                 => 'файл',
     'Filter'               => 'Фильтр',                 // Added - 2015-04-18
     'FilterArchiveEvents'  => 'Архивировать выбранное',
+    'FilterByEncoder'      => 'Фильтр по кодировщику',
     'FilterDeleteEvents'   => 'Удалить выбранное',
     'FilterEmailEvents'    => 'Отправить выбранное по Email',
     'FilterExecuteEvents'  => 'Выполнить команду над выбранным',
-    'FilterLog'            => 'Фильтр лога',             // Added - 2015-04-18
+    'FilterLog'            => 'Лог фильтра',             // Added - 2015-04-18
     'FilterMessageEvents'  => 'Подробная информация о совпадениях',
     'FilterMoveEvents'     => 'Переместить все совпадения',       // Added - 2018-08-30
     'FilterPx'             => 'Фильтр пикселей',
@@ -392,7 +482,6 @@ $SLANG = array(
     'Frame'                => 'Кадр',
     'FrameId'              => 'ID кадра',
     'FrameRate'            => 'Частота кадров',
-    'FrameSkip'            => 'Кол-во пропуск. кадров',
     'Frames'               => 'Кадры',
     'Func'                 => 'Функ.',
     'Function'             => 'Функция',
@@ -402,10 +491,14 @@ $SLANG = array(
     'GenerateDownload'     => 'Сгенерировать загрузку',      // Edited - 2019-03-25
     'GenerateVideo'        => 'Генерировать видео',
     'GeneratingVideo'      => 'Генерируется видео',
+    'Global Permissions'   => 'Глобальные разрешения',
+    'Go2RTCDisableBackchannel' => 'Отключить обратный аудиоканал Go2RTC',
+    'GoToFrame'            => 'Перейти к кадру',
     'GoToZoneMinder'       => 'Перейти на ZoneMinder.com',
     'Grey'                 => 'ч/б',
     'Group'                => 'Группа',
     'Groups'               => 'Группы',
+    'Groups Permissions'   => 'Разрешения для групп',
     'HasFocusSpeed'        => 'Скорость фокуса',
     'HasGainSpeed'         => 'Скорость усиления',
     'HasHomePreset'        => 'Домашняя предустановка',
@@ -432,6 +525,8 @@ $SLANG = array(
     'Images'               => 'Изображения', // Added - 2019-03-25
     'In'                   => 'В',
     'Include'              => 'Включить',
+    'Inherit'              => 'Наследует',
+    'InsufficientPermissionsUser'=> 'Недостаточные права доступа для пользователя',
     'Inverted'             => 'Инвертировать',
     'Iris'                 => 'Наклон',
     'KeyString'            => 'Ключевая строка',
@@ -441,7 +536,6 @@ $SLANG = array(
     'Layout'               => 'Раскладка',                 // Added - 2009-02-08
     'Left'                 => 'Лево',
     'Level'                => 'Уровень',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'результатами;', // This is used at the end of the phrase 'Limit to first N results only';
     'LimitResultsPre'      => 'Ограничить первыми', // This is used at the beginning of the phrase 'Limit to first N results only';
     'Line'                 => 'Строка',                   // Added - 2011-06-16
@@ -530,9 +624,11 @@ $SLANG = array(
     'MinZoomStep'          => 'Мин. шаг увеличения',
     'Misc'                 => 'Разное',
     'Mode'                 => 'Режим',                   // Added - 2015-04-18
+    'Model Path'           => 'Путь к модели',
     'Monitor'              => 'Монитор',
     'MonitorDataIsSaved'   => 'Данные монитора сохраняются',
     'MonitorIds'           => 'ИД&nbsp;Мониторов',
+    'Monitor Permissions'  => 'Разрешения для монитора',
     'MonitorPreset'        => 'Предустановки монитора',//The list below shows detected analog and network cameras and whether they are already being used or available for selection.
     'MonitorPresetIntro'   => 'Выберите подходящий вариант из списка ниже.<br><br>Обратите внимание, что это может переписать настройки определенные для этого монитора.<br><br>',
     'MonitorProbe'         => 'Поиск камеры',          // Added - 2009-03-31
@@ -543,6 +639,7 @@ $SLANG = array(
     'MontageReview'        => 'Обзор монтажа',         // Added - 2019-03-24
     'Month'                => 'Месяц',
     'More'                 => 'Еще',                   // Added - 2011-06-16
+    'MotionDetectionSettings'=> 'Настройки обнаружения движения',
     'MotionFrameSkip'      => 'Кол-во пропуск. кадров движения',
     'Move'                 => 'Перемещение',
     'MQTT Enabled'         => 'MQTT',
@@ -572,18 +669,38 @@ $SLANG = array(
     'No'                   => 'Нет',
     'NoDetectedCameras'    => 'Нет камер',    // Added - 2019-03-24
     'NoDetectedProfiles'   => 'Нет профилей',   // Added - 2019-03-24
+    'NoDetectionData'      => 'Для этого события нет данных обнаружения',
     'NoFramesRecorded'     => 'Это событие не содержит кадров',
     'NoGroup'              => 'Нет группы',   // Added - 2019-03-24
+    'NoRole'               => 'Без роли (только прямые права доступа)',
+    'No users assigned to this role' => 'Этой роли не назначено ни одного пользователя',
     'NoSavedFilters'       => 'нет сохраненных фильтров',
     'NoStatisticsRecorded' => 'Статистика по этому событию/кадру не записана',
-    'None'                 => 'отсутствует',
+    'None'                 => 'Нет',
     'NoneAvailable'        => 'недоступны',
     'Normal'               => 'Нормальная',
     'Notes'                => 'Примечание',
     'NumPresets'           => 'Кол-во предустановок',
     'Off'                  => 'Выкл.', // Added - 2019-03-25
     'On'                   => 'Вкл.', // Added - 2019-03-25
+    'Only video'           => 'Только видео',
+    'Only audio visualization' => 'Только визуализацию звука',
+    'Video and audio visualization' => 'Видео и визуализацию звука',
     'OnvifCredentialsIntro'=> 'Пожалуйста укажите имя пользователя и пароль для выбранной камеры.<br/><br/>Если пользователь для камеры не был создан, тогда будет создан новый с указанными данными.<br/><br/>', // Added - 2015-04-18
+    'ObjDetect'            => 'ObjDetect',
+    'ObjectImageLive'      => 'Вернуться к прямому эфиру',
+    'ObjectImageLoad'      => 'Заменить это изображение',
+    'ObjectImageNotAnImage'=> 'Не удалось прочитать этот файл как изображение',
+    'ObjectImageUse'       => 'Измерять по статичному изображению вместо прямого эфира',
+    'ObjectSizeApply'      => 'Рассчитать параметры обнаружения по размеру этого объекта',
+    'ObjectSizeApplyLabel' => 'Применить',
+    'ObjectSizeFilterTooSmall' => 'Этот объект меньше фильтра %sx%s, поэтому он полностью отсеивается. Уменьшите размер фильтра или выделите более крупный объект.',
+    'ObjectSizeHeight'     => 'Высота объекта в пикселях',
+    'ObjectSizeInactive'   => 'Измерение объектов не применяется к неактивным зонам и зонам приватности',
+    'ObjectSizeMeasure'    => 'Выделите рамкой самый маленький объект, который должен вызывать тревогу, или введите его размеры ниже',
+    'ObjectSizeNeeded'     => 'Сначала введите ширину и высоту объекта в пикселях',
+    'ObjectSizeUndo'       => 'Отменить последнее измерение объекта',
+    'ObjectSizeWidth'      => 'Ширина объекта в пикселях',
     'OnvifProbe'           => 'ONVIF',                  // Added - 2015-04-18
     'OnvifProbeIntro'      => 'В этом списке показаны найденные ONVIF камеры, как уже заведенные, так и доступные для выбора.<br/><br/>Выберите нужную из списка ниже.<br/><br/>Обратите внимание, что не все камеры могут быть найдены, и что выбор камеры может переписать настройки определенные для этого монитора.<br/><br/>', // Added - 2015-04-18
     'OpEq'                 => 'равно',
@@ -606,6 +723,7 @@ $SLANG = array(
     'OrEnterNewName'       => 'или введите новое имя',
     'Order'                => 'Сортировка',
     'Orientation'          => 'Ориентация',
+    'OtherAnalysisSettings'=> 'Прочие настройки',
     'Out'                  => 'Из',
     'OverwriteExisting'    => 'Перезаписать существующее',
     'Paged'                => 'По страницам',
@@ -614,10 +732,12 @@ $SLANG = array(
     'PanRight'             => 'Панорама вправо',
     'PanTilt'              => 'Панорама/Наклон',
     'Parameter'            => 'Параметр',
+    'Params'               => 'Параметры',
     'Password'             => 'Пароль',
     'PasswordsDifferent'   => 'Пароли не совпадают',
     'Paths'                => 'Пути',
     'Pause'                => 'Пауза',
+    'Permission'           => 'Разрешение',
     'Phone'                => 'Phone',
     'PhoneBW'              => 'Телефонная линия',
     'Pid'                  => 'PID',                    // Added - 2011-06-16
@@ -625,11 +745,13 @@ $SLANG = array(
     'Pixels'               => 'в пикселях',
     'Play'                 => 'Играть',
     'PlayAll'              => 'Воспр. все',
+    'Player'               => 'Плеер',
     'PleaseWait'           => 'Пожалуйста, подождите',
     'Plugins'              => 'Плагины',   // Edited - 2019-03-24
     'Point'                => 'Точка',
     'PostEventImageBuffer' => 'Буфер после события',
     'PreEventImageBuffer'  => 'Буфер до события',
+    'Preferences'          => 'Настройки',
     'PreserveAspect'       => 'Сохранять соотношение сторон',
     'PreviewRate'          => 'Скорость предпросмотра',
     'Preset'               => 'Предустановка',
@@ -640,17 +762,27 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'В этом списке показаны существующие профили потока выбранной камеры.<br/><br/>Выберите нужный из списка ниже.<br/><br/>Обратите внимание, что ZoneMinder не может добавить дополнительный профиль, и что выбор профиля может переписать настройки определенные для этого монитора.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Прогресс',               // Added - 2015-04-18
     'Protocol'             => 'Протокол',
-    'RTSPDescribe'         => 'Использовать RTSP URL для ответа', // Edited - 2019-03-25
     'RTSPTransport'        => 'Транспортный протокол RTSP', // Edited - 2019-03-25
     'Rate'                 => 'Скорость',
     'Ratio'                => 'Соотношение',
     'Real'                 => 'Реальная',
+    'Reason'               => 'Причина',
     'RecaptchaWarning'     => 'Ваш секретный ключ reCAPTCHA недействителен. Пожалуйста, исправьте это, или reCAPTCHA не будет работать', // Added - 2018-08-30
     'Record'               => 'Запись',
     'RecordAudio'          => 'Сохранять ли аудиопоток при сохранении события.', // Edited - 2019-03-25
     'RecordingSource'      => 'Записываемый канал',
+    'RectangleAlarmedArea' => 'Площадь зоны тревоги',
+    'RectangleBlobArea'    => 'Площадь пятна',
+    'RectangleFilteredArea'=> 'Отфильтрованная площадь',
+    'RectangleMeasure'     => 'Измерение прямоугольной области',
+    'RectangleOfAlarmed'   => 'тревожной зоны',
+    'RectangleOfFiltered'  => 'отфильтрованной зоны',
+    'RectangleObjectSize'  => 'Размер объекта',
+    'RectangleOfRectangle' => 'нарисованного прямоугольника',
+    'RectangleOrTypeSize'  => 'в пикселях захвата, если вы предпочитаете не рисовать',
     'RefImageBlendPct'     => 'Смешение опорного кадра, %',
     'Refresh'              => 'Обновить',
+    'RememberMe'           => 'Запомнить меня',
     'Remote'               => 'Удаленный',
     'RemoteHostName'       => 'Имя удаленного хоста',
     'RemoteHostPath'       => 'Путь на удаленном хосте',
@@ -666,7 +798,8 @@ $SLANG = array(
     'ReplaySingle'         => 'Одно событие',
     'ReportEventAudit'     => 'Отчёт о событиях аудита',    // Edited - 2019-03-24
     'Reports'              => 'Отчеты',
-    'RequiresAudioMotionEnabled' => 'Требуется установка файла "audioMotion-analyzer.js"',
+    'RequestMissing'       => 'В запросе отсутствует',
+    'RequiresAudioMotionEnabled' => 'Требуется установка файла "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"',
     'Reset'                => 'Сбросить',
     'ResetEventCounts'     => 'Обнулить счетчик событий',
     'Restart'              => 'Перезапустить',
@@ -688,7 +821,22 @@ $SLANG = array(
     'SaveAs'               => 'Сохранить как',
     'SaveFilter'           => 'Сохранить фильтр',
     'SaveJPEGs'            => 'Сохранить JPEG-и',             // Edited - 2019-03-24
+    'Scan this QR code with the zmNg app to add this profile' => 'Отсканируйте этот QR-код с помощью приложения zmNg, чтобы добавить данный профиль.',
     'Scale'                => 'Масштаб',
+    'ScheduledTasks'       => 'Планировщик задач',
+    'ScheduledTasksHelp'   => 'Команды выполняются по расписанию с помощью планировщика cron — из файла crontab, принадлежащего веб-пользователю. ZoneMinder перезаписывает в этом файле только свой собственный блок, не затрагивая остальные записи. Поскольку эти команды запускаются от имени веб-пользователя, добавление такой команды подразумевает такой же уровень доверия, как и в случае с фильтром, выполняющим команду.',
+    'ScheduleEvery'        => 'Каждый',
+    'ScheduleAt'           => 'в',
+    'ScheduleEveryDay'     => 'день',
+    'ScheduleEveryWeekday' => 'рабочий день (пн–пт)',
+    'ScheduleEveryWeekend' => 'выходной день (сб и вс)',
+    'ScheduleEveryMonday'  => 'Понедельник',
+    'ScheduleEveryTuesday' => 'Вторник',
+    'ScheduleEveryWednesday' => 'Среду',
+    'ScheduleEveryThursday'=> 'Четверг',
+    'ScheduleEveryFriday'  => 'Пятницу',
+    'ScheduleEverySaturday'=> 'Субботу',
+    'ScheduleEverySunday'  => 'Воскресенье',
     'Score'                => 'Оценка',
     'Secs'                 => 'Сек.',
     'Sectionlength'        => 'Длина секции (в кадрах)',
@@ -741,6 +889,7 @@ $SLANG = array(
     'Stills'               => 'Стоп-кадры',
     'Stop'                 => 'Остановить',
     'Stopped'              => 'Остановлен',
+    'Storage'              => 'Хранилище',
     'StorageArea'          => 'Хранилище',           // Added - 2018-08-30
     'StorageScheme'        => 'Схема',                 // Added - 2018-08-30
     'Stream'               => 'Поток',
@@ -754,6 +903,8 @@ $SLANG = array(
     'TargetColorspace'     => 'Цветовое пространство',      // Added - 2015-04-18
     'Tele'                 => 'Теле',
     'Telemetry'            => 'Телеметрия',
+    'ThisSession'          => 'Тек. сессия',
+    'ThisSessionHint'      => 'Эти настройки действуют только для текущего сеанса браузера. Они хранятся в файлах cookie, а не на сервере, поэтому не влияют на другие сеансы или других пользователей.',
     'Thumbnail'            => 'Миниатюра',
     'Tilt'                 => 'Наклон',
     'Time'                 => 'Время',
@@ -776,10 +927,57 @@ $SLANG = array(
     'TotalBrScore'         => 'Сумм.<br/>оценка',
     'TrackDelay'           => 'Задержка обнаружения',
     'TrackMotion'          => 'Отслеживать движение',
+    'TrainingBackgroundConfirm' => 'Объекты не отмечены. Сохранить как фоновое изображение (без объектов)? Фоновые изображения помогают модели научиться сокращать количество ложных срабатываний.',
+    'TrainingBackgroundImages' => 'Фоновые изображения (без объектов)',
+    'TrainingBrowse'       => 'Просмотр обучающих данных',
+    'TrainingBrowseFrames' => 'Просмотр фреймов',
+    'TrainingConfirmDeleteFile' => 'Удалить этот файл и связанное с ним изображение/метку?',
+    'TrainingDataDeleted'  => 'Все обучающие данные были удалены.',
+    'TrainingDataStats'    => 'Статистика обучающих данных',
+    'TrainingDeleteAll'    => 'Удалить все обучающие данные',
+    'TrainingDeleteBox'    => 'Удалить ячейку',
+    'TrainingDeleteFailed' => 'Не удалось удалить',
+    'TrainingDetect'       => 'Обнаружить',
+    'TrainingEditAnnotation' => 'Редактировать аннотацию',
+    'TrainingDetectFailed'  => 'Обнаружение не удалось',
+    'TrainingDetectNoResults' => 'В этом кадре объектов не обнаружено.',
+    'TrainingDetectNoScript' => 'Скрипт обнаружения не настроен. Укажите ZM_TRAINING_DETECT_SCRIPT в параметрах "Options".',
+    'TrainingDetectObjects' => 'Выполнить обнаружение объектов на текущем кадре',
+    'TrainingDetectRunning' => 'Запуск обнаружения...',
+    'TrainingDetectedObjects' => 'обнаружен(ы) объект(ы) — принять или отклонить каждый из них',
+    'TrainingFailedToLoadEvent' => 'Не удалось загрузить данные о событии',
+    'TrainingFailedToLoadFrame' => 'Не удалось загрузить изображение кадра',
+    'TrainingFailedCreateDirectory' => 'Не удалось создать директорию для обучения',
+    'TrainingGuidance'     => 'Как правило, для обучения достаточно как минимум 50 с лишним изображений на каждый класс. Для достижения наилучших результатов старайтесь подготовить более 100 изображений на класс.',
+    'TrainingLoadFrameFirst' => 'Сначала загрузите кадр',
+    'TrainingLoading'      => 'Загрузка...',
+    'TrainingNoData'       => 'Данных для обучения пока нет. Сохраните аннотации, чтобы сформировать свой набор данных.',
+    'TrainingPendingDiscard' => '%1 неподтвержденное обнаружение (оранжевые рамки) не будет сохранено. Продолжить?',
+    'TrainingPendingOnly'  => 'У вас есть %1 неподтвержденных обнаружений (оранжевые рамки). Подтвердите их сначала, или сохранить результат как фоновое изображение без объектов?',
+    'TrainingNoFiles'      => 'Файлов нет',
+    'TrainingNoObjects'    => 'Пока нет аннотированных объектов',
+    'TrainingObjects'      => 'Объекты',
+    'TrainingNoFrameLoaded' => 'Фрейм не загружен',
+    'TrainingPreviewUnavailable' => 'Для этого типа файлов предварительный просмотр недоступен',
+    'TrainingRemoved'      => 'Аннотация для обучения удалена',
+    'TrainingSave'         => 'Сохранить для обучения',
+    'TrainingSaved'        => 'Аннотация для обучения сохранена',
+    'TrainingSavedLoaded'  => 'сохранённые аннотации загружены',
+    'TrainingShiftDrawHint' => 'Удерживайте клавишу Shift, чтобы нарисовать прямоугольник внутри другого прямоугольника',
+    'TrainingSaveFailed'   => 'Не удалось сохранить',
+    'TrainingSaving'       => 'Сохранение...',
+    'TrainingSelectBoxFirst' => 'Сначала выберите ячейку',
+    'TrainingSkipBack'     => 'Назад на 10 кадров',
+    'TrainingSkipForward'  => 'Вперёд на 10 кадров',
+    'TrainingTotalClasses' => 'Всего классов',
+    'TrainingTotalImages'  => 'Всего аннотированных изображений',
+    'TrainingUnsaved'      => 'У вас есть несохранённые аннотации. Отменить изменения?',
     'Triggers'             => 'Триггеры',
     'TurboPanSpeed'        => 'Скорость ускор. панорам.',
     'TurboTiltSpeed'       => 'Скорость ускор. наклона',
     'Type'                 => 'Тип',
+    'TZUnset'              => 'Не задано - используется значение из php.ini',
+    'UnrecognisedAction'   => 'Нераспознанное действие',
     'Unarchive'            => 'Уд.&nbsp;из&nbsp;архива',
     'Undefined'            => 'Не определено',              // Added - 2009-02-08
     'Units'                => 'Ед. измерения',
@@ -796,6 +994,7 @@ $SLANG = array(
     'User'                 => 'Пользователь',
     'Username'             => 'Имя пользователя',
     'Users'                => 'Пользователи',
+    'Use Wallclock Timestamps' => 'Использовать метки реального времени (wall-clock time)',
     'use_Amcrest_API'      => 'Использовать Amcrest API',
     'V4L'                  => 'V4L',                    // Added - 2015-04-18
     'V4LCapturesPerFrame'  => 'Захват кадров',     // Added - 2015-04-18
@@ -809,6 +1008,7 @@ $SLANG = array(
     'VersionRemindNever'   => 'Не говорить о новых версиях',
     'VersionRemindWeek'    => 'Напомнить через неделю',
     'Video'                => 'Видео',
+    'video'                => 'видео',
     'VideoFormat'          => 'Формат видео', // Edited - 2019-03-24
     'VideoGenFailed'       => 'Ошибка генерации видео',
     'VideoGenFiles'        => 'Существующие видеофайлы',
@@ -852,11 +1052,44 @@ $SLANG = array(
     'ZoneMinderLog'        => 'Лог ZoneMinder',         // Edited - 2019-03-25
     'ZoneOverloadFrames'   => 'Кол-во игнор. кадров перегрузки',
     'Zones'                => 'Зоны',
+    'ZoneActive'           => 'Обычная тревога',
+    'ZoneInclusive'        => 'Совместная тревога',
+    'ZoneExclusive'        => 'Тревога в тишине',
+    'ZonePreclusive'       => 'Запрет тревоги',
+    'ZoneInactive'         => 'Отключенная зона',
+    'ZonePrivacy'          => 'Приватная маска',
+    'ZoneActiveDesc'       => 'Вызывает тревогу при обнаружении движения внутри этой зоны',
+    'ZoneInclusiveDesc'    => 'Вызывает тревогу только при одновременном движении здесь и в обычной зоне',
+    'ZoneExclusiveDesc'    => 'Вызывает тревогу, только если в обычных зонах движения нет',
+    'ZonePreclusiveDesc'   => 'Запрещает тревогу во всех остальных зонах, пока движение есть здесь',
+    'ZoneInactiveDesc'     => 'Игнорирует движение (даже поверх активных зон) и не вызывает тревогу',
+    'ZonePrivacyDesc'      => 'Закрывает область черным цветом при записи и анализе',
+    'ZoneCannotDeleteBuiltInPreset' => 'Встроенные предустановки нельзя удалять.',
+    'ZoneCannotModifyBuiltInPreset' => 'Встроенные предустановки нельзя изменять.',
+    'ZoneConfirmDeletePreset'       => 'Вы уверены, что хотите удалить эту предустановку?',
+    'ZoneDeletePresetDesc'          => 'Удалить выбранную пользовательскую предустановку',
+    'ZoneEnterPresetName'           => 'Введите название предустановки зоны:',
+    'ZoneInvalidPresetName'         => 'Введите корректное название, не совпадающее со встроенными предустановками.',
+    'ZoneLoadPresetDesc'            => 'Применить параметры выбранной предустановки к зоне',
+    'ZonePresetBestHigh'            => 'Точный (макс. чувств.)',
+    'ZonePresetBestHighDesc'        => 'Высокая точность с фильтрацией пятен (Blobs). Обнаруживает мелкие объекты с отсеиванием шума.',
+    'ZonePresetBestLow'             => 'Точный (мин. чувств.)',
+    'ZonePresetBestLowDesc'         => 'Высокая точность с фильтрацией пятен (Blobs). Отсеивает шум и срабатывает только на крупные объекты.',
+    'ZonePresetBestMedium'          => 'Точный (сред. чувств.)',
+    'ZonePresetBestMediumDesc'      => 'Высокая точность с фильтрацией пятен (Blobs). Рекомендуется для большинства уличных камер.',
+    'ZonePresetDefault'             => 'По умолчанию',
+    'ZonePresetDefaultDesc'         => 'Стандартные сбалансированные настройки детекции движения.',
+    'ZonePresetFastHigh'            => 'Быстрый (макс. чувств.)',
+    'ZonePresetFastHighDesc'        => 'Минимальная нагрузка на CPU (AlarmedPixels). Реагирует даже на небольшие или слабые движения.',
+    'ZonePresetFastLow'             => 'Быстрый (мин. чувств.)',
+    'ZonePresetFastLowDesc'         => 'Минимальная нагрузка на CPU (AlarmedPixels). Срабатывает только на крупные и контрастные изменения.',
+    'ZonePresetFastMedium'          => 'Быстрый (сред. чувств.)',
+    'ZonePresetFastMediumDesc'      => 'Минимальная нагрузка на CPU (AlarmedPixels). Сбалансированные пороги для обычного наблюдения.',
+    'ZoneSavePresetDesc'            => 'Сохранить текущие настройки детекции как предустановку',
     'Zoom'                 => 'Увеличение',
     'ZoomIn'               => 'Приблизить',
     'ZoomOut'              => 'Отдалить',
 // *********07-2022************************************ 
-    'Storage'              => 'Хранилище',
     'Back'                 => 'Вернуться',
     'ParentGroup'          => 'Родительская группа',
     'FilterUnarchiveEvents' => 'Разархивировать все совпадения',
@@ -885,11 +1118,9 @@ $SLANG = array(
     'Revoke Token'         => 'Отозвать токен',
     'API Enabled'          => 'API включен',
     'CpuLoad'              => 'Загрузка процессора',
-    'Actions'              => 'Действия',
     '24 Hour'              => '24 часа',
     '8 Hour'               => '8 часов',
     '1 Hour'               => '1 час',
-    'Scale'                => 'Шкала', // Montage Review -> type button
     'All Events'           => 'Все события',
     'HISTORY'              => 'История', // Montage Review -> type button -> js
     'Archive Status'       => 'Архивный статус', // Montage Review -> type label
@@ -966,7 +1197,6 @@ $SLANG = array(
     'On Demand'            => 'По требованию',
     'Fit'                  => 'В форме',
     'Live'                 => 'Прямой эфир',
-    'Scale'                => 'Масштаб',
     'minute'               => 'минута',
     'minutes'              => 'минут',
     'on demand'            => 'по требованию',
@@ -1007,9 +1237,16 @@ $SLANG = array(
     'ConfirmDeleteTitle'   => 'Подтвердите удаление',
     'ConfirmDeleteUserTitle'=> 'Подтвердите удаление пользователя',
     'ConfirmDeleteUser'    => 'Вы уверены, что хотите удалить выбранных пользователей?',
+    'ConfirmDeleteServerTitle'=> 'Подтвердите удаление сервера',
+    'ConfirmDeleteServer'  => 'Вы уверены, что хотите удалить выбранные серверы?',
+    'ConfirmDeleteReport'  => 'Вы уверены, что хотите удалить выбранные отчеты?',
+    'ConfirmDeleteStorageTitle'=> 'Подтвердите удаление хранилища',
+    'ConfirmDeleteStorage' => 'Вы уверены, что хотите удалить выбранные хранилища?',
+    'ConfirmDeleteRoleTitle'=> 'Подтвердите удаление ролей',
+    'ConfirmDeleteRole'    => 'Вы уверены, что хотите удалить выбранные роли?',
+    'ConfirmDeleteSnapshots'=> 'Вы уверены, что хотите удалить выбранные снапшоты?',
     'Continuous'           => 'Непрерывный',
     'ONVIF_Alarm_Text'     => 'Текст сигнала тревоги ONVIF', //added 18/07/2022
-    'None'                 => 'Нет',
     'Free'                 => 'Свободно',
     'RunStats'             => 'Текущие показатели',
     'RunAudit'             => 'Запуск аудита',
@@ -1017,6 +1254,7 @@ $SLANG = array(
     'RunEventNotification' => 'Запустить уведомление о событии',
     'normal'               => 'нормальный',
     'Path'                 => 'Путь',
+    'Snapshot'             => 'Снапшот',
     'Snapshots'            => 'Снапшоты',
 /******************* 27-02-24 **********************************/
     'ONVIF_EVENTS_PATH'    => 'Путь к ONVIF событиям',
@@ -1095,12 +1333,14 @@ $OLANG = array(
 		          "\"reorder_queue_size=nnn\" Установите количество пакетов в буфер для обработки переупорядоченных пакетов~~~~".
 		          "\"loglevel=debug\" Установить уровень информации.FFmpeg (тихий, паника, фатальный, ошибка, предупреждение, информация, подробный, отладка)"
 	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Параметры в этом поле передаются в libVLC. Несколько параметров могут быть разделены ,~~ ".
-		          "Примеры (не вводите кавычки)~~~~".
-		          "\"--rtp-client-port=nnn\" Установите локальный порт для использования для данных rtp~~~~". 
-		          "\"--verbose=2\" Установить уровень информации. из libVLC"
-	),
+  'OPTIONS_ENCODERHWACCELNAME' => array(
+    'Help' => '
+    Это эквивалентно параметру командной строки `ffmpeg -hwaccel`. Для поддержки графики Intel используйте `vaapi`. Для поддержки NVIDIA CUDA используйте `cuda`. Чтобы проверить наличие поддержки, выполните команду `ffmpeg -hwaccels` в командной строке.'
+    ),
+  'OPTIONS_ENCODERHWACCELDEVICE' => array(
+    'Help' => '
+    Это соответствует параметру командной строки ffmpeg `-hwaccel_device`. Указывать его нужно только при наличии нескольких графических процессоров. Типичным значением для Intel VAAPI является `/dev/dri/renderD128`.'
+    ),
 	 'OPTIONS_ENCODER_PARAMETERS' => array(
     		'Help' => '
     Параметры, передаваемые кодеку кодирования. имя=значение, разделенное либо , либо новой строкой.~~
@@ -1134,14 +1374,6 @@ $OLANG = array(
         HTTP - Используйте туннелирование HTTP в качестве транспортного протокола, который полезен для передачи прокси-серверов.~~
       '
 	),
-	'OPTIONS_RTSPDESCRIBE' => array(
-    'Help' => '
-      Иногда во время первоначального рукопожатия RTSP камера отправляет обновленный URL-адрес мультимедиа.
-      Включите этот параметр, чтобы указать ZoneMinder использовать этот URL-адрес. Отключите этот параметр, чтобы игнорировать
-      значение с камеры и использовать значение, введенное в конфигурации монитора~~~~
-      Как правило, это должно быть включено. Однако бывают случаи, когда камера может получить свой
-      неверный собственный URL-адрес, например, при потоковой передаче камеры через брандмауэр'
-  ),
 	'OPTIONS_MAXFPS' => array(
     'Help' => '
       Это поле имеет определенные ограничения при использовании для нелокальных устройств.~~
@@ -1203,10 +1435,12 @@ $OLANG = array(
    'OPTIONS_WHATTODISPLAY' => array(
     'Help' => '
      На страницах живого просмотра, монтажа и просмотра события возможно отображение движения аудио.~~
-     Для этого необходимо установить файл "/skins/MySkin/assets/audioMotion-analyzer/src/audioMotion-analyzer.js".~~
-     Указанный файл можно скачать по ссылкам:~~
-     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X где X.X.X это номер версии~~
-     https://github.com/hvianna/audioMotion-analyzer/releases
+     Библиотека audioMotion-analyzer распространяется под лицензией AGPL-3.0-or-later и не входит в состав ZoneMinder. Для отображения визуализации необходимо установить файл "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js" в веб-каталоге, заменив "classic" на имя используемого скина.~~
+     Указанный файл можно скачать по ссылкам, где X.X.X это номер требуемой версии:~~
+     https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X/src/audioMotion-analyzer.js~~
+     https://github.com/hvianna/audioMotion-analyzer/releases/tag/X.X.X (файл находится в каталоге src/ архива с исходным кодом)~~
+     Не используйте ссылку https://cdn.jsdelivr.net/npm/audiomotion-analyzer@X.X.X без пути: по ней отдаётся минифицированная UMD-сборка, а не ES-модуль, который ожидается по этому пути.~~
+     Требуемая версия указана ниже, под этой настройкой, и задаётся константой SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION в файле skins/classic/js/audioMotionAnalyzer.js.
     '
    ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
@@ -1227,6 +1461,23 @@ OnDemand: выполняйте декодирование только тогд�
 Нет: кадры декодироваться не будут, просмотр в реальном времени и миниатюры будут недоступны.~~~~
 '
   ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL' => array(
+    'Help' => '
+      Включено по умолчанию для предотвращения проблем совместимости с некоторыми камерами, в частности Dahua.~~
+      При просмотре камеры через go2rtc эти проблемы могут приводить к прекращению получения событий ONVIF (например, обнаружения движения или звука) и нарушению записи событий в ZoneMinder.~~~~
+      Отключите эту настройку, если камере необходим RTSP backchannel или вы хотите использовать двустороннюю аудиосвязь (обратную передачу звука) через go2rtc.~~
+      Также настройку можно отключить, если камера корректно передаёт события ONVIF и записывается при активном просмотре: в этом случае сохранится стандартное поведение backchannel.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT' => array(
+    'Help' => '
+      Отключает RTSP backchannel для предотвращения проблем с ONVIF-событиями и записью у некоторых камер (особенно Dahua). 
+      Отключите эту настройку, если требуется двусторонняя аудиосвязь или камера корректно работает с включённым backchannel.'
+  ),
+  'FUNCTION_RTSP2WEB_ENABLED' => array(
+    'Help' => '
+      Использовать сервер потокового вещания RTSP2Web для просмотра видео в реальном времени в форматах H.264/H.265.
+      Экспериментальная функция, обеспечивающая значительно более высокую производительность.'
+  ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
       Попробуйте использовать потоковый сервер Janus для просмотра в реальном времени h264/h265. Экспериментальный, но позволяет
@@ -1246,6 +1497,12 @@ OnDemand: выполняйте декодирование только тогд�
     'Help' => '
       Включите это, чтобы использовать RTSP-поток ZoneMinder в качестве источника для потоковых служб
       (Janus, Go2RTC, RTSP2Web) вместо прямого подключения к камере. Полезно, если камера не работает напрямую с потоковой службой.'
+  ),
+  'FUNCTION_JANUS_RTSP_SESSION_TIMEOUT' => array(
+    'Help' => '
+    Переопределить или задать время ожидания в секундах для RTSP-сеанса.
+    Полезно, если в журналах Janus часто появляются ответы 401 Unauthorized.
+    Установите значение 0, чтобы использовать тайм-аут, переданный источником, если он указан.'
   ),
   'ImageBufferCount' => array(
     'Help' => '
@@ -1424,13 +1681,6 @@ OnDemand: выполняйте декодирование только тогд�
     www-data ALL=NOPASSWD: /sbin/shutdown
 
     для завершения работы или перезагрузки'
-  ),
-'ZM_OPT_FAST_DELETE' => array(
-    'Help' => '
-    Обычно событие, созданное в результате аварийного сигнала, состоит из записей в одной или нескольких таблицах базы данных плюс различные файлы, связанные с ним. 
-    При удалении событий в браузере может потребоваться много времени, чтобы удалить все это, если вы пытаетесь выполнить много событий одновременно. 
-    Рекомендуется установить этот параметр, который означает, что клиент браузера удаляет только ключевые записи в таблице событий, что означает, что события больше не будут отображаться в списке, и оставляет демону zmaudit для очистки остальных позже. 
-    Обратите внимание, что эта функция менее актуальна для современного оборудования. Рекомендуем отключить эту функцию.'
   ),
 'ZM_FILTER_RELOAD_DELAY' => array(
     'Help' => '
@@ -1802,7 +2052,7 @@ OnDemand: выполняйте декодирование только тогд�
   ),
 'ZM_WEB_FILTER_SOURCE' => array(
     'Help' => '
-    Этот параметр влияет только на мониторы с типом источника \'Ffmpeg\', \'Libvlc\' или \'веб-сайт\'. 
+    Этот параметр влияет только на мониторы с типом источника \'Ffmpeg\' или \'веб-сайт\'. 
     Этот параметр определяет, какая информация отображается в столбце Источника на консоли. 
     Выбор "Нет" ничего не отфильтрует. Будет отображена вся исходная строка, которая может содержать конфиденциальную информацию. 
     Выбор "Без учетных данных" приведет к удалению имен пользователей и паролей из строки. 
@@ -1950,6 +2200,16 @@ OnDemand: выполняйте декодирование только тогд�
     Вам следует соблюдать осторожность при установке этого параметра в значение Debug, поскольку это может серьезно повлиять на производительность системы. 
     Если вы хотите отладить, вам также нужно будет установить уровень и компонент ниже'
   ),
+'ZM_LOG_LEVEL_TERM' => array(
+    'Help' => '
+    Теперь система логирования ZoneMinder более интегрирована между компонентами и позволяет указывать место назначения для вывода логов, а также уровни для каждого компонента.~~
+    Эта опция позволяет управлять уровнем вывода логов в стандартный вывод терминала.~~
+    Это влияет только на исполняемые файлы ZoneMinder, а не на веб-скрипты PHP.~~
+    Обычно это полезно только для отладки.~~
+    Эта опция управляет максимальным уровнем записи логов, поэтому уровень Info включает предупреждения, ошибки и т. д.~~
+    Чтобы полностью отключить эту опцию, установите значение "None".~~
+    Если вам нужна отладочная информация, вам также потребуется указать уровень и компонент ниже.'
+  ),
 'ZM_LOG_LEVEL_FILE' => array(
     'Help' => '
     Ведение журнала ZoneMinder теперь более интегрировано между компонентами и позволяет вам указывать назначение выходных данных журнала и отдельные уровни для каждого из них. 
@@ -1986,10 +2246,10 @@ OnDemand: выполняйте декодирование только тогд�
 'ZM_LOG_DATABASE_LIMIT' => array(
     'Help' => '
     Если вы используете ведение журнала в базе данных, то можно быстро создать большое количество записей в таблице журналов. 
-    Этот параметр позволяет указать, сколько из этих записей будет сохранено. 
-    Если для этого параметра задано значение, большее нуля, то это число используется для определения максимального количества строк, меньшее или равное нулю указывает на отсутствие ограничения и не рекомендуется. 
-    Вы также можете установить для этого значения значения времени, такие как "<n> день", что ограничит записи журнала более новыми, чем это время. 
-    Вы можете указать "час", "день", "неделю", "месяц" и "год", обратите внимание, что значения должны быть единственными (без "s" в конце). 
+    Этот параметр позволяет указать, сколько из этих записей будет сохранено.~~
+    Если для этого параметра задано значение, большее нуля, то это число используется для определения максимального количества строк, меньшее или равное нулю указывает на отсутствие ограничения и не рекомендуется.~~
+    Вы также можете установить для этого параметра значение времени, такое как "<n> day", что ограничит записи журнала более новыми, чем это время.~~
+    Вы можете указать "hour", "day", "week", "month" и "year", при этом интервал будет соответствовать часам, дням, неделям, месяцам или годам соответственно, обратите внимание, что значения должны быть единственными (без "s" в конце).~~
     Таблица журналов периодически обрезается, так что за это время возможно кратковременное присутствие большего количества строк, чем ожидаемое.'
   ),
 'ZM_LOG_FFMPEG' => array(
@@ -2756,6 +3016,7 @@ OnDemand: выполняйте декодирование только тогд�
 	'LOG_LEVEL_DATABASE' => array ( 'Prompt'=>'Сохранение выходных данных журнала (журналов) в базе данных'),
 	'LOG_LEVEL_FILE' => array ( 'Prompt'=>'Сохраните вывод журнала (logs) в файлы компонента'),
 	'LOG_LEVEL_SYSLOG' => array ( 'Prompt'=>'Сохранение выходных данных журнала (журналов) в системный журнал (системный журнал)'),
+	'LOG_LEVEL_TERM' => array ( 'Prompt'=>'Сохранять логи в стандартный поток вывода'),
 	'LOG_LEVEL_WEBLOG' => array ( 'Prompt'=>'Сохранение выходных данных журнала (журналов) в веб'),
 	'MAX_RESTART_DELAY' => array ( 'Prompt'=>'Максимальная задержка (в секундах) между попытками перезапуска демона.'),
 	'MAX_RTP_PORT' => array ( 'Prompt'=>'Максимальный порт, через который ZoneMinder будет прослушивать RTP-трафик'),
@@ -2776,7 +3037,6 @@ OnDemand: выполняйте декодирование только тогд�
 	'PATH_CAMBOZOLA' => array ( 'Prompt'=>'Веб-путь к (необязательно) потоковому java-клиенту cambozola'),
 	'RELOAD_CAMBOZOLA' => array ( 'Prompt'=>'Через сколько секунд cambozola должна быть перезагружена в режиме реального времени'),
 	'OPT_EMAIL' => array ( 'Prompt'=>'Вы должны отправить ZoneMinder по электронной почте подробную информацию о событиях, соответствующих соответствующим фильтрам'),
-	'OPT_FAST_DELETE' => array ( 'Prompt'=>'Удаление только записей из базы данных событий для увеличения скорости'),
 	'OPT_FFMPEG' => array ( 'Prompt'=>'Установлен видеокодер / декодер ffmpeg'),
 	'OPT_GEOLOCATION_ACCESS_TOKEN' => array ( 'Prompt'=>'Токен доступа для поставщика плиток карт.'),
 	'OPT_GEOLOCATION_TILE_PROVIDER' => array ( 'Prompt'=>'Поставщик плиток для карт.'),

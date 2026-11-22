@@ -1,9 +1,18 @@
 const hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
+const useAuth = <?php echo ZM_OPT_USE_AUTH ? 'true' : 'false' ?>;
 const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
+const onvifStatusLabels = [
+  '<?php echo addslashes(translate('OnvifStatusNotInUse')) ?>',
+  '<?php echo addslashes(translate('OnvifStatusNotSubscribed')) ?>',
+  '<?php echo addslashes(translate('OnvifStatusSubscribed')) ?>',
+];
+const onvifStatusUnavailable = '<?php echo addslashes(translate('OnvifStatusUnavailable')) ?>';
 const audioMotionVersionOK = '<?php echo translate('AudioMotionVersionOK') ?>';
 const audioMotionVersionNotInstalled = '<?php echo translate('AudioMotionVersionNotInstalled') ?>';
 const audioMotionVersionWrongVersion = '<?php echo translate('AudioMotionVersionWrongVersion') ?>';
+<?php require_once('includes/EncoderTemplates.php'); ?>
+window.ZM_ENCODER_TEMPLATES = <?php echo json_encode(ZM\EncoderTemplates::all(), JSON_UNESCAPED_SLASHES); ?>;
 
 <?php
 global $players;
@@ -41,7 +50,7 @@ if ($query) {
       echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
 } # end if $query
-echo 'const mid='.$mid.';'.PHP_EOL;
+echo 'const mid='.(int)$mid.';'.PHP_EOL;
 ?>
 
 function validateForm(form) {
@@ -56,9 +65,7 @@ function validateForm(form) {
     }
   }
 
-  if ( elements['newMonitor[Name]'].value.search( /[^\w\-\.\(\)\:\/ ]/ ) >= 0 )
-    errors[errors.length] = "<?php echo translate('BadNameChars') ?>";
-  else if ( monitorNames[form.elements['newMonitor[Name]'].value] )
+  if ( monitorNames[form.elements['newMonitor[Name]'].value] )
     errors[errors.length] = "<?php echo translate('DuplicateMonitorName') ?>";
 
   if ( form.elements['newMonitor[Type]'].value == 'Local' ) {
@@ -88,6 +95,13 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
+    }
+    if (form.elements['newMonitor[Options]']) {
+      const badOptions = ZM_FfmpegOptions.badEntries(form.elements['newMonitor[Options]'].value);
+      if (badOptions.length) {
+        errors[errors.length] = "<?php echo translate('BadFfmpegOptions') ?>" + "\n" +
+          badOptions.map((entry) => JSON.stringify(entry)).join("\n");
+      }
     }
 /*
  * Alternate way of testing for bad urls
@@ -123,7 +137,8 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
     if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
-    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
+    // A Speaker has no blend or timestamp fields to check.
+    if ( form.elements['newMonitor[RefBlendPerc]'] && (!form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) ) )
       errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
 
     const colours = form.elements['newMonitor[Colours]'];
@@ -133,9 +148,9 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadWidth') ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadHeight') ?>";
-    if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
+    if ( form.elements['newMonitor[LabelX]'] && (!form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 )) )
       errors[errors.length] = "<?php echo translate('BadLabelX') ?>";
-    if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
+    if ( form.elements['newMonitor[LabelY]'] && (!form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 )) )
       errors[errors.length] = "<?php echo translate('BadLabelY') ?>";
     if ( !form.elements['newMonitor[ImageBufferCount]'].value || !(parseInt(form.elements['newMonitor[ImageBufferCount]'].value) >= 2 ) )
       errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";
@@ -162,8 +177,6 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadAnalysisUpdateDelay') ?>";
     if ( !form.elements['newMonitor[FPSReportInterval]'].value || !(parseInt(form.elements['newMonitor[FPSReportInterval]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadFPSReportInterval') ?>";
-    if ( !form.elements['newMonitor[FrameSkip]'].value || !(parseInt(form.elements['newMonitor[FrameSkip]'].value) >= 0 ) )
-      errors[errors.length] = "<?php echo translate('BadFrameSkip') ?>";
     if ( !form.elements['newMonitor[MotionFrameSkip]'].value || !(parseInt(form.elements['newMonitor[MotionFrameSkip]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadMotionFrameSkip') ?>";
     if ( form.elements['newMonitor[Type]'].value == 'Local' )
@@ -173,7 +186,7 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadWebColour') ?>";
   }
 
-  if ( form.elements['newMonitor[RTSPStreamName]'].value
+  if ( form.elements['newMonitor[RTSPStreamName]'] && form.elements['newMonitor[RTSPStreamName]'].value
       &&
       rtspStreamNames[form.elements['newMonitor[RTSPStreamName]'].value]
     )
@@ -184,7 +197,7 @@ function validateForm(form) {
     return false;
   }
 
-  if ( (form.elements['newMonitor[Recording]'].value != 'None') ) {
+  if ( (form.elements['newMonitor[Recording]'] && form.elements['newMonitor[Recording]'].value != 'None') ) {
     if ( (form.elements['newMonitor[SaveJPEGs]'].value == '0') && (form.elements['newMonitor[VideoWriter]'].value == '0') ) {
       warnings[warnings.length] = "<?php echo translate('BadNoSaveJPEGsOrVideoWriter'); ?>";
     }
@@ -211,8 +224,8 @@ function updateMethods(element) {
         global $httpMethods;
         foreach( $httpMethods as $value=>$label ) {
           ?>
-            methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>");
-          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option("<?php echo htmlspecialchars($label) ?>", "<?php echo validJsStr($value) ?>");
+          if ( origMethod.value == "<?php echo validJsStr($value) ?>" )
             methodSelector.selectedIndex = methodSelector.options.length-1;
           <?php
         }
@@ -223,18 +236,13 @@ function updateMethods(element) {
         global $rtspMethods;
         foreach( $rtspMethods as $value=>$label ) {
           ?>
-            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo $value ?>" );
-          if ( origMethod.value == "<?php echo $value ?>" )
+            methodSelector.options[methodSelector.options.length] = new Option( "<?php echo htmlspecialchars($label) ?>", "<?php echo validJsStr($value) ?>" );
+          if ( origMethod.value == "<?php echo validJsStr($value) ?>" )
             methodSelector.selectedIndex = form.elements['newMonitor[Method]'].options.length-1;
           <?php
         }
       ?>
     break;
-  }
-  if (element.value == 'rtsp') {
-    $j('#RTSPDescribe').show();
-  } else {
-    $j('#RTSPDescribe').hide();
   }
   return true;
 }

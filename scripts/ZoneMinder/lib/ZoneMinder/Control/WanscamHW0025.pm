@@ -85,7 +85,7 @@ sub sendCmd
 
     #print( "http://$address/$cmd\n" );
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
-	Info( "http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
+	Info( urlForLog("http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice}) );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -107,6 +107,13 @@ sub cameraReset
 	Debug( "Camera Reset" );
 	my $cmd = "reboot.cgi?";
 	$self->sendCmd( $cmd );
+}
+
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset();
 }
  
 #Up Arrow
@@ -245,6 +252,65 @@ sub moveStop
 	my $cmd = "decoder_control.cgi?command=1&onestep=1&";
 	$self->sendCmd( $cmd );
 }
+
+# The Controls row selects relative moves, and the commands above are the
+# camera's one step moves (onestep=1), so the moveRel names the ui uses call
+# them unchanged.
+sub moveRelUp
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUp( $params );
+}
+
+sub moveRelDown
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDown( $params );
+}
+
+sub moveRelLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConLeft( $params );
+}
+
+sub moveRelRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConRight( $params );
+}
+
+sub moveRelUpRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpRight( $params );
+}
+
+sub moveRelDownRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownRight( $params );
+}
+
+sub moveRelUpLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpLeft( $params );
+}
+
+sub moveRelDownLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownLeft( $params );
+}
  
 #Move Camera to Home Position
 sub presetHome
@@ -360,9 +426,8 @@ Philip Coombes, <philip.coombes@zoneminder.com>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

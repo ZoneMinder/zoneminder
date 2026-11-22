@@ -68,9 +68,9 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
 
-    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
+    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/)) {
       $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
       $USERNAME = $+{USERNAME} if $+{USERNAME};
       $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
@@ -78,24 +78,25 @@ sub open {
     }
   } elsif ( $self->{Monitor}{Path}) {
     my $uri = URI->new($self->{Monitor}{Path});
-    Debug("Using Path for credentials: $self->{Monitor}{Path} $self->{Monitor}{User} $self->{Monitor}{Pass}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}).' '.($self->{Monitor}{User} // ''));
     if ($self->{Monitor}{User}) {
       ( $USERNAME, $PASSWORD ) = ($self->{Monitor}{User}, $self->{Monitor}{Pass});
     } else {
-      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo()) if $uri->userinfo();
+      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo(), 2) if $uri->userinfo();
     }
 
     $ADDRESS = $uri->host();
   } else {
-    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+    Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
   if ( !($ADDRESS =~ /:/) ) {
-    Debug('You generally need to also specify the port.  I will append :80');
-    $ADDRESS .= ':80';
+    my $port = ($PROTOCOL eq 'https://') ? '443' : '80';
+    Debug('You generally need to also specify the port.  I will append :'.$port);
+    $ADDRESS .= ':'.$port;
   }
   $BASE_URL = $PROTOCOL.($USERNAME?$USERNAME.':'.$PASSWORD.'@':'').$ADDRESS;
-  Debug("Base url: $BASE_URL");
+  Debug('Base url: '.urlForLog($BASE_URL));
 
   use LWP::UserAgent;
   $self->{ua} = LWP::UserAgent->new;
@@ -155,48 +156,60 @@ sub close {
 sub get {
   my $self = shift;
   my $url = shift;
-  Debug("Getting $url");
+  Debug('Getting '.urlForLog($url));
   my $response = $self->{ua}->get($url);
   Debug('Response: '. $response->status_line . ' ' . $response->content);
   return $response;
 }
 
+sub _clamp_speed {
+  my $val = shift;
+  return 0 unless defined $val;
+  return -5 if $val < -5;
+  return 5 if $val > 5;
+  return $val;
+}
+
 sub sendCmd {
   my ($self, $cmd, $speedcmd) = @_;
 
-  $self->printMsg( $speedcmd, 'Tx' );
+  $self->printMsg( $speedcmd, 'Tx' ) if defined $speedcmd;
   $self->printMsg( $cmd, 'Tx' );
 
-  my $req = HTTP::Request->new( GET => $BASE_URL."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd");
+  my $req = HTTP::Request->new( GET => $BASE_URL."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0" . (defined $speedcmd && $speedcmd ne '' ? "&$speedcmd" : '') . "&$cmd");
   my $res = $self->{ua}->request($req);
 
   if (!$res->is_success) {
-    Error('Request failed: '.$res->status_line().' (URI: '.$req->as_string().')');
+    Error('Request failed: '.$res->status_line().' (URI: '.urlForLog($req->uri()).')');
   }
   return $res->is_success;
 }
 
 sub moveConUp {
   my ($self, $params) = @_;
-  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  my $val = defined($params->{tiltspeed}) ? $params->{tiltspeed} - 6 : -5;
+  my $speed = 'speedtilt=' . _clamp_speed($val);
   $self->sendCmd( 'move=up', $speed );
 }
 
 sub moveConDown {
   my ($self, $params) = @_;
-  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  my $val = defined($params->{tiltspeed}) ? $params->{tiltspeed} - 6 : -5;
+  my $speed = 'speedtilt=' . _clamp_speed($val);
   $self->sendCmd( 'move=down', $speed );
 }
 
 sub moveConLeft {
   my ($self, $params) = @_;
-  my $speed = 'speedpan=-' . $params->{panspeed};
+  my $val = defined($params->{panspeed}) ? $params->{panspeed} - 6 : -5;
+  my $speed = 'speedpan=' . _clamp_speed($val);
   $self->sendCmd( 'move=left', $speed );
 }
 
 sub moveConRight {
   my ($self, $params) = @_;
-  my $speed = 'speedpan=' . ($params->{panspeed} - 6);
+  my $val = defined($params->{panspeed}) ? $params->{panspeed} - 6 : -5;
+  my $speed = 'speedpan=' . _clamp_speed($val);
   $self->sendCmd( 'move=right', $speed );
 }
 
@@ -208,13 +221,15 @@ sub moveStop {
 
 sub zoomConTele {
   my ($self, $params) = @_;
-  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  my $val = defined($params->{speed}) ? $params->{speed} - 6 : -5;
+  my $speed = 'speedzoom=' . _clamp_speed($val);
   $self->sendCmd( 'zoom=tele', $speed );
 }
 
 sub zoomConWide {
   my ($self, $params) = @_;
-  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  my $val = defined($params->{speed}) ? $params->{speed} - 6 : -5;
+  my $speed = 'speedzoom=' . _clamp_speed($val);
   $self->sendCmd( 'zoom=wide', $speed );
 }
 
@@ -233,7 +248,7 @@ sub get_config {
     my $resp = $response->decoded_content;
     return ZoneMinder::General::parseNameEqualsValueToHash($resp);
   }
-  Warning("Failed to get config from $url: " . $response->status_line());
+  Warning('Failed to get config from '.urlForLog($url).': ' . $response->status_line());
   return;
 } # end sub get_config
 
@@ -316,8 +331,7 @@ Robin Daermann E<lt>r.daermann@ids-services.deE<gt>
 
 Copyright (C) 2015 by Robin Daermann
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 =cut

@@ -78,7 +78,6 @@ getBodyTopHTML();
               <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
               <th data-sortable="true" data-field="Id"><?php echo translate('Id') ?></th>
               <th data-sortable="true" data-field="Name"><?php echo translate('Name') ?></th>
-              <th data-sortable="false" data-field="Description"><?php echo translate('Description') ?></th>
               <th data-sortable="true" data-field="StartDateTime"><?php echo translate('Starting') ?></th>
               <th data-sortable="true" data-field="EndDateTime"><?php echo translate('Ending') ?></th>
               <th data-sortable="true" data-field="Interval"><?php echo translate('Interval') ?></th>

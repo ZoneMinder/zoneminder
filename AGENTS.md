@@ -42,7 +42,7 @@ Camera -> zmc (capture) -> Shared Memory -> zma (analysis) -> Event Recording
 
 - **Shared Memory**: `zmc` writes frames to `/dev/shm`; `zma` and `zms` read from same buffers. Zero-copy for performance — this is why ZM can handle many cameras on modest hardware.
 - **Monitor-Centric**: `Monitor` class (`src/zm_monitor.cpp/h`) is the central orchestrator. One monitor = one DB row = one set of daemons. Most changes to camera handling flow through this class.
-- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraRTSP`, `RemoteCameraHTTP`, `FFmpegCamera`, `LibVLCCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
+- **Pluggable Cameras**: Abstract `Camera` base with: `LocalCamera` (V4L2), `RemoteCameraHTTP`, `FFmpegCamera`, `LibVNCCamera`. Add new camera types by subclassing Camera.
 - **Event-Driven Recording**: Motion detection triggers `Event` objects with pre/post alarm buffers. Lifecycle: Create -> Record -> Close -> Archive/Delete. Events are the core unit of recorded footage.
 - **Multi-Server Clustering**: Database-coordinated distributed architecture with shared monitors and storage.
 
@@ -200,8 +200,19 @@ When creating migrations: test upgrade path AND verify fresh install matches mig
 
 ### CI Notes
 
-- Unit tests are **DISABLED** in CI (`BUILD_TEST_SUITE=0`) — some tests need hardware/network access. Running locally goes beyond CI requirements but is still expected for local development.
-- CI does: multi-platform builds (Debian/Ubuntu/CentOS with GnuTLS/OpenSSL + libjwt/jwt_cpp matrix), ESLint, CodeQL security scanning
+- The Catch2 suite runs in two jobs: `ci-cpp-tests.yml` (Ubuntu 24.04) and `ci-macos-build.yml` (macOS arm64). Both run `./tests "~[notCI]"` from `build/tests`; tag cases that need a database, network or hardware `[notCI]`. The suite runs in random order on macOS, so tests must not depend on each other's state.
+- The packaging builds (Debian/Ubuntu/CentOS with GnuTLS/OpenSSL + libjwt/jwt_cpp matrix) and the `-Werror` job configure with `BUILD_TEST_SUITE=OFF`. CI also runs ESLint and CodeQL.
+
+### Portability: macOS CI builds `src/` and `tests/`
+
+The macOS job builds everything, tests included, with clang on arm64. It is the only non-Linux and the only NEON (ARM SIMD) coverage, and it is the job that breaks most often. Code that compiles on the Linux dev box can still fail there, so:
+
+- **Guard Linux-only headers and APIs**, in tests as well as `src/`. Put `#include <sys/sysmacros.h>`, `<sys/prctl.h>`, `<sys/sendfile.h>`, `<linux/...>` (and `makedev`, `prctl`, `fdatasync`, epoll, inotify, ...) inside `#if defined(__linux__)`, or inside the feature guard the code already uses (e.g. `#if ZM_HAS_V4L2` for V4L2/LocalCamera code). Keep a portable fallback (`fsync` for `fdatasync`) when the code must run everywhere.
+- **Same API, different behaviour**: `TIOCOUTQ` reports socket send-queue bytes only on Linux; a `kill()`-sent `SIGSEGV` arrives on macOS with `si_code` set like a real fault and `si_pid` 0. Gate tests that rely on Linux behaviour with `#if defined(__linux__)` rather than letting them fail on macOS.
+- **SIMD paths** in `zm_image.cpp` have separate SSE2 and NEON implementations with different block sizes (NEON loops consume 64 bytes per iteration). A count that is not a block multiple wraps the loop and crashes, and only macOS CI runs the NEON code. Test pixel helpers with widths that are not block multiples.
+- **Double `close()`** of a file descriptor is killed by macOS (`EXC_GUARD`, "Killed: 9") where Linux returns `EBADF`; set fds to `-1` after closing them.
+
+If you cannot build on macOS, push the branch to a fork: `ci-macos-build.yml` runs on any branch push.
 
 ---
 

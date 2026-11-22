@@ -21,7 +21,7 @@
 $message = '';
 if ( !canEdit('System') ) {
   $message = 'Need System permissions to shutdown server';
-} else if ( !isset($_REQUEST['command']) ) {
+} else if ( !isset($_REQUEST['command']) or !is_string($_REQUEST['command']) ) {
   $message = 'A command is required. Cannot continue';
 }
 
@@ -47,7 +47,7 @@ if ( $command == 'shutdown' ) {
   $data['output'] = array();
   exec('sudo '.ZM_PATH_SHUTDOWN.' -c 2>&1', $data['output'], $data['rc']);
 } else {
-  ajaxError('Unknwn command:'.$command);
+  ajaxError('Unknown command:'.$command);
   return;
 }
 

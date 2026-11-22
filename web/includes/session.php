@@ -32,11 +32,7 @@ function zm_setcookie($cookie, $value, $options=array()) {
     $options['samesite'] = 'Strict';
   }
 
-  if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie($cookie, $value, $options);
-  } else {
-    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
-  }
+  setcookie($cookie, $value, $options);
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
@@ -74,19 +70,8 @@ function zm_session_start() {
       $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
     }
     $currentCookieParams['httponly'] = true;
-    if ( version_compare(phpversion(), '7.3.0', '<') ) {
-      session_set_cookie_params(
-        $currentCookieParams['lifetime'],
-        $currentCookieParams['path'].'; samesite=strict',
-        $currentCookieParams['domain'],
-        $currentCookieParams['secure'],
-        $currentCookieParams['httponly']
-      );
-    } else {
-      # samesite was introduced in 7.3.0
-      $currentCookieParams['samesite'] = 'Strict';
-      session_set_cookie_params($currentCookieParams);
-    }
+    $currentCookieParams['samesite'] = 'Strict';
+    session_set_cookie_params($currentCookieParams);
 
     ini_set('session.name', 'ZMSESSID');
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
@@ -152,11 +137,7 @@ function zm_session_regenerate_id_login() {
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
+    return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
   } else {
     \ZM\Warning("php_sapi_name === 'cli'");
   }

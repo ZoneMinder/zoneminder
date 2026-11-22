@@ -159,6 +159,11 @@ if ( $action == 'delete' ) {
           continue;
         }
       }
+      if (($config['Name'] == 'ZM_AUTH_HASH_SECRET') and !authHashSecretValid($newValue)) {
+        $error_message .= 'Error setting ZM_AUTH_HASH_SECRET. New value not saved because it must be at least '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters long and not the shipped default.<br/>';
+        ZM\Error('Not saving ZM_AUTH_HASH_SECRET: shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or the shipped default');
+        continue;
+      }
       if (!configValueIsValid($newValue, $config['Type'], (string)$config['DefaultValue'])) {
         $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is not a valid ' . $config['Type'] . '.<br/>';
         continue;

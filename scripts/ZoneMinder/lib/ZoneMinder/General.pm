@@ -806,6 +806,8 @@ sub commandIsAllowed {
   foreach my $chain (@COMMAND_CHAINING) {
     return 0 if index($command, $chain) >= 0;
   }
+  # A newline separates commands in a shell just as a semicolon does.
+  return 0 if $command =~ /[\r\n]/;
 
   my $program = commandProgram($command);
   return 0 if !defined $program;

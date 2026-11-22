@@ -91,6 +91,8 @@ function commandIsAllowed($command, $allowed) {
   foreach (ZM_COMMAND_CHAINING as $chain) {
     if (strpos($command, $chain) !== false) return false;
   }
+  // A newline separates commands in a shell just as a semicolon does.
+  if (preg_match('/[\r\n]/', $command)) return false;
 
   $program = commandProgram($command);
   if ($program === null) return false;

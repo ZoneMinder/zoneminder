@@ -167,6 +167,12 @@ class ServersController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
 
+    require_once __DIR__ .'/../../../includes/Server.php';
+    $inUse = ZM\Server::InUseSummary((int)$id);
+    if ( $inUse ) {
+      throw new BadRequestException(__('The server is still used by %s', $inUse));
+    }
+
     if ( $this->Server->delete() ) {
       $this->set(array(
         'message' => 'Deleted',

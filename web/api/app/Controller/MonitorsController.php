@@ -38,8 +38,9 @@ class MonitorsController extends AppController {
       // below. Anything else would reach MySQL as an unknown column and come
       // back as a 500.
       $fields = array('Monitor' => array_keys($this->Monitor->schema()));
-      // Camera credentials cannot be filtered on: a filter would let a viewer probe their values.
-      $fields['Monitor'] = array_values(array_diff($fields['Monitor'], array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password')));
+      if (!$this->canQueryCredentials($this->Monitor->find('list', array('fields' => array('Id', 'Id'), 'conditions' => array('Monitor.Deleted' => 0))))) {
+        $fields['Monitor'] = array_values(array_diff($fields['Monitor'], $this->monitorCredentialColumns()));
+      }
       foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
         $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
       }
@@ -81,7 +82,12 @@ class MonitorsController extends AppController {
     $sort = isset($this->request->params['named']['sort']) ? $this->request->params['named']['sort'] : $this->request->query('sort');
     if ($sort !== null) {
       $direction = isset($this->request->params['named']['direction']) ? $this->request->params['named']['direction'] : $this->request->query('direction');
-      if (!is_string($sort) or !in_array($sort, array_keys($this->Monitor->schema()), true)) {
+      $sortable = array_keys($this->Monitor->schema());
+      if (is_string($sort) and in_array($sort, $this->monitorCredentialColumns(), true)
+        and !$this->canQueryCredentials($this->Monitor->find('list', array('fields' => array('Id', 'Id'), 'conditions' => array('Monitor.Deleted' => 0))))) {
+        $sortable = array_diff($sortable, $this->monitorCredentialColumns());
+      }
+      if (!is_string($sort) or !in_array($sort, $sortable, true)) {
         throw new BadRequestException('Unknown sort field');
       }
       if ($direction === null) $direction = 'asc';
@@ -155,16 +161,15 @@ class MonitorsController extends AppController {
     ));
   }
 
-  // Camera credentials are for users who can edit the monitor.
-  private function hideCredentials($row, $zm_monitor) {
-    if ($zm_monitor->canEdit()) return $row;
-    foreach (array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password') as $field) {
-      if (isset($row[$field])) $row[$field] = '';
+  // A filter or sort on a credential column would let a user probe values the
+  // response hides, so only a user who can edit every monitor they can view may.
+  private function canQueryCredentials($monitorIds) {
+    global $user;
+    if (!$user) return false;
+    foreach ($monitorIds as $id) {
+      if (visibleMonitor($id) and !editableMonitor($id)) return false;
     }
-    foreach (array('Host', 'Path', 'SecondPath', 'ONVIF_URL') as $field) {
-      if (!empty($row[$field])) $row[$field] = preg_replace('#^([a-z][a-z0-9+.-]*://)?[^/?\#]*@#i', '$1', $row[$field]);
-    }
-    return $row;
+    return true;
   }
 
 /**

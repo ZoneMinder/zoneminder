@@ -17,7 +17,7 @@ if (!is_file($file)) { echo "FAIL - controller not found at $file\n"; exit(1); }
 $source = file_get_contents($file);
 
 function extractMethod($source, $name) {
-  if (!preg_match('/(public|private) function '.$name.'\(/', $source, $m, PREG_OFFSET_CAPTURE)) {
+  if (!preg_match('/(public|private|protected) function '.$name.'\(/', $source, $m, PREG_OFFSET_CAPTURE)) {
     return '';
   }
   $start = $m[0][1];
@@ -64,7 +64,9 @@ class FakeController {
   public $Monitor; public $out;
   function set($a) { $this->out = $a; }
 }
-eval('class FakeCtl extends FakeController { '.$fix(extractMethod($source, 'view')).' '.extractMethod($source, 'hideCredentials').' }');
+$app = file_get_contents($root.'/web/api/app/Controller/AppController.php');
+eval('class FakeCtl extends FakeController { '.$fix(extractMethod($source, 'view')).' '
+  .extractMethod($app, 'monitorCredentialColumns').' '.extractMethod($app, 'hideCredentials').' }');
 
 foreach (array(false, true) as $canEdit) {
   ZM\Monitor::$canEdit = $canEdit;

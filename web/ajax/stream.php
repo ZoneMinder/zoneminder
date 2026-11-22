@@ -91,18 +91,14 @@ case CMD_SCALE :
   $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale']);
   break;
 case CMD_SEEK :
-  # Pack int two 32 bit integers instead of trying to deal with floats
-  $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
-    intval($_REQUEST['offset']),
-    1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
+  require_once('includes/stream_set_event.php');
+  $msg = packSecondsMessage(MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] ?? 0);
   break;
 case CMD_MAXFPS :
   if (!floatval($_REQUEST['maxfps'])) $_REQUEST['maxfps'] = 0;
   ZM\Debug('Maxfps to '.$_REQUEST['maxfps']);
-  # Pack int two 32 bit integers instead of trying to deal with floats
-  $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
-    intval($_REQUEST['maxfps']),
-    1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
+  require_once('includes/stream_set_event.php');
+  $msg = packSecondsMessage(MSG_CMD, $_REQUEST['command'], $_REQUEST['maxfps']);
   break;
 case CMD_SET_EVENT :
   # Tell zms which event is next (dir=0) or prev (dir=1) in the UI's filter/sort

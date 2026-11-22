@@ -44,4 +44,13 @@ function packSetEventMessage($msg_cmd, $command, $prev, $event_id, $source_event
     .packEventId64($event_id)
     .packEventId48($source_event_id);
 }
+
+// A command carrying seconds for zms (CMD_SEEK, CMD_MAXFPS): whole seconds then
+// microseconds, each a big-endian uint32. The fraction is rounded, not
+// truncated: 2.3 - 2 is 0.29999999999999982, which truncated to 299999us and
+// seeked to the frame before the one at 2.3s.
+function packSecondsMessage($msg_cmd, $command, $seconds) {
+  $us = (int)round(floatval($seconds) * 1000000);
+  return pack('lcNN', $msg_cmd, $command, intdiv($us, 1000000), $us % 1000000);
+}
 ?>

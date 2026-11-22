@@ -225,9 +225,9 @@ switch ($case) {
   case 'all-filtered-dates':
     check('a date range deletes by filter', count($queries), 1);
     check('dates: bounded both ends',
-      $queries[0]['sql'], 'DELETE FROM Logs WHERE TimeKey >= ? AND TimeKey <= ?');
+      $queries[0]['sql'], 'DELETE FROM Logs WHERE TimeKey >= ? AND TimeKey < ?');
     check('dates: bound as timestamps', $queries[0]['params'],
-      array(strtotime('2026-01-01 00:00:00'), strtotime('2026-01-02 00:00:00')));
+      array(strtotime('2026-01-01 00:00:00'), strtotime('2026-01-02 00:00:00') + 1));
     break;
 
   case 'all-filtered-search':

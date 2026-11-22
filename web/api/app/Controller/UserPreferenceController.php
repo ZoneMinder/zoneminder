@@ -108,6 +108,12 @@ class UserPreferenceController extends AppController {
     }
     $message = '';
 		if ($this->request->is('post')) {
+      # save() writes the row named by an Id in the data and prefers a nested
+      # UserPreference array over the flat fields, so use the flat fields only.
+      if (is_array($data) and isset($data['UserPreference']) and is_array($data['UserPreference'])) {
+        $data = $data['UserPreference'];
+      }
+      if (is_array($data)) unset($data['Id']);
       # The client sends its own UserId; taking it on trust would let anyone
       # write a preference for another account.
       $own = $this->currentUserId();

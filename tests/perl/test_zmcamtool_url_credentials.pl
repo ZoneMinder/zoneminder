@@ -21,7 +21,7 @@ sub check {
 }
 
 my $tool = do {
-  open(my $fh, '<', "$FindBin::Bin/../../scripts/zmcamtool.pl.in") or die "Can't open zmcamtool.pl.in: $!";
+  open(my $fh, '<', ($ENV{ZM_TEST_ROOT} || "$FindBin::Bin/../..")."/scripts/zmcamtool.pl.in") or die "Can't open zmcamtool.pl.in: $!";
   local $/;
   <$fh>;
 };
@@ -37,6 +37,8 @@ my %cases = (
   '/video.cgi?pwd=secret&user=admin'          => '/video.cgi?pwd=<pwd>&user=<username>',
   '/video.cgi?user=admin&pwd=secret&ch=1'     => '/video.cgi?user=<username>&pwd=<pwd>&ch=1',
   '/video.cgi?username=admin&password=secret' => '/video.cgi?username=<username>&password=<pwd>',
+  '/video.cgi?user=cam-1&pwd=p.ss-w!rd'      => '/video.cgi?user=<username>&pwd=<pwd>',
+  '/video.cgi?pwd=p.ss-w!rd&ch=2'            => '/video.cgi?pwd=<pwd>&ch=2',
 );
 foreach my $in (sort keys %cases) {
   my ($out) = scrub($in);

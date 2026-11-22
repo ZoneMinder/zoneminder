@@ -405,6 +405,7 @@ class EventsController extends AppController {
         $id = $this->Event->id;
       } else {
         $message = 'Error';
+        $this->response->statusCode(400);
         $id = null;
         // if there is a validation message, use it
         if (!$this->Event->validates()) {
@@ -463,6 +464,7 @@ class EventsController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Event->validationErrors ? $this->Event->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

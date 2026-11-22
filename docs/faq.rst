@@ -25,7 +25,7 @@ Ensure that the Delete all matches checkbox is checked.
 
 Then click on 'Save'.  The filter will immediately begin executing in the background to keep your disk within those limits.
 
-Please note that that this filter will only affect the default storage location.  If you have added other storage areas, you must create a PurgeWhenFull filter for each one, and specify the Storage Area as one of the parameters in the filter. You can duplicate the existing PurgeWhenFull filter by using Save As instead of Save.
+Please note that this filter will only affect the default storage location.  If you have added other storage areas, you must create a PurgeWhenFull filter for each one, and specify the Storage Area as one of the parameters in the filter. You can duplicate the existing PurgeWhenFull filter by using Save As instead of Save.
 
 Check the ``zmfilter.log`` file to make sure it is running as sometimes missing perl modules mean that it never runs but people don't always realize.
 

@@ -40,7 +40,10 @@ class ZonesController extends AppController {
   private function requestMonitorId() {
     $data = $this->request->data;
     if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
-    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
+    if (!isset($data['MonitorId'])) return null;
+    // An array or object here would be checked as a made-up monitor and then saved as the zone's MonitorId.
+    if (!is_scalar($data['MonitorId'])) throw new BadRequestException(__('MonitorId must be a number'));
+    return $data['MonitorId'];
   }
 
   // Find all zones which belong to a MonitorId

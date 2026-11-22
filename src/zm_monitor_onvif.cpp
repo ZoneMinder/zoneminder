@@ -206,6 +206,12 @@ namespace {
     return !value.empty() && value.find_first_not_of('0') == std::string::npos;
   }
 
+  // Whether name is a flag such as IsPeople, in any case: "Is" then a capital.
+  bool is_flag_name(const std::string &name) {
+    return name.size() > 2 && StringToLower(name.substr(0, 2)) == "is" &&
+           std::isupper(static_cast<unsigned char>(name[2]));
+  }
+
   // The topic's segments, without namespace prefixes, whitespace or empties.
   StringVector topic_segments(const std::string &topic) {
     StringVector segments;
@@ -217,15 +223,17 @@ namespace {
   }
 
   // Whether item says more than that the topic is active. If it does, value is
-  // its trimmed value and active whether that is an active word, so the item
-  // name carries the meaning.
+  // its trimmed value and active whether that is an active word, or 1 for a
+  // flag or state item, so the item name carries the meaning.
   bool item_is_telling(const ONVIFEventItem &item, std::string &value, bool &active) {
     value = Trim(item.value, ONVIF_WHITESPACE);
     const std::string lower_name = StringToLower(item.name);
     if (value.empty() || value_is_inactive(value) || list_has(ONVIF_ID_NAMES, lower_name)) return false;
     const std::string lower_value = StringToLower(value);
-    active = list_has(ONVIF_ACTIVE_VALUES, lower_value);
-    return !(list_has(ONVIF_STATE_NAMES, lower_name) && (active || lower_value == "1"));
+    const bool is_state_name = list_has(ONVIF_STATE_NAMES, lower_name);
+    active = list_has(ONVIF_ACTIVE_VALUES, lower_value) ||
+             (lower_value == "1" && (is_state_name || is_flag_name(item.name)));
+    return !(is_state_name && active);
   }
 
 }  // namespace
@@ -270,9 +278,7 @@ std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vec
     bool active = false;
     if (!item_is_telling(item, value, active)) continue;
     if (active) {
-      bool is_prefixed = item.name.size() > 2 && StringToLower(item.name.substr(0, 2)) == "is" &&
-                         std::isupper(static_cast<unsigned char>(item.name[2]));
-      words.push_back(is_prefixed ? item.name.substr(2) : item.name);
+      words.push_back(is_flag_name(item.name) ? item.name.substr(2) : item.name);
     } else {
       for (const std::string &word : Split(value, ' ')) words.push_back(word);
     }
@@ -1645,7 +1651,9 @@ static bool extract_simple_item_attrs(struct soap_dom_element *elt,
 // Check if SimpleItem Name is a data field (not a source identifier)
 // Based on ONVIF Event Service Specification and common camera implementations:
 // - Hikvision, Dahua, Axis, Reolink, Amcrest, Hanwha/Samsung, etc.
-static bool is_data_simple_item(const std::string &item_name) {
+// Whether the item says if the alarm is on (IsMotion, State, ...), rather than
+// describing what was detected (ObjectId, Count, ...).
+static bool is_state_simple_item(const std::string &item_name) {
   // Convert to lowercase for case-insensitive comparison
   std::string lower_name = StringToLower(item_name);
 
@@ -1672,6 +1680,13 @@ static bool is_data_simple_item(const std::string &item_name) {
       lower_name == "motion") {          // Some cameras use just "Motion"
     return true;
   }
+
+  return false;
+}
+
+static bool is_data_simple_item(const std::string &item_name) {
+  if (is_state_simple_item(item_name)) return true;
+  const std::string lower_name = StringToLower(item_name);
 
   // Analytics/counting fields (these may have non-boolean values)
   if (lower_name == "count" ||           // Object counting
@@ -1800,10 +1815,12 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
                   item_name.c_str(), item_value.c_str());
             items.push_back({item_name, item_value});
 
-            // The first state item, unless it is inactive and a later one is
-            // active (Tapo: IsVehicle=false, IsPeople=true is a person).
+            // The first data item, unless it is inactive and a later state
+            // item is active (Tapo: IsVehicle=false, IsPeople=true is a
+            // person). A later ObjectId or Count says nothing about the alarm.
             if (is_data_simple_item(item_name) &&
-                (!have_value || (!interpret_alarm_value(value) && interpret_alarm_value(item_value)))) {
+                (!have_value || (!interpret_alarm_value(value) && is_state_simple_item(item_name) &&
+                                 interpret_alarm_value(item_value)))) {
               value = item_value;
               have_value = true;
               Debug(3, "ONVIF: Extracted data value: %s=%s (operation=%s)",

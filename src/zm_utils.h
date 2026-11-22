@@ -61,6 +61,8 @@ std::string escape_json_string(std::string input);
 std::string remove_newlines(std::string input);
 std::string Trim(const std::string &str, const std::string &char_set);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
+// The first max_chars UTF-8 characters of str, never splitting one.
+std::string Utf8Truncate(const std::string &str, size_t max_chars);
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string ShellEscape(const std::string &str) {
   std::string result = "'";

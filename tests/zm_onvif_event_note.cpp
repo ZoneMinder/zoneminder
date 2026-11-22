@@ -167,6 +167,9 @@ TEST_CASE("ONVIFEventTags", "[onvif]") {
             == Tags{"package"});
     REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"isPeople", "true"}}, names)
             == Tags{"person"});
+    // 1 is true for a flag, as it is for the alarm state
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPeople", "1"}}, names)
+            == Tags{"person"});
   }
 
   SECTION("Objects in an item value, any case") {
@@ -278,6 +281,13 @@ TEST_CASE("ONVIF parse_event_message keeps every Data item and the Rule", "[onvi
     auto *off = MakeMessage(soap.get(), "tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {},
                             {{"IsVehicle", "false"}, {"IsPeople", "false"}});
     REQUIRE(ONVIF::parse_event_message(off, topic, value, operation, items, rule));
+    REQUIRE(value == "false");
+  }
+
+  SECTION("A later item describing the object does not raise the alarm") {
+    auto *msg = MakeMessage(soap.get(), "tns1:RuleEngine/FieldDetector/ObjectsInside", {},
+                            {{"IsInside", "false"}, {"ObjectId", "3"}, {"Count", "1"}});
+    REQUIRE(ONVIF::parse_event_message(msg, topic, value, operation, items, rule));
     REQUIRE(value == "false");
   }
 

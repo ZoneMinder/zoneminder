@@ -476,7 +476,7 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 // Link the tag called name to this event, creating the tag when it is new. Each
 // name is linked once per event.
 void Event::AddTag(const std::string &name, SystemTimePoint assigned_on) {
-  const std::string tag_name = name.substr(0, 64);  // the size of Tags.Name
+  const std::string tag_name = Utf8Truncate(name, 64);  // Tags.Name is 64 characters
   if (tag_name.empty()) return;
   {
     // Each name is tried once per event, so one that can't be saved is not

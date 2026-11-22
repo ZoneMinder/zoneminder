@@ -90,6 +90,8 @@ if ($action == 'Save') {
           # Have to update auth hash in session
           zm_session_start();
           generateAuthHash(ZM_AUTH_HASH_IPS, true);
+          // Keep this session valid after changing our own password.
+          if (isset($changes['Password']) and $user) $_SESSION['passwordHash'] = $user->Password();
           session_write_close();
         }
       }

@@ -1467,6 +1467,8 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
       Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+      if (vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0)
+        Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
       return -1;
     } else if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height)) {
       Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
@@ -1478,6 +1480,8 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Debug(3, "Switching video source to %d", channels[next_channel]);
       if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channels[next_channel]) < 0) {
         Error("Failed to set camera source %d: %s", channels[next_channel], strerror(errno));
+        if (vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0)
+          Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
         return -1;
       }
 

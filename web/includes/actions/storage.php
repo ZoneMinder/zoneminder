@@ -27,9 +27,29 @@ if ( !canEdit('System') ) {
 global $error_message;
 
 if ($action == 'save') {
-  $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
+  if (!isset($_REQUEST['id']) || !isset($_REQUEST['newStorage']) || !is_array($_REQUEST['newStorage'])) {
+    ZM\Error('Storage save requires an id and newStorage');
+    $error_message .= 'Invalid storage request';
+    $changes = array();
+  } else {
+    $storage = new ZM\Storage(validCardinal($_REQUEST['id']));
 
-  $changes = $storage->changes($_REQUEST['newStorage']);
+    # Storage::Path() falls back to Name when Path is empty, which would turn the
+    # Name into a filesystem path, so neither may be blank.
+    $name = array_key_exists('Name', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Name'] : ($storage->{'Name'} ?? '');
+    $path = array_key_exists('Path', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Path'] : ($storage->{'Path'} ?? '');
+    if (!is_string($name) or (trim($name) === '')) {
+      ZM\Warning('Refusing to save storage area with an empty Name');
+      $error_message .= 'Storage area Name is required<br/>';
+      $changes = array();
+    } else if (!is_string($path) or (trim($path) === '')) {
+      ZM\Warning('Refusing to save storage area with an empty Path');
+      $error_message .= 'Storage area Path is required<br/>';
+      $changes = array();
+    } else {
+      $changes = $storage->changes($_REQUEST['newStorage']);
+    }
+  }
 
   if (count($changes)) {
     if ($storage->save($changes)) {
@@ -38,9 +58,16 @@ if ($action == 'save') {
       $error_message .= $storage->get_last_error();
     } // end if successful save
   }
-  // there is no view=storage, so need to redirect somewhere useful
-  $redirect = '?view=options&tab=storage';
-  $refreshParent = true;
+  if (!$error_message) {
+    // there is no view=storage, so need to redirect somewhere useful
+    $redirect = '?view=options&tab=storage';
+    $refreshParent = true;
+  } else {
+    // The modal form posts view=storage, which has no view file. Render the
+    // options page instead so that the error is shown.
+    $view = 'options';
+    $_REQUEST['tab'] = 'storage';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Storage");
 }

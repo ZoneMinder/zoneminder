@@ -52,7 +52,9 @@ zmc processes and provide those streams over rtsp
 #include "zm_define.h"
 #include "zm_monitor.h"
 #include "zm_rtsp_server_authenticator.h"
+#include "zm_rtsp_server_pts_tracker.h"
 #include "zm_rtsp_server_session_tracker.h"
+#include "zm_rtsp_server_session.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_adts_source.h"
@@ -119,24 +121,36 @@ class MonitorRtspStream {
       // sent to the old packer in that window is codec-mismatch garbage.
       if (!session_ or !tracker_.Accepts(header.generation))
         return;
+      int64_t pts = header.pts_us == AV_NOPTS_VALUE ? header.pts_us : pts_tracker_.Map(header.pts_us);
       if (header.stream == static_cast<uint8_t>(StreamId::Video)) {
         if (video_source_)
-          video_source_->OnPacket(data, size, header.pts_us);
+          video_source_->OnPacket(data, size, pts);
       } else {
         if (audio_source_)
-          audio_source_->OnPacket(data, size, header.pts_us);
+          audio_source_->OnPacket(data, size, pts);
       }
+    };
+    // The camera was reconnected: its timestamps start over under clients that stay connected
+    callbacks.on_event = [this](const Header &, const zm::stream_socket::MonitorEvent &event) {
+      if (event.code != zm::stream_socket::kEventCaptureResumed)
+        return;
+      std::lock_guard<std::mutex> lock(mutex_);
+      pts_tracker_.Discontinuity();
     };
     // The built session is kept across a disconnect; if the next producer
     // announces identical parameters it is adopted, clients and all.
     callbacks.on_disconnect = [this]() {
       std::lock_guard<std::mutex> lock(mutex_);
       tracker_.OnDisconnect();
+      pts_tracker_.Discontinuity();
     };
     std::string path = stringtf("%s/stream_%u.sock", staticConfig.PATH_SOCKS.c_str(), monitor_->Id());
     Info("Monitor %u: consuming stream socket %s", monitor_->Id(), path.c_str());
     client_ = zm::make_unique<StreamSocketClient>(std::move(path), std::move(callbacks));
   }
+
+  // Lets the reader thread start winding down ahead of the destructor's join
+  void RequestStop() { client_->RequestStop(); }
 
   ~MonitorRtspStream() {
     client_.reset();  // stop callbacks before tearing the session down
@@ -188,6 +202,12 @@ class MonitorRtspStream {
   // mutex_ must be held; the tracker has a complete HELLO set. build_audio says whether
   // the pending audio HELLO is current (see Update) and should be served.
   void BuildLocked(bool build_audio) {
+    if (stream_name_.empty()) {
+      // rtsp://host:port/ cannot reach a session registered under "", and it would
+      // take the "" slot away from every other monitor without a name
+      Warning("Monitor %u: RTSPStreamName is empty, not serving this monitor over rtsp", monitor_->Id());
+      return;
+    }
     xop::MediaSession *session = xop::MediaSession::CreateNew(stream_name_);
     if (!session) {
       Error("Unable to create session for %s", stream_name_.c_str());
@@ -201,7 +221,11 @@ class MonitorRtspStream {
         [](xop::MediaSessionId, const std::string &peer_ip, uint16_t peer_port) {
           Debug(1, "RTSP client disconnect, ip=%s, port=%hu", peer_ip.c_str(), peer_port);
         });
-    rtsp_server_->AddSession(session);
+    if (!RtspAddSession(*rtsp_server_, session)) {
+      Error("Monitor %u: rtsp stream name '%s' is already served by another monitor, not serving this one",
+            monitor_->Id(), stream_name_.c_str());
+      return;
+    }
     xop::MediaSessionId session_id = session->GetMediaSessionId();
 
     const HelloInfo &video = tracker_.PendingVideo();
@@ -313,7 +337,22 @@ class MonitorRtspStream {
   ZoneMinderStreamSource *video_source_ = nullptr;
   ZoneMinderStreamSource *audio_source_ = nullptr;
   RtspSessionTracker tracker_;  // HELLO/generation bookkeeping, guarded by mutex_
+  RtspPtsTracker pts_tracker_;  // guarded by mutex_
 };
+
+// Monitors are only reloaded into the map when their stream name changes, so a
+// copy loaded before zmc restarted with another resolution, image buffer count
+// or zone count expects a shared memory size that no longer matches the file
+// and connect() fails on every pass. Returns the copy loaded in this pass for
+// monitor_id, which matches the restarted zmc.
+std::shared_ptr<Monitor> FindLoadedMonitor(
+    const std::vector<std::shared_ptr<Monitor>> &loaded, unsigned int monitor_id) {
+  for (const auto &candidate : loaded) {
+    if (candidate->Id() == monitor_id)
+      return candidate;
+  }
+  return nullptr;
+}
 
 void Usage() {
   fprintf(stderr, "zm_rtsp_server -m <monitor_id>\n");
@@ -343,7 +382,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-    int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
+    int c = getopt_long(argc, argv, "m:hv", long_options, &option_index);
     if (c == -1)
       break;
 
@@ -401,10 +440,9 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
   rtspServer->SetVersion("ZoneMinder RTSP Server");
 
-  if (config.opt_use_auth) {
-    std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
-    rtspServer->SetAuthenticator(authenticator);
-  }
+  // Always installed: it checks opt_use_auth when a connection authenticates, so a reload can turn auth on.
+  std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
+  rtspServer->SetAuthenticator(authenticator);
 
   if (!rtspServer->Start("0.0.0.0", config.min_rtsp_port)) {
     Debug(1, "Failed starting RTSP server on port %d", config.min_rtsp_port);
@@ -455,31 +493,50 @@ int main(int argc, char *argv[]) {
 
       if (stream.HasClients()) {
         // The shm connection is only needed for viewer accounting now
-        if (monitor->ShmValid() or monitor->connect()) {
-          monitor->setLastViewed(std::chrono::system_clock::now());
+        if (!monitor->ShmValid()) {
+          // zmc restarted: unmap its old shared memory instead of leaking it
+          monitor->disconnect();
+          // and take the copy loaded in this pass, whose settings match the restarted zmc
+          std::shared_ptr<Monitor> reloaded = FindLoadedMonitor(new_monitors, monitor->Id());
+          if (reloaded)
+            monitor = reloaded;
+          if (!monitor->connect()) {
+            Debug(1, "Monitor %d shared memory not available yet, retrying next pass", monitor->Id());
+            continue;
+          }
         }
+        monitor->setLastViewed(std::chrono::system_clock::now());
       }
     }  // end foreach monitor
 
     {
       // Sleep until the next periodic pass, or earlier if a HELLO arrives
       // that needs a session (re)build
+      // Signal handlers cannot notify the condition variable, so poll for them
       std::unique_lock<std::mutex> lock(rebuild_mutex);
-      rebuild_cv.wait_for(lock, std::chrono::seconds(10), [] { return rebuild_pending; });
+      auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+      while (!rebuild_pending and !zm_terminate and !zm_reload
+             and std::chrono::steady_clock::now() < deadline)
+        rebuild_cv.wait_for(lock, std::chrono::milliseconds(200));
       rebuild_pending = false;
     }
 
     if (zm_reload) {
+      // Clear first so a SIGHUP that arrives while reloading is not lost.
+      zm_reload = false;
       Info("Reloading configuration");
+      zmLoadStaticConfig();
       zmLoadDBConfig();
       // The RTSP server threads keep logging through the reload.
       logReload(log_id_string);
-      zm_reload = false;
     }  // end if zm_reload
   } // end while !zm_terminate
 
   Info("RTSP Server shutting down");
 
+  // Signal every reader first so the joins in the destructors overlap
+  for (auto &entry : streams)
+    entry.second->RequestStop();
   streams.clear();
   monitors.clear();
   rtspServer->Stop();

@@ -215,3 +215,32 @@ TEST_CASE("Image::BuildHighlight lands the highlight where the mask marked it", 
   SECTION("720 wide, GRAY8 row padded to 736") { check(720, 480); }
   SECTION("640 wide, GRAY8 row already aligned") { check(640, 480); }
 }
+
+TEST_CASE("Zone::CheckAlarms finds blobs separated by long black runs", "[Zone]") {
+  EnsureConfig();
+  // 75 is not a multiple of 8, so blobs at the end of a row are found after the word skip stops
+  const int w = 75, h = 30;
+  const Polygon polygon = FullFramePolygon(w, h);
+
+  struct Rect { int x0, y0, x1, y1; };
+  const Rect rects[] = {{0, 0, 2, 2}, {30, 4, 39, 8}, {71, 10, 74, 14}, {9, 20, 9, 26}, {50, 25, 74, 29}};
+  auto delta = std::unique_ptr<Image>(new Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+  memset(delta->Buffer(), 0, static_cast<size_t>(delta->LineSize()) * h);
+  int pixels = 0;
+  for (const Rect &r : rects) {
+    for (int y = r.y0; y <= r.y1; y++)
+      for (int x = r.x0; x <= r.x1; x++) *delta->Buffer(x, y) = 100;
+    pixels += (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1);
+  }
+
+  auto monitor = MakeMonitor(w, h, ZM_COLOUR_GRAY8);
+  Zone zone(monitor, 1, "blobs", Zone::ACTIVE, polygon, kRGBBlack, Zone::BLOBS,
+            50, 0, 1, 0, Vector2(1, 1), 0, 0, 1, 0, 0, 0);
+  REQUIRE(zone.CheckAlarms(delta.get()));
+  CHECK(zone.GetStats().alarm_blobs_ == 5);
+  CHECK(zone.GetStats().alarm_blob_pixels_ == pixels);
+  CHECK(zone.GetStats().min_blob_size_ == 7);
+  CHECK(zone.GetStats().max_blob_size_ == 125);
+  CHECK(zone.GetStats().alarm_box_.Lo() == Vector2(0, 0));
+  CHECK(zone.GetStats().alarm_box_.Hi() == Vector2(74, 29));
+}

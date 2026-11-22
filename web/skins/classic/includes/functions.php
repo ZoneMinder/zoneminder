@@ -137,7 +137,7 @@ echo output_cache_busted_stylesheet_links(array(
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
   if ($baseCssPhpFile) require_once($baseCssPhpFile);
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
-  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  if ($skinCssPhpFile) require_once($skinCssPhpFile);
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
@@ -858,7 +858,8 @@ function getCpuUsageHTML() {
     $thisServer->ReadStats();
 
     $result .= '<li id="getCpuUsageHTML" class="CpuUsage nav-item mx-2">'.PHP_EOL;
-    $result .= '&nbsp;'.translate('Cpu').': '.number_format($thisServer->CpuUsagePercent, 1, '.', '').'%'.PHP_EOL;
+    # -1 is what Server leaves in place when zmstats has not written any stats yet.
+    $result .= '&nbsp;'.translate('Cpu').': '.($thisServer->CpuUsagePercent < 0 ? 'n/a' : number_format($thisServer->CpuUsagePercent, 1, '.', '').'%').PHP_EOL;
     $result .= '</li>'.PHP_EOL;
   }
   return $result;
@@ -874,7 +875,7 @@ function getSysLoadHTML() {
 
     $result .= '<li id="getSysLoadHTML" class="Load nav-item mx-2">';
     $result .= '<i class="material-icons md-18">trending_up</i>';
-    $result .= '&nbsp;'.translate('Load').': '.number_format($thisServer->CpuLoad, 2, '.', '');
+    $result .= '&nbsp;'.translate('Load').': '.($thisServer->CpuLoad < 0 ? 'n/a' : number_format($thisServer->CpuLoad, 2, '.', ''));
     $result .= '</li>'.PHP_EOL;
   } 
   return $result;
@@ -938,7 +939,7 @@ function getStorageHTML() {
     $result .= '</li>'.PHP_EOL;
   } else {
     $result .= '<li id="getStorageHTML" class="nav-item dropdown mx-2">'.PHP_EOL;
-    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>Storage</a>'.PHP_EOL;
+    $result .= '<a class="dropdown-toggle mr-2 '.$class.'" href="#" id="dropdown_storage" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="material-icons md-18 mr-1">folder_shared</i>' . translate("Storage") . '</a>'.PHP_EOL;
     $result .= '<div class="dropdown-menu" aria-labelledby="dropdown_storage">'.PHP_EOL;
     
     foreach ( $storage_areas as $area ) {  
@@ -1065,7 +1066,7 @@ function getZMVersionHTML() {
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
     $content = 'v'.ZM_VERSION.PHP_EOL;
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_DYN_CURR_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
     $content = 'v'.ZM_VERSION.PHP_EOL;
@@ -1749,7 +1750,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
   if ( !canView('Events') ) return;
   $result = '';
   
-  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,Z.Coords,M.Name AS MonitorName,M.Width,M.Height FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,Z.Coords,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
@@ -1781,20 +1782,27 @@ function getStatsTableHTML($eid, $fid, $row='') {
         // Area is in percentage coordinate space (0-10000 for full frame).
         // Convert to pixel area for percentage calculations since Stats values are pixel counts.
         $pixelArea = $stat['Area'] / 10000.0 * $stat['Width'] * $stat['Height'];
-        if ($pixelArea <= 0) $pixelArea = 1; // avoid division by zero
+
+        $pct = function($n) use ($pixelArea) {
+          return $pixelArea > 0 ? sprintf('%d (%d%%)', $n, 100*$n/$pixelArea) : sprintf('%d', $n);
+        };
 
         $result .= '<tr>'.PHP_EOL;
-          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr(isset($stat['ZoneName']) ? $stat['ZoneName'] : translate('Zone').' '.$stat['ZoneId']). '</td>'.PHP_EOL;
           $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
-          $result .= '<td class="colAlarmPx">' .sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$pixelArea) ). '</td>'.PHP_EOL;
-          $result .= '<td class="colFilterPx">' .sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$pixelArea) ).'</td>'.PHP_EOL;
-          $result .= '<td class="colBlobPx">' .sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$pixelArea) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colAlarmPx">' .$pct($stat['AlarmPixels']). '</td>'.PHP_EOL;
+          $result .= '<td class="colFilterPx">' .$pct($stat['FilterPixels']).'</td>'.PHP_EOL;
+          $result .= '<td class="colBlobPx">' .$pct($stat['BlobPixels']). '</td>'.PHP_EOL;
           $result .= '<td class="colBlobs">' .validHtmlStr($stat['Blobs']). '</td>'.PHP_EOL;
 
           if ( $stat['Blobs'] > 1 ) {
-            $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$pixelArea), (100*$stat['MaxBlobSize']/$pixelArea) ). '</td>'.PHP_EOL;
+            if ( $pixelArea > 0 ) {
+              $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$pixelArea), (100*$stat['MaxBlobSize']/$pixelArea) ). '</td>'.PHP_EOL;
+            } else {
+              $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d", $stat['MinBlobSize'], $stat['MaxBlobSize'] ). '</td>'.PHP_EOL;
+            }
           } else {
-            $result .= '<td class="colBlobSizes">' .sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$pixelArea ). '</td>'.PHP_EOL;
+            $result .= '<td class="colBlobSizes">' .$pct($stat['MinBlobSize']). '</td>'.PHP_EOL;
           }
           
           $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;

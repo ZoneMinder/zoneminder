@@ -1,8 +1,17 @@
 name: build-deb-packages
 
 on:
+  # Packages used to build on every push to master. With the current PR volume
+  # that was dozens of full build+sign+publish runs a day for identical trees.
+  # Build a single nightly off master instead, plus a clean build whenever a
+  # release tag (1.x.y) is pushed, and keep a manual trigger. release-1.38
+  # (low-churn stable backports) still builds on push.
   push:
-    branches: [ release-1.38, master ]
+    branches: [ release-1.38 ]
+    tags: [ '1.*' ]
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC nightly, off master HEAD
+  workflow_dispatch: {}
 permissions:
   contents: write
 
@@ -24,9 +33,36 @@ env:
   DEBSIGN_KEYID: ${{ secrets.ZMREPO_GPG_KEY_ID }}
 
 jobs:
+  gate:
+    # A scheduled run still fires on a day with no new commits. Skip the nightly
+    # then so an identical tree is not rebuilt and republished. Tag, branch and
+    # manual runs always build.
+    name: Decide whether to build
+    if: github.repository == 'ZoneMinder/zoneminder'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git log --since='24 hours ago' --format=%H -1)" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits in the last 24h; skipping nightly build."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -99,7 +135,14 @@ jobs:
           git config --global --add safe.directory /__w/zoneminder/ZoneMinder_ZoneMinder.git/.git
           #git submodule init
           #git submodule update --init --recursive
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/${GITHUB_REF_NAME}/utils/do_debian_package.sh
+          # On a tag build GITHUB_REF_NAME is the tag, which is not under
+          # refs/heads, so pick the matching ref namespace.
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            SCRIPT_REF="refs/tags/${GITHUB_REF_NAME}"
+          else
+            SCRIPT_REF="refs/heads/${GITHUB_REF_NAME}"
+          fi
+          curl -s -o do_debian_package.sh "https://raw.githubusercontent.com/ZoneMinder/zoneminder/${SCRIPT_REF}/utils/do_debian_package.sh"
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
@@ -186,6 +229,6 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: ${{ env.DEPLOY_TARGET }}
       - name: Create release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: dist/**/*

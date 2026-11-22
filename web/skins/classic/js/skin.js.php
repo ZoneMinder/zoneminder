@@ -27,7 +27,7 @@ global $user;
 ?>
 const ZM_WEB_VIEWING_TIMEOUT=<?php echo (ZM_WEB_VIEWING_TIMEOUT==''?'0':ZM_WEB_VIEWING_TIMEOUT)?>;
 const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+const navBarRefresh = <?php echo 1000*(int)ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';
@@ -131,6 +131,7 @@ const CMD_SCALE = <?php echo CMD_SCALE ?>;
 const CMD_PREV = <?php echo CMD_PREV ?>;
 const CMD_NEXT = <?php echo CMD_NEXT ?>;
 const CMD_SEEK = <?php echo CMD_SEEK ?>;
+const CMD_SET_EVENT = <?php echo CMD_SET_EVENT ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;

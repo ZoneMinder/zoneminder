@@ -95,6 +95,7 @@ define('CMD_MAXFPS', 18);
 define('CMD_ANALYZE_ON', 19);
 define('CMD_ANALYZE_OFF', 20);
 define('CMD_ZOOMSTOP', 21);
+define('CMD_SET_EVENT', 22);
 define('CMD_QUERY', 99);
 
 //
@@ -113,7 +114,7 @@ define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
 // Date and time formats, not to be modified by language files
 //
 define('STRF_FMT_DATETIME_DB', 'Y-m-d H:i:s');      // Strftime format for database queries, don't change
-define('MYSQL_FMT_DATETIME_SHORT', 'Y/m/d H:i:s');  // MySQL date_format shorter format for dates with time
+define('MYSQL_FMT_DATETIME_SHORT', '%y/%m/%d %H:%i:%S');  // MySQL date_format shorter format for dates with time
 
 global $dateFormatter;
 global $dateTimeFormatter;

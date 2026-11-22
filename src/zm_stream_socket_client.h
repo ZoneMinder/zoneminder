@@ -65,6 +65,7 @@ class StreamSocketClient {
   StreamSocketClient(const StreamSocketClient &) = delete;
   StreamSocketClient &operator=(const StreamSocketClient &) = delete;
 
+  void RequestStop() { terminate_ = true; }  // non-blocking; Stop() still joins
   void Stop();
   bool IsConnected() const { return connected_; }
 

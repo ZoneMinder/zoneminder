@@ -121,7 +121,8 @@ check('an unrestricted user may replace the list', linksSaved(array(1, 2), array
 foreach (array('Groups' => array('Group', 'MonitorIds', 'Monitor'), 'Snapshots' => array('Snapshot', 'EventIds', 'Event'), 'Tags' => array('Tag', 'EventIds', 'Event')) as $name => $a) {
   list($alias, $field, $assoc) = $a;
   $c = file_get_contents("$controllers/{$name}Controller.php");
-  $copy = strpos($c, "\$this->request->data['$assoc'] = explode(',', \$this->request->data['$alias']['$field']);");
+  // The ids come from requestField() (flat or nested), then are copied to the association.
+  $copy = preg_match("/\\\$this->request->data\\['$assoc'\\] = explode\\(',', \\\$\\w+\\);/", $c, $m, PREG_OFFSET_CAPTURE) ? $m[0][1] : false;
   $first = strpos($c, "requestAssociatedIds('$alias', '$assoc')");
   check("$name add copies $field to $assoc before the check", $copy !== false and $first !== false and $copy < $first, true);
   if ($name != 'Groups') {

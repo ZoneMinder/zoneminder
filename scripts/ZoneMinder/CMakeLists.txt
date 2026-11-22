@@ -17,10 +17,16 @@ install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib/"
   DESTINATION "${ZM_PERL_INSTALL_PATH}"
   FILES_MATCHING PATTERN "*.pm")
 
-# Install configured .pm files from build tree
-install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/lib/"
-  DESTINATION "${ZM_PERL_INSTALL_PATH}"
-  FILES_MATCHING PATTERN "*.pm")
+# Install the configured .pm files from the build tree. They are named one by
+# one: anything else left in the build tree's lib/, such as copies from an
+# older build, would otherwise replace the source tree's modules just installed.
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Base.pm"
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Config.pm"
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/Memory.pm"
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ConfigData.pm"
+  "${CMAKE_CURRENT_BINARY_DIR}/lib/ZoneMinder/ONVIF.pm"
+  DESTINATION "${ZM_PERL_INSTALL_PATH}/ZoneMinder")
 
 # Generate man3 pages for modules with verified documentation.
 # Only modules whose POD was audited and confirmed accurate are listed.

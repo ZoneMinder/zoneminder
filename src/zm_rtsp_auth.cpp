@@ -21,6 +21,7 @@
 #include "zm_crypt.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <algorithm>
 #include <cstring>
 #include <utility>
 
@@ -59,27 +60,53 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
   else if ( strncasecmp(headerData.c_str(), digest_match, digest_match_len) == 0) {
     fAuthMethod = AUTH_DIGEST;
     Debug(2, "Set authMethod to Digest");
-    StringVector subparts = Split(headerData.substr(digest_match_len, headerData.length() - digest_match_len), ",");
+    // A new challenge starts a new nonce, so the nonce count starts again.
+    nc = 1;
+    fOpaque.clear();
+    // A challenge without a usable qop must not inherit the previous one.
+    fQop.clear();
+    // Split on commas that are not inside a quoted value.
+    StringVector subparts;
+    std::string current;
+    bool in_quotes = false;
+    for ( char c : headerData.substr(digest_match_len) ) {
+      if ( c == '"' ) in_quotes = !in_quotes;
+      if ( c == ',' && !in_quotes ) {
+        subparts.push_back(current);
+        current.clear();
+      } else {
+        current += c;
+      }
+    }
+    subparts.push_back(current);
     // subparts are key="value"
     for ( size_t i = 0; i < subparts.size(); i++ ) {
-      StringVector kvPair = Split(TrimSpaces(subparts[i]), "=");
-      // A directive with no '=' (or an empty one) yields fewer than two parts, so
-      // reading kvPair[0]/kvPair[1] below would run off the end. The header comes
-      // from a camera's 401 response, which on an HTTP source is unauthenticated,
-      // so a malformed directive would otherwise crash the capture daemon
-      // (refs GHSA-r8cq-jgx6-gr5p). Skip anything that is not key=value.
-      if ( kvPair.size() < 2 ) continue;
-      std::string key = TrimSpaces(kvPair[0]);
+      // Split on the first '=' only: base64 nonces and opaque values end in '='.
+      std::pair<std::string, std::string> kvPair = PairSplit(TrimSpaces(subparts[i]), '=');
+      // A directive with no '=' gives an empty key. Skip anything that is not
+      // key=value (refs GHSA-r8cq-jgx6-gr5p).
+      std::string key = TrimSpaces(kvPair.first);
+      if ( key.empty() ) continue;
+      for ( char &c : key ) c = tolower(static_cast<unsigned char>(c));
+      std::string value = TrimSpaces(kvPair.second);
       if ( key == "realm" ) {
-        fRealm = Trim(kvPair[1], "\"");
+        fRealm = Trim(value, "\"");
         continue;
       }
       if ( key == "nonce" ) {
-        fNonce = Trim(kvPair[1], "\"");
+        fNonce = Trim(value, "\"");
         continue;
       }
       if ( key == "qop" ) {
-        fQop = Trim(kvPair[1], "\"");
+        // qop may be a list such as "auth,auth-int"; only auth is supported.
+        fQop = "";
+        for ( const std::string &option : Split(Trim(value, "\""), ",") ) {
+          if ( TrimSpaces(option) == "auth" ) fQop = "auth";
+        }
+        continue;
+      }
+      if ( key == "opaque" ) {
+        fOpaque = Trim(value, "\"");
         continue;
       }
     }
@@ -106,6 +133,7 @@ std::string Authenticator::getAuthHeader(const std::string &method, const std::s
       result += ", cnonce=\"" + fCnonce + "\"";
     }
     result += ", response=\"" + computeDigestResponse(method, uri) + "\"";
+    if ( !fOpaque.empty() ) result += ", opaque=\"" + quote(fOpaque) + "\"";
     result += ", algorithm=\"MD5\"";
 
     //Authorization: Digest username="zm",
@@ -163,6 +191,11 @@ void Authenticator::checkAuthResponse(const std::string &response) {
   const char* authenticate_match = "WWW-Authenticate:";
   size_t authenticate_match_len = strlen(authenticate_match);
 
+  // A camera may offer Basic and Digest on separate lines in either order,
+  // and several Digest lines for different algorithms. Prefer Digest over
+  // Basic, and among Digest challenges the MD5 one (or one with no algorithm),
+  // since MD5 is the only digest computed here. Otherwise keep the last line.
+  std::string firstDigest;
   for ( size_t i = 0; i < lines.size(); i++ ) {
     // stop at end of headers
     if ( lines[i].length() == 0 )
@@ -171,9 +204,28 @@ void Authenticator::checkAuthResponse(const std::string &response) {
     if ( strncasecmp(lines[i].c_str(), authenticate_match, authenticate_match_len) == 0 ) {
       authLine = lines[i];
       Debug(2, "Found auth line at %zu:", i);
-      //break;
+      size_t value_start = lines[i].find_first_not_of(" \t", authenticate_match_len);
+      if ( value_start == std::string::npos ||
+           strncasecmp(lines[i].c_str() + value_start, "Digest ", 7) != 0 )
+        continue;
+      std::string lower = lines[i];
+      std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+      size_t alg = lower.find("algorithm=");
+      if ( alg == std::string::npos ) {
+        firstDigest = lines[i];
+        break;
+      }
+      size_t alg_value = alg + strlen("algorithm=");
+      if ( alg_value < lower.size() && lower[alg_value] == '"' ) alg_value++;
+      if ( lower.compare(alg_value, 3, "md5") == 0 &&
+           (alg_value + 3 >= lower.size() || lower[alg_value + 3] != '-') ) {
+        firstDigest = lines[i];
+        break;
+      }
+      if ( firstDigest.empty() ) firstDigest = lines[i];
     }
   }
+  if ( !firstDigest.empty() ) authLine = firstDigest;
   if ( !authLine.empty() ) {
     Debug(2, "Analyze auth line %s", authLine.c_str());
     authHandleHeader(TrimSpaces(authLine.substr(authenticate_match_len, authLine.length() - authenticate_match_len)));

@@ -233,8 +233,9 @@ while (!$zm_terminate) {
       # We can't get the last capture time so can't be sure it's died, it might just be starting up.
       my $startup_time = zmGetStartupTime($monitor);
       my $startup_elapsed = $now - $startup_time;
-      if ($startup_elapsed > $Config{ZM_WATCH_MAX_DELAY}) {
-        Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $Config{ZM_WATCH_MAX_DELAY}");
+      my $startup_limit = $monitor->WatchStartupLimit($Config{ZM_WATCH_MAX_DELAY});
+      if ($startup_elapsed > $startup_limit) {
+        Debug("Monitor $monitor->{Id} $monitor->{Name}, startup time $now - $startup_time $startup_elapsed <? $startup_limit");
         if ($monitor->ControlId()) {
           my $control = $monitor->Control();
           # Only try to reboot the camera if it actually answers. Otherwise
@@ -251,19 +252,14 @@ while (!$zm_terminate) {
         }
         WarningImportance($monitor->ImportanceNumber(),
           "Restarting capture daemon for $monitor->{Id} $$monitor{Name}, no image since startup. ".
-          "Startup time was $startup_time - now $now > $Config{ZM_WATCH_MAX_DELAY}"
+          "Startup time was $startup_time - now $now > $startup_limit"
         );
         $monitor->control('restart');
       }
       next;
     }
 
-    my $max_image_delay = (
-      $monitor->{MaxFPS}
-      &&($monitor->{MaxFPS}>0)
-      &&($monitor->{MaxFPS}<1)
-    ) ? (3/$monitor->{MaxFPS})
-    : $Config{ZM_WATCH_MAX_DELAY};
+    my $max_image_delay = $monitor->WatchImageLimit($Config{ZM_WATCH_MAX_DELAY});
 
     my $image_delay = $now - $capture_time;
     Debug("Monitor $monitor->{Id} last captured $image_delay seconds ago, max is $max_image_delay");
@@ -287,12 +283,7 @@ while (!$zm_terminate) {
       } elsif (!$image_time) {
         Debug("Last analyse time for $$monitor{Id} $$monitor{Name} was zero.");
       } else {
-        my $max_image_delay = ( $monitor->{MaxFPS}
-            &&($monitor->{MaxFPS}>0)
-            &&($monitor->{MaxFPS}<1)
-            ) ? (3/$monitor->{MaxFPS})
-          : $Config{ZM_WATCH_MAX_DELAY}
-        ;
+        my $max_image_delay = $monitor->WatchImageLimit($Config{ZM_WATCH_MAX_DELAY});
         my $image_delay = $now-$image_time;
         Debug("Monitor $monitor->{Id} last analysed $image_delay seconds ago, max is $max_image_delay");
         if ($image_delay > $max_image_delay) {

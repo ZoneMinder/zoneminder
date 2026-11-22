@@ -329,7 +329,7 @@ sub focusRelNear {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelNear($params);
     }
@@ -347,7 +347,7 @@ sub focusRelFar {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelFar($params);
     }
@@ -447,7 +447,7 @@ sub presetHome {
 
 sub reboot {
   my $self = shift;
-  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
+  my $response = $self->sendCmd('/axis-cgi/admin/restart.cgi');
   return $response->is_success;
 }
 

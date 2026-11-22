@@ -29,6 +29,9 @@ $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) : 'system';
 
 $focusWindow = true;
 
+// Set by the save action's redirect, which can't carry the flag any other way.
+if (!empty($_REQUEST['restart'])) $restartWarning = true;
+
 xhtmlHeaders(__FILE__, translate('Options'));
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -204,6 +207,17 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
       }
     }
 
+    $sound_files = array();
+    foreach (glob(ZM_DIR_SOUNDS.'/*') ?: array() as $sound_file) {
+      if (is_file($sound_file)) $sound_files[basename($sound_file)] = basename($sound_file);
+    }
+    $sound_value = $configCats[$tab]['ZM_WEB_ALARM_SOUND']['Value'];
+    if ($sound_files) {
+      // Keep a configured file that is no longer in the directory selectable
+      if ($sound_value != '' && !isset($sound_files[$sound_value])) $sound_files[$sound_value] = $sound_value;
+      $configCats[$tab]['ZM_WEB_ALARM_SOUND']['Hint'] = $sound_files;
+    }
+
     $configCats[$tab]['ZM_WEB_HOMEVIEW']['Hint'] = [
       'console'=>translate('Console'),
       'events'=>'Events',
@@ -271,7 +285,9 @@ foreach (array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR)) as $
               $shortName = preg_replace( '/^ZM_/', '', $name );
               $optionPromptText = !empty($OLANG[$shortName])?$OLANG[$shortName]['Prompt']:$value['Prompt'];
               $fileSet = isset($fileConfig[$name]);
-              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet;
+              // Readonly rows (ZM_DYN_DB_VERSION and the other DYNAMIC/version entries) are
+              // written by the daemons; editing them here corrupts version detection.
+              $optionCanEdit = $canEdit && !$value['System'] && !$fileSet && empty($value['Readonly']);
               $secret = !empty($value['Private']) || $value['Type'] == 'password';
               // A Private value (ZM_AUTH_HASH_SECRET and other credentials) is only for
               // those who may change it: System=View can read this page, and the auth
@@ -397,21 +413,26 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!$opts.length) return;
   const $depRows = $opts.find('[data-requires]');
 
-  function getVal(name) {
+  // An option greyed out because its own requirement is unmet counts as off for the options that depend on it.
+  function getVal(name, seen) {
     const $el = $opts.find('[name="newConfig[' + name + ']"]');
     if (!$el.length) return '';
+    const $row = $el.closest('[data-requires]');
+    if ($row.length && !seen.includes(name) && !evalRequires($row.attr('data-requires'), seen.concat(name))) {
+      return $el.is(':checkbox') ? '0' : '';
+    }
     if ($el.is(':checkbox')) return $el.is(':checked') ? '1' : '0';
     if ($el.is(':radio')) return $el.filter(':checked').val() || '';
     return $el.val();
   }
 
-  function evalRequires(req) {
+  function evalRequires(req, seen) {
     for (const chunk of req.split(';')) {
       const part = chunk.trim();
       if (!part) continue;
       const m = part.match(/^(ZM_\w+)=(.+)$/);
       if (!m) return false;
-      if (getVal(m[1]) !== m[2]) return false;
+      if (getVal(m[1], seen) !== m[2]) return false;
     }
     return true;
   }
@@ -419,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function refresh() {
     $depRows.each(function() {
       const $row = $j(this);
-      const met = evalRequires($row.attr('data-requires'));
+      const met = evalRequires($row.attr('data-requires'), []);
       $row.find('input, select, textarea').each(function() {
         const $input = $j(this);
         $input.prop('disabled', !met);

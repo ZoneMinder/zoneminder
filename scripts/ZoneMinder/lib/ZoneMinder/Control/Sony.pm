@@ -62,7 +62,7 @@ sub sendCmd {
   $self->printMsg($cmd, 'Tx');
 
   #print( "http://$address/$cmd\n" );
-  my $req = HTTP::Request->new( GET=>'http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
+  my $req = HTTP::Request->new( GET=>'http://'.$self->{Monitor}->{ControlAddress}.$cmd);
   my $res = $self->{ua}->request($req);
 
   if ( $res->is_success ) {
@@ -244,7 +244,7 @@ sub zoomRelTele {
   $self->sendCmd($cmd);
   $self->sendCmd($cmd);	# do it twice, so faster, why <speed> don't affect?
 
-  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
   $self->sendCmd($cmd);
 }
 
@@ -258,7 +258,7 @@ sub zoomRelWide {
   $self->sendCmd( $cmd );
   $self->sendCmd( $cmd );	# do it twice, so faster, why <speed> don't affect?
 
-  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
   $self->sendCmd( $cmd );
 }
 
@@ -277,6 +277,14 @@ sub zoomConTele {
   my $cmd = "/command/ptzf.cgi?Move=tele,4";
   $self->sendCmd( $cmd );
 
+}
+
+sub zoomStop {
+  my $self = shift;
+  Debug('Zoom Stop');
+
+  my $cmd = '/command/ptzf.cgi?Move=stop,zoom,1';
+  $self->sendCmd($cmd);
 }
 
 sub presetClear {

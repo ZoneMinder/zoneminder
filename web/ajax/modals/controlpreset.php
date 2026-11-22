@@ -4,7 +4,13 @@ if (!canEdit('Monitors')) {
   return ' ';
 }
 
-$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($_REQUEST['mid']));
+$mid = validCardinal($_REQUEST['mid'] ?? '');
+
+$monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($mid));
+if (!$monitor) {
+  ZM\Warning('No controllable monitor '.$mid.' for the preset modal');
+  return ' ';
+}
 
 $labels = array();
 foreach (dbFetchAll('SELECT * FROM ControlPresets WHERE MonitorId = ?', NULL, array($monitor['Id'])) as $row) {
@@ -29,7 +35,7 @@ for ($i = 1; $i <= $monitor['NumPresets']; $i++) {
         </button>
       </div>
       <div class="modal-body">
-        <form name="contentForm" id="ctrlPresetForm" method="post" action="?">
+        <form name="contentForm" id="ctrlPresetForm" method="post" action="?" data-labels="<?php echo validHtmlStr(json_encode($labels)) ?>">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();

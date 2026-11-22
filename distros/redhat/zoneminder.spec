@@ -131,6 +131,12 @@ Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
 Requires: %{_bindir}/ffmpeg
+# zmc loads libavdevice at runtime, so rpm cannot detect it from the binary
+%if "%{__isa_bits}" == "64"
+Requires: libavdevice.so.%(pkg-config --modversion libavdevice | cut -d. -f1)()(64bit)
+%else
+Requires: libavdevice.so.%(pkg-config --modversion libavdevice | cut -d. -f1)
+%endif
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)
 Requires: perl(Archive::Tar)

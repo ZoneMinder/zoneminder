@@ -486,7 +486,10 @@ bool zm::InetSocket::connect(const char *host, const char *serv) {
       break;                  /* Success */
     }
 
+    // Reset it too, or the next address reuses a closed descriptor and close()
+    // later closes whatever has been given that number since.
     ::close(mSd);
+    mSd = -1;
   }
 
   freeaddrinfo(result);   /* No longer needed */

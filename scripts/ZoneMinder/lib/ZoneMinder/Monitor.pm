@@ -467,7 +467,7 @@ sub resumeMotionDetection {
   return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
   ZoneMinder::Logger::Debug(1, "capturing: $$self{Capturing} analysing: $$self{Analysing}");
   my $count = 50;
-  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
+  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1) == ANALYSING_NONE) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
     ZoneMinder::Memory::zmMonitorResume($self);
     usleep(100000);
@@ -478,6 +478,27 @@ sub resumeMotionDetection {
     ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
   }
   return 1;
+}
+
+# How long zmwatch lets a capture daemon go without a first image after it set
+# its startup time. zmc sleeps StartupDelay seconds after that before it primes
+# the camera, so the delay is added to the usual limit.
+sub WatchStartupLimit {
+  my ($self, $max_delay) = @_;
+  return $max_delay + ($$self{StartupDelay} || 0);
+}
+
+# How long zmwatch lets capture or analysis go without a new image. A camera
+# limited to less than one frame per second is given three frame intervals,
+# but never less than the usual limit.
+sub WatchImageLimit {
+  my ($self, $max_delay) = @_;
+  my $fps = $$self{MaxFPS};
+  if ($fps and $fps > 0 and $fps < 1) {
+    my $limit = 3/$fps;
+    return $limit > $max_delay ? $limit : $max_delay;
+  }
+  return $max_delay;
 }
 
 sub Control {
@@ -499,6 +520,7 @@ sub Control {
           return undef;
         }
         $Control = $Control->clone(); # Because this object is not per monitor specific
+        $$Control{Protocol} = $Protocol;
         bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
         $$Control{Monitor} = $self->clone();
@@ -542,7 +564,7 @@ sub zmcControl {
     if ($ZoneMinder::Config{ZM_OPT_USE_AUTH}) {
       if ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'hashed') {
         #$url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} == 'plain') {
+      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'plain') {
         #$url .= '?user='.$_SESSION['username'];
         #$url .= '?pass='.$_SESSION['password'];
       } else {
@@ -551,6 +573,7 @@ sub zmcControl {
       }
     }
     Debug('sending command to '.$url);
+    require LWP::UserAgent;
     my $ua = LWP::UserAgent->new();
     $ua->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
     my $response = $ua->get($url);

@@ -132,7 +132,7 @@ sub moveStop
    Debug( "Move Stop" );
    my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
    $self->sendCmd( $cmd );
-        my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+        $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
         $self->sendCmd( $cmd );
 }
 
@@ -146,7 +146,7 @@ sub autoStop
        usleep( $autostop );
        my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
        $self->sendCmd( $cmd );
-       my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+       $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
        $self->sendCmd( $cmd );
     }
 }
@@ -209,8 +209,6 @@ sub moveConLeft
     if ( $panspeed < 6 ) {
            $panspeed = 1;
                }
-    # Algorithme pour inverser la table de valeur de la flèche gauche, (for invert the value) 63 ==> 1 et 1 ==> 63 ...
-    $panspeed = abs($panspeed - 63) + 1;
     Debug( "Move Left" );
     if ( $osd eq "on" )
    {
@@ -273,7 +271,7 @@ sub moveConUpLeft
         }
     my $cmd = "ptzctrl.cgi?-step=0&-act=up&-speed=$tiltspeed";
     $self->sendCmd( $cmd );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left&-speed=$panspeed";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left&-speed=$panspeed";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -306,7 +304,7 @@ sub moveConUpRight
         }
     my $cmd = "ptzctrl.cgi?-step=0&-act=up&-speed=$tiltspeed";
     $self->sendCmd( $cmd );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right&-speed=$panspeed";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right&-speed=$panspeed";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -339,7 +337,7 @@ sub moveConDownLeft
         }
     my $cmd = "ptzctrl.cgi?-step=0&-act=down&-speed=$tiltspeed";
     $self->sendCmd( $cmd );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left&-speed=$panspeed";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left&-speed=$panspeed";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -372,7 +370,7 @@ sub moveConDownRight
         }
     my $cmd = "ptzctrl.cgi?-step=0&-act=down&-speed=$tiltspeed";
     $self->sendCmd( $cmd );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right&-speed=$panspeed";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right&-speed=$panspeed";
     $self->sendCmd( $cmd );
     $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
@@ -503,7 +501,7 @@ sub focusMan
           $self->sendCmd( $cmd );
           $self->autoStop( int(1000000*0.5) );
     }
-    if ( $osd eq "off" )
+    elsif ( $osd eq "off" )
          {
           $osd = "on";
           my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=OSD $osd";
@@ -675,7 +673,7 @@ sub presetSet
                                    my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=PresetSet $preset";
                                       $self->sendCmd( $cmd );
                      }
-                                                 my $cmd = "preset.cgi?-act=set&-status=1&-number=$preset";
+                                                 $cmd = "preset.cgi?-act=set&-status=1&-number=$preset";
                                                  $self->sendCmd( $cmd );
                    $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
                        }

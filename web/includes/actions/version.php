@@ -35,6 +35,7 @@ if ( $action == 'version' && isset($_REQUEST['option']) ) {
   case 'hour' :
   case 'day' :
   case 'week' :
+  case 'month' :
     $nextReminder = time();
     if ( $option == 'hour' ) {
       $nextReminder += 60*60;

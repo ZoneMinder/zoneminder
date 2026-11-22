@@ -35,6 +35,7 @@ class DecoderQueue : public Monitor {
  public:
   DecoderQueue() : Monitor() {}
   using Monitor::DecoderQueueLimit;
+  using Monitor::CanPassthroughFormat;
 
   // Packets sent to the codec, in decode order, by pts.
   std::vector<std::shared_ptr<ZMPacket>> Send(const std::vector<int64_t> &pts) {
@@ -176,4 +177,22 @@ TEST_CASE("Monitor decoder queue: after a flush nothing is sent until a keyframe
   CHECK_FALSE(q.Skip(true));
   // The wait is over once the keyframe went to the codec
   CHECK_FALSE(q.Skip(false));
+}
+
+TEST_CASE("Monitor::CanPassthroughFormat keeps 4:2:2 out of quarter turns", "[Monitor]") {
+  for (Monitor::Orientation o : {Monitor::ROTATE_0, Monitor::ROTATE_180, Monitor::FLIP_HORI, Monitor::FLIP_VERT}) {
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUV422P, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUVJ422P, o));
+  }
+  for (Monitor::Orientation o : {Monitor::ROTATE_90, Monitor::ROTATE_270}) {
+    CHECK_FALSE(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUV422P, o));
+    CHECK_FALSE(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUVJ422P, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUV420P, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUVJ420P, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_GRAY8, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_RGB24, o));
+    CHECK(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_BGRA, o));
+  }
+  CHECK_FALSE(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUV444P, Monitor::ROTATE_0));
+  CHECK_FALSE(DecoderQueue::CanPassthroughFormat(AV_PIX_FMT_YUV420P10LE, Monitor::ROTATE_0));
 }

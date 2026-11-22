@@ -55,7 +55,7 @@ class UserPreferenceController extends AppController {
 		$this->UserPreference->recursive = -1;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->UserPreference->schema()));
     } else {
       $conditions = array();
     }
@@ -112,6 +112,9 @@ class UserPreferenceController extends AppController {
       # write a preference for another account.
       $own = $this->currentUserId();
       if ($own !== null) $data['UserId'] = $own;
+      if (!is_array($data) or !isset($data['UserId']) or !isset($data['Name'])) {
+        throw new BadRequestException(__('UserId and Name are required'));
+      }
       $exists = $this->UserPreference->find('first', ['conditions'=>['UserId'=>$data['UserId'],'Name'=>$data['Name']]]);
       if ($exists) {
         $this->UserPreference->id = $exists['UserPreference']['Id'];
@@ -124,7 +127,7 @@ class UserPreferenceController extends AppController {
         $message = 'Success';
       } else {
         $message = 'Failure';
-        ZM\Warning($this->validationErrors);
+        ZM\Warning(json_encode($this->UserPreference->validationErrors));
       }
     } else {
       ZM\Error("NOT POST in add()");
@@ -173,9 +176,13 @@ class UserPreferenceController extends AppController {
 		$this->assertOwned($id);
 		$this->request->allowMethod('post', 'delete');
 		if ($this->UserPreference->delete()) {
-			return $this->flash(__('The user_preference has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The user_preference could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The user_preference could not be deleted.'));
 		}
 	}
 }

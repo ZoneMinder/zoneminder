@@ -152,13 +152,18 @@ class StreamSocket {
     uint64_t sent = 0;
     uint64_t dropped = 0;
     TimePoint last_progress;
+    TimePoint unread_since;              // epoch = not currently unread
+    TimePoint unread_seen;
     TimePoint last_stats;
     uid_t uid = 0;
     pid_t pid = 0;
   };
 
+  static constexpr int kMaxAcceptsPerPass = 4;
+
   void Run();
   void AcceptClient();
+  void LogRejected(const char *reason, uid_t uid, pid_t pid);
   bool CheckPeer(int fd, uid_t &uid, pid_t &pid) const;
   void ApplyPermissions();
 
@@ -173,6 +178,7 @@ class StreamSocket {
   // bodies, empty meaning "no such stream". Returns true if anything changed.
   bool ApplyStreamsLocked(std::vector<uint8_t> video, std::vector<uint8_t> audio);
   void SendStatsLocked(Client &client, TimePoint now);
+  bool IsUnreadTooLong(Client &client, TimePoint now) const;
 
   // Writes as much of the client's queue as the socket accepts. Takes mutex_
   // itself, and only for bookkeeping: the kernel copy in sendmsg happens with
@@ -188,6 +194,9 @@ class StreamSocket {
 
   std::thread thread_;
   std::atomic<bool> terminate_{false};
+
+  TimePoint last_reject_log_;     // listener thread only
+  size_t rejected_since_log_ = 0;
 
   zm::TcpUnixServer listener_;
   zm::Pipe wake_;

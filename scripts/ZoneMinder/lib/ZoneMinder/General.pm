@@ -60,7 +60,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 use Fcntl qw(:flock O_WRONLY O_CREAT);
 
 # The pid recorded in a lock file, or undef when it is empty or unreadable.
@@ -281,7 +280,6 @@ sub createEventPath {
   return $eventPath;
 }
 
-use Data::Dumper;
 
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );
@@ -671,7 +669,7 @@ sub parseNameEqualsValueToHash {
   foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
     next if ! $line;
     next if ! ( $line =~ /=/ );
-    my ($name, $value ) = split('=', $line);
+    my ($name, $value ) = split('=', $line, 2);
     $value =~ s/^'//;
     $value =~ s/'$//;
     $settings{$name} = defined $value ? $value : '';
@@ -743,9 +741,9 @@ sub systemStatus {
   my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
   my $output = qx($command);
   my $status = $? >> 8;
+  $output = '' if !defined($output);
+  chomp($output);
   if ( $status || logDebugging() ) {
-    $output = '' if !defined($output);
-    chomp($output);
     Debug("Command: $command Output: $output");
   }
   return $output;

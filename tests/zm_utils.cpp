@@ -173,6 +173,8 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+  REQUIRE(Base64Encode("\xc3\xa9") == "w6k=");
+  REQUIRE(Base64Encode("\xff\xfe\xfd") == "//79");
 }
 
 TEST_CASE("ZM::clamp") {
@@ -565,6 +567,14 @@ TEST_CASE("url_for_log") {
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?auth=0123456789abcdef") == "rtsp://127.0.0.1:8554/cam?...");
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?username=u&password=p") == "rtsp://127.0.0.1:8554/cam?...");
   }
+  SECTION("a streaming server API endpoint (go2rtc, Janus, RTSP2Web)") {
+    REQUIRE(url_for_log("http://admin:pa!ss@10.0.0.2:1984/api/streams?src=29")
+            == "http://10.0.0.2:1984/api/streams?...");
+    REQUIRE(url_for_log("http://admin:pa!ss@10.0.0.2:1984/api/streams?name=29&src=rtsp%3A%2F%2Fu%3Apw%4010.0.0.3")
+            == "http://10.0.0.2:1984/api/streams?...");
+    // The default go2rtc endpoint has no scheme.
+    REQUIRE(url_for_log("demo:demo@127.0.0.1:1984/streams?src=1") == "127.0.0.1:1984/streams?...");
+  }
   SECTION("an @ in the query does not cut the host") {
     REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
   }
@@ -580,5 +590,74 @@ TEST_CASE("url_for_log") {
     REQUIRE(out == "rtsp://10.0.0.2/s?...");
     REQUIRE(out.find("pw") == std::string::npos);
     REQUIRE(out.find("eyJ") == std::string::npos);
+  }
+}
+
+TEST_CASE("zm_parse_leb128", "[utils]") {
+  uint32_t value;
+  size_t n;
+
+  SECTION("single byte") {
+    static const unsigned char data[] = {0x05};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 1);
+    REQUIRE(value == 5);
+  }
+
+  SECTION("two bytes, 128") {
+    static const unsigned char data[] = {0x80, 0x01};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 2);
+    REQUIRE(value == 128);
+  }
+
+  SECTION("max 5-byte 32-bit value") {
+    static const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF, 0x0F};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 5);
+    REQUIRE(value == 4294967295u);
+  }
+
+  SECTION("padded 8-byte encoding of 1") {
+    static const unsigned char data[] = {
+      0x81, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00};
+    n = zm_parse_leb128(data, sizeof(data), value);
+    REQUIRE(n == 8);
+    REQUIRE(value == 1);
+  }
+
+  SECTION("max_size truncation") {
+    static const unsigned char data[] = {0xFF, 0xFF, 0xFF, 0xFF, 0x0F};
+    // Only 3 bytes available: 0x7F | (0x7F << 7) | (0x7F << 14) = 0x1FFFFF,
+    // and the third byte still has the continuation bit set, so it stops
+    // without a terminator but still returns the bytes it consumed.
+    n = zm_parse_leb128(data, 3, value);
+    REQUIRE(n == 3);
+    REQUIRE(value == 0x1FFFFFu);
+  }
+
+  SECTION("empty input") {
+    static const unsigned char data[] = {0x05};
+    n = zm_parse_leb128(data, 0, value);
+    REQUIRE(n == 0);
+  }
+}
+
+TEST_CASE("QueryString names", "[utils]") {
+  SECTION("a name without a value ends at the ampersand") {
+    std::stringstream str("flag&token=abc");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("flag"));
+    REQUIRE(qs.has("token"));
+    REQUIRE(qs.get("token")->firstValue() == "abc");
+  }
+
+  SECTION("a url encoded name is decoded") {
+    std::stringstream str("a%5B%5D=1");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("a[]"));
+    REQUIRE(qs.get("a[]")->firstValue() == "1");
   }
 }

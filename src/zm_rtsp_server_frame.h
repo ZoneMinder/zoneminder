@@ -15,10 +15,11 @@ const char H264shortmarker[] = {0,0,1};
 
 class NAL_Frame {
  public:
-  NAL_Frame(unsigned char * buffer, size_t size, int64 pts) :
+  NAL_Frame(unsigned char * buffer, size_t size, int64 pts, bool last = true) :
     m_buffer(nullptr),
     m_size(size),
     m_pts(pts),
+    m_last(last),
     m_ref_count(1) {
     m_buffer = new unsigned char[m_size];
     if (buffer) {
@@ -38,6 +39,8 @@ class NAL_Frame {
   size_t size(size_t new_size) { m_size=new_size; return m_size; };
   size_t nal_size() const { return m_size-4; };
   int64_t pts() const { return m_pts; };
+  // Last NAL of its access unit: the RTP marker bit goes on its last packet
+  bool last() const { return m_last; };
   bool check() const {
     // Look for marker at beginning
     unsigned char *marker = (unsigned char*)memmem(m_buffer, sizeof(H264marker), H264marker, sizeof(H264marker));
@@ -72,6 +75,7 @@ class NAL_Frame {
  public:
   int64 m_pts;
  private:
+  bool m_last;
   int m_ref_count;
 };
 #endif // HAVE_RTSP_SERVER

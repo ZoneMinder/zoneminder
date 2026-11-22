@@ -161,8 +161,6 @@ echo "nothing new under web/ cuts an assignment short\n";
 //                   -- assigns only Id(), so delete is offered for any
 //                   existing filter whether or not the user may edit it.
 //                   This one is access control, so it is not mine to guess at.
-//   console.php:110 $show_storage_areas -- assigns only the count test, so
-//                   the canEdit('System') half never applies.
 //   monitor.php:1483 $stream_available = canView('Stream') and ... or ...
 //                   -- assigns only canView('Stream'). The intent is also
 //                   ambiguous between A && (B || C) and (A && B) || C, which
@@ -175,7 +173,6 @@ $known = array(
   'web/skins/classic/views/_options_dnsmasq.php $cfg = ... or',
   'web/skins/classic/views/filter.php $canSave = ... or',
   'web/skins/classic/views/filter.php $canDelete = ... and',
-  'web/skins/classic/views/console.php $show_storage_areas = ... and',
   'web/skins/classic/views/monitor.php $stream_available = ... and',
 );
 

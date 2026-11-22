@@ -47,8 +47,9 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
   } else {
     unset($_SESSION['loginFailed']);
     $view = 'postlogin';
+    # Only a successful login uses up the destination; a retry still needs it.
+    unset($_SESSION['postLoginQuery']);
   }
-  unset($_SESSION['postLoginQuery']);
   session_write_close();
 } # end if doing a login action
 

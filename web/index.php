@@ -116,7 +116,7 @@ $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 # Cookie overrides session
 if (isset($_COOKIE['zmNavbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+  if (is_string($_COOKIE['zmNavbar_type']) and isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
     $navbar_type = $_COOKIE['zmNavbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
@@ -124,7 +124,7 @@ if (isset($_COOKIE['zmNavbar_type'])) {
 }
 
 if (isset($_REQUEST['navbar_type'])) {
-  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+  if (is_string($_REQUEST['navbar_type']) and isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
@@ -288,6 +288,11 @@ if ( $action and $view and !$request ) {
   }
 }
 if ($error_message) ZM\Warning($error_message);
+
+# Check if already authenticated (e.g. Apache REMOTE_USER)
+if (ZM_OPT_USE_AUTH and ($view == 'login') and ($user instanceof ZM\User)) {
+  $redirect = '?view='.getHomeView();
+}
 
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);

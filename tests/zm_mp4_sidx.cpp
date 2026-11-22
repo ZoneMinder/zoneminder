@@ -805,3 +805,158 @@ TEST_CASE("Mp4SidxManifestRangesCoverWholeFragments") {
                + std::to_string(frags[0].offset) + "\nv.mp4\n");
   }
 }
+
+namespace {
+
+std::vector<uint8_t> make_box(const char *type, const std::vector<uint8_t> &payload) {
+  std::vector<uint8_t> box(8 + payload.size());
+  const uint32_t size = static_cast<uint32_t>(box.size());
+  box[0] = static_cast<uint8_t>(size >> 24);
+  box[1] = static_cast<uint8_t>(size >> 16);
+  box[2] = static_cast<uint8_t>(size >> 8);
+  box[3] = static_cast<uint8_t>(size);
+  memcpy(&box[4], type, 4);
+  if (!payload.empty()) {
+    memcpy(&box[8], payload.data(), payload.size());
+  }
+  return box;
+}
+
+std::vector<uint8_t> make_fullbox(const char *type, uint8_t version, uint32_t flags,
+                                  const std::vector<uint8_t> &payload) {
+  std::vector<uint8_t> full(4 + payload.size());
+  full[0] = version;
+  full[1] = static_cast<uint8_t>(flags >> 16);
+  full[2] = static_cast<uint8_t>(flags >> 8);
+  full[3] = static_cast<uint8_t>(flags);
+  if (!payload.empty()) {
+    memcpy(&full[4], payload.data(), payload.size());
+  }
+  return make_box(type, full);
+}
+
+void append_be32(std::vector<uint8_t> *v, uint32_t val) {
+  v->push_back(static_cast<uint8_t>(val >> 24));
+  v->push_back(static_cast<uint8_t>(val >> 16));
+  v->push_back(static_cast<uint8_t>(val >> 8));
+  v->push_back(static_cast<uint8_t>(val));
+}
+
+}  // namespace
+
+TEST_CASE("Mp4SidxFirstCtsNotOverwrittenBySubsequentTrunWithoutCts") {
+  // When a video traf has multiple trun boxes, the first sample of the fragment
+  // resides in the first trun with samples. If that first trun does not have
+  // sample composition time offsets (kTrunSampleCts), its CTS offset is 0.
+  // A subsequent trun with CTS offsets must not overwrite first_cts, as that
+  // would miscalculate earliest_presentation_time in the sidx box.
+  const std::filesystem::path path = scratch("multi-trun.mp4");
+
+  auto build_fragment_file = [&path](uint8_t trun1_ver, uint32_t trun1_flags,
+                                     const std::vector<uint32_t> &trun1_vals,
+                                     uint8_t trun2_ver, uint32_t trun2_flags,
+                                     const std::vector<uint32_t> &trun2_vals,
+                                     uint32_t tfdt_val) {
+    std::vector<uint8_t> tfhd_payload;
+    append_be32(&tfhd_payload, 1);  // track_id = 1
+    const std::vector<uint8_t> tfhd = make_fullbox("tfhd", 0, 0, tfhd_payload);
+
+    std::vector<uint8_t> tfdt_payload;
+    append_be32(&tfdt_payload, tfdt_val);
+    const std::vector<uint8_t> tfdt = make_fullbox("tfdt", 0, 0, tfdt_payload);
+
+    std::vector<uint8_t> trun1_payload;
+    append_be32(&trun1_payload, 1);  // count = 1
+    for (uint32_t v : trun1_vals) append_be32(&trun1_payload, v);
+    const std::vector<uint8_t> trun1 = make_fullbox("trun", trun1_ver, trun1_flags, trun1_payload);
+
+    std::vector<uint8_t> trun2_payload;
+    append_be32(&trun2_payload, 1);  // count = 1
+    for (uint32_t v : trun2_vals) append_be32(&trun2_payload, v);
+    const std::vector<uint8_t> trun2 = make_fullbox("trun", trun2_ver, trun2_flags, trun2_payload);
+
+    std::vector<uint8_t> traf_payload;
+    traf_payload.insert(traf_payload.end(), tfhd.begin(), tfhd.end());
+    traf_payload.insert(traf_payload.end(), tfdt.begin(), tfdt.end());
+    traf_payload.insert(traf_payload.end(), trun1.begin(), trun1.end());
+    traf_payload.insert(traf_payload.end(), trun2.begin(), trun2.end());
+    const std::vector<uint8_t> traf = make_box("traf", traf_payload);
+
+    std::vector<uint8_t> moof_payload;
+    moof_payload.insert(moof_payload.end(), traf.begin(), traf.end());
+    const std::vector<uint8_t> moof = make_box("moof", moof_payload);
+
+    const std::vector<uint8_t> mdat_payload(100, 0);
+    const std::vector<uint8_t> mdat = make_box("mdat", mdat_payload);
+
+    std::vector<uint8_t> file;
+    file.insert(file.end(), moof.begin(), moof.end());
+    file.insert(file.end(), mdat.begin(), mdat.end());
+    write_file(path, file);
+    return file.size();
+  };
+
+  zm_mp4::VideoTrack track;
+  track.id = 1;
+  track.timescale = 10000;
+
+  SECTION("first trun has no CTS, second trun has CTS") {
+    // trun1 has sample duration 1000, no CTS
+    // trun2 has sample duration 1000, CTS 500
+    const size_t file_size = build_fragment_file(
+        0, 0x000100, {1000},
+        0, 0x000900, {1000, 500},
+        0);
+
+    const int fd = open(path.c_str(), O_RDONLY);
+    REQUIRE(fd >= 0);
+    std::vector<zm_mp4::Fragment> fragments;
+    REQUIRE(zm_mp4::scan_fragments(fd, 0, static_cast<int64_t>(file_size), track, &fragments));
+    close(fd);
+
+    REQUIRE(fragments.size() == 1);
+    REQUIRE(fragments[0].first_cts == 0);
+    REQUIRE(fragments[0].trun_duration == 2000);
+
+    const std::vector<uint8_t> region =
+        zm_mp4::build_sidx_region(track, fragments, zm_mp4::kSidxMinReserve);
+    REQUIRE_FALSE(region.empty());
+    const size_t sidx_at = zm_mp4::kSidxMinReserve - (40 + 12);
+    const uint8_t *sidx = region.data() + sidx_at;
+    // earliest_presentation_time must be 0 (tfdt 0 + first_cts 0), not 500
+    REQUIRE(be32(sidx + 20) == 0);
+    REQUIRE(be32(sidx + 24) == 0);
+  }
+
+  SECTION("first trun has version 1 signed CTS") {
+    // trun1 has sample duration 1000, CTS -200 (0xFFFFFF38)
+    // trun2 has sample duration 1000, no CTS
+    const uint32_t neg_cts = static_cast<uint32_t>(static_cast<int32_t>(-200));
+    const size_t file_size = build_fragment_file(
+        1, 0x000900, {1000, neg_cts},
+        0, 0x000100, {1000},
+        500);
+
+    const int fd = open(path.c_str(), O_RDONLY);
+    REQUIRE(fd >= 0);
+    std::vector<zm_mp4::Fragment> fragments;
+    REQUIRE(zm_mp4::scan_fragments(fd, 0, static_cast<int64_t>(file_size), track, &fragments));
+    close(fd);
+
+    REQUIRE(fragments.size() == 1);
+    REQUIRE(fragments[0].first_cts == -200);
+    REQUIRE(fragments[0].trun_duration == 2000);
+
+    const std::vector<uint8_t> region =
+        zm_mp4::build_sidx_region(track, fragments, zm_mp4::kSidxMinReserve);
+    REQUIRE_FALSE(region.empty());
+    const size_t sidx_at = zm_mp4::kSidxMinReserve - (40 + 12);
+    const uint8_t *sidx = region.data() + sidx_at;
+    // earliest_presentation_time = tfdt (500) + first_cts (-200) = 300
+    REQUIRE(be32(sidx + 20) == 0);
+    REQUIRE(be32(sidx + 24) == 300);
+  }
+
+  std::error_code ignored;
+  std::filesystem::remove(path, ignored);
+}

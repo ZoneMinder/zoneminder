@@ -276,7 +276,7 @@ Note that SELinux may cause errors other than those listed above. If you are in 
 
 How do I enable ZoneMinder's security?
 -------------------------------------------
-A new install asks on its first page whether to require a login, and if so sets the admin password (see :ref:`first_run`). An install upgraded from an older version, or one set up without a login, keeps its setting; to turn it on, in the console click on ``Options->System`` and check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The username is 'admin'; if its password is still 'admin', ZoneMinder asks you to choose a new one before it logs you in. The password ``admin`` is refused everywhere else (the API, stream URLs, ``zmu``) for every account.
+A new install asks on its first page whether to require a login, and if so sets the admin password (see :ref:`first_run`). An install upgraded from an older version, or one set up without a login, keeps its setting; to turn it on, in the console click on ``Options->Authentication`` and check the box next to ``ZM_OPT_USE_AUTH``. You will immediately be asked to login. The username is 'admin'; if its password is still 'admin', ZoneMinder asks you to choose a new one before it logs you in. The password ``admin`` is refused everywhere else (the API, stream URLs, ``zmu``) for every account.
 
 To Manage Users:
 In main console, go to ``Options->Users``.

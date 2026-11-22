@@ -271,6 +271,12 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 /* at is FPSeconds */
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   Debug(1, "Getting frame from stream %d at %f", stream_id, at);
+  // Open() leaves the context null when no decoder opened for the stream; the
+  // seeks below flush it, so stop here as the sequential get_frame() does.
+  if (stream_id < 0 or !streams or !streams[stream_id].context) {
+    Error("No context for stream %d", stream_id);
+    return nullptr;
+  }
 
   int64_t seek_target = (int64_t)(at * AV_TIME_BASE);
   Debug(1, "Getting frame from stream %d at seektarget: %" PRId64, stream_id, seek_target);

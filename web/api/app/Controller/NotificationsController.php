@@ -65,6 +65,10 @@ class NotificationsController extends AppController {
       $data = $data['Notification'];
     }
 
+    // The row is chosen here (a new one, or the one holding this Token), never by
+    // an Id in the body: Cake's save() would update that row instead.
+    unset($data['Id']);
+
     $userIdGiven = $this->_isAdmin() && isset($data['UserId']);
     if (!$this->_isAdmin() || !isset($data['UserId'])) {
       $data['UserId'] = $this->_userId();

@@ -31,6 +31,7 @@ class FakeModel {
   public $written = null; public $alias;
   function __construct($alias) { $this->alias = $alias; }
   function exists($id = null) { return true; }
+  function create() { $this->id = null; }
   function find($type, $o = array()) { return array($this->alias => array('Id' => 7, 'UserId' => 5)); }
   function save($d) {
     $row = isset($d[$this->alias]) ? $d[$this->alias] : $d;
@@ -54,7 +55,8 @@ eval('class NCtl { public $request; public $Notification; public $response; publ
   function set($v) { $this->vars = $v; }
   function _isAdmin() { global $user; return $user->System() == "Edit"; }
   function _userId() { global $user; return $user->Id(); }
-  '.method('NotificationsController.php', 'edit').' }');
+  '.method('NotificationsController.php', 'edit').'
+  '.method('NotificationsController.php', 'add').' }');
 eval('class PCtl { public $request; public $UserPreference;
   function set($v) {}
   function currentUserId() { global $user; return $user->Id(); }
@@ -67,6 +69,12 @@ $c = new NCtl; $c->request = new FakeRequest(array('Notification' => array('Id' 
 $c->Notification = new FakeModel('Notification'); $c->response = new Resp;
 $c->edit(7);
 check('notifications edit writes the URL row, not the body Id', $c->Notification->written['id'], 7);
+
+// add() with another user's Id in the body and no Token must create a new row.
+$c = new NCtl; $c->request = new FakeRequest(array('Notification' => array('Id' => 8, 'PushState' => 'enabled')));
+$c->Notification = new FakeModel('Notification'); $c->response = new Resp;
+$c->add();
+check('notifications add does not write the body Id', $c->Notification->written['id'], null);
 
 $c = new PCtl; $c->request = new FakeRequest(array('Id' => 8, 'UserId' => 9, 'Name' => 'n', 'Value' => 'v'));
 $c->UserPreference = new FakeModel('UserPreference');

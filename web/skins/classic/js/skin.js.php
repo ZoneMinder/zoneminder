@@ -50,22 +50,22 @@ const confirmDeleteEventsString = "<?php echo validJsStr(translate('ConfirmDelet
 const translate = {};
 function zmPrimeTranslations(t) { Object.assign(translate, t); }
 zmPrimeTranslations({
-  "seconds": "<?php echo translate('seconds') ?>",
-  "Fullscreen": "<?php echo translate('Fullscreen') ?>",
-  "Exit Fullscreen": "<?php echo translate('Exit Fullscreen') ?>",
-  "Showing Analysis": "<?php echo translate('Showing Analysis') ?>",
-  "Show Analysis": "<?php echo translate('Show Analysis') ?>",
-  "Not Showing Analysis": "<?php echo translate('Not Showing Analysis') ?>",
-  "Live": "<?php echo translate('Live') ?>",
-  "Edit": "<?php echo translate('Edit') ?>",
-  "All Events": "<?php echo translate('All Events') ?>",
-  "Info": "<?php echo translate('Info') ?>",
-  "Archived": "<?php echo translate('Archived') ?>",
-  "Emailed": "<?php echo translate('Emailed') ?>",
-  "EnableAlarms": "<?php echo translate('EnableAlarms') ?>",
-  "DisableAlarms": "<?php echo translate('DisableAlarms') ?>",
-  "ForceAlarm": "<?php echo translate('ForceAlarm') ?>",
-  "CancelForcedAlarm": "<?php echo translate('CancelForcedAlarm') ?>",
+  "seconds": "<?php echo validJsStr(translate('seconds')) ?>",
+  "Fullscreen": "<?php echo validJsStr(translate('Fullscreen')) ?>",
+  "Exit Fullscreen": "<?php echo validJsStr(translate('Exit Fullscreen')) ?>",
+  "Showing Analysis": "<?php echo validJsStr(translate('Showing Analysis')) ?>",
+  "Show Analysis": "<?php echo validJsStr(translate('Show Analysis')) ?>",
+  "Not Showing Analysis": "<?php echo validJsStr(translate('Not Showing Analysis')) ?>",
+  "Live": "<?php echo validJsStr(translate('Live')) ?>",
+  "Edit": "<?php echo validJsStr(translate('Edit')) ?>",
+  "All Events": "<?php echo validJsStr(translate('All Events')) ?>",
+  "Info": "<?php echo validJsStr(translate('Info')) ?>",
+  "Archived": "<?php echo validJsStr(translate('Archived')) ?>",
+  "Emailed": "<?php echo validJsStr(translate('Emailed')) ?>",
+  "EnableAlarms": "<?php echo validJsStr(translate('EnableAlarms')) ?>",
+  "DisableAlarms": "<?php echo validJsStr(translate('DisableAlarms')) ?>",
+  "ForceAlarm": "<?php echo validJsStr(translate('ForceAlarm')) ?>",
+  "CancelForcedAlarm": "<?php echo validJsStr(translate('CancelForcedAlarm')) ?>",
 });
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which

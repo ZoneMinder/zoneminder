@@ -40,6 +40,7 @@ our %EXPORT_TAGS = (
       acquireExclusiveLock
       lockHolderPid
       startedInteractively
+      logLimitInterval
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -73,6 +74,16 @@ use Fcntl qw(:flock O_WRONLY O_CREAT);
 # delay is for.
 sub startedInteractively {
   return -t STDIN ? 1 : 0;
+}
+
+# ZM_LOG_DATABASE_LIMIT and ZM_LOG_AUDIT_DATABASE_LIMIT go into an SQL interval,
+# so only "<n> <unit>" is accepted. Returns undef for anything else.
+sub logLimitInterval {
+  my $value = shift;
+  return undef if !defined $value;
+  $value =~ s/^\s+|\s+$//g;
+  return $1.' '.lc($2) if $value =~ /^(\d+)\s*(second|minute|hour|day|week|month|year)s?$/i;
+  return undef;
 }
 
 sub lockHolderPid {

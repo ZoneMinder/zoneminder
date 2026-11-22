@@ -18,20 +18,21 @@ sub check {
 }
 
 my $root = $ENV{ZM_TEST_ROOT} // "$FindBin::Bin/../..";
-my $path = "$root/scripts/zmstats.pl.in";
-
-my $source = do {
-  open(my $fh, '<', $path)
-    or die "Can't open $path: $!";
+my $slurp = sub {
+  my $path = shift;
+  open(my $fh, '<', $path) or die "Can't open $path: $!";
   local $/;
-  <$fh>;
+  return scalar <$fh>;
 };
 
-my ($block) = $source =~ /^(sub logLimitInterval \{.*?\n\})$/ms;
-die "Could not extract logLimitInterval from $path\n" unless $block;
+# logLimitInterval() lives in ZoneMinder::General, which zmstats and zmaudit share.
+my $module = "$root/scripts/ZoneMinder/lib/ZoneMinder/General.pm";
+my $module_source = $slurp->($module);
+my ($block) = $module_source =~ /^(sub logLimitInterval \{.*?\n\})$/ms;
+die "Could not extract logLimitInterval from $module\n" unless $block;
 
 eval $block;
-die "Could not compile logLimitInterval from $path: $@\n" if $@;
+die "Could not compile logLimitInterval from $module: $@\n" if $@;
 
 check("'7 days' -> '7 day'", logLimitInterval('7 days'), '7 day');
 check("'1 week' -> '1 week'", logLimitInterval('1 week'), '1 week');
@@ -45,12 +46,17 @@ check("'' -> undef", logLimitInterval(''), undef);
 check("undef -> undef", logLimitInterval(undef), undef);
 check("'5 fortnights' -> undef", logLimitInterval('5 fortnights'), undef);
 
-check('source does not interpolate ZM_LOG_DATABASE_LIMIT into SQL interval',
-  index($source, q{interval '.$Config{ZM_LOG_DATABASE_LIMIT}}) < 0 ? 'absent' : 'present',
-  'absent');
-check('source does not interpolate $audit_limit into SQL interval',
-  index($source, q{interval '.$audit_limit.'}) < 0 ? 'absent' : 'present',
-  'absent');
+check('General.pm exports logLimitInterval', $module_source =~ /^\s+logLimitInterval$/m ? 'yes' : 'no', 'yes');
+
+for my $script ('zmstats.pl.in', 'zmaudit.pl.in') {
+  my $source = $slurp->("$root/scripts/$script");
+  check("$script does not interpolate ZM_LOG_DATABASE_LIMIT into an SQL interval",
+    index($source, q{interval '.$Config{ZM_LOG_DATABASE_LIMIT}}) < 0 ? 'absent' : 'present', 'absent');
+  check("$script does not interpolate \$audit_limit into an SQL interval",
+    index($source, q{interval '.$audit_limit.'}) < 0 ? 'absent' : 'present', 'absent');
+  check("$script validates both limits with logLimitInterval",
+    scalar(() = $source =~ /logLimitInterval\(/g), 2);
+}
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

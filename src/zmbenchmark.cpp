@@ -237,14 +237,15 @@ Microseconds RunDetectMotionBenchmark(const std::string &label,
                                       const std::shared_ptr<Image>& image,
                                       const Vector2 &p_filter_box) {
   // Create a monitor to use for the benchmark. Give it 1 zone that uses
-  // a 5x5 filter.
-  TestMonitor testMonitor(image->Width(), image->Height());
-  testMonitor.AddZone(Zone::CheckMethod::FILTERED_PIXELS, p_filter_box);
+  // a 5x5 filter. AddZone calls shared_from_this(), so the monitor must be
+  // owned by a shared_ptr.
+  auto testMonitor = std::make_shared<TestMonitor>(image->Width(), image->Height());
+  testMonitor->AddZone(Zone::CheckMethod::FILTERED_PIXELS, p_filter_box);
 
   // Generate a black image to use as the reference image.
   std::shared_ptr<Image> blackImage = GenerateRandomImage(
                                         0, image->Width(), image->Height());
-  testMonitor.SetRefImage(blackImage.get());
+  testMonitor->SetRefImage(blackImage.get());
 
   Microseconds totalTimeTaken(0);
 
@@ -257,9 +258,11 @@ Microseconds RunDetectMotionBenchmark(const std::string &label,
     TimeSegmentAdder adder(totalTimeTaken);
 
     Event::StringSet zoneSet;
-    testMonitor.DetectMotion(*image, zoneSet);
+    testMonitor->DetectMotion(*image, zoneSet);
   }
   printf("\n");
+  // The zone holds a shared_ptr to the monitor; drop it so both are freed.
+  testMonitor->SetZones({});
 
   return totalTimeTaken / numPasses;
 }

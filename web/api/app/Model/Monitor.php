@@ -58,6 +58,10 @@ class Monitor extends AppModel {
          'rule'       => 'notBlank',
          'message'    => 'Monitor Name must not be blank',
        ),
+       'characters' => array(
+         'rule'       => array('custom', '/^[\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]+$/u'),
+         'message'    => 'Monitor Name may only contain letters, numbers, spaces and - . ( ) : /',
+       ),
     ),
     'Width' => array(
       'rule' => array('comparison', '>', 0),

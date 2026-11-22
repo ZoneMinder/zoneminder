@@ -410,6 +410,7 @@ Debug("@Monitors");
             $event->Height( $Monitor->Height() );
             $event->Orientation( $Monitor->Orientation() );
             $event->StorageId( $Storage->Id() );
+            $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
               my $error = $event->save({}, 1);
@@ -469,6 +470,7 @@ Debug("@Monitors");
           $event->Height( $Monitor->Height() );
           $event->Orientation( $Monitor->Orientation() );
           $event->StorageId( $Storage->Id() );
+          $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
             my $error = $event->save({}, 1);

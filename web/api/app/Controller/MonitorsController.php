@@ -38,6 +38,8 @@ class MonitorsController extends AppController {
       // below. Anything else would reach MySQL as an unknown column and come
       // back as a 500.
       $fields = array('Monitor' => array_keys($this->Monitor->schema()));
+      // Camera credentials cannot be filtered on: a filter would let a viewer probe their values.
+      $fields['Monitor'] = array_values(array_diff($fields['Monitor'], array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password')));
       foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
         $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
       }
@@ -112,6 +114,7 @@ class MonitorsController extends AppController {
       $seen_monitor_ids[$monitor_id] = true;
       $monitor = new ZM\Monitor($m['Monitor']);
       if (!$monitor->canView()) continue;
+      $m['Monitor'] = $this->hideCredentials($m['Monitor'], $monitor);
       array_push($allowed_monitors, $m);
     }
     $this->set(array(
@@ -145,10 +148,23 @@ class MonitorsController extends AppController {
     if ($zm_monitor->JanusEnabled()) {
       $monitor['Monitor']['Janus_Pin'] = $zm_monitor->Janus_Pin();
     }
+    $monitor['Monitor'] = $this->hideCredentials($monitor['Monitor'], $zm_monitor);
     $this->set(array(
       'monitor' => $monitor,
       '_serialize' => array('monitor')
     ));
+  }
+
+  // Camera credentials are for users who can edit the monitor.
+  private function hideCredentials($row, $zm_monitor) {
+    if ($zm_monitor->canEdit()) return $row;
+    foreach (array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password') as $field) {
+      if (isset($row[$field])) $row[$field] = '';
+    }
+    foreach (array('Host', 'Path', 'SecondPath', 'ONVIF_URL') as $field) {
+      if (!empty($row[$field])) $row[$field] = preg_replace('#^([a-z][a-z0-9+.-]*://)?[^/?\#]*@#i', '$1', $row[$field]);
+    }
+    return $row;
   }
 
 /**

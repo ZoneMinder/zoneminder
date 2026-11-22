@@ -450,6 +450,10 @@ function authHashSessionAddrs() {
 
 function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
+    if (!authHashSecretIsSet()) {
+      ZM\Error('Refusing auth hash authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+      return null;
+    }
     $liveAddr = getRemoteAddr();
     if (ZM_AUTH_HASH_IPS and ($liveAddr === '')) {
       ZM\Error("Can't determine remote address for authentication, using empty string");

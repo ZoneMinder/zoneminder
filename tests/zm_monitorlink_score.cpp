@@ -20,7 +20,12 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <memory>
+#include <unistd.h>
+#include <vector>
 
 namespace {
 
@@ -33,6 +38,7 @@ void EnsureConfig() {
 class SourceMonitor : public Monitor {
  public:
   using Data = SharedData;
+  using Trigger = TriggerData;
 };
 
 class TestLink : public Monitor::MonitorLink {
@@ -56,6 +62,32 @@ class TestZoneLink : public Monitor::MonitorLink {
     connected = true;
   }
 };
+
+#if ZM_MEM_MAPPED
+class FileZoneLink : public Monitor::MonitorLink {
+ public:
+  FileZoneLink(const std::shared_ptr<Monitor> &source, int zindex, const std::string &file)
+    : MonitorLink(source, 0) {
+    zone_index = zindex;
+    mem_file = file;
+  }
+  bool Connected() const { return connected; }
+};
+
+// Writes a mapped file the size of the shared data, trigger data and `scores` ints, marked valid with a fresh heartbeat. Returns its path.
+std::string WriteLinkFile(size_t scores) {
+  char path[] = "/tmp/zm_link_test_XXXXXX";
+  int fd = mkstemp(path);
+  REQUIRE(fd >= 0);
+  std::vector<char> buf(sizeof(SourceMonitor::Data) + sizeof(SourceMonitor::Trigger) + scores * sizeof(int), 0);
+  auto *data = reinterpret_cast<SourceMonitor::Data *>(buf.data());
+  data->valid = 1;
+  data->heartbeat_time = time(nullptr);
+  REQUIRE(write(fd, buf.data(), buf.size()) == static_cast<ssize_t>(buf.size()));
+  close(fd);
+  return path;
+}
+#endif
 
 }  // namespace
 
@@ -168,3 +200,22 @@ TEST_CASE("MonitorLink zone score follows source monitor state and zone id", "[M
     REQUIRE(link.score() == 0);
   }
 }
+
+#if ZM_MEM_MAPPED
+TEST_CASE("MonitorLink does not connect to memory too small for its zone score", "[MonitorLink]") {
+  EnsureConfig();
+  auto source = std::make_shared<SourceMonitor>();
+  std::string small = WriteLinkFile(0);
+  std::string large = WriteLinkFile(3);
+  {
+    FileZoneLink link(source, 2, small);
+    REQUIRE_FALSE(link.connect());
+  }
+  {
+    FileZoneLink link(source, 2, large);
+    REQUIRE(link.connect());
+  }
+  unlink(small.c_str());
+  unlink(large.c_str());
+}
+#endif

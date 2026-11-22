@@ -43,7 +43,7 @@ namespace {
   class TestUser {
     public function Username() { return 'tester'; }
     public function unviewableMonitorIds() { return array(3); }
-    public function viewableMonitorIds() { return array(1, 2); }
+    public function viewableMonitorIds() { return $GLOBALS['viewable']; }
   }
   class Fmt { public function format($t) { return ''; } }
   $user = new TestUser();
@@ -70,11 +70,28 @@ namespace {
   function dbFetchNext($q) { return false; }
   function dbError($sql) { return ''; }
 
-  $_REQUEST = array('task' => 'query', 'sort' => 'StartDateTime', 'order' => 'asc',
-    'filter' => array('Query' => array('terms' => array(
+  // The scenario named in $ZM_SCEN picks the request's terms and the viewable monitors; the
+  // events view declares functions, so each scenario runs in a child process.
+  $scenarios = array(
+    'default' => array(array(1, 2), array(
       array('attr' => 'Name', 'op' => '=', 'val' => 'a'),
-      array('cnj' => 'or', 'attr' => 'Name', 'op' => '=', 'val' => 'b'),
-    ))));
+      array('cnj' => 'or', 'attr' => 'Name', 'op' => '=', 'val' => 'b'))),
+    'no_viewable' => array(array(), array(array('attr' => 'Name', 'op' => '=', 'val' => 'a'))),
+    'early_close' => array(array(1, 2), array(
+      array('attr' => 'Name', 'op' => '=', 'val' => 'a', 'cbr' => 1),
+      array('cnj' => 'or', 'attr' => 'Name', 'op' => '=', 'val' => 'b', 'obr' => 1))),
+    'negative' => array(array(1, 2), array(
+      array('attr' => 'Name', 'op' => '=', 'val' => 'a', 'obr' => -1),
+      array('cnj' => 'or', 'attr' => 'Name', 'op' => '=', 'val' => 'b', 'cbr' => -1))),
+    'unclosed' => array(array(1, 2), array(array('attr' => 'Name', 'op' => '=', 'val' => 'a', 'obr' => 1))),
+    'balanced' => array(array(1, 2), array(
+      array('attr' => 'Name', 'op' => '=', 'val' => 'a', 'obr' => 1),
+      array('cnj' => 'and', 'attr' => 'Name', 'op' => '=', 'val' => 'b', 'cbr' => 1))),
+  );
+  $scenario = getenv('ZM_SCEN') ?: 'default';
+  $viewable = $scenarios[$scenario][0];
+  $_REQUEST = array('task' => 'query', 'sort' => 'StartDateTime', 'order' => 'asc',
+    'filter' => array('Query' => array('terms' => $scenarios[$scenario][1])));
   try {
     include $webroot.'/ajax/events.php';
   } catch (Done $e) {
@@ -111,7 +128,23 @@ namespace {
 
   $count_sql = '';
   foreach ($queries as $q) if (stripos($q, 'COUNT(') !== false) { $count_sql = $q; break; }
+  if (getenv('ZM_SCEN')) { echo 'SQL '.preg_replace('/\s+/', ' ', $count_sql)."\n"; exit(0); }
   check('a count query was run', $count_sql !== '', true);
   check('every OR branch of the filter holds the monitor limit', unlimited_branches($count_sql), array());
+  function scenario_sql($name) {
+    global $argv;
+    $cmd = 'ZM_SCEN='.$name.' '.escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).(isset($argv[1]) ? ' '.escapeshellarg($argv[1]) : '').' 2>/dev/null';
+    return preg_match('/^SQL (.*)$/m', (string)shell_exec($cmd), $m) ? $m[1] : '';
+  }
+  $sql = scenario_sql('no_viewable');
+  check('a user who can view no monitor gets a term that matches nothing', strpos($sql, 'MonitorId IN (0)') !== false, true);
+  foreach (array('early_close', 'negative', 'unclosed') as $name) {
+    $sql = scenario_sql($name);
+    check("$name: unbalanced brackets drop the request's terms", $sql !== '' and strpos($sql, 'E.Name') === false, true);
+    check("$name: the monitor limit still applies", strpos($sql, 'MonitorId IN (1,2)') !== false, true);
+  }
+  $sql = scenario_sql('balanced');
+  check('balanced brackets keep the request terms', substr_count($sql, 'E.Name'), 2);
+  check('balanced brackets keep the monitor limit', strpos($sql, 'MonitorId IN (1,2)') !== false, true);
   exit($failures ? 1 : 0);
 }

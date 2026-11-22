@@ -41,4 +41,6 @@ $out = run('6');
 check('an event on a monitor the user cannot view is refused', is_array($out) ? 'returned data' : $out, 'error: Insufficient permissions');
 $out = run('99');
 check('an unknown event is refused', is_array($out) ? 'returned data' : $out, 'error: Insufficient permissions');
+$out = run('5x');
+check('the stats query gets the eid that was checked', is_array($out) ? $out['html'] : $out, 'stats for 5');
 exit($failures ? 1 : 0);

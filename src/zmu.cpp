@@ -257,7 +257,7 @@ bool ValidateAccess(User *user, int mon_id, int function) {
     if ( user->getMonitors() < User::PERM_VIEW )
       allowed = false;
   }
-  if ( function & (ZMU_NOALARM|ZMU_RELOAD|ZMU_ENABLE|ZMU_DISABLE|ZMU_SUSPEND|ZMU_RESUME|ZMU_BRIGHTNESS|ZMU_CONTRAST|ZMU_HUE|ZMU_COLOUR) ) {
+  if ( function & (ZMU_ALARM|ZMU_CANCEL|ZMU_NOALARM|ZMU_RELOAD|ZMU_ENABLE|ZMU_DISABLE|ZMU_SUSPEND|ZMU_RESUME|ZMU_BRIGHTNESS|ZMU_CONTRAST|ZMU_HUE|ZMU_COLOUR) ) {
     if ( user->getMonitors() < User::PERM_EDIT )
       allowed = false;
   }

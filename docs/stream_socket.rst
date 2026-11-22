@@ -51,6 +51,15 @@ announced (video HELLO) from the first image after zmc starts, whether or not
 anyone is connected. This requires a Decoding setting other than None, since
 the images are taken from the decoder thread.
 
+A monitor with **RTSP Server** enabled always has a consumer:
+``zm_rtsp_server`` keeps a stream socket connection open to every
+RTSP-enabled monitor whether or not any RTSP client is watching, so such a
+monitor is encoded all the time. ``zm_rtsp_server`` serves H.264, H.265 and
+AV1 only and turns ``mjpeg`` away, so a decoded-image monitor with RTSP Server
+on and the ``mjpeg`` default spends CPU encoding images that are not served.
+To restream such a monitor over RTSP, choose a hardware H.264/H.265 encoder;
+otherwise turn RTSP Server off for it.
+
 Access control
 --------------
 

@@ -1318,6 +1318,10 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      the Encoder HWAccel Device from the Recording tab. If it will not open on
      this machine, zmc falls back to MJPEG and logs a warning.~~
      Encoding only runs while something is connected to the socket.
+     The RTSP server stays connected to every monitor with RTSP Server on, so
+     such a monitor is encoded all the time. The RTSP server cannot serve
+     MJPEG: to restream this camera over RTSP choose a hardware encoder,
+     otherwise leave RTSP Server off.~~
      None publishes no video for this monitor.
      ',
     ),

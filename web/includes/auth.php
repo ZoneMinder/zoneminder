@@ -338,6 +338,14 @@ function authHashSecretValid($secret) {
     and ($secret !== ZM_AUTH_HASH_SECRET_DEFAULT);
 }
 
+// Where an unusable secret can be fixed. Options and zmupdate.pl -f only change the
+// Config table, so a secret set in zm.conf or conf.d has to be changed in that file.
+function authHashSecretFix($fileConfig) {
+  if (isset($fileConfig['ZM_AUTH_HASH_SECRET']['File']))
+    return 'It is set in '.$fileConfig['ZM_AUTH_HASH_SECRET']['File'].', which overrides Options and zmupdate.pl -f: change it there.';
+  return 'Set it in Options->System or run zmupdate.pl -f.';
+}
+
 function authHashSecretIsSet() {
   return authHashSecretValid(ZM_AUTH_HASH_SECRET);
 }
@@ -348,7 +356,7 @@ function validateToken($token, $allowed_token_type='access') {
     return array(false, 'Invalid token');
   }
   if (!authHashSecretIsSet()) {
-    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. '.authHashSecretFix(loadConfigFiles()));
     return array(false, 'AUTH_HASH_SECRET is not set');
   }
   $key = ZM_AUTH_HASH_SECRET;

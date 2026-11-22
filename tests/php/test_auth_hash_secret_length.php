@@ -21,7 +21,8 @@ if ($auth_src === false) {
 $config_src = file_get_contents(__DIR__.'/../../web/includes/config.php.in');
 foreach (array(array($config_src, "/^define\('ZM_AUTH_HASH_SECRET_DEFAULT'.*?;$/m"),
                array($auth_src, "/^define\('ZM_AUTH_HASH_SECRET_MIN_LENGTH'.*?;$/m"),
-               array($auth_src, '/^function authHashSecretValid\(.*?^}$/ms')) as list($src, $pattern)) {
+               array($auth_src, '/^function authHashSecretValid\(.*?^}$/ms'),
+               array($auth_src, '/^function authHashSecretFix\(.*?^}$/ms')) as list($src, $pattern)) {
   if (!preg_match($pattern, $src, $matches)) {
     echo "FAIL $pattern not found\n";
     exit(1);
@@ -50,6 +51,15 @@ check('31 characters is refused', authHashSecretValid(str_repeat('a', 31)), fals
 check('32 characters is accepted', authHashSecretValid(str_repeat('a', 32)), true);
 check('a generated 64 hex character secret is accepted', authHashSecretValid(bin2hex(random_bytes(32))), true);
 check('a non-string is refused', authHashSecretValid(array('x')), false);
+
+// The refusal says where to fix the secret. Options and zmupdate.pl -f only change
+// the Config table, so a secret set in zm.conf or conf.d has to be fixed in that file.
+check('a secret in the Config table is fixed in Options or by zmupdate.pl -f',
+  authHashSecretFix(array()), 'Set it in Options->System or run zmupdate.pl -f.');
+check('a secret set in a config file is fixed in that file',
+  authHashSecretFix(array('ZM_AUTH_HASH_SECRET' => array('Name' => 'ZM_AUTH_HASH_SECRET',
+    'Value' => 'short', 'File' => '/etc/zm/conf.d/99-local.conf'))),
+  'It is set in /etc/zm/conf.d/99-local.conf, which overrides Options and zmupdate.pl -f: change it there.');
 
 // Every secret authHashSecretValid() accepts must be one php-jwt accepts. php-jwt 7
 // enforces the same minimum, so there the two must agree; older versions (php-jwt 5

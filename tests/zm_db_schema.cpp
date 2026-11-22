@@ -98,6 +98,34 @@ TEST_CASE("Frames carries the audio level the event graph plots") {
   }
 }
 
+TEST_CASE("Monitors carries the StreamEncoder zmc loads") {
+  const auto repo_root = std::filesystem::path(ZM_SOURCE_DIR);
+
+  // zmc's load_monitor_sql selects StreamEncoder, so a fresh install and an
+  // upgraded one both need the column or no monitor loads.
+  const std::string column = "`StreamEncoder` varchar(32) NOT NULL default 'mjpeg'";
+
+  SECTION("fresh schema has the column") {
+    const auto schema = ReadFile(repo_root / "db" / "zm_create.sql.in");
+    REQUIRE(schema.find(column) != std::string::npos);
+  }
+
+  SECTION("upgrade migration adds the same column and is re-runnable") {
+    // 1.39.42 is already taken by the MonitorActions schedule; a StreamEncoder
+    // migration there would never run on an install past it.
+    const auto migration = ReadFile(repo_root / "db" / "zm_update-1.39.55.sql");
+    REQUIRE(migration.find("ALTER TABLE `Monitors` ADD COLUMN " + column) != std::string::npos);
+    REQUIRE(migration.find("column_name = 'StreamEncoder'") != std::string::npos);
+    const auto old_migration = ReadFile(repo_root / "db" / "zm_update-1.39.42.sql");
+    REQUIRE(old_migration.find("StreamEncoder") == std::string::npos);
+  }
+
+  SECTION("zmc selects it") {
+    const auto monitor_cpp = ReadFile(repo_root / "src" / "zm_monitor.cpp");
+    REQUIRE(monitor_cpp.find("\", `StreamEncoder`\"") != std::string::npos);
+  }
+}
+
 TEST_CASE("Frames is keyed by (EventId, FrameId)") {
   const auto repo_root = std::filesystem::path(ZM_SOURCE_DIR);
   const auto schema = ReadFile(repo_root / "db" / "zm_create.sql.in");

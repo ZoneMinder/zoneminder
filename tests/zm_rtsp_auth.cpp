@@ -132,3 +132,28 @@ TEST_CASE("Authenticator uses Basic when only Basic is offered", "[rtsp_auth]") 
 
   CHECK(auth.auth_method() == zm::AUTH_BASIC);
 }
+
+TEST_CASE("Authenticator prefers the MD5 Digest challenge when several are offered", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.checkAuthResponse(
+      "HTTP/1.1 401 Unauthorized\r\n"
+      "WWW-Authenticate: Digest realm=\"Cam\", nonce=\"sha\", algorithm=SHA-256\r\n"
+      "WWW-Authenticate: Digest realm=\"Cam\", nonce=\"md5\", algorithm=MD5\r\n"
+      "WWW-Authenticate: Basic realm=\"Cam\"\r\n"
+      "\r\n");
+
+  CHECK(auth.auth_method() == zm::AUTH_DIGEST);
+  CHECK(auth.nonce() == "md5");
+}
+
+TEST_CASE("Authenticator falls back to the first Digest challenge without MD5", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.checkAuthResponse(
+      "HTTP/1.1 401 Unauthorized\r\n"
+      "WWW-Authenticate: Digest realm=\"Cam\", nonce=\"sha\", algorithm=SHA-256\r\n"
+      "WWW-Authenticate: Basic realm=\"Cam\"\r\n"
+      "\r\n");
+
+  CHECK(auth.auth_method() == zm::AUTH_DIGEST);
+  CHECK(auth.nonce() == "sha");
+}

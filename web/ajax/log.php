@@ -30,7 +30,9 @@ if (!isset($_REQUEST['task'])) {
     if (!empty($_REQUEST['ids'])) {
       $ids = array_map('intval', (array)$_REQUEST['ids']);
       $placeholders = implode(',', array_fill(0, count($ids), '?'));
-      dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+      if (dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids) === null) {
+        $message = 'Failed to delete the selected log entries';
+      }
     } else if (!empty($_REQUEST['all'])) {
       // Deleting by id needs one request per 100 rows, which is unusable at the
       // hundreds of thousands of rows people accumulate, and the table's

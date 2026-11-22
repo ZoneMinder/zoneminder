@@ -43,12 +43,18 @@ namespace {
   mkdir($tmp.'/events2', 0777, true);
   file_put_contents($store.'/1/a.jpg', 'a');
   file_put_contents($tmp.'/events2/b.jpg', 'b');
+  file_put_contents($tmp.'/c.jpg', 'c');
 
   $action = 'delete';
   $error_message = '';
   $_REQUEST = array('path' => $tmp.'/events2', 'files' => array('b.jpg'));
   include $root.'/web/includes/actions/files.php';
   check('a sibling directory with the same prefix is refused', file_exists($tmp.'/events2/b.jpg'));
+
+  // A path that starts with the Storage path and climbs out with "..".
+  $_REQUEST = array('path' => $store.'/..', 'files' => array('c.jpg'));
+  include $root.'/web/includes/actions/files.php';
+  check('a path that climbs out of the Storage area is refused', file_exists($tmp.'/c.jpg'));
 
   $_REQUEST = array('path' => $store.'/1', 'files' => array('a.jpg'));
   include $root.'/web/includes/actions/files.php';

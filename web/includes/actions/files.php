@@ -35,12 +35,16 @@ if ($action == 'delete') {
   } // end if canEdit(System)
 
   $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : ZM_DIR_EVENTS;
+  # Compare resolved paths, so a trailing ".." can't climb out of the Storage area.
+  $path = realpath($path);
   $is_ok_path = false;
-  foreach (ZM\Storage::find() as $storage) {
-    # Must be the Storage path or below it: "/events2" is not below "/events".
-    $base = rtrim($storage->Path(), '/');
-    if ($base !== '' and ($path === $base or strpos($path, $base.'/') === 0)) {
-      $is_ok_path = true;
+  if ($path !== false) {
+    foreach (ZM\Storage::find() as $storage) {
+      # Must be the Storage path or below it: "/events2" is not below "/events".
+      $base = realpath($storage->Path());
+      if ($base !== false and ($path === $base or strpos($path, rtrim($base, '/').'/') === 0)) {
+        $is_ok_path = true;
+      }
     }
   }
   $path_parts = pathinfo($path);

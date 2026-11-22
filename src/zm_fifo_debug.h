@@ -19,6 +19,9 @@
 #ifndef ZM_FIFO_DEBUG_H
 #define ZM_FIFO_DEBUG_H
 
+#include <cstdarg>
+#include <cstddef>
+
 class Monitor;
 
 #define zmFifoDbgPrintf(level, params...) {\
@@ -38,5 +41,7 @@ void zmFifoDbgOutput(
   const char *fstring,
   ...) __attribute__((format(printf, 5, 6)));
 int zmFifoDbgInit(Monitor * monitor);
+// Formats one debug line plus newline and NUL into buf; returns the length written (never more than size - 1).
+size_t zmFifoDbgFormat(char *buf, size_t size, int hex, const char *fstring, va_list args);
 
 #endif  // ZM_FIFO_DEBUG_H

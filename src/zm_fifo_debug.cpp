@@ -21,6 +21,9 @@
 #include "zm_fifo.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include <algorithm>
+#include <cstdarg>
+#include <cstdio>
 #include <fcntl.h>
 #include <sys/file.h>
 #include <unistd.h>
@@ -59,6 +62,31 @@ int zmFifoDbgInit(Monitor *monitor) {
   return 1;
 }
 
+size_t zmFifoDbgFormat(char *dbg_string, size_t str_size, int hex, const char *fstring, va_list arg_ptr) {
+  char *dbg_ptr = dbg_string;
+  if ( hex ) {
+    unsigned char *data = va_arg(arg_ptr, unsigned char *);
+    int len = va_arg(arg_ptr, int);
+    dbg_ptr += snprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), "%d:", len);
+    for ( int i = 0; i < len; i++ ) {
+      const auto max_len = str_size - (dbg_ptr - dbg_string);
+      int rc = snprintf(dbg_ptr, max_len, " %02x", data[i]);
+      if (rc < 0 || static_cast<size_t>(rc) >= max_len)
+        break;
+      dbg_ptr += rc;
+    }
+  } else {
+    int rc = vsnprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), fstring, arg_ptr);
+    if (rc > 0)
+      dbg_ptr += std::min(static_cast<size_t>(rc), str_size - 1);
+  }
+  if (static_cast<size_t>(dbg_ptr - dbg_string) > str_size - 2)
+    dbg_ptr = dbg_string + str_size - 2;
+  *dbg_ptr++ = '\n';
+  *dbg_ptr = '\0';
+  return dbg_ptr - dbg_string;
+}
+
 void zmFifoDbgOutput(
   int hex,
   const char * const file,
@@ -68,31 +96,15 @@ void zmFifoDbgOutput(
   ...
 ) {
   char dbg_string[8192];
-  int str_size = sizeof(dbg_string);
 
   va_list arg_ptr;
   if ( (!zm_fifodbg_inited) || ( !zm_fifodbg_log_fd && !zmFifoDbgOpen() ) )
     return;
 
-  char *dbg_ptr = dbg_string;
   va_start(arg_ptr, fstring);
-  if ( hex ) {
-    unsigned char *data = va_arg(arg_ptr, unsigned char *);
-    int len = va_arg(arg_ptr, int);
-    dbg_ptr += snprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), "%d:", len);
-    for ( int i = 0; i < len; i++ ) {
-      const auto max_len = str_size - (dbg_ptr - dbg_string);
-      int rc = snprintf(dbg_ptr, max_len, " %02x", data[i]);
-      if (rc < 0 || rc > max_len)
-        break;
-      dbg_ptr += rc;
-    }
-  } else {
-    dbg_ptr += vsnprintf(dbg_ptr, str_size-(dbg_ptr-dbg_string), fstring, arg_ptr);
-  }
+  size_t dbg_len = zmFifoDbgFormat(dbg_string, sizeof(dbg_string), hex, fstring, arg_ptr);
   va_end(arg_ptr);
-  strncpy(dbg_ptr++, "\n", 2);
-  int res = fwrite(dbg_string, dbg_ptr-dbg_string, 1, zm_fifodbg_log_fd);
+  int res = fwrite(dbg_string, dbg_len, 1, zm_fifodbg_log_fd);
   if ( res != 1 ) {
     fclose(zm_fifodbg_log_fd);
     zm_fifodbg_log_fd = nullptr;

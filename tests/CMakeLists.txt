@@ -28,6 +28,7 @@ set(TEST_SOURCES
   zm_event_hardlink.cpp
   zm_event_score.cpp
   zm_ffmpeg_avdevice.cpp
+  zm_fifo_debug_format.cpp
   zm_fifo_stream.cpp
   zm_font.cpp
   zm_hwaccel_candidates.cpp

@@ -297,7 +297,10 @@ sub Url {
   }
 
   my $url = $this->Protocol().'://';
-  $url .= $this->Hostname();
+  my $hostname = $this->Hostname();
+  # An IPv6 literal must be bracketed to be followed by a port.
+  $hostname = '['.$hostname.']' if $hostname =~ /:/ and $hostname !~ /^\[/;
+  $url .= $hostname;
   if ( !$port ) {
     $port = $this->Port();
   }

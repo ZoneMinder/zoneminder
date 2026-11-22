@@ -146,6 +146,7 @@ while (!$zm_terminate) {
             .$connection->name().' ('.$connection->fileno().')');
         if ( $connection->spawns() ) {
           my $new_connection = $connection->accept();
+          next if !$new_connection;
           $spawned_connections{$new_connection->fileno()} = $new_connection;
           Debug('Added new spawned connection ('.$new_connection->fileno()
               .'), '.int(keys(%spawned_connections)).' spawned connections');

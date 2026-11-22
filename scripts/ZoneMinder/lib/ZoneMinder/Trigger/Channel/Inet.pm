@@ -95,6 +95,10 @@ sub accept
     my $self = shift;
     local *cfh;
     my $paddr = accept( *cfh, $self->{handle} );
+    if ( !$paddr ) {
+        Error( "Can't accept connection: $!" );
+        return( undef );
+    }
     return( $self->_spawn( *cfh ) );
 }
 

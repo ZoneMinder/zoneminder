@@ -85,6 +85,7 @@ sub accept
 {
     my $self = shift;
     my $new_channel = $self->{channel}->accept();
+    return( undef ) if !$new_channel;
     return( $self->_spawn( $new_channel ) );
 }
 

@@ -65,4 +65,12 @@ if ($action == 'save') {
 } else {
   ZM\Error("Unknown action $action in saving AI Object Class");
 }
+
+// zmc reads the class names and aliases when it starts listening for ONVIF
+// events, so restart the monitors that tag events with them.
+if (!empty($refreshParent) and daemonCheck()) {
+  foreach (ZM\Monitor::find(['Deleted'=>false, 'ONVIF_Event_Listener'=>true, 'ONVIF_Event_Tags'=>true]) as $monitor) {
+    $monitor->zmcControl('restart');
+  }
+}
 ?>

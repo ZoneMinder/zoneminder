@@ -101,6 +101,7 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
+    'Aliases'               => 'Aliases',
     'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
@@ -1410,7 +1411,7 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      person, vehicle, animal, package, face, and doorbell for a doorbell press.~~
      What a camera calls each object is set in Options, AI Classes, as the class
      Aliases (PeopleDetect and Human are aliases of person). Add the words your
-     camera uses there, then restart the monitor so it reads them.~~
+     camera uses there. Saving a class restarts the monitors that tag events.~~
      An alarm that names no object, such as plain motion or tampering, is tagged with
      the name of its topic, for example MotionAlarm.
     '

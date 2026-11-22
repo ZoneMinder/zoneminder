@@ -228,12 +228,24 @@ sub zoomStop
 
 #Diagonally Up Right Arrow
 #This camera does not have builtin diagonal commands so we emulate them
+sub moveDiagonal
+{
+    my ($self, $vcmd, $vstop, $hcmd, $hstop) = @_;
+    # Start both directions, then stop both, so the camera moves diagonally
+    # instead of finishing one axis before starting the other.
+    $self->sendCmd( "decoder_control.cgi?command=$vcmd" );
+    $self->sendCmd( "decoder_control.cgi?command=$hcmd" );
+    $self->{stop_command} = $hstop;
+    my $timeout = $self->{Monitor}->{AutoStopTimeout};
+    $self->autoStop( $vstop, $timeout );
+    $self->sendCmd( "decoder_control.cgi?command=$hstop" ) if $timeout;
+}
+
 sub moveConUpRight
 {
     my $self = shift;
     Debug( "Move Diagonally Up Right" );
-    $self->moveConUp( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "0", "1", "6", "7" );
 }
 
 #Diagonally Down Right Arrow
@@ -242,8 +254,7 @@ sub moveConDownRight
 {
     my $self = shift;
     Debug( "Move Diagonally Down Right" );
-    $self->moveConDown( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "2", "3", "6", "7" );
 }
 
 #Diagonally Up Left Arrow
@@ -252,8 +263,7 @@ sub moveConUpLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Up Left" );
-    $self->moveConUp( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "0", "1", "4", "5" );
 }
 
 #Diagonally Down Left Arrow
@@ -262,8 +272,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    $self->moveConDown( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "2", "3", "4", "5" );
 }
 
 #Stop

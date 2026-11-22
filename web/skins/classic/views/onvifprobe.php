@@ -105,12 +105,13 @@ function probeCameras($localIp) {
 
 function probeProfiles($device_ep, $soapversion, $username, $password) {
   $profiles = array();
+  $seen = array();
   $args = 'profiles '.escapeshellarg($device_ep).' '.escapeshellarg($soapversion).' '.escapeshellarg($username).' ';
   if ($lines = @execONVIF($args.escapeshellarg($password), $args.escapeshellarg('<password>'))) {
     foreach ($lines as $line) {
       $line = rtrim( $line );
 
-      if ( preg_match('|^([^,]+),\s*([^,]+),\s*([^,]+),\s*(\d+),\s*(\d+),\s*(\d+),\s*([^,]+),\s*(.+)\s*$|', $line, $matches) ) {
+      if ( preg_match('|^([^,]+),\s*(.+?),\s*([^,]+),\s*(\d+),\s*(\d+),\s*(\d+),\s*([^,]+),\s*(.+)\s*$|', $line, $matches) ) {
         $stream_uri = $matches[8];
         // add user@pass to URI
         if ( preg_match('|^(\S+://)(.+)$|', $stream_uri, $tokens) ) {
@@ -147,6 +148,11 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
             'Encoding'    => $matches[3],
             'Transport'	  => $matches[7],
             );
+        // The probe tries RTP_unicast and RTP-Unicast (and the multicast pair);
+        // a camera that answers to both would be listed twice.
+        $key = $profile['Profile'].'|'.$profile['Path'].'|'.(stripos($profile['Transport'], 'multicast') !== false ? 'm' : 'u');
+        if (isset($seen[$key])) continue;
+        $seen[$key] = true;
         $profiles[] = $profile;
       } else {
         ZM\Debug("Line did not match preg: $line");
@@ -294,9 +300,10 @@ if (!isset($_REQUEST['step']) || ($_REQUEST['step'] == '1')) {
     // copy technical details
     $monitor['Width']  = $profile['Width'];
     $monitor['Height'] = $profile['Height'];
-    if ( $profile['Transport'] == 'RTP-Multicast' ) {
+    // The ONVIF schema says RTP-Unicast, the Media WSDL text says RTP_unicast.
+    if ( strcasecmp($profile['Transport'], 'RTP-Multicast') == 0 or strcasecmp($profile['Transport'], 'RTP_Multicast') == 0 ) {
 	    $monitor['Method'] = 'rtpMulti';
-    } else if ( $profile['Transport'] == 'RTP-Unicast' ) {
+    } else if ( strcasecmp($profile['Transport'], 'RTP-Unicast') == 0 or strcasecmp($profile['Transport'], 'RTP_Unicast') == 0 ) {
 	    $monitor['Method'] = 'rtpUni';
     } else {
 	    $monitor['Method'] = 'rtpRtsp';

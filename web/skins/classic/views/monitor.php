@@ -121,7 +121,7 @@ if ($monitor->AlarmMaxFPS() == '0.00')
 
 if (!empty($_REQUEST['preset'])) {
   $preset = dbFetchOne('SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']));
-  foreach ($preset as $name=>$value) {
+  foreach ($preset ?: array() as $name=>$value) {
     # Does isset handle NULL's?  I don't think this code is correct.
     # Icon: It does, but this means we can't set a null value.
     if (isset($value)) {

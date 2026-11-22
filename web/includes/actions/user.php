@@ -158,6 +158,8 @@ if ($action == 'Save') {
       $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
+      # The password changed under this session, which stays logged in
+      if (isset($changes['Password'])) $_SESSION['passwordHash'] = $user->Password();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
     } # end if changes

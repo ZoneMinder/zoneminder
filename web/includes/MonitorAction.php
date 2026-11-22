@@ -13,6 +13,7 @@ class MonitorAction extends ZM_Object {
     'Id'              => null,
     'MonitorId'       => 0,
     'TriggerOn'       => 'EventStart',
+    'Schedule'        => '',
     'ActionType'      => 'AudioPlay',
     'TargetMonitorId' => 0,
     'AudioFile'       => null,
@@ -110,6 +111,37 @@ class MonitorAction extends ZM_Object {
     if ($this->{'ActionType'} == 'AudioPlay' and $this->{'AudioFile'} !== null)
       $options .= ' --file='.validInt($this->{'AudioFile'});
     return $options.' --command='.$command;
+  }
+
+  // The crontab line that fires this action, or null when it is not one cron
+  // should run.
+  //
+  // Every part is constrained rather than quoted: the schedule has been
+  // through cronScheduleIsValid(), the command comes from commandFor()'s fixed
+  // list, and the ids are integers. So the line cannot carry anything a form
+  // put there, which is what keeps a web form out of reach of a shell.
+  //
+  // This is the same invocation web/includes/Monitor.php falls back to when
+  // no zmcontrol daemon is listening, so a scheduled action takes the path a
+  // manual one already does rather than a parallel one of its own.
+  public function cronLine() {
+    if ($this->{'TriggerOn'} != 'Schedule') return null;
+    if (!$this->{'Enabled'}) return null;
+    if (!cronScheduleIsValid($this->{'Schedule'})) return null;
+
+    $command = self::commandFor($this->{'ActionType'});
+    if (!$command) return null;
+
+    $target = intval($this->{'TargetMonitorId'});
+    if (!$target) return null;
+
+    $line = trim($this->{'Schedule'}).' '.ZM_PATH_BIN.'/zmcontrol.pl --id '.$target;
+    if (($this->{'ActionType'} == 'AudioPlay') and ($this->{'AudioFile'} !== null))
+      $line .= ' --file='.intval($this->{'AudioFile'});
+    $line .= ' --command='.$command;
+    // Named so a human reading the crontab can find the row it came from.
+    $line .= ' # ZoneMinder action '.intval($this->{'Id'});
+    return $line;
   }
 }
 ?>

@@ -20,7 +20,7 @@ class FramesController extends AppController {
     parent::beforeFilter();
     global $user;
     # We already tested for auth in appController, so we just need to test for specific permission
-    $canView = (!$user) || ($user->Events() != 'None');
+    $canView = (!$user) || ($user->canView('Events'));
     if (!$canView) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -77,7 +77,7 @@ class FramesController extends AppController {
   # per-monitor ACL. beforeFilter() only guarantees Events != None.
   private function requireFrameEdit($eventId, $frameId) {
     global $user;
-    if ($user and ($user->Events() != 'Edit')) {
+    if ($user and (!$user->canEdit('Events'))) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     if (!$this->eventForFrame($eventId, $frameId)->canEdit()) {
@@ -111,7 +111,7 @@ class FramesController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Frame->schema()));
     } else {
       $conditions = array();
     }
@@ -161,21 +161,26 @@ class FramesController extends AppController {
  * @return void
  */
 	public function add() {
-		if ($this->request->is('post')) {
-			global $user;
-			if ($user and ($user->Events() != 'Edit')) {
-				throw new UnauthorizedException(__('Insufficient Privileges'));
-			}
-			$this->requireRequestEventEdit();
-			$columns = $this->requestColumns();
-			$this->Frame->set($columns);
-			if ($this->Frame->validates() and
-				$this->Frame->getDataSource()->create($this->Frame, array_keys($columns), array_values($columns))) {
-				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
-			}
+		if (!$this->request->is('post')) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
 		}
-		$events = $this->Frame->Event->find('list');
-		$this->set(compact('events'));
+		global $user;
+		if ($user and (!$user->canEdit('Events'))) {
+			throw new UnauthorizedException(__('Insufficient Privileges'));
+		}
+		$this->requireRequestEventEdit();
+		$columns = $this->requestColumns();
+		$this->Frame->set($columns);
+		if ($this->Frame->validates() and
+			$this->Frame->getDataSource()->create($this->Frame, array_keys($columns), array_values($columns))) {
+			$message = 'Saved';
+		} else {
+			$message = $this->Frame->validationErrors ? $this->Frame->validationErrors : 'Error';
+		}
+		$this->set(array(
+			'message' => $message,
+			'_serialize' => array('message')
+		));
 	}
 
 /**
@@ -199,13 +204,17 @@ class FramesController extends AppController {
 			}
 			if (count($columns) and $this->Frame->updateAll($columns,
 				array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId))) {
-				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
+				$message = 'Saved';
+			} else {
+				$message = count($columns) ? 'Error' : 'No fields to save';
 			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$this->request->data = $this->findFrame($eventId, $frameId);
+			throw new BadRequestException(__('Invalid method. Should be post or put'));
 		}
-		$events = $this->Frame->Event->find('list');
-		$this->set(compact('events'));
 	}
 
 /**
@@ -220,8 +229,12 @@ class FramesController extends AppController {
 		$this->request->allowMethod('post', 'delete');
 		$this->requireFrameEdit($eventId, $frameId);
 		if ($this->Frame->deleteAll(array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId), false)) {
-			return $this->flash(__('The frame has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The frame could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The frame could not be deleted.'));
 		}
 	}}

@@ -28,6 +28,7 @@ require_once('Role_Group_Permission.php');
 require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
 
 // A request parameter as a string, or null when the client did not send one it
 // can be used as. Request values are whatever arrived: "?user[]=x" makes
@@ -74,20 +75,15 @@ function migrateHash($username, $pass) {
   $password_type = password_type($user->Password());
   if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
 
-  if (function_exists('password_hash')) {
-    ZM\Info("Migrating $username to bcrypt scheme");
-    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection
-    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
-    # Since password field has changed, existing auth_hash is no longer valid.
-    # getAuthUser() checks it against the new hash, so build it from that one.
-    $user->Password($bcrypt_hash);
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
-  } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
-    return;
-  }
+  ZM\Info("Migrating $username to bcrypt scheme");
+  // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+  // we can modify this later to support argon2 etc as switch to its own password signature detection
+  $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+  # Since password field has changed, existing auth_hash is no longer valid.
+  # getAuthUser() checks it against the new hash, so build it from that one.
+  $user->Password($bcrypt_hash);
+  generateAuthHash(ZM_AUTH_HASH_IPS, true);
 }
 
 // The password db/zm_create.sql gives the admin account, as the user guide
@@ -189,7 +185,6 @@ function validateUser($username='', $password='') {
     ZM\Debug("Detected bcrypt overlay hashing for $username");
     $bcrypt_hash = substr($user['Password'], 4);
     $mysql_encoded_password = '*'.strtoupper(sha1(sha1($password, true)));
-    ZM\Debug("Comparing password $mysql_encoded_password to bcrypt hash: $bcrypt_hash");
     $password_correct = password_verify($mysql_encoded_password, $bcrypt_hash);
     break;
   default:
@@ -333,25 +328,43 @@ function userLogout() {
   zm_session_clear();
 }
 
-// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
-// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
-define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+// ZM_AUTH_HASH_SECRET_DEFAULT, the public shipped secret, is defined in config.php.
+// The secret is the HS256 token key, and php-jwt refuses an HMAC key shorter than
+// the hash (256 bits). zmupdate.pl -f extends a shorter one by repeating it.
+define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);
+
+function authHashSecretValid($secret) {
+  return is_string($secret) and (strlen($secret) >= ZM_AUTH_HASH_SECRET_MIN_LENGTH)
+    and ($secret !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
+
+// Where an unusable secret can be fixed. Options and zmupdate.pl -f only change the
+// Config table, so a secret set in zm.conf or conf.d has to be changed in that file.
+function authHashSecretFix($fileConfig) {
+  if (isset($fileConfig['ZM_AUTH_HASH_SECRET']['File']))
+    return 'It is set in '.$fileConfig['ZM_AUTH_HASH_SECRET']['File'].', which overrides Options and zmupdate.pl -f: change it there.';
+  return 'Set it in Options->System or run zmupdate.pl -f.';
+}
 
 function authHashSecretIsSet() {
-  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+  return authHashSecretValid(ZM_AUTH_HASH_SECRET);
 }
 
 function validateToken($token, $allowed_token_type='access') {
   global $user;
+  if (!is_string($token)) {
+    return array(false, 'Invalid token');
+  }
   if (!authHashSecretIsSet()) {
-    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. '.authHashSecretFix(loadConfigFiles()));
     return array(false, 'AUTH_HASH_SECRET is not set');
   }
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
-    $decoded_token = JWT::decode($token, $key, array('HS256'));
-  } catch (Exception $e) {
+    $decoded_token = JWT::decode($token, new Key($key, 'HS256'));
+  } catch (Throwable $e) {
+    // Throwable, not Exception: php-jwt throws TypeError on a malformed header (a non-string kid).
     ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
     return array(false, $e->getMessage());
   }
@@ -455,7 +468,8 @@ function getAuthUser($auth) {
     $sessionUser = isset($_SESSION['username']) ? $_SESSION['username'] : null;
     $filterUser = $requestedUser !== null ? $requestedUser : $sessionUser;
 
-    ZM\Debug("getAuthUser: validating auth='$auth' filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
+    // The hash is a credential: log its fingerprint (zms logs the same tag).
+    ZM\Debug("getAuthUser: validating auth ".ZM\logFingerprint($auth)." filterUser='".($filterUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' session_username='".($sessionUser ?? '')."'");
 
     $sql = 'SELECT * FROM Users WHERE Enabled = 1';
     $values = array();
@@ -510,11 +524,11 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info("Unable to authenticate user from auth hash '$auth' (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
     return null;
   } // end if using auth hash
 
-  ZM\Info("Unable to authenticate user from auth hash '$auth'");
+  ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth));
   return null;
 } // end getAuthUser($auth)
 
@@ -562,6 +576,7 @@ $role_monitor_permissions = null;
 function visibleMonitor($mid) {
   global $user;
   if (!$user) return false;
+  if (!is_scalar($mid)) return false;
 
   global $monitor_permissions;
 
@@ -665,6 +680,14 @@ function editableMonitor($mid) {
   global $user;
   if (!$user) {
     ZM\Debug("Not logged in");
+    return false;
+  }
+
+  # A monitor the user can't see can't be edited either. The checks below only
+  # look for an Edit grant, so a None deny on a group (the user's or the role's)
+  # used to fall through to the global Monitors permission.
+  if (!visibleMonitor($mid)) {
+    ZM\Debug("Can't edit monitor $mid because it isn't visible");
     return false;
   }
 
@@ -860,6 +883,32 @@ function get_auth_relay() {
   return '';
 } // end function get_auth_relay
 
+// Credentials for zmu, as arguments to append to its command line, for the
+// current user. A command line is visible to every local user (ps), so with a
+// usable ZM_AUTH_HASH_SECRET this is an access token minted for the call that
+// lives a minute, never the password or an auth hash, which logs in for
+// ZM_AUTH_HASH_TTL hours. Without the secret zmu refuses tokens: then what zmu
+// got before, an auth hash, or with ZM_AUTH_RELAY=plain the password: $password
+// when the caller has it (an API request's own pass=), else the session's.
+function zmuCredentials($password = null) {
+  global $user;
+  if (!ZM_OPT_USE_AUTH) return '';
+  if (authHashSecretIsSet()) {
+    $now = time();
+    $token = \Firebase\JWT\JWT::encode(array('iss' => 'ZoneMinder', 'iat' => $now, 'exp' => $now + 60,
+      'user' => $user->Username(), 'type' => 'access'), ZM_AUTH_HASH_SECRET, 'HS256');
+    return ' -T '.escapeshellarg($token);
+  }
+  $credentials = ' -U '.escapeshellarg($user->Username());
+  if (ZM_AUTH_RELAY == 'hashed') {
+    $credentials .= ' -A '.generateAuthHash(false, true);
+  } else if (ZM_AUTH_RELAY == 'plain') {
+    if ($password === null or $password === '') $password = isset($_SESSION['password']) ? $_SESSION['password'] : '';
+    $credentials .= ' -P '.escapeshellarg($password);
+  }
+  return $credentials;
+}
+
 // Authenticate the current request and populate the global $user.
 //
 // This used to run at file scope, so merely including auth.php authenticated
@@ -914,6 +963,13 @@ function zm_authenticate_request() {
           if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
             unset($_SESSION['AuthHashGeneratedAt']);
             unset($_SESSION['AuthHash'.$remoteAddr]);
+          }
+          if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {
+            // The client's session becomes this user's: give it a new id first, so
+            // an id planted in the client beforehand doesn't become a logged-in
+            // session (session fixation). Without our cookie the session isn't
+            // stored, so there is nothing to take over.
+            zm_session_regenerate_id_login();
           }
           $_SESSION['username'] = $user->Username();
         }

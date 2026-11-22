@@ -22,6 +22,7 @@ global $minTime;
 global $maxTime;
 global $monitors;
 global $eventsSql;
+global $defaultCurrentTimeSecs;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -140,7 +141,10 @@ $numMonitors = 0;  // this array is indexed by the monitor ID for faster access 
 $avgArea = floatval(0);  // Calculations the normalizing scale
 
 foreach ( $monitors as $m ) {
-  $avgArea = $avgArea + floatval($m->Width() * $m->Height());
+  $area = $m->Width() * $m->Height();
+  // A monitor whose size is not known yet (Width or Height 0) has nothing to normalize
+  if ( !$area ) continue;
+  $avgArea = $avgArea + floatval($area);
   $numMonitors++;
 }
 
@@ -159,7 +163,8 @@ foreach ( $monitors as $m ) {
   echo "  monitorName["            . $m->Id() . "]=\"" . validJsStr($m->Name()) . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
-  echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
+  $area = $m->Width() * $m->Height();
+  echo "  monitorNormalizeScale["  . $m->Id() . "]=" . ($area ? sqrt($avgArea / $area) : 1) . ";\n";
   $zoomScale=1.0;
   if ( isset($_REQUEST['z'.$m->Id()]) )
       $zoomScale = floatval(validHtmlStr($_REQUEST['z'.$m->Id()]));
@@ -175,7 +180,7 @@ var minTime=".json_encode((string)$minTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_A
 var maxTime=".json_encode((string)$maxTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
-if ( isset($defaultCurrentTimeSecs) ) {
+if ( !empty($defaultCurrentTimeSecs) ) {
   echo 'var currentTimeSecs=parseFloat('.$defaultCurrentTimeSecs.");\n";
 } else {
   echo 'var currentTimeSecs=parseFloat('.$minTimeSecs.");\n";

@@ -18,8 +18,10 @@
 #include "zm_catch2.h"
 
 #include "zm_time.h"
+#include "zm_utils.h"
 
 #include <chrono>
+#include <cstdlib>
 #include <ctime>
 #include <string>
 
@@ -81,4 +83,58 @@ TEST_CASE("SystemTimePointToMysqlString: matches the second used to build the ev
 
   time_t path_sec = std::chrono::system_clock::to_time_t(tp);
   REQUIRE(SystemTimePointToMysqlString(tp) == LocalSecondString(path_sec));
+}
+
+struct ScopedTimezone {
+  std::string old_tz;
+  bool had_tz;
+  explicit ScopedTimezone(const char *tz) {
+    const char *old = getenv("TZ");
+    had_tz = (old != nullptr);
+    if (had_tz) old_tz = old;
+    setenv("TZ", tz, 1);
+    tzset();
+  }
+  ~ScopedTimezone() {
+    if (had_tz) setenv("TZ", old_tz.c_str(), 1);
+    else unsetenv("TZ");
+    tzset();
+  }
+};
+
+TEST_CASE("StringToSystemTimePoint: reads daylight saving time wall clock times correctly") {
+  // 2026-07-15 10:00:00 America/New_York is EDT (UTC-4), so 14:00:00 UTC.
+  ScopedTimezone tz("America/New_York");
+  SystemTimePoint summer = StringToSystemTimePoint("2026-07-15 10:00:00");
+  REQUIRE(std::chrono::system_clock::to_time_t(summer) == 1784124000);
+  REQUIRE(SystemTimePointToMysqlString(summer) == "2026-07-15 10:00:00");
+
+  // 2026-01-15 10:00:00 America/New_York is EST (UTC-5), so 15:00:00 UTC.
+  SystemTimePoint winter = StringToSystemTimePoint("2026-01-15 10:00:00");
+  REQUIRE(std::chrono::system_clock::to_time_t(winter) == 1768489200);
+}
+
+TEST_CASE("StringToSystemTimePoint: an empty or unparseable string is the epoch") {
+  // Tag and Event_Tag read nullable DATETIME columns through this and test the
+  // result against Seconds(0) to decide whether a date was ever set.
+  REQUIRE(StringToSystemTimePoint("") == SystemTimePoint());
+  REQUIRE(StringToSystemTimePoint("garbage") == SystemTimePoint());
+  REQUIRE(StringToSystemTimePoint("0000-00-00 00:00:00") == SystemTimePoint());
+}
+
+TEST_CASE("SystemTimePointToString: returns the formatted text, not an empty string") {
+  ScopedTimezone tz("UTC");
+  SystemTimePoint tp = std::chrono::system_clock::from_time_t(1764623999) + Microseconds(123456);
+  std::string s = SystemTimePointToString(tp);
+  REQUIRE_FALSE(s.empty());
+  REQUIRE(s.size() == strlen(s.c_str()));
+  REQUIRE(s.find("21:19:59.123456") != std::string::npos);
+}
+
+TEST_CASE("StringToSystemTimePoint: reads a URL decoded zms datetime parameter") {
+  // zms decodes datetime=2026-07-15%2010:00:00 (or +) before parsing it.
+  ScopedTimezone tz("America/New_York");
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15%2010:00:00"))) == 1784124000);
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15+10:00:00"))) == 1784124000);
+  REQUIRE(StringToSystemTimePoint(UriDecode("2026-07-15")).time_since_epoch().count() == 0);
 }

@@ -751,7 +751,7 @@ sub _auto_stop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # --- Directional continuous moves ----------------------------------------
@@ -786,7 +786,7 @@ sub moveStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 sub zoomStop {
@@ -803,7 +803,7 @@ sub zoomStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # =========================================================================
@@ -815,6 +815,9 @@ sub moveMap {
   my $params = shift;
   my $x = $self->getParam($params, 'xcoord');
   my $y = $self->getParam($params, 'ycoord');
+  # ONVIF positions are normalised to -1..1, the click arrives in image pixels
+  $x = sprintf('%.4f', 2 * $x / ($self->{Monitor}->{Width} || 1) - 1);
+  $y = sprintf('%.4f', 1 - 2 * $y / ($self->{Monitor}->{Height} || 1));
   Debug("AbsoluteMove to $x, $y");
 
   my $body = '

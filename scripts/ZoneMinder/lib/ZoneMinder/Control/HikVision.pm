@@ -51,7 +51,9 @@ use LWP::UserAgent;
 use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
+use URI::Escape qw(uri_unescape);
 use Data::Dumper;
+use XML::LibXML;
 #use Crypt::Mode::CBC;
 #use Crypt::Cipher::AES;
 
@@ -77,12 +79,14 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     $uri = URI->new($self->{Monitor}->{ControlAddress});
-    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if !$uri->can('host');
     $$self{host} = $uri->host();
+    $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
-      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+      # userinfo is percent-encoded when the password holds @ or :
+      @$self{'username','password'} = map { uri_unescape($_) } $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {
       $$self{username} = $self->{Monitor}->{User};
       $$self{password} = $self->{Monitor}->{Pass};
@@ -93,12 +97,12 @@ sub open {
       $$self{port} = $2 ? $2 : $$self{port};
     }
   } elsif ($self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
-Debug("Have " . $+{PASSWORD});
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      my ($user, $pass) = ($+{USERNAME}, $+{PASSWORD});
+      $$self{username} = uri_unescape($user) if $user and !$$self{username};
+      $$self{password} = uri_unescape($pass) if $pass and !$$self{password};
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
@@ -123,7 +127,7 @@ Debug("Have " . $+{PASSWORD});
 
   # Save and test the credentials
   if (defined($$self{username})) {
-    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, $$self{username}, $$self{password}");
+    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, user $$self{username}");
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } # end if defined user
 
@@ -206,7 +210,7 @@ sub moveVector {
   my $params = shift;
   my $command;                    # The ISAPI/PTZ command
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
 
   my $momentxml;
   if( $duration ) {
@@ -222,9 +226,15 @@ sub moveVector {
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
   my $xml = '<PTZData>';
-  $xml .= "<pan>$x</pan>" if $x;
-  $xml .= "<tilt>$y</tilt>" if $y;
-  $xml .= "<zoom>$z</zoom>" if $z;
+  if ($x or $y or $z) {
+    $xml .= "<pan>$x</pan>" if $x;
+    $xml .= "<tilt>$y</tilt>" if $y;
+    $xml .= "<zoom>$z</zoom>" if $z;
+  } else {
+    # A stop must say so explicitly. An empty PTZData is ignored by some
+    # cameras, which then keep moving.
+    $xml .= '<pan>0</pan><tilt>0</tilt><zoom>0</zoom>';
+  }
   $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
   $self->PutCmd($command, $xml);
@@ -286,13 +296,13 @@ sub focusConNear {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus(-$speed);
   if ($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -319,13 +329,13 @@ sub focusConFar {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -363,13 +373,13 @@ sub irisConClose {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris(-$speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -398,13 +408,13 @@ sub irisConOpen {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Open {
@@ -430,8 +440,17 @@ sub irisRelOpen {
   $self->Iris($speed);
 }
 #
-# reset (reboot) the device
+# reset and reboot the device
 #
+# ISAPI has no "reset PTZ to defaults" command. The Controls row advertises
+# CanReset, so map it to the reboot endpoint.
+sub reset {
+  my $self = shift;
+
+  Debug('Camera reset (reboot)');
+  $self->reboot();
+}
+
 sub reboot {
   my $self = shift;
 

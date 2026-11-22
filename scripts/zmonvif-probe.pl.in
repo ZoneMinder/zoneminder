@@ -129,7 +129,7 @@ if ( $action eq 'probe' ) {
     my $media = $client->get_endpoint('media');
     if ( ! $media ) {
       print "No media endpoint for client.\n";
-      return;
+      exit(1);
     }
 
     my $result = $media->$action( { } ,, );

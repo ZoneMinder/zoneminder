@@ -25,7 +25,14 @@
 #include "zm_utils.h"
 #include <cstring>
 
-User::User() : id(0), enabled(false), role_id(0) {
+User::User() :
+  id(0),
+  enabled(false),
+  role_id(0),
+  group_permissions_loaded(false),
+  monitor_permissions_loaded(false),
+  role_group_permissions_loaded(false),
+  role_monitor_permissions_loaded(false) {
   username[0] = password[0] = 0;
   stream = events = control = monitors = system = PERM_NONE;
 }
@@ -80,11 +87,13 @@ void User::loadMonitorPermissions() {
   for (const Monitor_Permission &p : Monitor_Permission::find(id) ) {
     monitor_permissions[p.MonitorId()] = p;
   }
+  monitor_permissions_loaded = true;
   Debug(1, "# of Monitor_Permissions %zu", monitor_permissions.size());
 }
 
 void User::loadGroupPermissions() {
   group_permissions = Group_Permission::find(id);
+  group_permissions_loaded = true;
   Debug(1, "# of Group_Permissions %zu", group_permissions.size());
 }
 
@@ -285,7 +294,7 @@ std::string User::getAuthHash() {
       now_tm.tm_mday,
       now_tm.tm_mon,
       now_tm.tm_year);
-  Debug(1, "Creating auth_key '%s'", auth_key.c_str());
+  // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
   return ByteArrayToHexString(md5_digest);
@@ -398,8 +407,10 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
     remote_addr = client_addr.c_str();
   }
 
-  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
-        username.c_str(), auth.c_str(), remote_addr);
+  // The hash is a credential: log its fingerprint so this line can be matched
+  // with the web side's, not the hash.
+  Debug(1, "Attempting to authenticate user %s from auth hash %s, remote addr(%s)",
+        username.c_str(), zm::crypto::LogFingerprint(auth).c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " COALESCE(`RoleId`, 0)"
@@ -454,7 +465,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
       std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth.c_str());
+      // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
+      Debug(1, "Checking auth hash for user '%s'", db_username);
 
       if (auth == auth_md5) {
         // We have a match
@@ -463,13 +475,13 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth.c_str());
+        Debug(1, "No match for user '%s'", db_username);
       }
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth_key %s", auth.c_str());
+  Debug(1, "No user found for auth hash %s", zm::crypto::LogFingerprint(auth).c_str());
   return nullptr;
 }  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
@@ -477,7 +489,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
 bool checkUser(const std::string &username) {
   if (username.empty())
     return false;
-  if (username.length() > 32)
+  // Users.Username is latin1 varchar(64): up to 192 bytes over the utf8mb4 connection.
+  if (username.length() > 192)
     return false;
 
   return true;
@@ -486,8 +499,6 @@ bool checkUser(const std::string &username) {
 // Function to check password length
 bool checkPass(const std::string &password) {
   if (password.empty())
-    return false;
-  if (password.length() > 64)
     return false;
 
   return true;

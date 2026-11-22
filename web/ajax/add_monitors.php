@@ -1,5 +1,6 @@
 <?php
 require_once('includes/monitor_probe.php');
+require_once('includes/Group.php');
 
 $defaultMonitor = new ZM\Monitor();
 
@@ -48,7 +49,7 @@ if ( 0 ) {
             )
           );
       $new_stream = null;
-      Info('Testing connection to '.$url_bits['host'].':'.$port);
+      \ZM\Info('Testing connection to '.$url_bits['host'].':'.$port);
       if ( socket_connect( $socket, $url_bits['host'], $port ) ) {
         $new_stream = $url_bits; // make a copy
         $new_stream['port'] = $port;
@@ -62,7 +63,7 @@ if ( 0 ) {
           $new_stream['scheme'] = 'http';
         $url = unparse_url($new_stream, array('path'=>'/', 'query'=>'action=snapshot'));
         list($width, $height, $type, $attr) = getimagesize( $url );
-        ZM\Info("Got $width x $height from $url");
+        ZM\Info("Got $width x $height from ".ZM\urlForLog($url));
         $new_stream['Width'] = $width;
         $new_stream['Height'] = $height;
 
@@ -92,7 +93,7 @@ if ( 0 ) {
     $stream['url'] = unparse_url($stream, array('path'=>'/','query'=>'action=stream'));
     $monitors = ZM\Monitor::find(array('Path'=>$stream['url']));
     if ( count($monitors) ) {
-      ZM\Info('Found monitors matching ' . $stream['url'] );
+      ZM\Info('Found monitors matching ' . ZM\urlForLog($stream['url']));
       $stream['Monitor'] = $monitors[0];
       if ( isset( $stream['Width'] ) and ( $stream['Monitor']->Width() != $stream['Width'] ) ) {
         $stream['Warning'] .= 'Monitor width ('.$stream['Monitor']->Width().') and stream width ('.$stream['Width'].") do not match!\n";
@@ -123,7 +124,7 @@ if (canEdit('Monitors')) {
   case 'probe' :
   {
     $available_streams = array();
-    $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
+    $url = (isset($_REQUEST['url']) and is_string($_REQUEST['url'])) ? $_REQUEST['url'] : '';
     $url_bits = null;
     if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
       $url_bits = array('host'=>$url);
@@ -164,9 +165,12 @@ if (canEdit('Monitors')) {
       return;
     }
 
+    // Spreadsheets write UTF-8 CSV with a byte order mark that would stick to the first header cell
+    if ( fread($handle, 3) !== "\xEF\xBB\xBF" ) rewind($handle);
+
     $available_streams = array();
     $row = 0;
-    while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
+    while ( ($data = fgetcsv($handle, 0, ',')) !== FALSE ) {
       $row ++;
       if ( count($data) < 2 ) {
         ZM\Info("Skipping line $row, expected at least Name,URL columns");
@@ -185,15 +189,29 @@ if (canEdit('Monitors')) {
         ZM\Info("Skipping line $row, no URL");
         continue;
       }
-      ZM\Info("Importing line $row: $name $url $group");
+      ZM\Info("Importing line $row: $name ".ZM\urlForLog($url)." $group");
 
       $url_bits = parse_url($url);
       $host = ($url_bits and isset($url_bits['host'])) ? $url_bits['host'] : '';
 
       # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
       $monitor = null;
-      $existing = ZM\Monitor::find(array('Path'=>$url));
+      $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
       if ( count($existing) ) $monitor = $existing[0];
+
+      $monitor_fields = array(
+        'Type' => 'Ffmpeg',
+        'Path' => $url,
+        'Name' => $name,
+      );
+      if ( $group !== '' ) {
+        $existing_group = ZM\Group::find_one(array('Name'=>$group));
+        if ( $existing_group ) {
+          $monitor_fields['GroupIds'] = $existing_group->Id();
+        } else {
+          ZM\Info("Line $row: no group named $group, not adding the monitor to a group");
+        }
+      }
 
       $available_streams[] = array(
         'mac'         => '',
@@ -206,11 +224,7 @@ if (canEdit('Monitors')) {
           'ip'           => $host,
           'Manufacturer' => '',
           'Model'        => '',
-          'monitor'      => array(
-            'Type' => 'Ffmpeg',
-            'Path' => $url,
-            'Name' => $name,
-          ),
+          'monitor'      => $monitor_fields,
         ),
         'Monitor'     => $monitor,
       );

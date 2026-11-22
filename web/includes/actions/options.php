@@ -26,6 +26,8 @@ if ( !canEdit('System') ) {
 
 global $error_message;
 
+require_once('includes/config_values.php');
+
 // AI object-detection CRUD lives in dedicated action files. The list views post
 // here (view=options) with object=ai_* for deletes; route those to the matching
 // handler, which processes both save and delete via $action.
@@ -38,45 +40,80 @@ if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
       if ( !empty($_REQUEST['markIds']) ) {
+        // Monitors, storage areas and cron jobs hold a ServerId with no foreign key: refuse rather than orphan them.
+        foreach ( $_REQUEST['markIds'] as $key => $Id ) {
+          $Id = validCardinal($Id);
+          $_REQUEST['markIds'][$key] = $Id;
+          $summary = ZM\Server::InUseSummary($Id);
+          if ( $summary ) {
+            $error_message .= 'Server '.validHtmlStr($Id).' is still used by '.$summary.' and cannot be deleted.<br/>';
+            unset($_REQUEST['markIds'][$key]);
+          }
+        }
         foreach ( $_REQUEST['markIds'] as $Id ) {
-          dbQuery('DELETE FROM Servers WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM Servers WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting server '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'server', $Id, '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'storage' ) {
       if ( !empty($_REQUEST['markIds']) ) {
         foreach ( $_REQUEST['markIds'] as $Id ) {
-          dbQuery('DELETE FROM Storage WHERE Id=?', array($Id));
-          ZM\AuditAction('delete', 'storage', $Id, '');
+          $Storage = ZM\Storage::find_one(array('Id'=>validCardinal($Id)));
+          if ( !$Storage ) continue;
+          if ( $Storage->EventCount() or $Storage->MonitorCount() ) {
+            $error_message .= 'Storage area '.validHtmlStr($Storage->Name()).' is in use by events or monitors and cannot be deleted.<br/>';
+            continue;
+          }
+          if ( dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id())) === null ) {
+            $error_message .= 'Error deleting storage area '.validHtmlStr($Storage->Name()).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
+          ZM\AuditAction('delete', 'storage', $Storage->Id(), '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'role' ) {
       if ( !empty($_REQUEST['markRids']) ) {
         foreach ( $_REQUEST['markRids'] as $Id ) {
-          dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting role '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'role', $Id, '');
         }
       }
-      $redirect = '?view=options&tab=roles';
+      if ( !$error_message ) $redirect = '?view=options&tab=roles';
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
     foreach ($_REQUEST['markUids'] as $markUid) {
-      dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
+      # User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+      if (dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
+      if (dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'user', $markUid, '');
     }
-    if ($markUid == $user->Id()) {
-      userLogout();
-      $redirect = '?view=login';
-    } else {
-      $redirect = '?view=options&tab=users';
+    if ($error_message == '') {
+      if (in_array($user->Id(), $_REQUEST['markUids'])) {
+        userLogout();
+        $redirect = '?view=login';
+      } else {
+        $redirect = '?view=options&tab=users';
+      }
     }
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
 
-  $result = dbQuery('SELECT Name,Value,Type,`System` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
+  $result = dbQuery('SELECT Name,Value,Type,DefaultValue,Requires,`System`,`Readonly` FROM Config WHERE Category=? ORDER BY Id ASC', array($_REQUEST['tab']));
   if (!$result) {
     $error_message .= 'Error loading config for tab ' . htmlspecialchars($_REQUEST['tab']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
     return;
@@ -86,6 +123,11 @@ if ( $action == 'delete' ) {
   // a submitted value, and a boolean left out of the form (a disabled checkbox isn't sent),
   // which would otherwise be saved as 0.
   $fileConfig = loadConfigFiles();
+  $effective = array();
+  foreach (dbFetchAll('SELECT Name,Value,Type FROM Config') as $row) {
+    $effective[$row['Name']] = isset($fileConfig[$row['Name']])
+      ? configFileValue($fileConfig[$row['Name']]['Value'], $row['Type']) : $row['Value'];
+  }
   $changed = false;
   while ($config = dbFetchNext($result)) {
     unset($newValue);
@@ -94,13 +136,20 @@ if ( $action == 'delete' ) {
         ZM\Debug('Not saving '.$config['Name'].': it is set in '.$fileConfig[$config['Name']]['File']);
       continue;
     }
+    // Readonly rows are maintained by the daemons (version detection, telemetry),
+    // so a posted value for one is not saved, and not counted as a change.
+    if (!empty($config['Readonly'])) continue;
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
+      // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
+      if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;
       $newValue = 0;
     } else if (isset($_REQUEST['newConfig'][$config['Name']])) {
       $newValue = preg_replace("/\r\n/", "\n", $_REQUEST['newConfig'][$config['Name']]);
     }
 
-    if (isset($newValue) && ($newValue != $config['Value'])) {
+    if (isset($newValue)) $effective[$config['Name']] = $newValue;
+    # Compare as strings: loosely, "1e3" equals "1000" and "007" equals "7", so such an edit was dropped.
+    if (isset($newValue) && ((string)$newValue !== (string)$config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {
         # Verify that the language file exists in the lang directory.
@@ -109,6 +158,15 @@ if ( $action == 'delete' ) {
           ZM\Error($error_message);
           continue;
         }
+      }
+      if (($config['Name'] == 'ZM_AUTH_HASH_SECRET') and !authHashSecretValid($newValue)) {
+        $error_message .= 'Error setting ZM_AUTH_HASH_SECRET. New value not saved because it must be at least '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters long and not the shipped default.<br/>';
+        ZM\Error('Not saving ZM_AUTH_HASH_SECRET: shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or the shipped default');
+        continue;
+      }
+      if (!configValueIsValid($newValue, $config['Type'], (string)$config['DefaultValue'])) {
+        $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is not a valid ' . $config['Type'] . '.<br/>';
+        continue;
       }
       if (dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name'])) === null) {
         $error_message .= 'Error saving ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars(dbLastError()) . '<br/>';
@@ -133,6 +191,10 @@ if ( $action == 'delete' ) {
     case 'network' :
     case 'mail' :
     case 'upload' :
+    # Read by zmc (image quality, MQTT publishing) and zmtelemetry when they start.
+    case 'images' :
+    case 'MQTT' :
+    case 'telemetry' :
       $restartWarning = true;
       break;
     case 'highband' :
@@ -148,7 +210,7 @@ if ( $action == 'delete' ) {
   # On error stay on the page (no redirect) so the error is shown; otherwise
   # redirect to drop the POST and reload with fresh values.
   if (!$error_message) {
-    $redirect = '?view=options&tab='.$_REQUEST['tab'];
+    $redirect = '?view=options&tab='.$_REQUEST['tab'].(empty($restartWarning) ? '' : '&restart=1');
   }
   return;
 } else if ($action == 'save') {
@@ -179,6 +241,9 @@ if ( $action == 'delete' ) {
           if (is_array($value)) {
             foreach ($value as $v) {
             }
+          } else if ($value === '') {
+            # an option without a value, e.g. no-resolv
+            $conf .= $name.PHP_EOL;
           } else {
             $conf .= $name.'='.$value.PHP_EOL;
           }
@@ -189,7 +254,6 @@ if ( $action == 'delete' ) {
       } else {
         exec('sudo -n /bin/systemctl restart dnsmasq.service');
       }
-      exec('sudo -n /bin/systemctl restart dnsmasq.service');
     }
   }
 } else if ($action == 'start') {
@@ -222,6 +286,9 @@ if ( $action == 'delete' ) {
     $allItems = ZM\MenuItem::find();
     foreach ($allItems as $item) {
       $id = $item->Id();
+      // An entry that was not on the submitted form (added by another admin
+      // since the page loaded) must keep its settings, not be disabled.
+      if (!isset($_REQUEST['items'][$id])) continue;
       $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
       $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
       $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();
@@ -309,9 +376,11 @@ if ( $action == 'delete' ) {
   if (!canEdit('System')) {
     ZM\Warning('Need System permission to reset menu items');
   } else {
-    dbQuery('DELETE FROM Menu_Items');
-    dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+    if ( dbQuery('DELETE FROM Menu_Items') === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    } else if ( dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
       ('Console', 1, 10),
+      ('Watch', 1, 15),
       ('Montage', 1, 20),
       ('MontageReview', 1, 30),
       ('Events', 1, 40),
@@ -324,8 +393,12 @@ if ( $action == 'delete' ) {
       ('Snapshots', 1, 110),
       ('Reports', 1, 120),
       ('ReportEventAudit', 1, 130),
-      ('Map', 1, 140)");
+      ('Map', 1, 140)") === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    }
   }
-  $redirect = '?view=options&tab=menu';
+  if (!$error_message) {
+    $redirect = '?view=options&tab=menu';
+  }
 } // end if object vs action
 ?>

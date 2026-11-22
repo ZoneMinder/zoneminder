@@ -65,7 +65,7 @@ foreach ( $states as $state ) {
           </div><!--form-group-->
           <div class="form-group">
             <label for="newState"><?php echo translate('NewState') ?></label>
-              <input class="form-control" type="text" id="newState"/>
+              <input class="form-control" type="text" id="newState" maxlength="64"/>
           </div>
         </div>
         <div class="modal-footer">

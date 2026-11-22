@@ -1,6 +1,7 @@
 #include "zm_libvnc_camera.h"
 
 #include "zm_packet.h"
+#include "zm_signal.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVNC
@@ -21,9 +22,9 @@ void bind_libvnc_symbols() {
   if (libvnc_lib != nullptr) // Safe-check
     return;
 
-  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  libvnc_lib = zm_libvnc_open([](const char *name) { return dlopen(name, RTLD_LAZY | RTLD_GLOBAL); });
   if (!libvnc_lib) {
-    Error("Error loading libvncclient.so: %s", dlerror());
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 
@@ -203,9 +204,13 @@ int VncCamera::PrimeCapture() {
 }
 
 int VncCamera::PreCapture() {
-  int rc = (*WaitForMessage_f)(mRfb, 500);
+  // The timeout is in microseconds: wait up to half a second for an update.
+  int rc = (*WaitForMessage_f)(mRfb, 500000);
+  // Any handled signal (stop, reload, or the logger's WINCH/USR1/USR2) interrupts
+  // the wait; poll once more so only a real socket error is a failure.
+  if (rc < 0 and !zm_terminate and !zm_reload) rc = (*WaitForMessage_f)(mRfb, 0);
   if (rc < 0) {
-    return -1;
+    return (zm_terminate or zm_reload) ? 0 : -1;
   } else if (!rc) {
     return rc;
   }
@@ -232,7 +237,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
         static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
         directbuffer,
-        static_cast<size_t>(width) * height * colours,
+        static_cast<size_t>(zm_packet->image->Size()),
         mImgPixFmt,
         mRfb->si.framebufferWidth,
         mRfb->si.framebufferHeight,
@@ -245,7 +250,7 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
              mVncData.buffer,
              static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
              directbuffer,
-             static_cast<size_t>(width) * height * colours,
+             zm_packet->image->Size(),
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
              mRfb->si.framebufferWidth,

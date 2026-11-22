@@ -24,9 +24,19 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <cmath>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+
 extern "C" {
+#include <libavutil/eval.h>
+#include <libavdevice/version.h>
 #include <libavutil/pixdesc.h>
 }
+#include <dlfcn.h>
+
+#include <atomic>
 
 /*
       AVCodecID codec_id;
@@ -71,6 +81,8 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "av1_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_VP9, "vp9", "vp9_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
 #endif
   { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
@@ -254,8 +266,15 @@ AVCodecContext *open_video_decoder(
       av_dict_parse_string(&opts, options.c_str(), "=", kOptionSeparators, 0);
       const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
       if (entry) {
-        ctx->thread_count = std::stoul(entry->value);
-        Debug(1, "Setting codec thread_count to %d", ctx->thread_count);
+        char *end = nullptr;
+        errno = 0;
+        const unsigned long threads = strtoul(entry->value, &end, 10);
+        if (end == entry->value || *end != '\0' || errno != 0 || threads > INT_MAX) {
+          Warning("Ignoring invalid thread_count '%s', keeping %d", entry->value, ctx->thread_count);
+        } else {
+          ctx->thread_count = static_cast<int>(threads);
+          Debug(1, "Setting codec thread_count to %d", ctx->thread_count);
+        }
         av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
       }
       // reorder_queparse for avforpts, mOpcodec
@@ -324,8 +343,6 @@ AVCodecContext *open_video_decoder(
         Info("Using %s hardware decoding for %s",
             av_hwdevice_get_type_name(type), codec->name);
         ctx->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
-        //if (!lavc_param->check_hw_profile)
-        ctx->hwaccel_flags |= AV_HWACCEL_FLAG_ALLOW_PROFILE_MISMATCH;
         // Set opaque to point to our hw_pix_fmt so callback can access it
         ctx->opaque = &hw_pix_fmt;
         ctx->get_format = get_hw_format;
@@ -426,10 +443,20 @@ enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *
     if (*p == hw_pix_fmt) return *p;
   }
 
-  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
-  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
-    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
+  // The hardware can't decode this stream, so let libavcodec decode it in software.
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(*p);
+    if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL)) {
+      static std::atomic<bool> warned{false};
+      if (!warned.exchange(true))
+        Warning("Hardware surface format %s not offered for this stream, decoding in software as %s.",
+            av_get_pix_fmt_name(hw_pix_fmt), av_get_pix_fmt_name(*p));
+      return *p;
+    }
+  }
 
+  Error("Failed to get HW surface format for %s and no software format is offered.",
+      av_get_pix_fmt_name(hw_pix_fmt));
   return AV_PIX_FMT_NONE;
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
@@ -465,6 +492,63 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
+  const std::string key_terminators = std::string("=") + separators;
+  const bool hash_comments = strchr(separators, '#') != nullptr;
+  const char *p = options.c_str();
+  int result = 0;
+
+  while (*p) {
+    if (hash_comments) {
+      p += strspn(p, " \t\r");
+      if (*p == '#') {
+        p += strcspn(p, "\n");
+        if (*p) p++;
+        continue;
+      }
+    }
+    char *key = av_get_token(&p, key_terminators.c_str());
+    if (!key) return AVERROR(ENOMEM);
+    char *value = nullptr;
+    if (*p == '=') {
+      p++;
+      // av_get_token() skips leading whitespace, newlines included, which would
+      // pull the next entry in as the value of an empty one
+      p += strspn(p, " \t\r");
+      if (*p && !strchr(separators, *p)) {
+        value = av_get_token(&p, separators);
+        if (!value) {
+          av_free(key);
+          return AVERROR(ENOMEM);
+        }
+      }
+    }
+    if (*key) {
+      if (value and *value) {
+        int ret = av_dict_set(pm, key, value, 0);
+        if (ret < 0) result = ret;
+      } else {
+        Warning("Ignoring option '%s' as it has no value", key);
+      }
+    } else if (value) {
+      Warning("Ignoring option with value '%s' as it has no name", value);
+    }
+    av_free(key);
+    av_free(value);
+    if (hash_comments and *p == '#') p += strcspn(p, "\n");
+    if (*p) p++;
+  }
+  return result;
+}
+
+bool zm_parse_option_number(const char *text, uint64_t &out) {
+  char *end = nullptr;
+  double value = av_strtod(text, &end);
+  if (end == text or *end or !std::isfinite(value) or value < 0 or value >= 9.2e18) return false;
+  out = static_cast<uint64_t>(value);
+  return true;
+}
+
 int setup_hwaccel(
     AVCodecContext *codec_ctx,
     const CodecData *codec_data,
@@ -476,13 +560,22 @@ int setup_hwaccel(
   if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
     return 0;
   }
-  int ret = av_hwdevice_ctx_create(&hw_device_ctx,
-      codec_data->hwdevice_type,
-      device.empty() ? codec_data->hwdevice_default : device.c_str(),
-      nullptr, 0);
-  if (0>ret) {
-    Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
-    return ret;
+  int ret = 0;
+  // Reuse a device context the caller already owns (one cached on the Monitor
+  // and shared across events) when it supplies one; only open the render node
+  // ourselves when it does not. Creating and destroying a device per event
+  // leaked a /dev/dri/renderD128 fd each time on some VAAPI drivers (refs
+  // #5300). The reference handed in is consumed here either way (unref'd at the
+  // end), matching the create path's previous ownership.
+  if (!hw_device_ctx) {
+    ret = av_hwdevice_ctx_create(&hw_device_ctx,
+        codec_data->hwdevice_type,
+        device.empty() ? codec_data->hwdevice_default : device.c_str(),
+        nullptr, 0);
+    if (0>ret) {
+      Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
+      return ret;
+    }
   }
   codec_ctx->get_format = get_hw_format;
   codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
@@ -563,6 +656,36 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
 }
 
 static bool bInit = false;
+
+// libavdevice pulls in libavfilter and its dependencies (on some distros OpenBLAS,
+// which starts a thread per core), so it is only loaded when a V4L2 input needs it.
+bool zm_load_avdevice() {
+  static const bool loaded = []() {
+#ifdef __APPLE__
+    const std::string soname = stringtf("libavdevice.%d.dylib", LIBAVDEVICE_VERSION_MAJOR);
+#else
+    const std::string soname = stringtf("libavdevice.so.%d", LIBAVDEVICE_VERSION_MAJOR);
+#endif
+    void *handle = dlopen(soname.c_str(), RTLD_NOW | RTLD_GLOBAL);
+#ifdef ZM_AVDEVICE_DIR
+    // Where cmake found it, for installs off the default search path (Homebrew)
+    if (!handle) handle = dlopen((ZM_AVDEVICE_DIR "/" + soname).c_str(), RTLD_NOW | RTLD_GLOBAL);
+#endif
+    if (!handle) {
+      Error("Cannot load %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    void (*register_all)() = nullptr;
+    *reinterpret_cast<void **>(&register_all) = dlsym(handle, "avdevice_register_all");
+    if (!register_all) {
+      Error("Cannot find avdevice_register_all in %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    register_all();
+    return true;
+  }();
+  return loaded;
+}
 
 void FFMPEGInit() {
 
@@ -673,6 +796,14 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
   static_cast<int>(par->chroma_location),
   static_cast<int>(par->video_delay)
        );
+}
+
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par) {
+  unsigned int tag;
+  if (format->codec_tag
+      and av_codec_get_id(format->codec_tag, par->codec_tag) != par->codec_id
+      and av_codec_get_tag2(format->codec_tag, par->codec_id, &tag))
+    par->codec_tag = 0;
 }
 
 void zm_dump_codec(const AVCodecContext *codec) {
@@ -829,6 +960,8 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
     return AV_PIX_FMT_YUV444P;
   case AV_PIX_FMT_YUVJ440P :
     return AV_PIX_FMT_YUV440P;
+  case AV_PIX_FMT_YUVJ411P :
+    return AV_PIX_FMT_YUV411P;
   case AV_PIX_FMT_NONE :
   case AV_PIX_FMT_YUVJ420P :
     return AV_PIX_FMT_YUV420P;
@@ -852,6 +985,13 @@ bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
   }
 }
 
+static bool pix_fmt_is_planar_yuv(enum AVPixelFormat fmt) {
+  // Non-J YUV formats (limited range by swscale default), not RGB or gray.
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fix_deprecated_pix_fmt(fmt));
+  return desc && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BAYER))
+         && desc->nb_components >= 3;
+}
+
 void zm_sws_set_ranges(struct SwsContext *ctx,
                        enum AVPixelFormat original_src_fmt,
                        enum AVPixelFormat original_dst_fmt) {
@@ -863,7 +1003,12 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
   // range. Pass the ORIGINAL (pre-fix) formats.
   const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
   const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
-  if (!src_full && !dst_full) return;
+  // sws_getCachedContext() keeps the same context across a YUVJ420P ->
+  // YUV420P change, because both map to one format. A range set for the
+  // earlier frame must therefore be put back to limited for a plain YUV side.
+  const bool src_yuv = pix_fmt_is_planar_yuv(original_src_fmt);
+  const bool dst_yuv = pix_fmt_is_planar_yuv(original_dst_fmt);
+  if (!src_full && !dst_full && !src_yuv && !dst_yuv) return;
 
   int *inv_table, *table;
   int srcRange, dstRange, brightness, contrast, saturation;
@@ -873,8 +1018,10 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
                                &brightness, &contrast, &saturation) < 0)
     return;
   bool changed = false;
-  if (src_full && srcRange != 1) { srcRange = 1; changed = true; }
-  if (dst_full && dstRange != 1) { dstRange = 1; changed = true; }
+  const int want_src = src_full ? 1 : 0;
+  const int want_dst = dst_full ? 1 : 0;
+  if ((src_full || src_yuv) && srcRange != want_src) { srcRange = want_src; changed = true; }
+  if ((dst_full || dst_yuv) && dstRange != want_dst) { dstRange = want_dst; changed = true; }
   if (!changed) return;
   sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
                            brightness, contrast, saturation);

@@ -30,7 +30,9 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
-ZM\Debug(print_r($_REQUEST, true));
+// The request carries the login password, auth hashes, tokens and camera
+// credentials: log it redacted.
+ZM\Debug(print_r(ZM\redactForLog($_REQUEST), true));
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -114,7 +116,7 @@ $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 # Cookie overrides session
 if (isset($_COOKIE['zmNavbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+  if (is_string($_COOKIE['zmNavbar_type']) and isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
     $navbar_type = $_COOKIE['zmNavbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
@@ -122,7 +124,7 @@ if (isset($_COOKIE['zmNavbar_type'])) {
 }
 
 if (isset($_REQUEST['navbar_type'])) {
-  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+  if (is_string($_REQUEST['navbar_type']) and isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
@@ -268,7 +270,7 @@ if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($re
   zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
@@ -287,12 +289,17 @@ if ( $action and $view and !$request ) {
 }
 if ($error_message) ZM\Warning($error_message);
 
+# Check if already authenticated (e.g. Apache REMOTE_USER)
+if (ZM_OPT_USE_AUTH and ($view == 'login') and ($user instanceof ZM\User)) {
+  $redirect = '?view='.getHomeView();
+}
+
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 }
 
 if ($redirect) {
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 }

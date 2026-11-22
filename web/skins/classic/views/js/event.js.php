@@ -24,7 +24,7 @@ var eventData = {
     Name: <?php echo json_encode($Event->Name(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     MonitorId: '<?php echo validJsStr($Event->MonitorId()) ?>',
     MonitorName: '<?php echo validJsStr($monitor->Name()) ?>',
-    Cause: '<?php echo validHtmlStr($Event->Cause()) ?>',
+    Cause: <?php echo json_encode($Event->Cause(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     <!-- Tags: '<?php echo validHtmlStr(implode(', ', array_map(function($t){return $t->Name();}, $Event->Tags()))); ?>', -->
     Notes: <?php echo json_encode($Event->Notes(), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     Width: '<?php echo validJsStr($Event->Width()) ?>',

@@ -1,8 +1,17 @@
 name: build-deb-packages-aarch64
 
 on:
+  # Packages used to build on every push to master. With the current PR volume
+  # that was dozens of full build+sign+publish runs a day for identical trees.
+  # Build a single nightly off master instead, plus a clean build whenever a
+  # release tag (1.x.y) is pushed, and keep a manual trigger. release-1.38
+  # (low-churn stable backports) still builds on push.
   push:
-    branches: [ release-1.38, master ]
+    branches: [ release-1.38 ]
+    tags: [ '1.*' ]
+  schedule:
+    - cron: '30 6 * * *'   # 06:30 UTC nightly, staggered off the amd64 deb build
+  workflow_dispatch: {}
 permissions:
   contents: write
 
@@ -25,14 +34,45 @@ env:
   SMPFLAGS: -j10
 
 jobs:
+  gate:
+    # A scheduled run still fires on a day with no new commits. Skip the nightly
+    # then so an identical tree is not rebuilt and republished. Tag, branch and
+    # manual runs always build.
+    name: Decide whether to build
+    if: github.repository == 'ZoneMinder/zoneminder'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.decide.outputs.build }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      - name: Decide
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          elif [ -n "$(git log --since='24 hours ago' --format=%H -1)" ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No commits in the last 24h; skipping nightly build."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-debian:
     name: Build & sign .deb (${{ matrix.distro }})
-    if: github.repository == 'ZoneMinder/zoneminder'
+    needs: gate
+    if: needs.gate.outputs.build == 'true'
     strategy:
       fail-fast: false
       matrix:
         distro: ["debian:sid", "debian:13", "debian:12", "ubuntu:26.04", "ubuntu:devel", "ubuntu:24.04", "ubuntu:22.04"]
-    runs-on: self-hosted
+    # Pin the arch: x64 self-hosted runners (fw2) also serve this repo.
+    runs-on: [self-hosted, Linux, ARM64]
+    # Self-hosted runners don't reliably enforce the 6h default; a hung
+    # step (gpg import once wedged a runner for 34h) must not hold one forever.
+    timeout-minutes: 60
 
     container:
       image: ${{ matrix.distro }}
@@ -77,7 +117,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      # The runner-provided $HOME (/github/home) persists between jobs on
+      # self-hosted runners, so stale gpg lock files left by an earlier job can
+      # stall the import when their recorded PID is reused in the new container.
+      - name: Use a per-job GnuPG home
+        run: |
+          GNUPGHOME=$(mktemp -d)
+          echo "GNUPGHOME=${GNUPGHOME}" >> "$GITHUB_ENV"
+
       - name: Import GPG key
+        timeout-minutes: 5
         uses: crazy-max/ghaction-import-gpg@2dc316deee8e90f13e1a351ab510b4d5bc0c82cd # v7
         with:
           gpg_private_key: ${{ secrets.ZMREPO_GPG_PRIVATE_KEY }}
@@ -105,7 +154,14 @@ jobs:
           #git submodule update --init --recursive
           # Cleanup previous builds
           rm -rf ZoneMinder_zoneminder_release
-          curl -s -o do_debian_package.sh https://raw.githubusercontent.com/ZoneMinder/zoneminder/refs/heads/${GITHUB_REF_NAME}/utils/do_debian_package.sh
+          # On a tag build GITHUB_REF_NAME is the tag, which is not under
+          # refs/heads, so pick the matching ref namespace.
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            SCRIPT_REF="refs/tags/${GITHUB_REF_NAME}"
+          else
+            SCRIPT_REF="refs/heads/${GITHUB_REF_NAME}"
+          fi
+          curl -s -o do_debian_package.sh "https://raw.githubusercontent.com/ZoneMinder/zoneminder/${SCRIPT_REF}/utils/do_debian_package.sh"
           chmod +x do_debian_package.sh
 
           # Tell gpg to use loopback + passphrase
@@ -190,6 +246,6 @@ jobs:
           REMOTE_USER: ${{ secrets.ZMREPO_SSH_USER }}
           TARGET: ${{ env.DEPLOY_TARGET }}
       - name: Create release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
         with:
           files: dist/**/*

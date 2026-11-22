@@ -32,11 +32,7 @@ function zm_setcookie($cookie, $value, $options=array()) {
     $options['samesite'] = 'Strict';
   }
 
-  if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie($cookie, $value, $options);
-  } else {
-    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
-  }
+  setcookie($cookie, $value, $options);
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
@@ -74,19 +70,8 @@ function zm_session_start() {
       $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
     }
     $currentCookieParams['httponly'] = true;
-    if ( version_compare(phpversion(), '7.3.0', '<') ) {
-      session_set_cookie_params(
-        $currentCookieParams['lifetime'],
-        $currentCookieParams['path'].'; samesite=strict',
-        $currentCookieParams['domain'],
-        $currentCookieParams['secure'],
-        $currentCookieParams['httponly']
-      );
-    } else {
-      # samesite was introduced in 7.3.0
-      $currentCookieParams['samesite'] = 'Strict';
-      session_set_cookie_params($currentCookieParams);
-    }
+    $currentCookieParams['samesite'] = 'Strict';
+    session_set_cookie_params($currentCookieParams);
 
     ini_set('session.name', 'ZMSESSID');
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
@@ -152,13 +137,9 @@ function zm_session_regenerate_id_login() {
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
+    return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
   } else {
-    Warning("php_sapi_name === 'cli'");
+    \ZM\Warning("php_sapi_name === 'cli'");
   }
   return FALSE;
 } // function is_session_started()
@@ -184,7 +165,13 @@ function zm_session_clear() {
 // what the old `$this->db = $dbConn` constructor got wrong. zmDbConnOrNull()
 // returns null when the database is unreachable and the methods below degrade
 // to "no session" rather than ending the request.
-class ZMSessionHandler implements SessionHandlerInterface {
+// SessionUpdateTimestampHandlerInterface is what makes PHP call validateId():
+// without it session.use_strict_mode has no effect for a user handler, and an
+// id the client made up became its session id.
+class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
+  // Access time of the stored row read() found, and the id it belongs to.
+  private $readId = null;
+  private $readAccess = null;
   public function open($path, $name): bool {
     return zmDbConnOrNull() ? true : false;
   }
@@ -195,7 +182,7 @@ class ZMSessionHandler implements SessionHandlerInterface {
   #[\ReturnTypeWillChange]
   public function read($id){
     if (!($db = zmDbConnOrNull())) return '';
-    $sth = $db->prepare('SELECT data FROM Sessions WHERE id = :id');
+    $sth = $db->prepare('SELECT data, access FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
       ZM\Error("Failed to bind param");
       if (!$sth->bindParam(':id', $id, PDO::PARAM_STR)) {
@@ -205,6 +192,8 @@ class ZMSessionHandler implements SessionHandlerInterface {
 
     if ( $sth->execute() ) {
       if (( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
+        $this->readId = $id;
+        $this->readAccess = intval($row['access']);
         return $row['data'];
       } 
     }
@@ -253,7 +242,23 @@ class ZMSessionHandler implements SessionHandlerInterface {
     $del = $db->prepare("DELETE FROM Sessions WHERE id IN ($placeholders)");
     return $del->execute($ids) ? true : false;
   }
-  public function validateId($key) : bool {return true;}
+  // Whether $id names a stored session. With session.use_strict_mode (set in
+  // zm_session_start()) PHP replaces an id that doesn't with a new one, so a
+  // client can't choose its session id and nobody can plant one (session
+  // fixation).
+  public function validateId($id) : bool {
+    if (!($db = zmDbConnOrNull())) return false;
+    $sth = $db->prepare('SELECT 1 FROM Sessions WHERE id = :id');
+    $sth->bindParam(':id', $id, PDO::PARAM_STR, 32);
+    return $sth->execute() and ($sth->fetch() !== false);
+  }
+  // Called instead of write() when the session data didn't change.
+  public function updateTimestamp($id, $data) : bool {
+    if (($this->readId === $id) && ($this->readAccess !== null) && ((time() - $this->readAccess) < 60)) {
+      return true;
+    }
+    return $this->write($id, $data);
+  }
 } # end class Session
 
 $session = new ZMSessionHandler;

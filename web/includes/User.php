@@ -72,7 +72,7 @@ class User extends ZM_Object {
   }
 
   public function Name($new=null) {
-    if ($new != null) {
+    if ($new !== null) {
       $this->Name = $new;
     }
     if (property_exists($this, 'Name') and !empty($this->Name)) {

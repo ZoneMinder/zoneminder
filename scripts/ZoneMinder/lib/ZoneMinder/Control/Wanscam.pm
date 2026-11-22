@@ -316,7 +316,8 @@ sub irisAbsOpen
 {
     my $self = shift;
     my $params = shift;
-    my $step = $self->getParam( $params, 'step' );
+    # The WanscamPT control leaves its step range at 0, so the ui sends step 0.
+    my $step = $self->getParam( $params, 'step' ) || 1;
     my $brightness = 100;
 
     my $cmd = "get_camera_params.cgi?";
@@ -335,7 +336,7 @@ sub irisAbsClose
 {
     my $self = shift;
     my $params = shift;
-    my $step = $self->getParam( $params, 'step' );
+    my $step = $self->getParam( $params, 'step' ) || 1;
     my $brightness = 100;
 
     my $cmd = "get_camera_params.cgi?";
@@ -354,7 +355,7 @@ sub whiteAbsIn
 {
     my $self = shift;
     my $params = shift;
-    my $step = $self->getParam( $params, 'step' );
+    my $step = $self->getParam( $params, 'step' ) || 1;
     my $contrast = 5;
 
     my $cmd = "get_camera_params.cgi?";
@@ -373,7 +374,7 @@ sub whiteAbsOut
 {
     my $self = shift;
     my $params = shift;
-    my $step = $self->getParam( $params, 'step' );
+    my $step = $self->getParam( $params, 'step' ) || 1;
     my $contrast = 5;
 
     my $cmd = "get_camera_params.cgi?";

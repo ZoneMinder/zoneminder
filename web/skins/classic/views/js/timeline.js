@@ -1,7 +1,25 @@
 
-function showEvent(e) {
-  var eid = e.getAttribute('data-event-id');
-  var fid = e.getAttribute('data-frame-id');
+// A bar made from several small neighbouring events lists one eventId:frameId
+// per slot in data-slot-targets. Pick the one under the pointer.
+function slotTarget(el, ev) {
+  const target = {eid: el.getAttribute('data-event-id'), fid: el.getAttribute('data-frame-id')};
+  const list = el.getAttribute('data-slot-targets');
+  if (!list || !ev || typeof ev.clientX !== 'number') return target;
+  const parts = list.split(',');
+  const rect = el.getBoundingClientRect();
+  if (!(rect.width > 0)) return target;
+  let idx = Math.floor((ev.clientX - rect.left) / rect.width * parts.length);
+  idx = Math.max(0, Math.min(parts.length - 1, idx));
+  const pair = parts[idx].split(':');
+  target.eid = pair[0];
+  target.fid = pair[1];
+  return target;
+}
+
+function showEvent(e, ev) {
+  const t = slotTarget(e, ev);
+  var eid = t.eid;
+  var fid = t.fid;
   var url = '?view=event&eid='+eid+'&fid='+fid+filterQuery;
 
   window.location.href = url;
@@ -30,6 +48,7 @@ function showEventDetail(eventHtml) {
 }
 
 function eventDataResponse(respObj, respText) {
+  if (checkStreamForErrors('eventDataResponse', respObj)) return;
   var zm_event = respObj.event;
 
   if (!zm_event) {
@@ -44,6 +63,7 @@ function eventDataResponse(respObj, respText) {
 }
 
 function frameDataResponse(respObj, respText) {
+  if (checkStreamForErrors('frameDataResponse', respObj)) return;
   var frame = respObj.frameimage;
   if (!frame.FrameId) {
     console.log('Null frame');
@@ -115,9 +135,10 @@ function requestFrameData(eventId, frameId) {
   }
 }
 
-function previewEvent(slot) {
-  eventId = slot.getAttribute('data-event-id');
-  frameId = slot.getAttribute('data-frame-id');
+function previewEvent(slot, ev) {
+  const t = slotTarget(slot, ev);
+  const eventId = t.eid;
+  const frameId = t.fid;
   if (events[eventId] && events[eventId]['frames'] && events[eventId]['frames'][frameId]) {
     showEventData(events[eventId], frameId);
   } else {
@@ -144,6 +165,9 @@ function loadEventImage(imagePath, zm_event, fid) {
 
   var eventData = $j('#eventData'+zm_event.MonitorId);
   if ( eventData.length ) {
+    // showEvent reads these from the clicked element
+    eventData.attr('data-event-id', zm_event.Id);
+    eventData.attr('data-frame-id', fid);
     eventData.off('click');
     eventData.on('click', function() {
       showEvent(this);
@@ -157,29 +181,39 @@ function tlZoomBounds(event) {
   var target = event.target;
   var minTime = target.getAttribute('data-zoom-min-time');
   var maxTime = target.getAttribute('data-zoom-max-time');
-  location.replace('?view='+currentView+filterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
+  location.replace('?view='+currentView+navFilterQuery+'&minTime='+minTime+'&maxTime='+maxTime);
 }
 
 function tlZoomOut() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+midTime+'&range='+zoomout_range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+midTime+'&range='+zoomout_range);
 }
 
 function tlPanLeft() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+minTime+'&range='+range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+minTime+'&range='+range);
 }
 function tlPanRight() {
-  location.replace('?view='+currentView+filterQuery+'&midTime='+maxTime+'&range='+range);
+  location.replace('?view='+currentView+navFilterQuery+'&midTime='+maxTime+'&range='+range);
 }
 
 function divDataOnClick() {
   // These look like the code in skin.js, but that code doesn't select for divs.
-  document.querySelectorAll('div.event').forEach(function(el) {
+  document.querySelectorAll('div.event, div.activity').forEach(function(el) {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
-    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
-  });
-  document.querySelectorAll('div.activity').forEach(function(el) {
-    el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
-    el.onmouseover = window[el.getAttribute('data-on-mouseover-this')].bind(el, el);
+    // Absent when the page was loaded with mouseover=0
+    const over = el.getAttribute('data-on-mouseover-this');
+    if (over) {
+      el.onmouseover = window[over].bind(el, el);
+      // Moving along a merged bar changes which event is under the pointer
+      if (el.getAttribute('data-slot-targets')) {
+        el.onmousemove = function(ev) {
+          const t = slotTarget(el, ev);
+          const key = t.eid + ':' + t.fid;
+          if (el.lastPreviewKey === key) return;
+          el.lastPreviewKey = key;
+          window[over](el, ev);
+        };
+      }
+    }
   });
   document.querySelectorAll('div.tlzoom').forEach(function(el) {
     el.onclick = function(ev) {

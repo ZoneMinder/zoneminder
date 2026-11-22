@@ -41,9 +41,17 @@
 #include <map>
 #include <memory>
 #include <sys/time.h>
+#include <type_traits>
 #include <vector>
 #if HAVE_LIBCURL
 #include <curl/curl.h>
+
+// zmc is multithreaded, so curl must not use signals to time out name lookups
+inline void zm_curl_set_timeouts(CURL *curl) {
+  curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+  curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5L);
+  curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+}
 #endif  // HAVE_LIBCURL
 
 #include "zm_monitor_onvif.h"
@@ -194,41 +202,76 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   typedef enum { CLOSE_UNKNOWN=0, CLOSE_SYSTEM, CLOSE_TIME, CLOSE_DURATION, CLOSE_IDLE, CLOSE_ALARM } EventCloseMode;
 
+  /* A SharedData field. zmc's capture, decoder and analysis threads, zms, zmu
+   * and the web interface all read and write these while the others run, so
+   * every access is a relaxed atomic: each load and store is whole and is seen
+   * by the other threads, but is not ordered against anything else. Plain
+   * members promised neither (a 64-bit field on i386 is two loads), and
+   * ThreadSanitizer reported them. The read-modify-write operators are single
+   * atomic operations, so zmu setting an action bit can't be lost to zmc
+   * clearing another. It holds only the value, so the layout that Memory.pm
+   * and Monitor.php read is unchanged. Copying one field to another is deleted
+   * because it would not be atomic; load() one and assign it. */
+  template <typename T>
+  class SharedValue {
+   public:
+    SharedValue &operator=(const SharedValue &) = delete;
+    T load() const {
+      T value;
+      __atomic_load(&value_, &value, __ATOMIC_RELAXED);
+      return value;
+    }
+    void store(T value) { __atomic_store(&value_, &value, __ATOMIC_RELAXED); }
+    operator T() const { return load(); }
+    T operator=(T value) { store(value); return value; }
+    T operator++(int) { return __atomic_fetch_add(&value_, 1, __ATOMIC_RELAXED); }
+    T operator|=(T bits) { return __atomic_or_fetch(&value_, bits, __ATOMIC_RELAXED); }
+    T operator&=(T bits) { return __atomic_and_fetch(&value_, bits, __ATOMIC_RELAXED); }
+   private:
+    // On i386 a double or 64-bit integer is only 4-aligned, and clang then calls
+    // libatomic for the 8-byte operations. Every 8-byte field already sits on
+    // an 8-byte offset, so this moves nothing; the offset asserts below check.
+    alignas(sizeof(T)) T value_;
+  };
+  static_assert(sizeof(SharedValue<double>) == sizeof(double), "SharedValue must hold only the value");
+  static_assert(sizeof(SharedValue<uint8_t>) == sizeof(uint8_t), "SharedValue must hold only the value");
+  static_assert(std::is_trivially_copyable<SharedValue<double>>::value, "SharedData is memset and mapped raw");
+
   /* sizeof(SharedData) is 888 bytes on both 32bit and 64bit */
   typedef struct {
-    uint32_t size;              /* +0 */
-    int32_t  last_write_index;  /* +4 */
-    int32_t  last_read_index;   /* +8 */
-    int32_t  image_count;       /* +12 */
-    uint32_t state;             /* +16 */
+    SharedValue<uint32_t> size;                /* +0 */
+    SharedValue<int32_t> last_write_index;     /* +4 */
+    SharedValue<int32_t> last_read_index;      /* +8 */
+    SharedValue<int32_t> image_count;          /* +12 */
+    SharedValue<uint32_t> state;               /* +16 */
     /* Explicit pad. x86-64 aligns double to 8 and inserts this implicitly, but
      * the i386 SysV ABI aligns double to 4 and would not, shifting every later
      * member by 4. Making it explicit keeps the layout identical on both. */
     uint32_t epadding1;         /* +20 */
-    double      capture_fps;    /* +24   Current capturing fps */
-    double      analysis_fps;   /* +32   Current analysis fps */
-    double      latitude;       /* +40 */
-    double      longitude;      /* +48 */
-    uint64_t last_event_id;     /* +56 */
-    uint32_t action;            /* +64 */
-    int32_t brightness;         /* +68 */
-    int32_t hue;                /* +72 */
-    int32_t colour;             /* +76 */
-    int32_t contrast;           /* +80 */
-    int32_t alarm_x;            /* +84 */
-    int32_t alarm_y;            /* +88 */
-    uint8_t valid;              /* +92 */
-    uint8_t capturing;          /* +93 */
-    uint8_t analysing;          /* +94 */
-    uint8_t recording;          /* +95 */
-    uint8_t signal;             /* +96 */
-    uint8_t format;             /* +97 */
-    uint8_t audio_level;        /* +98  0-100, written by the capture thread */
-    uint8_t audio_alarm;        /* +99  audio_level crossed AudioThreshold */
-    uint32_t imagesize;         /* +100 */
-    uint32_t last_frame_score;  /* +104 */
-    uint32_t audio_frequency;   /* +108 */
-    uint32_t audio_channels;    /* +112 */
+    SharedValue<double> capture_fps;           /* +24   Current capturing fps */
+    SharedValue<double> analysis_fps;          /* +32   Current analysis fps */
+    SharedValue<double> latitude;              /* +40 */
+    SharedValue<double> longitude;             /* +48 */
+    SharedValue<uint64_t> last_event_id;       /* +56 */
+    SharedValue<uint32_t> action;              /* +64 */
+    SharedValue<int32_t> brightness;           /* +68 */
+    SharedValue<int32_t> hue;                  /* +72 */
+    SharedValue<int32_t> colour;               /* +76 */
+    SharedValue<int32_t> contrast;             /* +80 */
+    SharedValue<int32_t> alarm_x;              /* +84 */
+    SharedValue<int32_t> alarm_y;              /* +88 */
+    SharedValue<uint8_t> valid;                /* +92 */
+    SharedValue<uint8_t> capturing;            /* +93 */
+    SharedValue<uint8_t> analysing;            /* +94 */
+    SharedValue<uint8_t> recording;            /* +95 */
+    SharedValue<uint8_t> signal;               /* +96 */
+    SharedValue<uint8_t> format;               /* +97 */
+    SharedValue<uint8_t> audio_level;          /* +98  0-100, written by the capture thread */
+    SharedValue<uint8_t> audio_alarm;          /* +99  audio_level crossed AudioThreshold */
+    SharedValue<uint32_t> imagesize;           /* +100 */
+    SharedValue<uint32_t> last_frame_score;    /* +104 */
+    SharedValue<uint32_t> audio_frequency;     /* +108 */
+    SharedValue<uint32_t> audio_channels;      /* +112 */
     //uint32_t reserved3;         /* +0   */
     /*
      ** This keeps 32bit time_t and 64bit time_t identical and compatible as long as time is before 2038.
@@ -240,27 +283,27 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      * 8-aligned on x86-64 but only 4-aligned on i386. */
     uint32_t epadding2;         /* +116 */
     union {                     /* +120  */
-      time_t startup_time;			/* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
+      SharedValue<time_t> startup_time;        /* When the zmc process started.  zmwatch uses this to see how long the process has been running without getting any images */
       uint64_t extrapad1;
     };
     union {                     /* +128  */
-      time_t heartbeat_time;			/* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
+      SharedValue<time_t> heartbeat_time;      /* Constantly updated by zmc.  Used to determine if the process is alive or hung or dead */
       uint64_t extrapad2;
     };
     union {                     /* +136  */
-      time_t last_write_time;
+      SharedValue<time_t> last_write_time;
       uint64_t extrapad3;
     };
     union {                     /* +144  */
-      time_t last_read_time;
+      SharedValue<time_t> last_read_time;
       uint64_t extrapad4;
     };
     union {                     /* +152  */
-      time_t last_viewed_time;
+      SharedValue<time_t> last_viewed_time;
       uint64_t extrapad5;
     };
     union {                     /* +160  */
-      time_t last_analysis_viewed_time;
+      SharedValue<time_t> last_analysis_viewed_time;
       uint64_t extrapad6;
     };
     uint8_t control_state[256]; /* +168 */
@@ -288,8 +331,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      * image_buffer_count as the "nothing written yet" sentinel);
      * analysis_image_count is a monotonic counter of analysis images published.
      * Appended at the end so no earlier SharedData offset shifts. */
-    int32_t last_analysis_index;   /* +872 */
-    int32_t analysis_image_count;  /* +876 */
+    SharedValue<int32_t> last_analysis_index;  /* +872 */
+    SharedValue<int32_t> analysis_image_count; /* +876 */
     /* Wall clock second up to which the capture thread should keep measuring
      * the audio level even though AudioDetection is off. The monitor editor's
      * level meter refreshes this while it is on screen and zmc stops decoding
@@ -298,8 +341,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      *
      * Carved out of analysis_pad rather than appended, so neither the 888-byte
      * total nor any existing offset moves. */
-    uint32_t audio_level_until;    /* +880 */
-    uint32_t analysis_pad;         /* +884   keep 16-byte multiple */
+    SharedValue<uint32_t> audio_level_until;   /* +880 */
+    /* State of the ONVIF event subscription, published by the ONVIF poll
+     * thread for the web interface: 0 ONVIF events not in use, 1 enabled but
+     * not subscribed (connecting, retrying or failing), 2 subscribed and
+     * polling. Carved out of analysis_pad, so no offset or size moves. */
+    SharedValue<uint32_t> onvif_status;        /* +884   keep 16-byte multiple */
     /* 888 total */
   } SharedData;
   // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
@@ -321,6 +368,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, audio_level_until) == 880, "audio_level_until offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, onvif_status) == 884, "onvif_status offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -370,7 +418,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     off_t     mem_size;
     unsigned char  *mem_ptr;
 
-    volatile SharedData  *shared_data;
+    SharedData  *shared_data;
     volatile TriggerData  *trigger_data;
     volatile VideoStoreData *video_store_data;
     volatile int * zone_scores;
@@ -385,7 +433,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     inline unsigned int Id() const { return monitor->Id(); }
     inline const char *Name() const { return name.c_str(); }
 
-    inline bool isConnected() const { return connected && shared_data->valid; }
+    // The linked zmc is alive: its memory is valid and its heartbeat is recent.
+    // A zmc that died without cleaning up leaves valid set in a stale mapping.
+    bool isAlive() const;
+    bool isConnected() const { return connected && isAlive(); }
     inline time_t getLastConnectTime() const { return last_connect_time; }
 
     inline uint32_t lastFrameScore() {
@@ -505,6 +556,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      int delete_stream(const std::string &name);
       bool refresh_auth_if_needed();        // Refresh auth_hash if expired
 #else
     public:
@@ -581,6 +633,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
+  bool            Go2RTC_disable_backchannel;
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -648,6 +701,17 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string     encoder;
   std::string     encoder_hwaccel_name;
   std::string     encoder_hwaccel_device;
+  // Hardware device contexts used by the encoder (VideoStore), one per
+  // (hwdevice type, device) and shared by every event's VideoStore rather than
+  // created and destroyed per event: a per-event create/destroy opened and
+  // closed /dev/dri/renderD128 each time, and on some VAAPI drivers the
+  // teardown leaked the fd, so a long-running monitor eventually hit the
+  // open-file limit (refs #5300). Keyed, and never evicted, so that probing a
+  // second encoder type (the auto encoder list interleaves VAAPI and QSV)
+  // cannot drop the context an earlier probe created. Owned here; VideoStore
+  // borrows a reference through GetEncoderHWDeviceContext.
+  std::map<std::pair<int, std::string>, AVBufferRef *> encoder_hw_device_ctxs;
+  std::mutex      encoder_hw_device_ctx_mutex;
   std::string     output_container;
   _AVPIXELFORMAT  imagePixFormat;
   bool            record_audio;      // Whether to store the audio that we receive
@@ -655,6 +719,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int             audio_threshold;   // 0-100; 0 means detection is off
   int             audio_alarm_score; // Score contributed while over threshold
   AudioDetector   audio_detector;
+  static constexpr int AUDIO_STALE_SECONDS = 2;  // Silence from the audio stream after which the level is dropped
+  SystemTimePoint last_audio_packet_time;
   bool            wallclock_timestamps; // Whether to use wallclock pts/dts instead of values from ffmpeg
   int             output_source_stream;
 
@@ -675,6 +741,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        no_zones_warned = false;  // Whether the no-zones warning was already logged for the current no-zones state
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
@@ -703,6 +770,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int         importance;           // Importance of this monitor, affects Connection logging errors.
   int         startup_delay;        // Seconds to sleep before connecting to camera
   unsigned int         zone_count;
+  bool                 zones_loaded;  // false: connect() counts zones instead of constructing them
 
   int capture_max_fps;
 
@@ -711,6 +779,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   int        event_count;
   int        last_capture_image_count; // last value of image_count when calculating capture fps
+  int        last_fps_report_count;    // image_count when the fps line was last logged
+  bool       fps_reported;             // whether an fps line has been logged since connect
   int        analysis_image_count;    // How many frames have been processed by analysis thread.
   // Written by the decoder / analysis thread, read by the others: atomic.
   std::atomic<int> decoding_image_count;    // How many frames the decoder has written to shm.
@@ -719,6 +789,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
+  int        pre_alarm_count_ = 0;     // Alarmed frames seen while in PREALARM
+  int64_t    last_section_sec_ = -1;   // Timestamp (s) of the previous packet, for CLOSE_TIME
   bool       last_signal;
   // Capture assumes signal on the first packet after connect() cleared it,
   // even when the decoder measures it, so Analyse doesn't see a signal loss
@@ -812,6 +884,20 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int64_t KeepDtsContinuous(AVPacket *packet, AVRational time_base);
   std::unique_ptr<PollThread> Poller;
   std::list<ZMPacketLock> decoder_queue;
+  // The decoder_queue entry a decoded frame with this pts came from; releases
+  // the entries before it that the codec consumed without returning a frame.
+  std::list<ZMPacketLock>::iterator MatchDecodedFrame(int64_t frame_pts);
+  // How many packets decoder_queue may hold, waiting on the codec, before
+  // Decode() gives up on it and flushes.
+  static size_t DecoderQueueLimit(int max_keyframe_interval, const AVCodecContext *context);
+  // Set when Decode() flushed a full decoder_queue: nothing goes to the codec
+  // until a keyframe, as it has no reference frames to decode the rest against.
+  bool decoder_needs_keyframe = false;
+  // Whether a packet must be held back from the codec while it waits for a
+  // keyframe; clears the wait once the keyframe comes.
+  bool SkipUntilKeyframe(bool keyframe);
+  // A quarter turn needs 4:2:0 chroma, so 4:2:2 is converted when rotating.
+  static bool CanPassthroughFormat(AVPixelFormat format, Orientation orientation);
   packetqueue_iterator  *analysis_it;
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
@@ -832,6 +918,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<MQTT> mqtt;
 #endif
 
+  std::unique_ptr<Image> privacy_image;
   const unsigned char  *privacy_bitmask;
 
   std::string linked_monitors_string;
@@ -939,7 +1026,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // thread can advance past them.
   void flushDecoderQueue();
   inline bool Enabled() const {
-    return shared_data->capturing;
+    return shared_data->capturing != CAPTURING_NONE;
   }
   DecodingOption Decoding() const {
     return decoding;
@@ -976,6 +1063,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
     return false;
   }
   inline const char *EventPrefix() const { return event_prefix.c_str(); }
+  // Video packets openEvent walks back: skipped frames stretch the alarm frame count
+  inline int PreEventWalkBack() const {
+    return std::max(pre_event_count, alarm_frame_count * (motion_frame_skip + 1));
+  }
   inline bool Ready() const {
     if (!packetqueue.get_max_keyframe_interval()) {
       Debug(4, "Not ready because no keyframe interval.");
@@ -1076,6 +1167,14 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   const std::string &GetEncoderOptions() const { return encoderparams; }
   const std::string &EncoderHWAccelName() const { return encoder_hwaccel_name; }
   const std::string &EncoderHWAccelDevice() const { return encoder_hwaccel_device; }
+#if HAVE_LIBAVUTIL_HWCONTEXT_H && LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+  // Return a new reference to the encoder hardware device context for (type,
+  // device), creating and caching it on first use so every event's VideoStore
+  // reuses one device instead of opening the render node again (refs #5300).
+  // The caller owns the returned reference and must unref it. Returns nullptr
+  // if the device cannot be created.
+  AVBufferRef *GetEncoderHWDeviceContext(AVHWDeviceType type, const std::string &device);
+#endif
   const std::string &OutputCodec() const { return output_codec; }
   const std::string &Encoder() const { return encoder; }
   const std::string &OutputContainer() const { return output_container; }
@@ -1093,7 +1192,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int GetPreEventCount() const { return pre_event_count; };
   Seconds GetSectionLength() const { return section_length; };
   int32_t GetImageBufferCount() const { return image_buffer_count; };
-  State GetState() const { return (State)shared_data->state; }
+  State GetState() const { return (State)shared_data->state.load(); }
   // Set the analysis state, publishing the transition as a stream socket
   // state_changed event (and refreshing the snapshot) when it actually changes.
   void SetState(State new_state);
@@ -1125,7 +1224,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // Writer-side helper: copies src into alarm_image and publishes its
   // AVPixelFormat so reader processes can correctly interpret the SHM bytes.
   void WriteAlarmImage(const Image &src);
-  int GetImage(int32_t index=-1, int scale=100);
+  bool GetImage(int32_t index=-1, int scale=100);
   std::shared_ptr<ZMPacket> getSnapshot( int index=-1 );
   SystemTimePoint GetTimestamp(int index = -1);
   void UpdateAdaptiveSkip();
@@ -1139,6 +1238,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   uint64_t GetLastEventId() const;
   double GetFPS() const;
   void UpdateFPS();
+  void ResetFPSBaseline();
   void ForceAlarmOn( int force_score, const char *force_case, const char *force_text="" );
   void ForceAlarmOff();
   void CancelForced();
@@ -1206,6 +1306,24 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // for the packets it decodes; Capture then leaves the flag to it, so the
   // two threads don't overwrite each other's value. Pure, for tests.
   static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
+  // WHERE fragment (starting with " AND") for zmc -H: only the parts given on the
+  // command line are matched. Pure, for tests.
+  static std::string RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
+                                         const std::function<std::string(const std::string &)> &escape);
+  // Frames analysis skips between motion detections so that analysis runs at
+  // about analysis_fps_limit when the camera captures at capture_fps. Pure.
+  static int AnalysisFrameSkip(double capture_fps, double analysis_fps_limit);
+  // True when the section_length boundary lies between two packet timestamps
+  // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
+  static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
+  // Alarm frames counted while in PREALARM. Per monitor: one zmc process can
+  // run several monitors, whose analysis threads must not share the count.
+  int PreAlarmCount() const { return pre_alarm_count_; }
+  void AddPreAlarmFrame() { pre_alarm_count_++; }
+  void EmptyPreAlarmFrames() { pre_alarm_count_ = 0; }
+  // Forget partial alarm progress when analysis is interrupted (trigger off,
+  // signal loss) so it cannot be completed later by an unrelated frame.
+  void ClearAlarmTracking();
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and
@@ -1228,7 +1346,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   Event *openEvent(
     ZMPacketLock *packet_lock,
     const std::string &cause,
-    const Event::StringSetMap &noteSetMap);
+    const Event::StringSetMap &noteSetMap,
+    SystemTimePoint counting_boundary = SystemTimePoint());
   // Join a close that is still in flight, so whatever it holds -- notably a
   // hardware encoder session belonging to the previous event -- is released.
   // Returns true if there was one to wait for.
@@ -1237,6 +1356,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void Reload();
   void ReloadZones();
+  const std::vector<Zone> &Zones() const { return zones; }
+  // Zone has a const member and cannot be assigned, so a zone is replaced by
+  // swapping in a whole new list.
+  void SetZones(std::vector<Zone> &&new_zones) { zones = std::move(new_zones); }
   void ReloadLinkedMonitors();
 
   void LoadActions();
@@ -1260,7 +1383,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static const char *ActionTriggerName(EventAction::TriggerOn trigger);
 
   bool DumpSettings( char *output, bool verbose );
-  void DumpZoneImage( const char *zone_string=0 );
+  bool DumpZoneImage( const char *zone_string=0 );
   std::vector<Group *>  Groups();
   StringVector GroupNames();
 

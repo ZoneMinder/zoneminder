@@ -25,6 +25,7 @@ EVENTS_DIR=events
 loadcfg() {
         if [ -f $ZM_CONFIG ]; then
                 . $ZM_CONFIG
+                ZM_VERSION=@VERSION@
         else
                 echo "ERROR: $ZM_CONFIG not found."
                 exit 1
@@ -79,7 +80,7 @@ chk_backup_ver(){
 
 
         if
-                [ $BACKUP_VER != $ZM_VERSION ]
+                [ "$BACKUP_VER" != "$ZM_VERSION" ]
         then
                 echo "$ZM_BACKUP is from version $BACKUP_VER"
                 echo "ZoneMinder version is $ZM_VERSION"
@@ -102,7 +103,7 @@ getmylogin(){
 checkfordb(){
 
         if
-                echo "show databases" |mysql -u $MYADMIN "$MYPASS" |grep zm
+                echo "show databases" |mysql -u $MYADMIN $MYPASS |grep -qx "$ZM_DB_NAME"
         then
                 echo "A $ZM_DB_NAME database exists."
                 while [ true ]
@@ -113,7 +114,7 @@ checkfordb(){
                                 read OPTION
                                 case $OPTION in
                                         "D"|"d")
-                                        echo "drop database zm;"|mysql -u $MYADMIN $MYPASS
+                                        echo "drop database $ZM_DB_NAME;"|mysql -u $MYADMIN $MYPASS
                                         return
                                         ;;
                                         "E"|"e")

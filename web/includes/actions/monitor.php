@@ -101,31 +101,7 @@ if ($action == 'save') {
   $monitor = new ZM\Monitor($mid);
 
   // Define a field type for anything that's not simple text equivalent
-  $types = array(
-      'Triggers' => array(),
-      'Controllable' => 0,
-      'TrackMotion' => 0,
-      'ModectDuringPTZ' =>  0,
-      'Enabled' => 0,
-      'DecodingEnabled' => 0,
-      'RTSP2WebEnabled' => 0,
-      'Go2RTCEnabled' => 0,
-      'JanusEnabled' => 0,
-      'JanusAudioEnabled' => 0,
-      'Restream' => 0,
-//       'Janus_RTSP_Session_Timeout' => 0,
-      'Exif' => 0,
-      'V4LMultiBuffer'  => '',
-      'WallClockTimestamps' => '',
-      'RecordAudio' => 0,
-      'Method' => 'raw',
-      'GroupIds'  =>  array(),
-      'LinkedMonitors'  => array(),
-      'MQTT_Enabled'  =>  0,
-      'RTSPServer' => 0,
-      'SectionLengthWarn' => 0,
-      'SOAP_wsa_compl' => 0 
-      );
+  $types = monitorFormUncheckedDefaults();
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields.
@@ -147,9 +123,9 @@ if ($action == 'save') {
       ZM\Debug('Auto selecting server to '.ZM_SERVER_ID);
     }
   }
-  if (!empty($newMonitor['ManufacturerId']) and empty($newMonitor['Manufacturer']))
+  if (empty($newMonitor['Manufacturer']))
     unset($newMonitor['Manufacturer']);
-  if (!empty($newMonitor['ModelId']) and empty($newMonitor['Model']))
+  if (empty($newMonitor['Model']))
     unset($newMonitor['Model']);
 
   $refused = $monitor->commandFieldChangesNotAllowed($newMonitor);
@@ -160,8 +136,10 @@ if ($action == 'save') {
   }
 
   $changes = $monitor->changes($newMonitor);
-  ZM\Debug('Changes: '. print_r($changes, true));
+  ZM\Debug('Changes: '. print_r(ZM\redactForLog($changes), true));
   $restart = false;
+  $zmcStopped = false;
+  $actionsChanged = false;
 
   if (count($changes)) {
     // monitor->Id() has a value when the db record exists
@@ -178,6 +156,7 @@ if ($action == 'save') {
       # If we change anything that changes the shared mem size, zma can complain.  So let's stop first.
       if ($monitor->Type() != 'WebSite') {
         $monitor->zmcControl('stop');
+        $zmcStopped = true;
         if ($monitor->Controllable()) {
           $monitor->sendControlCommand('stop');
         }
@@ -240,6 +219,29 @@ if ($action == 'save') {
           $newA = $newW * $newH;
           $oldA = $oldMonitor->Width() * $oldMonitor->Height();
 
+          // Coordinates without a decimal point are pixels to zmc. Turn those
+          // zones into percentage zones at the old size first, otherwise the
+          // rotation below writes them with decimals, which zmc reads as
+          // percentages, and a resize leaves them covering the wrong area.
+          foreach ( $zones as &$zone ) {
+            if ( $oldA <= 0 or strpos($zone['Coords'], '.') !== false ) continue;
+            $points = coordsToPoints($zone['Coords']);
+            if ( !$points ) continue;
+            convertPixelPointsToPercent($points, $oldMonitor->Width(), $oldMonitor->Height(), true);
+            $zonePixelArea = getPolyArea($points) / 10000.0 * $oldA;
+            $newZone = $zone;
+            $newZone['Units'] = 'Percent';
+            $newZone['Coords'] = pointsToCoords($points);
+            convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
+            $zoneChanges = getFormChanges($zone, $newZone, $types);
+            if ( count($zoneChanges) ) {
+              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id']));
+            }
+            $zone = $newZone;
+          }
+          unset($zone);
+
           if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
             // Rotation: swap x,y percentage coords
             foreach ( $zones as $zone ) {
@@ -251,10 +253,10 @@ if ($action == 'save') {
                 $points[$i]['y'] = $x;
               }
               $newZone['Coords'] = pointsToCoords($points);
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } # end foreach zone
@@ -262,6 +264,9 @@ if ($action == 'save') {
             // Non-rotation resize: coords stay the same (percentages),
             // but rescale threshold pixel counts by area ratio
             foreach ( $zones as $zone ) {
+              // Percent zones carry thresholds that are a percentage of the
+              // zone, so they do not change with the area.
+              if ($zone['Units'] == 'Percent') continue;
               $newZone = $zone;
               $newZone['MinAlarmPixels'] = intval(round(($zone['MinAlarmPixels']*$newA)/$oldA));
               $newZone['MaxAlarmPixels'] = intval(round(($zone['MaxAlarmPixels']*$newA)/$oldA));
@@ -270,10 +275,10 @@ if ($action == 'save') {
               $newZone['MinBlobPixels'] = intval(round(($zone['MinBlobPixels']*$newA)/$oldA));
               $newZone['MaxBlobPixels'] = intval(round(($zone['MaxBlobPixels']*$newA)/$oldA));
 
-              $changes = getFormChanges($zone, $newZone, $types);
+              $zoneChanges = getFormChanges($zone, $newZone, $types);
 
-              if ( count($changes) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?',
+              if ( count($zoneChanges) ) {
+                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
                   array($mid, $zone['Id']));
               }
             } // end foreach zone
@@ -294,25 +299,17 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
-        // Zone coords are now stored as percentages (0-100)
-        $zoneWidth = $newMonitor['Width'];
-        $zoneHeight = $newMonitor['Height'];
-        if (isset($newMonitor['Orientation']) &&
-            ($newMonitor['Orientation'] == 'ROTATE_90' || $newMonitor['Orientation'] == 'ROTATE_270')) {
-          $zoneWidth = $newMonitor['Height'];
-          $zoneHeight = $newMonitor['Width'];
-        }
-        $zoneArea = $zoneWidth * $zoneHeight;
+        // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
         if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,
-          'MinAlarmPixels'=>intval(($zoneArea*.05)/100),
-          'MaxAlarmPixels'=>intval(($zoneArea*75)/100),
-          'MinFilterPixels'=>intval(($zoneArea*.05)/100),
-          'MaxFilterPixels'=>intval(($zoneArea*75)/100),
-          'MinBlobPixels'=>intval(($zoneArea*.05)/100)
+          'MinAlarmPixels'=>0.05,
+          'MaxAlarmPixels'=>75,
+          'MinFilterPixels'=>0.05,
+          'MaxFilterPixels'=>75,
+          'MinBlobPixels'=>0.05
         ])) {
           $error_message .= $zone->get_last_error();
           ZM\Error('Error adding zone:' . $error_message);
@@ -378,6 +375,7 @@ if ($action == 'save') {
 
   if ( isset($_REQUEST['newAction']) and is_array($_REQUEST['newAction']) ) {
     require_once('includes/MonitorAction.php');
+    require_once('includes/CronTab.php');
 
     $submitted_ids = array();
     foreach ( $_REQUEST['newAction'] as $posted ) {
@@ -387,8 +385,10 @@ if ($action == 'save') {
       $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
 
       if ( !$target ) {
-        if ( $action_id )
+        if ( $action_id ) {
           dbQuery('DELETE FROM MonitorActions WHERE Id=? AND MonitorId=?', array($action_id, $mid));
+          $actionsChanged = true;
+        }
         continue;
       }
 
@@ -397,6 +397,42 @@ if ($action == 'save') {
       # not submitted at all, so the key may simply be absent.
       $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
       $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
+
+      # The editor collects "Every <when> at <time>"; cron's five fields are
+      # what gets stored and written to the crontab. A schedule it could not
+      # draw comes back untouched in ScheduleRaw so editing a row does not
+      # destroy one that was set another way.
+      #
+      # Built and validated here rather than trusted from the browser: this
+      # string ends up in a crontab line, so the one check that matters has to
+      # be on this side of the request.
+      $schedule = '';
+      if ( $trigger_on == 'Schedule' ) {
+        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+          $schedule = trim($posted['ScheduleRaw']);
+        } else {
+          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
+          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
+          if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
+            $error_message .= 'Ignoring action: "'.validHtmlStr($time).
+              '" is not a time of day.<br/>';
+            continue;
+          }
+          $schedule = cronFromParts($frequency, intval($hm[1]), intval($hm[2]));
+          if ($schedule === null) {
+            $error_message .= 'Ignoring action: could not make a schedule from "'.
+              validHtmlStr($frequency).'" at "'.validHtmlStr($time).'".<br/>';
+            continue;
+          }
+        }
+
+        if ( !cronScheduleIsValid($schedule) ) {
+          $error_message .= 'Ignoring action: "'.validHtmlStr($schedule).
+            '" is not a schedule this can run.<br/>';
+          continue;
+        }
+      }
 
       $target_monitor = ZM\Monitor::find_one(array('Id'=>$target));
       $allowed = ZM\MonitorAction::typesForMonitor($target_monitor);
@@ -409,6 +445,7 @@ if ($action == 'save') {
         'MonitorId'       => $mid,
         'TargetMonitorId' => $target,
         'TriggerOn'       => $trigger_on,
+        'Schedule'        => $schedule,
         'ActionType'      => $action_type,
         'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
                                ? null : validInt($posted['AudioFile']),
@@ -420,17 +457,33 @@ if ($action == 'save') {
       if ( !$action ) $action = new ZM\MonitorAction();
 
       if ( $action->Id() ) {
-        $action->save($values);
-        $submitted_ids[] = $action->Id();
+        if ( count($action->changes($values)) ) $actionsChanged = true;
+        if ( $action->save($values) ) {
+          $submitted_ids[] = $action->Id();
+        } else {
+          $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
+        }
       } else if ( $action->insert($values) ) {
+        $actionsChanged = true;
         $submitted_ids[] = $action->Id();
       } else {
         $error_message .= 'Error saving monitor action: '.$action->get_last_error().'<br/>';
       }
     } # end foreach posted action
 
-    # zmc re-reads the action list on restart, so a change here needs one.
+    # zmc only re-reads the action list on restart or reload. If nothing above
+    # stopped it, start would find it running and do nothing.
     $restart = true;
+    if ( $actionsChanged and !$zmcStopped and $monitor->Type() != 'WebSite' ) {
+      $monitor->zmcControl('reload');
+    }
+
+    # cron owns the scheduled ones, so the crontab is rebuilt from the table
+    # on every save. Doing it here rather than on a timer means the crontab
+    # cannot drift from what the operator just agreed to.
+    if ( cronRebuildScheduledActions() === false )
+      $error_message .= 'Saved, but the crontab could not be updated, so '.
+        'scheduled actions will not run. See the log for why.<br/>';
   } # end if newAction
 
   if ( $restart ) {
@@ -440,6 +493,7 @@ if ($action == 'save') {
       if ( $monitor->Controllable() ) {
         $monitor->sendControlCommand('start');
       }
+      $monitor->zmtrackControl('start');
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );

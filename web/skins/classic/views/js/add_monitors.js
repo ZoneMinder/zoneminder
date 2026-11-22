@@ -26,6 +26,7 @@ function probe(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
@@ -39,6 +40,7 @@ function probe(params) {
       }
     },
     error: function(jqXHR) {
+      table.bootstrapTable('hideLoading');
       console.log("error", jqXHR);
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
@@ -49,14 +51,25 @@ function probe(params) {
 // Add the buttons/Thumbnail columns bootstrap-table expects and remember each
 // stream by url so addMonitor() can find it. Shared by the network probe and
 // the CSV import.
+function streamKey(stream) {
+  // Remote cameras only have a relative Path, so the same url can belong to several hosts.
+  const monitor = stream.camera && stream.camera.monitor;
+  return (monitor && monitor.Host ? monitor.Host + '|' : '') + stream.url;
+}
+
 function decorateStreams(streams) {
   const rows = [];
+  const seen = {};
   for (const i in streams) {
     const stream = streams[i];
+    let key = streamKey(stream);
+    // A CSV can list the same url on several rows with different names, so keep each row's own entry.
+    if (seen[key]) key += '#' + i;
+    seen[key] = true;
     if (stream.Monitor) {
-      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+key+'"/>';
     } else if (stream.url && user.Monitors == 'Create') {
-      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+key+'"/>';
     }
     if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
       // The image proxy requires the CSRF token since it is exempt from the POST check.
@@ -65,7 +78,7 @@ function decorateStreams(streams) {
       stream.Thumbnail = '<img src="'+src+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
     }
     if (stream.url) {
-      ProbeResults[stream.url] = stream;
+      ProbeResults[key] = stream;
     }
     rows.push(stream);
   } // end for each Stream
@@ -78,7 +91,7 @@ function onvif_probe() {
 function addMonitor(btn) {
   url = btn.getAttribute('data-url');
   if (!url) {
-    alert('No url in button');
+    window.location.assign('?view=monitor');
     return;
   }
   if (!ProbeResults[url]) {
@@ -90,14 +103,14 @@ function addMonitor(btn) {
     urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
-    urlString = '?view=monitor&newMonitor[Path]='+url;
+    urlString = '?view=monitor&newMonitor[Path]='+encodeURIComponent(Stream.url);
     keys = Object.keys( Monitor );
     for (i in Monitor) {
       if (!Monitor[i]) continue;
       if (Monitor[i] == 'null') {
         Monitor[i]='';
       }
-      urlString += '&newMonitor['+i+']='+Monitor[i];
+      urlString += '&newMonitor['+i+']='+encodeURIComponent(Monitor[i]);
     }
   }
   window.location.assign(urlString);
@@ -147,7 +160,7 @@ function initPage() {
   $j('#url').on('input', probe);
 
   // Manage the EDIT button
-  document.getElementById('importBtn').addEventListener('click', function onEditClick(evt) {
+  $j('#importBtn').on('click', function onEditClick(evt) {
     evt.preventDefault();
     $j.ajax({
       method: 'GET',

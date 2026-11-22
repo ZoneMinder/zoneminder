@@ -45,6 +45,7 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
     , libdata-uuid-perl
     ,libnumber-bytes-human-perl
     ,libfile-slurp-perl
+    ,libxml-libxml-perl
     , libpcre2
     , ffmpeg | libav-tools
     , rsyslog | system-log-daemon

@@ -71,7 +71,9 @@ function getLogPanelHTML($options=array()) {
   # views/js/<view>.js.php defining a translate object. Carry its own strings.
   $strings = array();
   foreach (array('Reason', 'AJAXRequestError', 'ErrorUpdatingLogTable',
-    'ErrorDeletingRowFromLogTable', 'DeletingRowsFromTable') as $string) {
+    'ErrorDeletingRowFromLogTable', 'DeletingRowsFromTable',
+    'ConfirmClearLogs', 'ConfirmClearAllLogs', 'ClearLogs', 'ClearAllLogs',
+    'ClearFilteredLogs', 'ConfirmClearFilteredLogs') as $string) {
     $strings[$string] = translate($string);
   }
 
@@ -94,7 +96,7 @@ function getLogPanelHTML($options=array()) {
       <button type="button" class="btn btn-normal logPanel-reload" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>"><i class="fa fa-refresh"></i></button>
 <?php } ?>
 <?php if ($canEdit) { ?>
-      <button type="button" class="btn btn-danger logPanel-clear" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>" disabled><i class="fa fa-trash"></i> <?php echo translate('ClearLogs') ?></button>
+      <button type="button" class="btn btn-danger logPanel-clear" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ClearLogs') ?>" disabled><i class="fa fa-trash"></i> <span class="logPanel-clear-label"><?php echo translate('ClearAllLogs') ?></span></button>
 <?php } ?>
       <div class="controlHeader">
 <?php if ($locked === null) { ?>
@@ -201,7 +203,7 @@ function getLogPanelHTML($options=array()) {
           <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
 <?php } ?>
           <th data-field="Id" data-visible="false"></th>
-          <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
+          <th data-sortable="true" data-searchable="false" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"<?php echo $locked === null ? '' : ' data-visible="false"' ?>><?php echo translate('Component') ?></th>
 <?php if ($multipleServers) { ?>
           <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>

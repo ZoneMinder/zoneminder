@@ -26,6 +26,14 @@ if ($action == 'Save') {
   $dbUser = new ZM\User($uid);
 
   if (canEdit('System')) {
+    if (!$uid or isset($_REQUEST['user']['Username'])) {
+      $username = isset($_REQUEST['user']['Username']) ? preg_replace('/[^\w\.@ ]/', '', trim($_REQUEST['user']['Username'])) : '';
+      if ($username === '') {
+        $error_message = 'A Username is required<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
+    }
     # Need to check for uniqueness of Username
     $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username']));
     if ($user_with_my_username and 
@@ -60,6 +68,12 @@ if ($action == 'Save') {
       }
     }
     $changes = $dbUser->changes($_REQUEST['user']);
+    if (isset($changes['Password'])) {
+      # Changing the password revokes the user's existing API tokens, matching
+      # the options page's revoke action: validateToken() rejects any token
+      # issued before TokenMinExpiry (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
     if (count($changes)) {
       if (!$dbUser->save($changes)) {
         $error_message .= $dbUser->get_last_error().'<br/>';
@@ -69,7 +83,7 @@ if ($action == 'Save') {
       ZM\AuditAction(($uid ? 'update' : 'create'), 'user', $dbUser->Id(), 'Username: '.$dbUser->Username().' Changed: '.implode(', ', array_keys($changes)));
 
       if ($uid) {
-        if ($user and ($dbUser->Username() == $user->Username())) {
+        if ($user and ($dbUser->Id() == $user->Id())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
           $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
 
@@ -82,7 +96,7 @@ if ($action == 'Save') {
     } # end if changes
 
     foreach (ZM\Group::find() as $g) {
-      if (isset($_POST['group_permission'])) {
+      if (isset($_POST['group_permission']) and isset($_POST['group_permission'][$g->Id()])) {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
           $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
@@ -126,6 +140,11 @@ if ($action == 'Save') {
     }
     $fields = array('Password'=>'', 'Language'=>'', 'HomeView'=>'');
     $changes = $dbUser->changes(array_intersect_key($_REQUEST['user'], $fields));
+    if (isset($changes['Password'])) {
+      # A self-service password change revokes the user's existing API tokens
+      # (refs GHSA-5w6w-qp25-2qqh).
+      $changes['TokenMinExpiry'] = time();
+    }
 
     if (count($changes)) {
       if (!$dbUser->save($changes)) {

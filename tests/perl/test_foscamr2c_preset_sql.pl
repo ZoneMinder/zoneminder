@@ -32,9 +32,10 @@ sub check {
 
 # A database handle that records each statement and the values bound to it.
 package FakeSth;
+our $label = 'FrontDoor';
 sub new { my ($class, $log, $sql) = @_; return bless {log => $log, sql => $sql}, $class; }
 sub execute { my $self = shift; push @{$self->{log}}, $self->{sql}.' ['.join(',', @_).']'; return 1; }
-sub fetchrow_hashref { my $self = shift; return $self->{sql} =~ /ControlPresets`/ ? {Label => 'FrontDoor'} : undef; }
+sub fetchrow_hashref { my $self = shift; return $self->{sql} =~ /ControlPresets`/ ? {Label => $label} : undef; }
 sub finish { return 1; }
 package FakeDbh;
 sub new { my ($class, $log) = @_; return bless {log => $log}, $class; }
@@ -77,6 +78,12 @@ check('presetSet stores the label with bound values',
 run('presetSet', $injected);
 check('presetSet runs no SQL for a non-numeric preset', scalar(@sql), 0);
 check('presetSet sends nothing for a non-numeric preset', scalar(@sent), 0);
+
+$FakeSth::label = 'Gate #1 & 2';
+run('presetGoto', 3);
+check('presetGoto escapes the label in the camera URL', $sent[0], 'CGIProxy.fcgi?cmd=ptzGotoPresetPoint&name=Gate%20%231%20%26%202');
+run('presetSet', 4);
+check('presetSet escapes the label in the camera URL', $sent[1], 'CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=Gate%20%231%20%26%202');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

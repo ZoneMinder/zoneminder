@@ -23,6 +23,7 @@ namespace AuthHashCompareTest\ZM {
   function Debug($s) {}
   function Info($s) {}
   function Error($s) {}
+  function logFingerprint($v) { return 'fp:test'; }
 }
 
 namespace AuthHashCompareTest {

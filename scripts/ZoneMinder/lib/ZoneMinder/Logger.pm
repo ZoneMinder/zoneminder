@@ -85,6 +85,9 @@ our %EXPORT_TAGS = (
       importanceLevel
       WarningImportance
       ErrorImportance
+      urlForLog
+      logFingerprint
+      redactCredentials
       ) ]
     );
 
@@ -108,7 +111,6 @@ use DBI;
 use Carp;
 require POSIX;
 use IO::Handle;
-use Data::Dumper;
 use Time::HiRes qw/gettimeofday/;
 use Sys::Syslog;
 
@@ -267,9 +269,9 @@ sub initialise( @ ) {
   if ( defined($ENV{LOG_PRINT}) ) {
     $tempTermLevel = $ENV{LOG_PRINT} ? DEBUG : $this->{termLevel};
   } elsif ( defined($options{termLevel}) ) {
-    $tempFileLevel = $options{termLevel};
+    $tempTermLevel = $options{termLevel};
   } else {
-    $tempFileLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
+    $tempTermLevel = $ZoneMinder::Config::Config{ZM_LOG_LEVEL_TERM};
   }
   if ( defined($options{databaseLevel}) ) {
     $tempDatabaseLevel = $options{databaseLevel};
@@ -546,7 +548,7 @@ sub openFile {
     my $webUid = (getpwnam($ZoneMinder::Config::Config{ZM_WEB_USER}))[2];
     Error('Can\'t get uid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webUid;
     my $webGid = (getgrnam($ZoneMinder::Config::Config{ZM_WEB_GROUP}))[2];
-    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_USER}) if ! defined $webGid;
+    Error('Can\'t get gid for '.$ZoneMinder::Config::Config{ZM_WEB_GROUP}) if ! defined $webGid;
     if ( $> == 0 ) {
       # If we are root, we want to make sure that www-data or whatever owns the file
       chown($webUid, $webGid, $this->{logFile} ) or
@@ -581,6 +583,9 @@ sub logPrint {
 
   if ( $level <= $this->{effectiveLevel} ) {
     $string =~ s/[\r\n]+$//g;
+    # Last line of defence for the control modules, most of which build
+    # URLs with the camera's user:password@ or pwd= in them and log them.
+    $string = redactCredentials($string);
     if ( $level <= $this->{syslogLevel} ) {
       syslog($priorities{$level}, $codes{$level}.' [%s]', $string);
     }
@@ -612,11 +617,13 @@ sub logPrint {
         # Turn this off because zDbConnect will do logging calls.
         my $oldlevel = $this->{databaseLevel};
         $this->{databaseLevel} = NOLOG;
-        if ( ! ZoneMinder::Database::zmDbConnect() ) {
+        my $connected = ZoneMinder::Database::zmDbConnect();
+        # Restore the level even when the connection is down so later calls retry.
+        $this->{databaseLevel} = $oldlevel;
+        if ( ! $connected ) {
           #print(STDERR "Can't log to database: ");
           return;
         }
-        $this->{databaseLevel} = $oldlevel;
       }
 
       my $sql = 'INSERT INTO Logs ( TimeKey, Component, ServerId, Pid, Level, Code, Message, File, Line ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
@@ -719,6 +726,64 @@ sub logSyslogLevel {
   return fetch()->syslogLevel(@_);
 }
 
+# Credentials never go into a log line. Log files are often world-readable,
+# debug logs get pasted into support threads, and the Logs table is readable
+# by every System=View user. These helpers match web/includes/log_redact.php.
+
+# A short, non-reversible tag for a token or session id: "fp:" plus the first
+# 8 hex digits of its SHA-256, the same tag the web and C++ logs use. Not for
+# passwords: a password's fingerprint can be brute-forced offline.
+sub logFingerprint {
+  my $value = shift;
+  return 'fp:none' if !defined($value) or $value eq '';
+  require Digest::SHA;
+  return 'fp:'.substr(Digest::SHA::sha256_hex($value), 0, 8);
+}
+
+# Whether a parameter of this name holds a password or secret (replaced) or a
+# token or auth hash (fingerprinted).
+sub _logKeyKind {
+  my $key = shift;
+  return 'secret' if $key =~ /pass|pwd|secret|loginpas/i;
+  return 'token' if $key =~ /^(?:auth|token|access_token|refresh_token|jwt|ZMSESSID)$/i;
+  return undef;
+}
+
+# Text with the credentials it may carry removed: user:password@ in URLs and
+# in host specs such as a ControlAddress (host and path kept), the values of
+# pwd=, password=, token= ... parameters, ONVIF WS-Security password digests
+# and "password":"..." in JSON. Anything else is left as it is.
+sub redactCredentials {
+  my $string = shift;
+  return $string if !defined($string) or $string eq '';
+  # scheme://user:password@host: up to the last @ before the path, since
+  # older installs have passwords with a raw @ in them.
+  $string =~ s{\b([a-z][a-z0-9+.\-]*://)[^\s/?#'"<>]*\@}{$1}gi;
+  # user:password@host with no scheme (ControlAddress).
+  $string =~ s{(^|[\s'"(\[=,])[^\s/:\@'"<>]+:[^\s/'"<>]*\@(?=[A-Za-z0-9\[])}{$1}g;
+  # name=value parameters.
+  $string =~ s{(^|[?&;\s])([^=&?#;\s'"]+)=([^&?#;\s'"]*)}{
+    my ($pre, $key, $value) = ($1, $2, $3);
+    my $kind = _logKeyKind($key);
+    !$kind ? "$pre$key=$value"
+      : $kind eq 'secret' ? "$pre$key=[redacted]"
+      : "$pre$key=".logFingerprint($value)
+  }ge;
+  # <wsse:Password Type="...PasswordDigest">digest</wsse:Password>
+  $string =~ s{(<(?:\w+:)?Password\b[^>]*>)[^<]*(</)}{$1\[redacted\]$2}g;
+  # "password":"value" in JSON.
+  $string =~ s{("[^"]*(?:pass|pwd|secret)[^"]*"\s*:\s*")(?:[^"\\]|\\.)*(")}{$1\[redacted\]$2}gi;
+  return $string;
+}
+
+# A URL as it may be logged: no user:password@, and credential parameters
+# replaced. Host, port and path are kept.
+sub urlForLog {
+  my $url = shift;
+  return '' if !defined $url;
+  return redactCredentials("$url");
+}
+
 sub Mark {
   my $level = shift;
   $level = DEBUG unless defined($level);
@@ -730,6 +795,7 @@ sub Dump {
   my $var = shift;
   my $label = shift;
   $label = 'VAR' unless defined($label);
+  require Data::Dumper;
   fetch()->logPrint(DEBUG, Data::Dumper->Dump([ $var ], [ $label ]));
 }
 

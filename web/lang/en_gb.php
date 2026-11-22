@@ -65,6 +65,7 @@ $SLANG = array(
     'FirstEvent'            => 'First Event',
     'HostName'              => 'Host Name',
     'LastEvent'             => 'Last Event',
+    'ManageTags'            => 'Manage Tags',
     'MaxGap'                => 'Max Gap',
     'MinGap'                => 'Min Gap',
     'MissingFiles'          => 'Missing Files',
@@ -118,6 +119,8 @@ $SLANG = array(
     'AttrArchiveStatus'     => 'Archive Status',
     'AttrAvgScore'          => 'Avg. Score',
     'AttrCause'             => 'Cause',
+    'AttrDate'              => 'Date',
+    'AttrDateTime'          => 'Date/Time',
     'AttrStartDate'         => 'Start Date',
     'AttrEndDate'           => 'End Date',
     'AttrStartDateTime'     => 'Start Date/Time',
@@ -160,6 +163,7 @@ $SLANG = array(
     'BadChannel'            => 'Channel must be set to an integer of zero or more',
     'BadDevice'             => 'Device must be set to a valid value',
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
+    'BadFfmpegOptions'      => 'Source -> Options must be key=value pairs separated by commas or new lines, such as tls_verify=0. Write ffmpeg command line flags like -tls_verify 0 without the dash and with =. Could not use:',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
@@ -243,6 +247,38 @@ $SLANG = array(
     'ActionTriggerAlarm'      => 'Alarm begins',
     'ActionTriggerAlarmEnd'     => 'Alarm ends',
     'ActionTriggerManual'     => 'Manually triggered',
+    'ActionTriggerSchedule'     => 'At a time',
+    'ActionSchedule'            => 'Schedule',
+    'ActionScheduleAdvanced'    => 'This schedule was set outside the editor and is shown as it stands. Clear the row and add it again to use the pickers.',
+    'CommandNotAllowed'         => 'That command is not permitted. ZM_ALLOWED_COMMANDS limits this to:',
+    'ScheduledTasks'            => 'Scheduled Tasks',
+    'ScheduledTasksHelp'        => 'Commands run on a schedule by cron, from the web user\'s own crontab. ZoneMinder rewrites only its own block there and leaves any other entries alone. These run as the web user, so adding one is the same level of trust as a filter that runs a command.',
+    'CronCommand'               => 'Command',
+    'CronCommandHelp'           => 'Run as the web user. A literal percent sign must be written \\%, because cron treats an unescaped one as the end of the command.',
+    'CronWhen'                  => 'When',
+    'CronAddTask'               => 'Add a scheduled task',
+    'CronEditTask'              => 'Edit scheduled task',
+    'CronAdvanced'              => 'Enter as cron',
+    'CronAdvancedHelp'          => 'Set by the pickers, or type five cron fields directly for anything they cannot express.',
+    'CronAnyServer'             => 'Every server',
+    'CronScheduleAsCron'        => '(as the cron field below)',
+    'CronNoTasks'               => 'No scheduled tasks yet.',
+    'CronBadSchedule'           => 'That is not a schedule this can run. Five cron fields are expected, for example "0 3 * * *".',
+    'CronBadCommand'            => 'That is not a command this can run. It must not be empty, must stay on one line, and any percent sign must be written \\%.',
+    'CronWriteFailed'           => 'Saved, but the crontab could not be written, so this will not run. See the log for why.',
+    'CronConfirmDelete'         => 'Delete the selected scheduled tasks?',
+    'ScheduleEvery'             => 'Every',
+    'ScheduleAt'                => 'at',
+    'ScheduleEveryDay'          => 'day',
+    'ScheduleEveryWeekday'      => 'weekday (Mon-Fri)',
+    'ScheduleEveryWeekend'      => 'weekend day (Sat & Sun)',
+    'ScheduleEveryMonday'       => 'Monday',
+    'ScheduleEveryTuesday'      => 'Tuesday',
+    'ScheduleEveryWednesday'    => 'Wednesday',
+    'ScheduleEveryThursday'     => 'Thursday',
+    'ScheduleEveryFriday'       => 'Friday',
+    'ScheduleEverySaturday'     => 'Saturday',
+    'ScheduleEverySunday'       => 'Sunday',
     'ActionLightOn'           => 'Turn light on',
     'ActionLightOff'          => 'Turn light off',
     'ActionIndicatorLightOn'  => 'Turn indicator on',
@@ -287,11 +323,16 @@ $SLANG = array(
     'ConfiguredFor'         => 'Configured for',
     'ConfigURL'             => 'Config Base URL',
     'ConfirmAction'         => 'Action Confirmation',
+    'ClearAllLogs'          => 'Clear ALL Logs',
+    'ClearFilteredLogs'     => 'Clear Filtered Logs',
+    'ConfirmClearAllLogs'   => 'No rows are selected, so this will delete all log entries. Are you sure?',
+    'ConfirmClearFilteredLogs' => 'No rows are selected, so this will delete every log entry matching the current filter. Are you sure?',
     'ConfirmClearLogs'      => 'Are you sure you wish to delete the selected log entries?',
     'ConfirmClearLogsTitle' => 'Clear Logs Confirmation',
     'ConfirmDeleteControl'  => 'Warning, deleting a control will reset all monitors that use it to be uncontrollable.<br><br>Are you sure you wish to delete?',
     'ConfirmDeleteFiles'    => 'Are you sure you wish to delete the selected files?',
     'ConfirmDeleteGroups'   => 'Are you sure you wish to delete the selected groups?',
+    'ConfirmDeleteTag'      => 'Are you sure you wish to delete this unused tag?',
     'ConfirmDeleteDevices'  => 'Are you sure you wish to delete the selected devices?',
     'ConfirmDeleteEvents'   => 'Are you sure you wish to delete the selected events?',
     'MonitorFilters'        => 'Monitor Filters',
@@ -312,7 +353,7 @@ $SLANG = array(
     'ConfirmUnarchiveEvents'=> 'Are you sure you wish to unarchive the selected events?',
     'ConjAnd'               => 'and',
     'ConjOr'                => 'or',
-    'ContactAdmin'          => 'Please contact your adminstrator for details.',
+    'ContactAdmin'          => 'Please contact your administrator for details.',
     'ControlAddress'        => 'Control Address',
     'ControlCap'            => 'Control Capability',
     'ControlCaps'           => 'Control Capabilities',
@@ -437,6 +478,7 @@ $SLANG = array(
     'GeneratingVideo'       => 'Generating Video',
     'Generate QR Code'      => 'Generate QR Code',
     'GetCurrentLocation'    => 'Get Current Location',
+    'Go2RTCDisableBackchannel' => 'Disable Go2RTC audio backchannel',
     'GoToFrame'             => 'Go to Frame',
     'GoToZoneMinder'        => 'Go to ZoneMinder.com',
     'HasFocusSpeed'         => 'Has Focus Speed',
@@ -455,7 +497,9 @@ $SLANG = array(
     'ImagesPerClass'        => 'Images per class',
     'InsufficientPermissionsUser'=> 'Insufficient permissions for user',
     'MaxImageBufferCount'   => 'Maximum Image Buffer Size (frames)',
+    'IntelGpu'              => 'Intel GPU',
     'InvalidateTokens'      => 'Invalidate all generated tokens',
+    'IPAddress'             => 'IP Address',
     'KeyString'             => 'Key String',
     'LimitResultsPost'      => 'results only', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'       => 'Limit to first', // This is used at the beginning of the phrase 'Limit to first N results only'
@@ -570,11 +614,10 @@ $SLANG = array(
     'NumPresets'            => 'Num Presets',
     'ObjDetect'             => 'ObjDetect',
     'ObjectImageLive'       => 'Go back to the live view',
+    'ObjectImageLiveOff'    => 'Showing a still - use the image button to go live',
     'ObjectImageLoad'       => 'Replace this image',
     'ObjectImageNotAnImage' => 'That file could not be read as an image',
     'ObjectImageUse'        => 'Measure against a still image instead of the live view',
-    'ObjectSizeApply'       => 'Derive the detection settings from this object size',
-    'ObjectSizeApplyLabel'  => 'Apply',
     'ObjectSizeFilterTooSmall' => 'That object is narrower than the %sx%s filter, which erases it entirely. Reduce the filter size, or draw a box around a larger object.',
     'ObjectSizeHeight'      => 'Object height in pixels',
     'ObjectSizeInactive'    => 'Object measuring does not apply to Inactive or Privacy zones',
@@ -595,6 +638,11 @@ $SLANG = array(
     'ONVIF_EVENTS_PATH'     => 'ONVIF Events Path',
     'ONVIF_Options'         => 'ONVIF Options',
     'ONVIF_URL'             => 'ONVIF URL',
+    'ONVIF_Subscription'    => 'ONVIF Subscription',
+    'OnvifStatusNotInUse'   => 'Not in use',
+    'OnvifStatusNotSubscribed' => 'Not subscribed (connecting or failing, see the logs)',
+    'OnvifStatusSubscribed' => 'Subscribed',
+    'OnvifStatusUnavailable' => 'Unavailable (capture is not running)',
     'ObjectTraining'        => 'Object Training',
     'OpBlank'               => 'is blank',
     'OpEq'                  => 'equal to',
@@ -734,6 +782,7 @@ $SLANG = array(
     'Roles'                 => 'Roles',
     'RotateLeft'            => 'Rotate Left',
     'RotateRight'           => 'Rotate Right',
+    'RTSPServer'            => 'RTSP Server',
     'RTSPStreamName'        => 'RTSP Stream Name',
     'RTSPTransport'         => 'RTSP Transport Protocol',
     'RunAudit'              => 'Run Audit Process',
@@ -830,6 +879,7 @@ $SLANG = array(
     'TrainingDetectObjects' => 'Run object detection on current frame',
     'TrainingDetectRunning' => 'Running detection...',
     'TrainingDetectedObjects' => 'object(s) detected — accept or reject each',
+    'TrainingFailedCreateDirectory' => 'Failed to create training directory',
     'TrainingFailedToLoadEvent' => 'Failed to load event data',
     'TrainingFailedToLoadFrame' => 'Failed to load frame image',
     'TrainingGuidance'      => 'Training is generally possible with at least 50+ images per class. For best results, aim for 100+ images per class.',
@@ -907,7 +957,86 @@ $SLANG = array(
     'ZoneMinMaxFiltArea'    => 'Min/Max Filtered Area',
     'ZoneMinMaxPixelThres'  => 'Min/Max Pixel Threshold (0-255)',
     'ZoneOverloadFrames'    => 'Overload Frame Ignore Count',
+    'ZoneLegendAlarm'     => 'min alarmed',
+    'ZoneLegendBlob'      => 'min blob',
+    'ZoneLegendBlobBox'   => 'largest blob',
+    'ZoneLegendEstimate'  => 'your setting (estimated)',
+    'ZoneLegendFilter'    => 'min filtered',
+    'ZoneLegendFrame'     => 'This frame:',
+    'ZoneLegendKernel'    => 'filter size',
+    'ZoneLegendObject'    => 'your setting',
+    'ZoneReplayLiveOff'     => 'Showing a recording - Exit to go live',
+    'ZoneReplayAlarmed'     => 'alarmed',
+    'ZoneReplayBlob'        => 'blob',
+    'ZoneReplayClose'       => 'Close the replay and return to the live view',
+    'ZoneReplayFails'     => 'fails',
+    'ZoneReplayFailsAt'   => 'fails at %1',
+    'ZoneReplayFiltered'    => 'filtered',
+    'ZoneReplayGot'       => 'got',
+    'ZoneReplayInAlarm'     => 'part of an alarm',
+    'ZoneReplayInAlarmKey'  => 'alarm (enough in a row)',
+    'ZoneReplayMin'       => 'min',
+    'ZoneReplayNext'        => 'Next frame with motion',
+    'ZoneReplayNoChange'    => 'no change',
+    'ZoneReplayRerun'       => 're-run to tell',
+    'ZoneReplayNoMotion'    => 'no motion',
+    'ZoneReplayOverload'    => 'skipped - overload',
+    'ZoneReplayPrev'        => 'Previous frame with motion',
+    'ZoneReplayScored'      => 'qualifies, too few in a row',
+    'ZoneReplayTimeline'    => 'One mark per frame: dark green is part of an alarm, light green qualifies but too few in a row, red fails. Click to jump.',
+    'ZoneTest'              => 'Try these settings on a past event',
+    'ZoneTestClosest'     => 'most stop at %1 - best %2 of %3',
+    'ZoneTestEventId'       => 'or event id',
+    'ZoneTestEventIdHelp'   => 'Any event id of this monitor; overrides the list',
+    'ZoneTestHelp'          => 'Re-runs detection on a recorded event with the settings in this form, saved or not. Nothing is written. Each zone is judged on its own, without Inclusive/Exclusive/Preclusive rules.',
+    'ZoneTestNeedSave'      => 'Save the zone once before testing it',
+    'ZoneTestNoEvents'      => 'This monitor has no recorded events to test against',
+    'ZoneTestNoVideo'       => 'no replay - this event kept no video or frames',
+    'ZoneTestNoZma'         => 'Needs the zma utility, which is not installed',
+    'ZoneTestNotDetecting'  => 'This zone is Inactive or Privacy - nothing to test',
+    'ZoneTestNotInARow'   => 'never %1 in a row',
+    'ZoneTestQualify'     => '%1/%2 frames qualify',
+    'ZoneTestRunning'       => 'Analysing the event…',
+    'ZoneTestStale'         => 'Threshold, filter or zone shape changed - run again',
+    'ZoneTestUnknown'       => '%1 need a re-run',
+    'ZoneTestUnsure'        => 'Can\'t tell',
+    'ZoneTestWouldAlarm'    => 'Would alarm',
+    'ZoneTestWouldNotAlarm' => 'Would not alarm',
     'ZoneExtendAlarmFrames' => 'Extend Alarm Frame Count',
+    'ZoneActive'            => 'Active',
+    'ZoneInclusive'         => 'Inclusive',
+    'ZoneExclusive'         => 'Exclusive',
+    'ZonePreclusive'        => 'Preclusive',
+    'ZoneInactive'          => 'Inactive',
+    'ZonePrivacy'           => 'Privacy',
+    'ZoneActiveDesc'        => 'Triggers an alarm when motion is detected within this zone',
+    'ZoneInclusiveDesc'     => 'Triggers an alarm only if an Active zone is also triggered',
+    'ZoneExclusiveDesc'     => 'Triggers an alarm only if no Active zone is triggered',
+    'ZonePreclusiveDesc'    => 'Prevents alarms from being triggered in other zones when motion is detected here',
+    'ZoneInactiveDesc'      => 'Ignores motion and does not trigger an alarm',
+    'ZonePrivacyDesc'       => 'Masks the area with solid black pixels during capture and analysis',
+    'ZoneCannotDeleteBuiltInPreset' => 'Built-in presets cannot be deleted.',
+    'ZoneCannotModifyBuiltInPreset' => 'Built-in presets cannot be modified.',
+    'ZoneConfirmDeletePreset'       => 'Are you sure you want to delete this preset?',
+    'ZoneDeletePresetDesc'          => 'Delete selected user preset',
+    'ZoneEnterPresetName'           => 'Enter zone preset name:',
+    'ZoneInvalidPresetName'         => 'Please enter a valid preset name that does not match a built-in preset.',
+    'ZoneLoadPresetDesc'            => 'Apply selected preset values to the zone',
+    'ZonePresetBestHigh'            => 'Best, high sensitivity',
+    'ZonePresetBestHighDesc'        => 'High accuracy with blob filtering (Blobs). Detects small objects while filtering noise.',
+    'ZonePresetBestLow'             => 'Best, low sensitivity',
+    'ZonePresetBestLowDesc'         => 'High accuracy with blob filtering (Blobs). Ignores noise and triggers on large objects.',
+    'ZonePresetBestMedium'          => 'Best, medium sensitivity',
+    'ZonePresetBestMediumDesc'      => 'High accuracy with blob filtering (Blobs). Recommended for most outdoor scenes.',
+    'ZonePresetDefault'             => 'Default',
+    'ZonePresetDefaultDesc'         => 'Standard balanced motion detection settings.',
+    'ZonePresetFastHigh'            => 'Fast, high sensitivity',
+    'ZonePresetFastHighDesc'        => 'Low CPU usage (AlarmedPixels). Detects small or subtle movements.',
+    'ZonePresetFastLow'             => 'Fast, low sensitivity',
+    'ZonePresetFastLowDesc'         => 'Low CPU usage (AlarmedPixels). Triggers only on large, high-contrast changes.',
+    'ZonePresetFastMedium'          => 'Fast, medium sensitivity',
+    'ZonePresetFastMediumDesc'      => 'Low CPU usage (AlarmedPixels). Balanced thresholds for general monitoring.',
+    'ZoneSavePresetDesc'            => 'Save current zone detection settings as a preset',
     'ZoomIn'                => 'Zoom In',
     'ZoomOut'               => 'Zoom Out',
     'zmNg Mobile App QR Code' => 'zmNg Mobile App QR Code',
@@ -918,7 +1047,7 @@ $SLANG = array(
     'es_ar' => 'Spanish Argentina',
     'es_es' => 'Spanish Spain',
     'en_gb' => 'British English',
-    'en_us' => 'Us English',
+    'en_us' => 'US English',
     'fr_fr' => 'French',
     'cs_cz' => 'Czech',
     'zh_cn' => 'Simplified Chinese',
@@ -937,6 +1066,9 @@ $SLANG = array(
     'dk_dk' => 'Danish',
     'ro_ro' => 'Romanian',
     'no_nb' => 'Norwegian',
+    'ba_ba' => 'Bosnian',
+    'big5_big5' => 'Traditional Chinese (Big5)',
+    'tr_tr' => 'Turkish',
   'option:router' => 'Gateway',
 );
 
@@ -1066,8 +1198,10 @@ if (!function_exists('zmVlang')) {
 $OLANG = array(
 	'OPTIONS_FFMPEG' => array(
     'Help' => '
-      Parameters in this field are passed on to FFmpeg. Multiple parameters can be separated by ,~~
+      Parameters in this field are passed on to FFmpeg as key=value pairs. Multiple parameters can be separated by , or put on separate lines.~~
+      An ffmpeg command line flag such as -tls_verify 0 is written tls_verify=0: no leading dash, and = between the name and the value.~~
       Examples (do not enter quotes)~~~~
+      "tls_verify=0" Accept the camera certificate without verifying it on rtsps:// sources~~~~
       "allowed_media_types=video" Set datatype to request from cam (audio, video, data)~~~~
       "reorder_queue_size=nnn" Set number of packets to buffer for handling of reordered packets
     '
@@ -1227,6 +1361,18 @@ None: No frames will be decoded, live view and thumbnails will not be available~
       RTSP2Web supports MSE (Media Source Extensions), HLS (HTTP Live Streaming), and WebRTC.
       Each has its advantages, with WebRTC probably being the most performant, but also the most picky about codecs.'
   ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_FULL' => array(
+    'Help' => '
+      Enabled by default to prevent compatibility issues with some cameras, particularly Dahua models.~~
+      When live viewing through go2rtc is active, these issues may cause ONVIF events (such as motion or sound detection) to stop working and prevent ZoneMinder from recording events.~~~~
+      Disable this option if your camera requires RTSP backchannel functionality, or if you need two-way audio (talkback) through go2rtc.~~
+      If your camera works correctly with ONVIF events and recording while live viewing is active, you can also disable this option to retain the default backchannel behavior.'
+  ),
+  'FUNCTION_GO2RTC_DISABLE_BACKCHANNEL_SHORT' => array(
+    'Help' => '
+      Disable RTSP backchannel to prevent ONVIF event and recording issues with some cameras (particularly Dahua). 
+      Disable this option if two-way audio is required or your camera works correctly with backchannel enabled.'
+  ),
   'FUNCTION_JANUS_ENABLED' => array(
     'Help' => '
       Attempt to use Janus streaming server for h264/h265 live view. Experimental, but allows
@@ -1277,6 +1423,7 @@ None: No frames will be decoded, live view and thumbnails will not be available~
    'OPTIONS_ONVIF_Alarm_Text' => array(
     'Help' => '
      Text associated with event when alarm is activated.~~
+     Several values can be given separated by commas, for example MotionAlarm,DetectedSound.~~
      Some standard values:~~
      - AnalyticsService~~
      - ConfigurationChanged~~
@@ -1305,6 +1452,32 @@ None: No frames will be decoded, live view and thumbnails will not be available~
   'ZM_TRAINING_DETECT_SCRIPT' => array(
     'Prompt' => 'Object detection script location',
     'Help' => 'Full path to the object detection script (e.g. /var/lib/zmeventnotification/bin/zm_detect.py).~~When set, a Detect button appears in the annotation editor that runs detection on the current frame.~~The script is called as: script -f image -m monitor_id~~Leave empty to disable automatic detection.'
+  ),
+  'OPTIONS_IMPORTANCE' => array(
+    'Help' => 'How much you care about this monitor being available.~~
+Normal: problems such as failing to connect to the camera are logged at their usual severity.~~
+Less important and Not important: those messages are logged at a lower severity, so a camera that is often switched off or out of range does not fill the log with errors.'
+  ),
+  'ZM_WEB_HOMEVIEW' => array(
+    'Help' => 'The page shown after logging in: the console, events, map, montage, montage review or watch.~~A user\'s own Home View setting overrides this.'
+  ),
+  'ZM_WEB_NAVBAR_LINKS' => array(
+    'Help' => 'Extra links to add to the navigation bar.~~Enter complete HTML a tags separated by commas, for example <a href="https://zoneminder.com">ZoneMinder</a>.'
+  ),
+  'ZM_OPT_ALS_PORT' => array(
+    'Help' => 'The port the alarm server listens on for alarms sent by a camera or other device.'
+  ),
+  'ZM_OPT_ALS_LOGENTRY' => array(
+    'Help' => 'When the alarm server receives a Human Detected alarm, add an entry to the ZoneMinder log.'
+  ),
+  'ZM_OPT_ALS_ALARM' => array(
+    'Help' => 'When the alarm server receives a Human Detected alarm, pass it on to ZoneMinder as an alarm.~~This does not work together with Trigger an event on Human Detected.'
+  ),
+  'ZM_OPT_ALS_TRIGGEREVENT' => array(
+    'Help' => 'When the alarm server receives a Human Detected alarm, trigger an event in ZoneMinder.~~Requires the zmTrigger option to be enabled.'
+  ),
+  'ZM_TELEMETRY_LAST_UPLOAD' => array(
+    'Help' => 'The time of the last telemetry upload, as a Unix timestamp. It is set by ZoneMinder after each upload and cannot be edited.'
   ),
 
 //    'LANG_DEFAULT' => array(

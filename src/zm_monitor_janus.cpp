@@ -22,10 +22,25 @@
 #include "zm_server.h"
 #include "zm_time.h"
 #include "zm_user.h"
+#include "zm_utils.h"
 #include <regex>
 
 #if HAVE_LIBCURL
 
+namespace {
+
+// The digits of the first "id" in a Janus reply: session and handle ids are
+// up to 16 digits but often shorter, so a fixed-width slice picks up the
+// characters after the number or cuts it short.
+std::string parse_janus_id(const std::string &response) {
+  size_t pos = response.find("\"id\": ");
+  if (pos == std::string::npos) return "";
+  pos += 6;
+  size_t end = response.find_first_not_of("0123456789", pos);
+  return response.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+}
+
+}  // namespace
 
 Monitor::JanusManager::JanusManager(Monitor *parent_) :
   parent(parent_),
@@ -60,7 +75,7 @@ void Monitor::JanusManager::load_from_monitor() {
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_path = "rtsp://"+server.Hostname();
+      rtsp_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_path = "rtsp://127.0.0.1";
     }
@@ -68,8 +83,13 @@ void Monitor::JanusManager::load_from_monitor() {
     if (config.opt_use_auth) {
       if (parent->rtsp_user) {
         User *rtsp_user = User::find(parent->rtsp_user);
-        std::string auth_key = rtsp_user->getAuthHash();
-        rtsp_path += "?auth=" + auth_key;
+        if (rtsp_user) {
+          std::string auth_key = rtsp_user->getAuthHash();
+          delete rtsp_user;
+          rtsp_path += "?auth=" + auth_key;
+        } else {
+          Warning("Janus: Could not find RTSP user %d for RTSP_Server authentication", parent->rtsp_user);
+        }
       } else {
         Warning("No user selected for RTSP_Server authentication!");
       }
@@ -83,7 +103,10 @@ void Monitor::JanusManager::load_from_monitor() {
     rtsp_path = parent->path;
   }
   parent->janus_pin = generateKey(16);
-  Debug(1, "JANUS Monitor %u assigned secret %s, rtsp url is %s", parent->id, parent->janus_pin.c_str(), rtsp_path.c_str());
+  // The pin, the auth hash in a restream URL and any credentials in a camera
+  // URL are secrets: log fingerprints and the URL without them.
+  Debug(1, "JANUS Monitor %u assigned secret %s, rtsp url is %s", parent->id,
+        zm::crypto::LogFingerprint(parent->janus_pin).c_str(), url_for_log(rtsp_path).c_str());
   strncpy(parent->shared_data->janus_pin, parent->janus_pin.c_str(), 17); //copy the null termination, as we're in C land
 }
 
@@ -92,23 +115,32 @@ int Monitor::JanusManager::check_janus() {
   if (janus_handle.empty()) get_janus_handle();
 
   if (Use_RTSP_Restream) {
-    Hours hours = Hours(config.auth_hash_ttl);
-    if (std::chrono::steady_clock::now()-rtsp_auth_time > hours/2) {
+    // Auth hashes are tied to the clock hour: refresh at the top of the hour,
+    // TTL-1 hours (at least 1) after the hour the current hash was made in.
+    auto age = std::chrono::steady_clock::now() - rtsp_auth_time;
+    time_t minted_t = std::chrono::system_clock::to_time_t(
+        std::chrono::system_clock::now() - std::chrono::duration_cast<std::chrono::system_clock::duration>(age));
+    tm minted_tm = {};
+    localtime_r(&minted_t, &minted_tm);
+    if (age + Minutes(minted_tm.tm_min) + Seconds(minted_tm.tm_sec) >= Hours(std::max(config.auth_hash_ttl - 1, 1))) {
       remove_from_janus();
       load_from_monitor();
-      return add_to_janus();
+      // 0 tells Monitor::Poll the mountpoint is missing and to add it again.
+      int result = add_to_janus();
+      return result == 0 ? 1 : result;
     }
   }
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"info\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += ", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\"}}";
 
   std::string response;
@@ -130,10 +162,11 @@ int Monitor::JanusManager::check_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -145,7 +178,9 @@ int Monitor::JanusManager::check_janus() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) { //may mean an error code thrown by Janus, because of a bad session
-    Warning("JANUS Attempted to send %s to %s and got %s", postData.c_str(), endpoint.c_str(), curl_easy_strerror(res));
+    // postData holds ZM_JANUS_SECRET: never log it.
+    Warning("JANUS Attempted to query stream %u at %s and got %s", parent->id, url_for_log(endpoint).c_str(),
+            curl_easy_strerror(res));
     janus_session = "";
     janus_handle = "";
     return -1;
@@ -184,25 +219,26 @@ int Monitor::JanusManager::add_to_janus() {
     Error("Failed to init curl");
     return -1;
   }
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint+"/"+janus_session+"/"+janus_handle;
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"create\", \"admin_key\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"type\" : \"rtsp\", \"rtsp_quirk\" : true, ";
   postData += "\"url\" : \"";
-  postData += rtsp_path;
+  postData += escape_json_string(rtsp_path);
   //secret prevents querying the mount for info, which leaks the camera's secrets.
   postData += "\", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   //pin prevents viewing the video.
   postData += "\", \"pin\" : \"";
   postData += parent->janus_pin;
   if (profile_override[0] != '\0') {
     postData += "\", \"videofmtp\" : \"";
-    postData += profile_override;
+    postData += escape_json_string(profile_override);
   }
   if (!rtsp_username.empty()) {
     postData += "\", \"rtsp_user\" : \"";
@@ -222,7 +258,10 @@ int Monitor::JanusManager::add_to_janus() {
     postData += rtsp_timeout;
   }
   postData += ", \"video\" : true}}";
-  Debug(1, "JANUS Sending %s to %s", postData.c_str(), endpoint.c_str());
+  // postData holds ZM_JANUS_SECRET, the stream pin, the camera's credentials
+  // and the restream auth hash: log what is sent, not the values.
+  Debug(1, "JANUS Sending create for stream %u (%s) to %s", parent->id, url_for_log(rtsp_path).c_str(),
+        url_for_log(endpoint).c_str());
 
   CURLcode res;
   std::string response;
@@ -244,10 +283,11 @@ int Monitor::JanusManager::add_to_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -286,13 +326,14 @@ int Monitor::JanusManager::remove_from_janus() {
 
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   //Assemble our actual request
   std::string postData = "{\"janus\" : \"message\", \"transaction\" : \"randomString\", \"body\" : {";
   postData +=  "\"request\" : \"destroy\", \"admin_key\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"secret\" : \"";
-  postData += config.janus_secret;
+  postData += escape_json_string(config.janus_secret);
   postData += "\", \"id\" : ";
   postData += std::to_string(parent->id);
   postData += "}}";
@@ -317,10 +358,11 @@ int Monitor::JanusManager::remove_from_janus() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -331,7 +373,7 @@ int Monitor::JanusManager::remove_from_janus() {
   }
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
   } else {
     Debug(1, "JANUS Removed stream: %s", response.c_str());
   }
@@ -349,6 +391,7 @@ int Monitor::JanusManager::get_janus_session() {
   janus_session = "";
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   std::string endpoint = janus_endpoint;
   std::string response;
@@ -372,10 +415,11 @@ int Monitor::JanusManager::get_janus_session() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -387,21 +431,21 @@ int Monitor::JanusManager::get_janus_session() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_session = parse_janus_id(response);
+  if (janus_session.empty()) {
     return -1;
   }
-  janus_session = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_session
 
 int Monitor::JanusManager::get_janus_handle() {
   curl = curl_easy_init();
   if (!curl) return -1;
+  zm_curl_set_timeouts(curl);
 
   CURLcode res;
   std::string response = "";
@@ -425,10 +469,11 @@ int Monitor::JanusManager::get_janus_handle() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("JANUS: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
+    zm_curl_set_timeouts(curl);
     curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
@@ -440,15 +485,14 @@ int Monitor::JanusManager::get_janus_handle() {
   curl_easy_cleanup(curl);
 
   if (res != CURLE_OK) {
-    Warning("JANUS Libcurl attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("JANUS Libcurl attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
-  std::size_t pos = response.find("\"id\": ");
-  if (pos == std::string::npos) {
+  janus_handle = parse_janus_id(response);
+  if (janus_handle.empty()) {
     return -1;
   }
-  janus_handle = response.substr(pos + 6, 16);
   return 1;
 } //get_janus_handle
 

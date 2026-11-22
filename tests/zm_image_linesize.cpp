@@ -143,3 +143,50 @@ TEST_CASE("Image::Rotate 270 honors a non-32-aligned source linesize", "[Image]"
     }
   }
 }
+
+// When the camera's resolution differs from the monitor's, Monitor::Decode
+// scales the Y-channel image get_y_image() made. That image borrows the
+// decoder's Y plane, whose stride is neither the tight width nor
+// FFALIGN(width,32), so Scale must read rows at the Image's own linesize.
+// Each source row is one flat value and the row padding is 255: read at the
+// wrong stride, output rows pick up neighbouring rows and padding and stop
+// being flat.
+TEST_CASE("Image::Scale honors a borrowed source linesize", "[Image]") {
+  EnsureImageInit();
+  constexpr unsigned int kSrcW = 40;  // FFALIGN(40,32) = 64
+  constexpr unsigned int kStride = 48;
+  constexpr unsigned int kSrcH = 8;
+  std::vector<uint8_t> backing(kStride * kSrcH, 255);
+  for (unsigned int y = 0; y < kSrcH; y++)
+    for (unsigned int x = 0; x < kSrcW; x++)
+      backing[y * kStride + x] = static_cast<uint8_t>(20 * (y + 1));
+  Image img(kSrcW, kStride, kSrcH, /*colours*/ 1, ZM_SUBPIX_ORDER_NONE, backing.data(), /*padding*/ 0);
+
+  img.Scale(kSrcW / 2, kSrcH / 2);
+
+  REQUIRE(img.Width() == kSrcW / 2);
+  REQUIRE(img.Height() == kSrcH / 2);
+  for (unsigned int y = 0; y < kSrcH / 2; y++) {
+    const uint8_t first = *img.Buffer(0, y);
+    REQUIRE(first < 200);
+    for (unsigned int x = 1; x < kSrcW / 2; x++)
+      REQUIRE(*img.Buffer(x, y) == first);
+  }
+}
+
+// AssignDirect takes ownership of a ZM_BUFTYPE_ZM buffer, so each refusal must
+// release it. Run under LeakSanitizer to see a leak when it doesn't.
+TEST_CASE("Image::AssignDirect releases a buffer it refuses", "[Image][AssignDirect]") {
+  EnsureImageInit();
+  Image image(16, 16, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+
+  // zero width
+  image.AssignDirect(0, 16, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, AllocBuffer(256), 256, ZM_BUFTYPE_ZM);
+  // unsupported colours
+  image.AssignDirect(16, 16, 7, ZM_SUBPIX_ORDER_NONE, AllocBuffer(256), 256, ZM_BUFTYPE_ZM);
+  // undersized buffer
+  image.AssignDirect(64, 64, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE, AllocBuffer(16), 16, ZM_BUFTYPE_ZM);
+
+  CHECK(image.Width() == 16);
+  CHECK(image.Height() == 16);
+}

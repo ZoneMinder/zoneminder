@@ -176,10 +176,18 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   $dbConn = zmDbConn();
-  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
-    return $dbConn->quote(stripslashes($string));
-  else
-    return $dbConn->quote($string);
+  return $dbConn->quote($string);
+}
+
+// The bound values of a failed statement, for its Error line: those go to the
+// Logs table, which every System=View user can read, and the values of a
+// Users or Monitors write are password hashes and camera passwords. They are
+// logged only when SQL debugging (ZM_DB_DEBUG) is on; positional values have
+// no names to redact by.
+function dbParamsForLog($params) {
+  if (!$params) return '';
+  if (defined('ZM_DB_DEBUG')) return implode(',', $params);
+  return count($params).' values, logged with ZM_DB_DEBUG';
 }
 
 function dbQuery($sql, $params=NULL, $debug = false) {
@@ -202,7 +210,9 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       // Integers are bound as integers, so that LIMIT ? still works when
       // prepares are emulated (a string would be quoted).
       foreach ($params as $key => $value) {
-        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        // A bool bound as a string is '' for false, which strict mode rejects for a number column.
+        $type = is_int($value) ? PDO::PARAM_INT : (is_bool($value) ? PDO::PARAM_BOOL : PDO::PARAM_STR);
+        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, $type);
       }
       if (!$result->execute()) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
@@ -226,7 +236,7 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
-    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
+    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . dbParamsForLog($params));
     $GLOBALS['dbLastError'] = $e->getMessage();
     return NULL;
   }
@@ -243,7 +253,7 @@ function dbLastError() {
 function dbFetchOne($sql, $col=false, $params=NULL) {
   $result = dbQuery($sql, $params);
   if ( !$result ) {
-    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? 'params: ' . join(',',$params) : ''));
+    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? ' params: ' . dbParamsForLog($params) : ''));
     return false;
   }
   if ( !$result->rowCount() ) {
@@ -254,7 +264,7 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
   if ( $result && ($dbRow = $result->fetch(PDO::FETCH_ASSOC)) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
-        ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        ZM\Warning("$col does not exist in the returned row " . print_r(ZM\redactForLog($dbRow), true));
         return false;
       }
       return $dbRow[$col];
@@ -268,7 +278,7 @@ function dbFetchAll($sql, $col=false, $params=NULL) {
   $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
-    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
+    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? ' params: '.dbParamsForLog($params) : ''));
     return $dbRows;
   }
 
@@ -281,6 +291,7 @@ function dbFetchAssoc($sql, $indexCol, $dataCol=false) {
   $result = dbQuery($sql);
 
   $dbRows = array();
+  if ( !$result ) return $dbRows;
   while( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[$dbRow[$indexCol]] = $dataCol ? $dbRow[$dataCol] : $dbRow;
   return $dbRows;
@@ -302,7 +313,7 @@ function dbFetchNext($result, $col=false) {
 
 function dbNumRows($sql, $params=NULL) {
   $result = dbQuery($sql, $params);
-  return $result->rowCount();
+  return $result ? $result->rowCount() : 0;
 }
 
 function dbInsertId() {

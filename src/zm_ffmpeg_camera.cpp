@@ -31,7 +31,6 @@
 
 extern "C" {
 #include <libavutil/time.h>
-#include <libavdevice/avdevice.h>
 }
 
 TimePoint start_read_time;
@@ -188,6 +187,25 @@ int FfmpegCamera::readFrameWithLoop(AVFormatContext *ctx, AVPacket *pkt) {
   return ret;
 }
 
+decltype(av_find_input_format(nullptr)) FindForcedInputFormat(AVDictionary **opts) {
+  AVDictionaryEntry *entry = av_dict_get(*opts, "input_format", nullptr, 0);
+  if (!entry) return nullptr;
+
+  decltype(av_find_input_format(nullptr)) format = nullptr;
+  if (entry->value && *entry->value) {
+    format = av_find_input_format(entry->value);
+    if (format) {
+      Debug(1, "Forcing input format %s from options", entry->value);
+    } else {
+      Warning("Could not find input format '%s' from options, letting ffmpeg probe", entry->value);
+    }
+  } else {
+    Warning("input_format option has no value, letting ffmpeg probe");
+  }
+  av_dict_set(opts, "input_format", nullptr, 0);
+  return format;
+}
+
 RealtimePaceDecision ComputeRealtimePace(
     int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap) {
   // Backward movement (e.g. a discontinuity the jump checks let through):
@@ -247,6 +265,10 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   int ret;
   AVFormatContext *formatContextPtr;
   int64_t lastPTS = -1;
+  // Unref the packet on every return, including the early ones for packets we
+  // drop. Before FFmpeg 7, av_read_frame() resets the packet it is given
+  // without unreferencing it, so a packet left holding data leaks its buffer.
+  av_packet_guard pkt_guard{packet};
 
   if ( mSecondFormatContext and mAudioStream and
        (
@@ -276,6 +298,13 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
             packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
+    }
+    if (packet->stream_index != mAudioStreamId) {
+      // The secondary input is only read for its audio; its video is the same
+      // picture as the primary's and must not be queued as a second video.
+      Debug(4, "Dropping packet for stream %d from secondary input, audio is stream %d",
+            packet->stream_index, mAudioStreamId);
+      return 0;
     }
   } else {
     formatContextPtr = mFormatContext;
@@ -375,8 +404,6 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
     }
   }
 
-  av_packet_guard pkt_guard{packet};
-
   // Real-time pacing: throttle delivery to the stream's native rate. Use dts
   // (monotonic in read order) when available, otherwise pts. Sleep happens here,
   // after all the drop/error filters above, so only packets we actually deliver
@@ -434,7 +461,8 @@ int FfmpegCamera::OpenFfmpeg() {
   if (!mOptions.empty()) {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
     if (ret < 0) {
-      Warning("Could not parse ffmpeg input options '%s'", mOptions.c_str());
+      Error("Could not parse ffmpeg input options '%s'. Options must be key=value pairs separated by commas or "
+            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", mOptions.c_str());
     }
 
     // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which
@@ -459,6 +487,10 @@ int FfmpegCamera::OpenFfmpeg() {
       av_dict_set(&opts, "re", nullptr, 0);
       Debug(1, "Real-time pacing %s from options", mRealtime ? "enabled" : "disabled");
     }
+
+    // "input_format=mjpeg" forces the demuxer like ffmpeg's -f flag. Not
+    // applied to v4l2, which always uses its own device format below.
+    input_format = FindForcedInputFormat(&opts);
   }
 
   // Fresh prime: drop any real-time anchor so pacing restarts cleanly, and
@@ -466,6 +498,10 @@ int FfmpegCamera::OpenFfmpeg() {
   mRealtimeAnchored = false;
   mLoopVideoOffset = 0;
   mLoopAudioOffset = 0;
+
+  // What ffmpeg is given. For v4l2 it is the path without the scheme, which
+  // must not be written back to mPath or the next prime no longer sees v4l2.
+  std::string openPath = mPath;
 
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
@@ -487,13 +523,13 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    avdevice_register_all();
+    if (!zm_load_avdevice()) return -1;
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");
       return -1;
     }
-    mPath = mPath.substr(7);
+    openPath = mPath.substr(7);
   }  // end if RTSP
 
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
@@ -510,10 +546,10 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (mUser.length() > 0) {
     try {
-      Url url(mPath);
+      Url url(openPath);
       if (url.user_info().empty()) {
         url.user_info(mUser + ":" + mPass);
-        mPath = url.str();
+        openPath = url.str();
         Debug(1, "Rebuilt URI with encoded parameters: '%s'", mMaskedPath.c_str());
       }
     } catch (const Url::parse_error &e) {
@@ -521,7 +557,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
+  ret = avformat_open_input(&mFormatContext, openPath.c_str(), input_format, &opts);
   if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
               "Unable to open input %s due to: %s", mMaskedPath.c_str(),
@@ -540,8 +576,9 @@ int FfmpegCamera::OpenFfmpeg() {
 
   ret = avformat_find_stream_info(mFormatContext, nullptr);
   if (ret < 0) {
-    Error("Unable to find stream info from %s due to: %s",
-          mMaskedPath.c_str(), av_make_error_string(ret).c_str());
+    logPrintf(Logger::ERROR + monitor->Importance(),
+              "Unable to find stream info from %s due to: %s",
+              mMaskedPath.c_str(), av_make_error_string(ret).c_str());
     avformat_close_input(&mFormatContext);
     return -1;
   }
@@ -554,7 +591,7 @@ int FfmpegCamera::OpenFfmpeg() {
     zm_dump_stream_format(mFormatContext, i, 0, 0);
     if (is_video_stream(stream)) {
       if (!(stream->codecpar->width && stream->codecpar->height)) {
-        Warning("No width and height in video stream. Trying again");
+        logPrintf(Logger::WARNING + monitor->Importance(), "No width and height in video stream. Trying again");
         continue;
       }
       if (mVideoStreamId == -1) {
@@ -624,6 +661,10 @@ int FfmpegCamera::OpenFfmpeg() {
       mAudioStream = mSecondInput->get_audio_stream();
     } else {
       Warning("Failed to open secondary input");
+      mSecondFormatContext = nullptr;
+      mAudioStream = nullptr;
+      mAudioStreamId = -1;
+      mSecondInput.reset();
     }
   }  // end if have audio stream
 
@@ -670,6 +711,13 @@ int FfmpegCamera::Close() {
     avformat_close_input(&mFormatContext);
     mFormatContext = nullptr;
   }
+
+  if ( mSecondFormatContext ) {
+    mSecondFormatContext = nullptr;
+    mAudioStream = nullptr;
+    mAudioStreamId = -1;
+  }
+  mSecondInput.reset();
 
   return 0;
 }  // end FfmpegCamera::Close

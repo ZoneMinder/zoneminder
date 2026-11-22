@@ -345,6 +345,9 @@ TEST_CASE("ZM::TcpInetClient basics") {
   REQUIRE(client.isOpen() == false);
   REQUIRE(client.isConnected() == false);
   REQUIRE(client.isDisconnected() == false);
+  // The socket it tried is closed, so it must not keep the number: the
+  // destructor would close it again, and by then it may belong to a log file.
+  REQUIRE(client.getDesc() == -1);
 }
 
 TEST_CASE("ZM::TcpInetServer basics", "[notCI]") {

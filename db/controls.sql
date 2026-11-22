@@ -159,3 +159,42 @@ INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanLight`) VALUES ('AMLIN
 -- camera, whose API takes 1 to 64; it uses 32 when none is given.
 --
 INSERT INTO `Controls` (`Name`,`Protocol`,`CanReboot`,`CanZoom`,`CanZoomCon`,`HasZoomSpeed`,`MinZoomSpeed`,`MaxZoomSpeed`,`CanFocus`,`CanAutoFocus`,`CanFocusCon`,`HasPresets`,`NumPresets`,`HasHomePreset`,`CanSetPresets`,`CanMove`,`CanMoveDiag`,`CanMoveCon`,`CanPan`,`HasPanSpeed`,`MinPanSpeed`,`MaxPanSpeed`,`CanTilt`,`HasTiltSpeed`,`MinTiltSpeed`,`MaxTiltSpeed`) VALUES ('Reolink HTTP API','Reolink_HTTP',1,1,1,1,1,64,1,1,1,1,64,1,1,1,1,1,1,1,1,64,1,1,1,64);
+
+
+--
+-- Herospeed / LS Vision cameras, driven through their own web api rather than
+-- ONVIF. These also speak ONVIF, and that entry stays the right choice when
+-- only pan/tilt/zoom and imaging are wanted; this protocol exists for what
+-- ONVIF cannot reach on the hardware: the white supplement floodlight used for
+-- active deterrence (dayNightMode.ledMode in /api/image/image-param), and
+-- pan/tilt/zoom position read-back.
+--
+-- ONVIF exposes no light here at all - GetRelayOutputs and the PTZ auxiliary
+-- Wiper command are both accepted by the camera and neither does anything.
+--
+-- One entry per model, because /api/image/ptz-ctrl accepts every command on
+-- every model and moves nothing on the fixed ones. Capability cannot be
+-- probed from the api - code 0 means understood, not performed - so it has to
+-- come from knowing the model, and an entry that overstates it hands the
+-- operator a panel of buttons that silently do nothing.
+--
+-- Both models below are fixed turrets, measured rather than assumed:
+-- panPos/tiltPos/zoomPos never moved across all eight directions and both
+-- zoom directions, and image sharpness stayed inside its own noise for focus
+-- and iris. On the L5BW the pan samples were checked against five no-command
+-- intervals of the same length, and they overlap.
+--
+--   L5TW  firmware V2.0.13.260306_R2
+--   L5BW  firmware V2.0.0.260723_R6
+--
+INSERT INTO `Controls` (
+  `Name`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`
+) VALUES (
+  'HeroSpeed L5TW','Herospeed',1,1,1
+);
+
+INSERT INTO `Controls` (
+  `Name`,`Protocol`,`CanReset`,`CanReboot`,`CanLight`
+) VALUES (
+  'HeroSpeed L5BW','Herospeed',1,1,1
+);

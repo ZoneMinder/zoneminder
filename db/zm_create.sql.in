@@ -670,6 +670,7 @@ CREATE TABLE `Monitors` (
   `DefaultPlayer` VARCHAR(64),
   `StreamChannel` enum('Restream','CameraDirectPrimary','CameraDirectSecondary') NOT NULL DEFAULT 'Restream',
   `Go2RTCEnabled` BOOLEAN NOT NULL default false,
+  `Go2RTCDisableBackChannel` BOOLEAN NOT NULL DEFAULT true,
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',
@@ -803,10 +804,34 @@ DROP TABLE IF EXISTS `Monitor_Status`;
 -- CanIndicatorLight, CanAudioPlay), so a device can only be asked to do what
 -- it has been measured to do.
 --
+--
+-- Arbitrary commands on a schedule. Written into the same marked block of the
+-- web user's crontab as the scheduled MonitorActions, so cron does the timing
+-- and ZoneMinder needs no daemon of its own for this.
+--
+-- Command runs as the web user, so editing these takes System edit rights and
+-- must pass cronCommandIsValid() on the way in. ServerId NULL means every
+-- server writes it into its own crontab.
+--
+CREATE TABLE `CronJobs` (
+  `Id` int(10) unsigned NOT NULL auto_increment,
+  `Name` varchar(64) NOT NULL default '',
+  `Enabled` tinyint(1) unsigned NOT NULL default '1',
+  `Schedule` varchar(64) NOT NULL default '',
+  `Command` text NOT NULL,
+  `ServerId` int(10) unsigned default NULL,
+  PRIMARY KEY (`Id`),
+  KEY `Enabled` (`Enabled`)
+) ENGINE=@ZM_MYSQL_ENGINE@;
+
 CREATE TABLE `MonitorActions` (
   `Id` int(10) unsigned NOT NULL auto_increment,
   `MonitorId` int(10) unsigned NOT NULL,
-  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual') NOT NULL default 'EventStart',
+  `TriggerOn` enum('EventStart','EventEnd','Alarm','AlarmEnd','Manual','Schedule') NOT NULL default 'EventStart',
+  /* Five field cron spec, used only when TriggerOn='Schedule'. Written into
+     the web user's crontab; validate with cronScheduleIsValid() before it
+     gets here. */
+  `Schedule` varchar(64) NOT NULL default '',
   `ActionType` enum('LightOn','LightOff','IndicatorLightOn','IndicatorLightOff','AudioPlay','AudioStop') NOT NULL default 'AudioPlay',
   `TargetMonitorId` int(10) unsigned NOT NULL,
   `AudioFile` int(10) unsigned default NULL,
@@ -1078,6 +1103,7 @@ CREATE TABLE `Zones` (
   `MaxBlobs` smallint(5) unsigned default NULL,
   `OverloadFrames` smallint(5) unsigned NOT NULL default '0',
   `ExtendAlarmFrames` smallint(5) unsigned not null default 0,
+  `ObjectCoords` varchar(64) default NULL,
   PRIMARY KEY (`Id`),
   KEY `MonitorId` (`MonitorId`)
 ) ENGINE=@ZM_MYSQL_ENGINE@;
@@ -1201,50 +1227,6 @@ INSERT INTO `Filters`
     1/*Background*/,
     0/*Concurrent*/
   );
-INSERT INTO `Filters`
-  (
-    `Name`,
-    `Query_json`,
-    `AutoArchive`,
-    `AutoVideo`,
-    `AutoUpload`,
-    `AutoEmail`,
-    `EmailTo`,
-    `EmailSubject`,
-    `EmailBody`,
-    `AutoMessage`,
-    `AutoExecute`,
-    `AutoExecuteCmd`,
-    `AutoDelete`,
-    `AutoMove`,
-    `AutoMoveTo`,
-    `AutoCopy`,
-    `AutoCopyTo`,
-    `UpdateDiskSpace`,
-    `UserId`,
-    `Background`,
-    `Concurrent`
-  )
-VALUES (
-  'Update DiskSpace',
-  '{"terms":[{"attr":"DiskSpace","op":"IS","val":"NULL"},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}]}',
-  0/*AutoArchive*/,
-  0/*AutoVideo*/,
-  0/*AutoUpload*/,
-  0/*AutoEmail*/,
-  ''/*EmailTo*/,
-  ''/*EmailSubject*/,
-  ''/*EmailBody*/,
-  0/*AutoMessage*/,
-  0/*AutoExecute*/,'',
-  0/*AutoDelete*/,
-  0/*AutoMove*/,0/*MoveTo*/,
-  0/*AutoCopy*/,0/*CopyTo*/,
-  1/*UpdateDiskSpace*/,
-  1/*UserId=admin*/,
-  1/*Background*/,
-  0/*Concurrent*/
-);
 
 --
 -- Add in some sample control protocol definitions
@@ -1301,10 +1283,10 @@ INSERT INTO MonitorPresets VALUES (NULL,NULL,'IP Webcam by Pavel Khlebovich 1920
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'VEO Observer, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/Jpeg/CamImg.jpg',NULL,NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'Blue Net Video Server, jpeg','Remote','http',0,0,'http','simple','<ip-address>',80,'/cgi-bin/image.cgi?control=0&id=admin&passwd=admin',NULL,320,240,3,NULL,0,NULL,NULL,NULL,100,100);
 INSERT into MonitorPresets VALUES (NULL,NULL,'ACTi IP, mpeg4, unicast','Remote',NULL,NULL,NULL,'rtsp','rtpUni','<ip-address>',7070,'','/track',NULL,NULL,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,NULL,'Axis FFMPEG H.264','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp?videocodec=h264',NULL,NULL,NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,NULL,'Vivotek FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>:554/live.sdp',NULL,NULL,NULL,352,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,NULL,'Axis FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp',NULL,NULL,NULL,640,480,NULL,NULL,0,NULL,NULL,NULL,100,100);
-INSERT INTO MonitorPresets VALUES (NULL,NULL,'ACTi TCM FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,'rtsp://admin:123456@<host/address>:7070',NULL,NULL,NULL,320,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,NULL,'Axis FFMPEG H.264','Ffmpeg',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp?videocodec=h264',NULL,640,480,3,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,NULL,'Vivotek FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>:554/live.sdp',NULL,352,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,NULL,'Axis FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'rtsp://<host/address>/axis-media/media.amp',NULL,640,480,NULL,NULL,0,NULL,NULL,NULL,100,100);
+INSERT INTO MonitorPresets VALUES (NULL,NULL,'ACTi TCM FFMPEG','Ffmpeg',NULL,NULL,NULL,NULL,NULL,NULL,NULL,'rtsp://admin:123456@<host/address>:7070',NULL,320,240,NULL,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'BTTV Video (V4L2), PAL, 320x240','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,NULL,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'BTTV Video (V4L2), PAL, 320x240, max 5 FPS','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,320,240,1345466932,5.0,0,NULL,NULL,NULL,100,100);
 INSERT INTO MonitorPresets VALUES (NULL,NULL,'BTTV Video (V4L2), PAL, 640x480','Local','/dev/video<?>',0,255,NULL,'v4l2',NULL,NULL,NULL,NULL,640,480,1345466932,NULL,0,NULL,NULL,NULL,100,100);
@@ -1417,7 +1399,7 @@ CREATE TABLE Reports (
 
 CREATE TABLE `Tags` (
   `Id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `Name` varchar(64) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL DEFAULT '',
+  `Name` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '',
   `CreateDate` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `CreatedBy` int(10) unsigned,
   `LastAssignedDate` dateTime,

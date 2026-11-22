@@ -358,6 +358,10 @@ bool parse_traf(int fd, const Box &traf, const VideoTrack &track,
       *first_is_sync = !(sample_flags & kSampleIsNonSync);
       have_first_flags = true;
     }
+    if (want_first_cts && !have_first && count > 0 && !(trun_flags & kTrunSampleCts)) {
+      *first_cts = 0;
+      have_first = true;
+    }
     if (trun_flags & kTrunFirstSampleFlags) entry += 4;
     const int per_sample =
         ((trun_flags & kTrunSampleDuration) ? 4 : 0)

@@ -1066,7 +1066,6 @@ $OLANG = array(
 	'OPT_ADAPTIVE_SKIP' => array ( 'Prompt'=>'Debería el análisis de cuadros tratar de ser eficiente en saltar cuadros'),
 	'OPT_CONTROL' => array ( 'Prompt'=>'Soportar cámaras controlables (por ejemplo PTZ)'),
 	'OPT_EMAIL' => array ( 'Prompt'=>'Debe ZoneMinder envíar por correo electrónico los detalles de los eventos que coinciden con los filtros correspondientes'),
-	'OPT_FAST_DELETE' => array ( 'Prompt'=>'Eliminar solo registros de la base de datos de eventos para aumentar la velocidad'),
 	'OPT_FFMPEG' => array ( 'Prompt'=>'Está instalado el codificador/descodificador de video ffmpeg'),
 	'OPT_GEOLOCATION_ACCESS_TOKEN' => array ( 'Prompt'=>'Token de acceso para el proveedor de tiles de los mapas.'),
 	'OPT_GEOLOCATION_TILE_PROVIDER' => array ( 'Prompt'=>'Proveedor de tiles para los mapas.'),

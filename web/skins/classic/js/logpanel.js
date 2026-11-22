@@ -30,6 +30,35 @@ var params =
 };
 */
 
+// The query fields that filter the table, as opposed to paging and sorting. A
+// clear all repeats them so the backend deletes the rows that were on screen.
+const LOGPANEL_FILTER_KEYS = ['search', 'filter', 'ServerId', 'level', 'Component',
+  'StartDateTime', 'EndDateTime'];
+
+function logPanelFilterOf(data) {
+  const filter = {};
+  LOGPANEL_FILTER_KEYS.forEach(function(k) {
+    if (data[k] !== undefined && data[k] !== '' && data[k] !== null) {
+      filter[k] = data[k];
+    }
+  });
+  return filter;
+}
+
+function logPanelClearText(selectedCount, filterActive, i18n) {
+  if (selectedCount) return i18n.ClearLogs;
+  return filterActive ? i18n.ClearFilteredLogs : i18n.ClearAllLogs;
+}
+
+function logPanelConfirmText(selectedCount, filterActive, i18n) {
+  if (selectedCount) return i18n.ConfirmClearLogs;
+  return filterActive ? i18n.ConfirmClearFilteredLogs : i18n.ConfirmClearAllLogs;
+}
+
+function logPanelDeleteData(chunk, clearAll, currentFilter) {
+  return clearAll ? Object.assign({all: 1}, currentFilter) : {'ids[]': chunk};
+}
+
 function initLogPanel(panel) {
   const $panel = $j(panel);
   const table = $panel.find('table.logPanel-logs');
@@ -45,8 +74,16 @@ function initLogPanel(panel) {
   let requestMissed = false; // AJAX request was skipped.
   let btnAutoRefresh = null;
   let autoRefresh = null;
+  let lastQuery = null; // The query of the last request sent, to tell a refresh from a new search
   let deleteProgressBar = null;
   let idsLength = 0;
+  // The filter the table last queried with, so a clear all matches what is on
+  // screen even if the controls have changed since.
+  let currentFilter = {};
+
+  function filterIsActive() {
+    return Object.keys(currentFilter).length > 0;
+  }
 
   function readRequestStatus() {
     return $panel.find('.logPanel-status').text().replace(/(\[|\])/g, '').trim();
@@ -90,7 +127,8 @@ function initLogPanel(panel) {
   function processRows(rows) {
     $j.each(rows, function(ndx, row) {
       try {
-        row.Message = decodeURIComponent(row.Message.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'))
+        // Messages are stored as logged, not percent-encoded, so show them as they are.
+        row.Message = row.Message
             .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
             .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
       } catch (e) {
@@ -104,7 +142,11 @@ function initLogPanel(panel) {
   // Called by bootstrap-table to retrieve zm log data
   function ajaxRequest(params) {
     if (deferTableRequestWhileHidden(table)) return;
-    if (allowRequest !== true && autoRefresh === false) return;
+    // With auto-refresh paused only drop the scheduled refreshes, which repeat the
+    // last query. A search or advanced search changes it, and fires no event before
+    // bootstrap-table asks for data, so it would have been dropped too.
+    const query = JSON.stringify(params.data);
+    if (allowRequest !== true && autoRefresh === false && query === lastQuery) return;
     if (getIdSelections().length && allowRequest === false) {
       // We won't automatically refresh to avoid disturbing the user who has selected rows.
       console.debug("The user selected rows in the table, and the AJAX request was rejected.");
@@ -151,6 +193,9 @@ function initLogPanel(panel) {
       params.data.EndDateTime = $panel.find('.logPanel-end').val();
     }
 
+    lastQuery = query;
+    currentFilter = logPanelFilterOf(params.data);
+
     const startTime = Date.now();
     updateRequestStatus("in process");
     allowRequest = false;
@@ -161,6 +206,14 @@ function initLogPanel(panel) {
       data: params.data,
       timeout: 600000,
       success: function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so without this the
+          // header showed NaN and data.rows.length threw on every refresh.
+          updateRequestStatus("error");
+          table.bootstrapTable('hideLoading');
+          zmAlert(data.message, i18n.AJAXRequestError);
+          return;
+        }
         updateRequestStatus(secsToTime((Date.now() - startTime)/1000, 1));
         updateHeaderStats(data);
         table.bootstrapTable('hideLoading');
@@ -180,6 +233,11 @@ function initLogPanel(panel) {
         if (jqxhr.statusText === "plannedAbort") {
           updateRequestStatus("stopped");
         } else {
+          // A dead session returns 401 here; go to login rather than leave a dead table.
+          if (typeof authFailureAction === 'function' && authFailureAction(jqxhr.status) == 'login') {
+            goToLogin();
+            return;
+          }
           updateRequestStatus("error");
           zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorUpdatingLogTable"], i18n["AJAXRequestError"]);
         }
@@ -192,11 +250,13 @@ function initLogPanel(panel) {
   function manageClearButtonAvailability(enable = null) {
     const selections = table.bootstrapTable('getSelections');
     if (clearBtn.length) {
-      if (enable === false || !selections.length) {
-        clearBtn.prop('disabled', true);
-      } else if (enable === true || selections.length) {
-        clearBtn.prop('disabled', false);
-      }
+      // Enabled with nothing selected: that now means clear all.
+      clearBtn.prop('disabled', enable === false);
+      const text = logPanelClearText(selections.length, filterIsActive(), i18n);
+      clearBtn.find('.logPanel-clear-label').text(text);
+      // Bootstrap stores the tooltip title at init, so update both.
+      clearBtn.attr('title', text);
+      clearBtn.attr('data-original-title', text);
     }
 
     if (selections.length) {
@@ -222,7 +282,9 @@ function initLogPanel(panel) {
     manageClearButtonAvailability(false);
     allowRequest = true;
 
-    table.bootstrapTable('refresh');
+    // A different filter is a different result set, so start at its first page
+    // rather than the offset of the page the user was on.
+    table.bootstrapTable('refresh', {pageNumber: 1});
     table.bootstrapTable('showLoading');
   }
 
@@ -231,6 +293,9 @@ function initLogPanel(panel) {
   }
 
   function deleteLogs(log_ids, handlerAlert = null) {
+    // Nothing selected means clear everything the table is showing, in one
+    // request rather than 100 ids at a time.
+    const clearAll = !log_ids.length;
     if (handlerAlert === null) {
       // Creating a progress bar.
       deleteProgressBar = document.createElement('div');
@@ -259,16 +324,27 @@ function initLogPanel(panel) {
       });
     }
 
-    const chunk = log_ids.splice(0, 100);
+    const chunk = clearAll ? [] : log_ids.splice(0, 100);
 
-    console.log('Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
+    console.log(clearAll ? 'Deleting all log entries.'
+      : 'Deleting ' + chunk.length + ' log entries. ' + log_ids.length + ' remaining.');
     $j.ajax({
       method: 'post',
       timeout: 0,
       url: thisUrl + '?request=log&task=delete',
-      data: {'ids[]': chunk},
+      data: logPanelDeleteData(chunk, clearAll, currentFilter),
       success: function(data) {
-        if (!log_ids.length) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so without this the
+          // server's refusal looked like a completed delete.
+          if (handlerAlert) closeZmAlert(handlerAlert);
+          zmAlert(data.message, i18n.AJAXRequestError);
+          allowRequest = true;
+          table.bootstrapTable('refresh');
+          updateRequestStatus("error");
+          return;
+        }
+        if (clearAll || !log_ids.length) {
           allowRequest = true;
           setDeleteProgressBarValue(100);
           table.bootstrapTable('refresh');
@@ -293,6 +369,13 @@ function initLogPanel(panel) {
         zmAlert(i18n["Reason"] + ": " + jqxhr.statusText + "~~" + i18n["ErrorDeletingRowFromLogTable"], i18n["AJAXRequestError"]);
       }
     });
+  }
+
+  // The modal is fetched once and reused, so its text is set each time it opens.
+  function updateClearLogsConfirmText() {
+    const text = document.getElementById('clearLogsConfirmText');
+    if (!text) return;
+    text.textContent = logPanelConfirmText(getIdSelections().length, filterIsActive(), i18n);
   }
 
   function manageClearLogsModalBtns() {
@@ -371,7 +454,7 @@ function initLogPanel(panel) {
         $row.addClass('log-err');
       } else if (level == 'WAR') {
         $row.addClass('log-war');
-      } else if (level == 'DBG') {
+      } else if (/^DB[G1-9]$/.test(level)) {
         $row.addClass('log-dbg');
       }
     });
@@ -415,8 +498,9 @@ function initLogPanel(panel) {
   clearBtn.on('click', function onClearLogsClick(evt) {
     manageClearButtonAvailability(false);
     evt.preventDefault();
-    if (evt.ctrlKey) {
-      // Bypass confirmation
+    if (evt.ctrlKey && getIdSelections().length) {
+      // Bypass confirmation only for rows the user picked; clearing the whole
+      // table must still be confirmed.
       deleteLogs(getIdSelections());
     } else {
       if (!document.getElementById('clearLogsConfirm')) {
@@ -424,6 +508,7 @@ function initLogPanel(panel) {
             .done(function(data) {
               insertModalHtml('clearLogsConfirm', data.html);
               manageClearLogsModalBtns();
+              updateClearLogsConfirmText();
               $j('#clearLogsConfirm').modal('show');
             })
             .fail(function(jqXHR) {
@@ -433,6 +518,7 @@ function initLogPanel(panel) {
             });
       } else {
         document.getElementById('clearLogsConfirmBtn').disabled = false;
+        updateClearLogsConfirmText();
         $j('#clearLogsConfirm').modal('show');
       }
     }

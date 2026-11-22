@@ -829,10 +829,6 @@ $OLANG = array(
         'Prompt' => "Secret folosit pentru codarea informa&#355;iilor de autentificare",
         'Help' => "C&#226;nd ZoneMinder ruleaz&#259; &#238;n mod de autentificare codat (hashed), necesit&#259; generarea string-urilor de codare care con&#355;in informa&#355;ii criptate ca utilizatorii &#351;i parolele. De&#351;i acest string este destul de sigur, ad&#259;ugarea unui string aleator &#238;mbun&#259;t&#259;&#355;e&#351;te securitatea."
     ),
-    'OPT_FAST_DELETE' => array(
-        'Prompt' => "La &#351;tergerea evenimentelor &#351;terge numai informa&#355;iile din baza de date",
-        'Help' => "&#206;n mod normal un eveniment creat ca rezultat al unei alarme este compus din unul sau mai multe tabele &#238;n baza de date plus fi&#351;ierele asociate. C&#226;nd &#351;terge&#355;i evenimente din broswer poate dura mult dac&#259; &#351;terge&#355;i mai multe evenimente concomitent. Este recomandat s&#259; activa&#355;i aceast&#259; op&#355;iune, care va &#351;terge doar informa&#355;iile din baza de date. Evenimentele nu vor mai ap&#259;rea la vizualizare, &#351;i vor fi &#351;terse de daemon-ul zmaudit mai t&#226;rziu."
-    ),
     'SHM_KEY' => array(
         'Prompt' => "Cheie memorie comuna, modifica&#355;i numai &#238;n cazul conflictelor cu alte aplica&#355;ii",
         'Help' => "ZoneMinder folose&#351;te memorie comun&#259; pentru a face comunicarea &#238;ntre module mai rapid&#259;. Pentru a identifica zona corect&#259; ce trebuie folosit&#259; sunt utilizate chei de memorie comun&#259;. Aceast&#259; op&#355;iune controleaz&#259; valoarea cheii."

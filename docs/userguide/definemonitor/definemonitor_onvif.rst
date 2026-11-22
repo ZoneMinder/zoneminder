@@ -32,6 +32,8 @@ ONVIF Tab
 
   - ``expire_alarms=<true|false>`` — Whether ZoneMinder should automatically clear alarms that have not been explicitly cancelled by the camera after their per-topic timeout elapses. Default is ``true``. Disable (``false``, ``0``, or ``no``) only if your camera reliably sends an explicit alarm-off notification and you are seeing spurious alarm clearances.
 
+  - ``max_alarm_duration=<seconds>`` — Clear an alarm that has been active for longer than this many seconds. Use it with cameras that send the alarm-on notification but never the alarm-off (some Hikvision intrusion detection rules), which otherwise leave the monitor alarmed and recording indefinitely. Default is ``0``, which means no limit. If the camera is still reporting the alarm it will raise it again, starting a new alarm period.
+
   - ``closes_event`` — Force ZoneMinder to immediately treat the camera as one that sends explicit alarm-off notifications (``PropertyOperation="Changed"`` or ``PropertyOperation="Deleted"``). By default this is auto-detected from the first event message received. Setting this option skips the auto-detection step and is normally not required.
 
 - **ONVIF_Alarm_Text**: Text associated with event when alarm is activated.

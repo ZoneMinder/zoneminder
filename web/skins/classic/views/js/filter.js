@@ -57,7 +57,8 @@ function validateForm(form) {
       form.elements['filter[AutoArchive]'].checked ||
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
-      form.elements['filter[AutoVideo]'].checked ||
+      (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
+      (form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked) ||
       (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
       (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
@@ -150,8 +151,9 @@ function clearValue( element ) {
 }
 
 function resetFilter( element ) {
-  element.form.reset();
-  $j('#contentForm')[0].reset();
+  // form.reset() cannot restore term cells that parseRows replaced, nor the
+  // chosen widgets and the Execute/Save button state, so reload the saved filter.
+  window.location.assign(element.form.getAttribute('action'));
 }
 
 function serializeFormExcludingCsrf(form) {
@@ -163,7 +165,7 @@ function submitToEvents(element) {
   form.elements['action'].value='';
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=events&' + formData);
 }
 
@@ -171,7 +173,7 @@ function submitToMontageReview(element) {
   const form = element.form;
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=montagereview&live=0&' + formData);
 }
 
@@ -179,14 +181,20 @@ function submitToExport(element) {
   const form = element.form;
   const formData = serializeFormExcludingCsrf(form);
   // Save current filter state to URL before navigating, so back button restores it
-  history.replaceState(null, null, '?view=filter&' + formData);
+  history.replaceState(null, null, form.getAttribute('action') + '&' + formData);
   window.location.assign('?view=export&' + formData);
 }
 
 function submitAction(button) {
   const form = button.form;
   form.elements['action'].value = button.value;
-  form.submit();
+  // submit() skips the submit event, and with it validateForm and the
+  // browser's own input checks.
+  if (form.requestSubmit) {
+    form.requestSubmit();
+  } else {
+    form.submit();
+  }
 }
 
 function deleteFilter(element) {
@@ -297,7 +305,7 @@ function parseRows(rows) {
     } else if ( attr == 'MonitorName' ) { //Monitor names
       const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       sorted_monitor_ids.forEach(function(monitor_id) {
-        monitorSelect.append('<option value="' + monitors[monitor_id].Name + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
+        monitorSelect.append('<option value="' + escapeHTML(monitors[monitor_id].Name) + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       const monitorVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');

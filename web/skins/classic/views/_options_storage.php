@@ -52,8 +52,8 @@
                 <td class="ColEvents"><?php echo makeLink('?view=events'.$filter->querystring(), $Storage->EventCount().' using '.human_filesize($Storage->event_disk_space() ? $Storage->event_disk_space() : 0) ); ?></td>
                 <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $Storage->Id() ?>" data-on-click-this="configureDeleteButton"
 <?php
-    echo ($Storage->EventCount() or !$canEdit) ? ' disabled="disabled"' : '';
-    echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : '';
+    echo ($Storage->EventCount() or $Storage->MonitorCount() or !$canEdit) ? ' disabled="disabled"' : '';
+    echo $Storage->EventCount() ? ' title="Can\'t delete as long as there are events stored here."' : ($Storage->MonitorCount() ? ' title="Can\'t delete as long as monitors use this storage."' : '');
 ?>
                 /></td>
               </tr>

@@ -27,6 +27,12 @@ if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
   return;
 }
+// A clone copies the source monitor's settings, credentials included, so the
+// user needs the same permission on the source as for editing it.
+if (isset($_REQUEST['dupId']) and !canEdit('Monitors', validCardinal($_REQUEST['dupId']))) {
+  $view = 'error';
+  return;
+}
 
 $Server = null;
 if (defined('ZM_SERVER_ID')) {

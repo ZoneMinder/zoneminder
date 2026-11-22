@@ -15,7 +15,8 @@ function probe(params) {
     const name = el.attr('name');
     if (name) {
       params.data[name] = el.val();
-      setCookie('addMonitors'+name, el.val(), 3600);
+      // The password is sent with the request but not kept in a cookie.
+      if (name != 'probe_password') setCookie('addMonitors'+name, el.val(), 3600);
     }
   });
   if (zmAuth.relay) params.data['auth_relay'] = zmAuth.relay;

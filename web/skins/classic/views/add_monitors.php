@@ -47,8 +47,7 @@ getBodyTopHTML();
               <input type="text" id="ip" name="ip" placeholder="<?php echo translate('Camera IP Address') ?>"/>
               <input type="text" id="probe_username" name="probe_username" placeholder="<?php echo translate('Camera Username') ?>"
                 value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? validHtmlStr($_COOKIE['addMonitorsprobe_username']) : '' ?>"/>
-              <input type="text" id="probe_password" name="probe_password" placeholder="<?php echo translate('Camera Password') ?>"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? validHtmlStr($_COOKIE['addMonitorsprobe_password']) : '' ?>"/>
+              <input type="text" id="probe_password" name="probe_password" placeholder="<?php echo translate('Camera Password') ?>"/>
             </div>
             <div id="contentButtons">
 <?php 

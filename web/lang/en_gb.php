@@ -1413,7 +1413,8 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      Aliases (PeopleDetect and Human are aliases of person). Add the words your
      camera uses there. Saving a class restarts the monitors that tag events.~~
      An alarm that names no object, such as plain motion or tampering, is tagged with
-     the name of its topic, for example MotionAlarm.
+     the name of its topic, for example MotionAlarm.~~
+     With this on, the event note just says ONVIF, as the tags say what was detected.
     '
    ),
    'OPTIONS_ONVIF_Alarm_Text' => array(

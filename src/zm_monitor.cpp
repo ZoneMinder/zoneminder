@@ -2237,9 +2237,14 @@ bool Monitor::Analyse() {
         Debug(4, "Triggered on ONVIF");
         Event::StringSet noteSet;
         noteSet.insert("ONVIF");
-        onvif->setNotes(noteSet);
+        // What the camera detected goes in the tags when they are on, so the
+        // note does not repeat it.
+        if (onvif_event_tags) {
+          onvif->setTags(onvif_tags);
+        } else {
+          onvif->setNotes(noteSet);
+        }
         noteSetMap[MOTION_CAUSE] = noteSet;
-        if (onvif_event_tags) onvif->setTags(onvif_tags);
         if (!cause.empty()) cause += ", ";
         cause += "ONVIF";
         // Remember that we sampled the alarm, but do not release the latch here.

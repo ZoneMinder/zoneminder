@@ -2503,7 +2503,7 @@ function get_subnets($interface) {
   return $subnets;
 } # end function get_subnets($interface)
 
-function extract_auth_values_from_url($url) {
+function extract_auth_values_from_url($url, &$authEnd = null) {
   $protocolPrefixPos = strpos($url, '://');
   if ($protocolPrefixPos === false)
     return array();
@@ -2546,6 +2546,7 @@ function extract_auth_values_from_url($url) {
   $username = urldecode($username);
   $password = urldecode($password);
 
+  $authEnd = $authSeparatorPos;
   return array( $username, $password );
 }
 

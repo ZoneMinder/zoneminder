@@ -23,8 +23,10 @@
 #include "zm_rtsp_server_stream_av1_source.h"
 #include "zm_rtsp_server_stream_h264_source.h"
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -103,6 +105,36 @@ TEST_CASE("RTSP marker bit lands on the last fragment of a trailing large NAL", 
   for (size_t i = 0; i + 1 < source.pushed.size(); i++)
     CHECK_FALSE(source.pushed[i].last);
   CHECK(source.pushed.back().last);
+}
+
+TEST_CASE("RTSP extractFrame ignores a start code that ends the data", "[rtsp_marker]") {
+  std::shared_ptr<xop::RtspServer> server;
+  RecordingH264Source source(server);
+
+  // Heap copies sized exactly, so a read of the byte after the start code is out of bounds
+  const std::vector<std::vector<uint8_t>> inputs = {
+    {0x11, 0x22, 0x00, 0x00, 0x01},        // short start code last
+    {0x11, 0x00, 0x00, 0x00, 0x01},        // long start code last
+    {0x00, 0x00, 0x01},                    // nothing but a short start code
+    {0x00, 0x00, 0x00, 0x01},              // nothing but a long start code
+  };
+  for (const auto &input : inputs) {
+    std::unique_ptr<unsigned char[]> data(new unsigned char[input.size()]);
+    std::copy(input.begin(), input.end(), data.get());
+    size_t size = input.size();
+    size_t outsize = 99;
+    CHECK(source.extractFrame(data.get(), size, outsize) == nullptr);
+    CHECK(outsize == 0);
+  }
+
+  // A start code followed by a header byte is still found
+  std::vector<uint8_t> ok = {0x00, 0x00, 0x00, 0x01, 0x65};
+  size_t size = ok.size();
+  size_t outsize = 0;
+  unsigned char *frame = source.extractFrame(ok.data(), size, outsize);
+  REQUIRE(frame != nullptr);
+  CHECK(frame == ok.data() + 4);
+  CHECK(outsize == 1);
 }
 
 namespace {

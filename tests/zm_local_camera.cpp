@@ -274,6 +274,16 @@ TEST_CASE("LocalCamera: Capture requeues the buffer when it fails after dequeue"
   LocalCamera::channel_count = 0;
 }
 
+TEST_CASE("LocalCamera: a destroyed camera is not kept as last_camera", "[local_camera]") {
+  // The next camera's constructor reads last_camera, so it must not dangle.
+  FakeGuard fake;
+  TestMonitor monitor;
+  auto camera = MakeLocalCamera(&monitor, 1);
+  REQUIRE(LocalCamera::last_camera == camera.get());
+  camera.reset();
+  REQUIRE(LocalCamera::last_camera == nullptr);
+}
+
 TEST_CASE("LocalCamera: control values below -1 are applied", "[local_camera]") {
   FakeGuard fake;
   TestMonitor monitor;

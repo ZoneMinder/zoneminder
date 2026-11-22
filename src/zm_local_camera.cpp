@@ -493,6 +493,10 @@ LocalCamera::~LocalCamera() {
     imgConversionContext = nullptr;
   }
 
+  // A later camera reads last_camera in its constructor, so it must not point at us.
+  if (last_camera == this)
+    last_camera = nullptr;
+
   // Decrement counters so recreated cameras get proper device_prime/channel_prime
   if (device_prime)
     camera_count--;

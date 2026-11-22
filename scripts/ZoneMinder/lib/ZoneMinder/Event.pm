@@ -756,6 +756,12 @@ sub CopyTo {
     return 'No permission to copy event.';
   }
 
+  # An event with no EndDateTime is still being recorded: zmc keeps writing
+  # frames into the source directory, which MoveTo then deletes.
+  if ( !$$self{EndDateTime} ) {
+    return "Event $$self{Id} has no EndDateTime, it is still being recorded.";
+  }
+
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {

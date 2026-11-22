@@ -1410,7 +1410,7 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      person, vehicle, animal, package, face, and doorbell for a doorbell press.~~
      What a camera calls each object is set in Options, AI Classes, as the class
      Aliases (PeopleDetect and Human are aliases of person). Add the words your
-     camera uses there.~~
+     camera uses there, then restart the monitor so it reads them.~~
      An alarm that names no object, such as plain motion or tampering, is tagged with
      the name of its topic, for example MotionAlarm.
     '

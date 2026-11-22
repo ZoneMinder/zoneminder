@@ -270,7 +270,8 @@ std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vec
     bool active = false;
     if (!item_is_telling(item, value, active)) continue;
     if (active) {
-      bool is_prefixed = item.name.size() > 2 && item.name.compare(0, 2, "Is") == 0 && std::isupper(static_cast<unsigned char>(item.name[2]));
+      bool is_prefixed = item.name.size() > 2 && StringToLower(item.name.substr(0, 2)) == "is" &&
+                         std::isupper(static_cast<unsigned char>(item.name[2]));
       words.push_back(is_prefixed ? item.name.substr(2) : item.name);
     } else {
       for (const std::string &word : Split(value, ' ')) words.push_back(word);
@@ -398,14 +399,11 @@ ONVIF::~ONVIF() {
 }
 
 // The object class names, and what cameras call them, that ONVIF alarms are
-// tagged with. Without them (a database from before the Aliases column) alarms
-// are tagged with their topic.
+// tagged with. Without them (a database from before the Aliases column, which
+// zmDbFetch has logged) alarms are tagged with their topic.
 void ONVIF::load_tag_names() {
   MYSQL_RES *result = zmDbFetch("SELECT `ClassName`, `Aliases` FROM `AI_Object_Classes` ORDER BY `Id`");
-  if (!result) {
-    Error("ONVIF: Unable to load object classes for event tags: %s", mysql_error(&dbconn));
-    return;
-  }
+  if (!result) return;
   while (MYSQL_ROW row = mysql_fetch_row(result))
     ONVIFAddTagNames(tag_names_, row[0] ? row[0] : "", row[1] ? row[1] : "");
   mysql_free_result(result);
@@ -996,7 +994,7 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
             // Update existing alarm value and refresh termination time
             alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
-          last_alarm_tags_ = tags;
+            last_alarm_tags_ = tags;
           }
         }
       } else {
@@ -1022,7 +1020,7 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
           } else {
             alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
-          last_alarm_tags_ = tags;
+            last_alarm_tags_ = tags;
           }
         }
       }
@@ -1802,7 +1800,10 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
                   item_name.c_str(), item_value.c_str());
             items.push_back({item_name, item_value});
 
-            if (!have_value && is_data_simple_item(item_name)) {
+            // The first state item, unless it is inactive and a later one is
+            // active (Tapo: IsVehicle=false, IsPeople=true is a person).
+            if (is_data_simple_item(item_name) &&
+                (!have_value || (!interpret_alarm_value(value) && interpret_alarm_value(item_value)))) {
               value = item_value;
               have_value = true;
               Debug(3, "ONVIF: Extracted data value: %s=%s (operation=%s)",

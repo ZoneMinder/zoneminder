@@ -476,24 +476,27 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
 // Link the tag called name to this event, creating the tag when it is new. Each
 // name is linked once per event.
 void Event::AddTag(const std::string &name, SystemTimePoint assigned_on) {
-  if (name.empty()) return;
-  std::lock_guard<std::mutex> lck(tags_mutex_);
-  if (tags.count(name)) return;
+  const std::string tag_name = name.substr(0, 64);  // the size of Tags.Name
+  if (tag_name.empty()) return;
+  {
+    // Each name is tried once per event, so one that can't be saved is not
+    // retried on every frame. The lock is not held over the database work.
+    std::lock_guard<std::mutex> lck(tags_mutex_);
+    if (!tags.insert(tag_name).second) return;
+  }
 
-  std::unique_ptr<Tag> tag(Tag::find(name));
+  std::unique_ptr<Tag> tag(Tag::find(tag_name));
   if (!tag) {
     tag = std::make_unique<Tag>();
-    tag->Name(name);
+    tag->Name(tag_name);
     if (!tag->save()) {
-      Error("Unable to create tag %s for event %" PRIu64, name.c_str(), id);
+      Error("Unable to create tag %s for event %" PRIu64, tag_name.c_str(), id);
       return;
     }
-    Debug(1, "Created new Tag %s", name.c_str());
+    Debug(1, "Created new Tag %s", tag_name.c_str());
   }
-  Event_Tag event_tag(tag->Id(), id, assigned_on);
-  event_tag.save();
-  Debug(1, "Tagged event %" PRIu64 " with %s", id, name.c_str());
-  tags.emplace(name, *tag);
+  Event_Tag(tag->Id(), id, assigned_on).save();
+  Debug(1, "Tagged event %" PRIu64 " with %s", id, tag_name.c_str());
 }
 
 void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {

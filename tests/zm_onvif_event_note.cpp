@@ -165,6 +165,8 @@ TEST_CASE("ONVIFEventTags", "[onvif]") {
                            {{"IsVehicle", "false"}, {"IsPet", "true"}}, names) == Tags{"animal"});
     REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPackageDeliver", "true"}}, names)
             == Tags{"package"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"isPeople", "true"}}, names)
+            == Tags{"person"});
   }
 
   SECTION("Objects in an item value, any case") {
@@ -264,6 +266,19 @@ TEST_CASE("ONVIF parse_event_message keeps every Data item and the Rule", "[onvi
     REQUIRE(ONVIFEventNote(topic, items, rule)
             == "TPSmartEventDetector/TPSmartEvent IsPeople (MyTPSmartEventDetectorRule)");
     REQUIRE(ONVIFEventTags(topic, items, SeedTagNames()) == std::vector<std::string>{"person"});
+  }
+
+  SECTION("An active state item wins over an earlier inactive one") {
+    auto *msg = MakeMessage(soap.get(), "tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {},
+                            {{"IsVehicle", "false"}, {"IsMotion", "Idle"}, {"IsPeople", "true"}, {"IsPet", "false"}});
+    REQUIRE(ONVIF::parse_event_message(msg, topic, value, operation, items, rule));
+    REQUIRE(value == "true");
+    REQUIRE(ONVIFEventTags(topic, items, SeedTagNames()) == std::vector<std::string>{"person"});
+
+    auto *off = MakeMessage(soap.get(), "tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {},
+                            {{"IsVehicle", "false"}, {"IsPeople", "false"}});
+    REQUIRE(ONVIF::parse_event_message(off, topic, value, operation, items, rule));
+    REQUIRE(value == "false");
   }
 
   SECTION("The alarm value is still the first state item, all items reach the note") {

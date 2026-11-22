@@ -83,8 +83,11 @@ uint64_t Tag::save() {
     if (created_on.time_since_epoch() == Seconds(0)) created_on = std::chrono::system_clock::now();
     if (last_assigned_on.time_since_epoch() == Seconds(0)) last_assigned_on = created_on;
 
+    // Another process may have created the tag since it was looked for; the
+    // existing row's Id is then returned rather than a duplicate key error.
     std::string sql = stringtf("INSERT INTO `Tags` (`Name`, `CreateDate`, `LastAssignedDate`)"
-       " VALUES ('%s', from_unixtime(%" PRId64 "), from_unixtime(%" PRId64 "))",
+       " VALUES ('%s', from_unixtime(%" PRId64 "), from_unixtime(%" PRId64 "))"
+       " ON DUPLICATE KEY UPDATE `Id`=LAST_INSERT_ID(`Id`)",
         zmDbEscapeString(name).c_str(),
         static_cast<int64>(std::chrono::system_clock::to_time_t(created_on)),
         static_cast<int64>(std::chrono::system_clock::to_time_t(last_assigned_on))

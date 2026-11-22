@@ -180,9 +180,10 @@ class Event {
   std::atomic<SystemTimePoint> drain_until{};
   std::thread thread_;
 
-  // Tags linked to this event, by name. AddTag is called from the event thread
-  // (object detections) and the analysis thread (ONVIF), so tags_mutex_ guards it.
-  std::map<const std::string,Tag> tags;
+  // Names AddTag has tried to link to this event. AddTag is called from the
+  // event thread (object detections) and the analysis thread (ONVIF), so
+  // tags_mutex_ guards it.
+  StringSet tags;
   std::mutex tags_mutex_;
  public:
   static std::string BuildNotes(const StringSetMap &note_set_map);

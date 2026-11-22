@@ -84,7 +84,11 @@ if ($action == 'save') {
 
   if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
     # Need to add a new Model entry
-    $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
+    # Model names are only unique per manufacturer, so look under this one.
+    $newModel = ZM\Model::find_one(array(
+      'Name'=>$newMonitor['Model'],
+      'ManufacturerId'=>$newMonitor['ManufacturerId'] ? $newMonitor['ManufacturerId'] : null
+    ));
     if (!$newModel) {
       $newModel = new ZM\Model();
       if (!$newModel->save(array(

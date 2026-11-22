@@ -32,7 +32,12 @@ class StateMonitor : public Monitor {
   using Data = SharedData;
   explicit StateMonitor(SharedData *data) : Monitor() { shared_data = data; }
   ~StateMonitor() { shared_data = nullptr; }
+  void SetSectionLength(Seconds length) { section_length = length; }
+  // What openEvent() records for the packet that opens an event.
+  void EventOpenedAt(int64_t sec) { event_section_sec_ = sec; }
 };
+
+SystemTimePoint At(int64_t sec) { return SystemTimePoint(Seconds(sec)); }
 
 }  // namespace
 
@@ -62,6 +67,36 @@ TEST_CASE("Monitor::TimeSectionCrossed fires once per boundary", "[Monitor][anal
   // one frame every 5s skips over the boundary second
   REQUIRE(Monitor::TimeSectionCrossed(595, 605, 600));
   REQUIRE_FALSE(Monitor::TimeSectionCrossed(605, 610, 600));
+}
+
+// Analyse only acts on CLOSE_TIME once the event is min_section_length long.
+// An event opened a few seconds before a boundary is shorter than that when
+// the boundary packet arrives, so the boundary must still count on the later
+// packets instead of only on the one that stepped over it, or the event runs
+// on to the next boundary. refs #5532
+TEST_CASE("Monitor::TimeSectionEnded holds until the event is replaced", "[Monitor][analyse]") {
+  EnsureConfig();
+  StateMonitor::Data d = {};
+  StateMonitor m(&d);
+  m.SetSectionLength(Seconds(600));
+
+  m.EventOpenedAt(595);
+  REQUIRE_FALSE(m.TimeSectionEnded(At(599)));
+  REQUIRE(m.TimeSectionEnded(At(600)));
+  // past min_section_length, no longer the packet that crossed
+  REQUIRE(m.TimeSectionEnded(At(605)));
+  REQUIRE(m.TimeSectionEnded(At(611)));
+
+  // The replacement opens on the packet at 611. Passthrough starts the event
+  // itself on an earlier keyframe, which must not make it look ended.
+  m.EventOpenedAt(611);
+  REQUIRE_FALSE(m.TimeSectionEnded(At(620)));
+  REQUIRE_FALSE(m.TimeSectionEnded(At(1199)));
+  REQUIRE(m.TimeSectionEnded(At(1203)));
+
+  // no event opened yet
+  m.EventOpenedAt(-1);
+  REQUIRE_FALSE(m.TimeSectionEnded(At(1203)));
 }
 
 // The pre-alarm count was a static of Event, shared by every monitor of a zmc

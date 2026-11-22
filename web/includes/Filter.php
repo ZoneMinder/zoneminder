@@ -1565,14 +1565,15 @@ class Filter extends ZM_Object {
       $this->AutoUpload() or $this->AutoEmail() or $this->AutoMessage());
   }
 
-  // True when every monitor the user may not edit is excluded by the terms: an
-  // AND-ed Monitor term naming only monitors the user can edit.
-  public function limitedToEditableMonitors($u=null) {
+  // True when every monitor the user may not view is excluded by the terms: an
+  // AND-ed Monitor term naming only monitors the user can view. Event::canEdit()
+  // asks for monitor view plus Events edit, so view is the matching bar.
+  public function limitedToViewableMonitors($u=null) {
     global $user;
     if (!$u) $u = $user;
     $restricted = false;
     foreach (Monitor::find(['Deleted'=>false]) as $m) {
-      if (!$m->canEdit($u)) {
+      if (!$m->canView($u)) {
         $restricted = true;
         break;
       }
@@ -1590,7 +1591,7 @@ class Filter extends ZM_Object {
       $ok = true;
       foreach ($ids as $id) {
         $m = Monitor::find_one(['Id'=>$id]);
-        if (!$m or !$m->canEdit($u)) {
+        if (!$m or !$m->canView($u)) {
           $ok = false;
           break;
         }
@@ -1616,7 +1617,7 @@ class Filter extends ZM_Object {
 
     // zmfilter.pl runs a filter on every monitor, whatever its owner may edit, so
     // a filter with an action must itself be limited to monitors the owner can edit.
-    if ($this->hasAutoAction() and !$this->limitedToEditableMonitors($u)) return false;
+    if ($this->hasAutoAction() and !$this->limitedToViewableMonitors($u)) return false;
 
     // Users who can edit Events may run filters that change events
     // (move/copy/delete/archive/etc).

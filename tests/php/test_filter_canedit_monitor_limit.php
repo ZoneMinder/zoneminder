@@ -2,7 +2,7 @@
 // zmfilter.pl runs a filter against every monitor. A user denied a monitor could
 // save a filter with an action (AutoDelete, AutoMove, ...) and no Monitor term, and
 // it then acted on that monitor's events. canEdit() now refuses a filter with an
-// action unless its terms limit it to monitors the user can edit.
+// action unless its terms limit it to monitors the user can view.
 //
 // Run as: php tests/php/test_filter_canedit_monitor_limit.php [web root]
 
@@ -29,13 +29,14 @@ function Info($s) {}
 function jsonEncode($v) { return json_encode($v); }
 function jsonDecode($v) { return json_decode($v, true); }
 
-// Monitor 1 is editable, monitor 2 is denied.
+// Monitor 1 is viewable but not editable, monitor 2 is denied.
 class Monitor {
   public $id;
   function __construct($id) { $this->id = $id; }
   static function find($f = array()) { return array(new Monitor(1), new Monitor(2)); }
   static function find_one($f) { return in_array($f['Id'], array(1, 2)) ? new Monitor($f['Id']) : null; }
-  function canEdit($u = null) { return $this->id == 1; }
+  function canView($u = null) { return $this->id == 1; }
+  function canEdit($u = null) { return false; }
 }
 
 require_once $root.'/includes/Filter.php';
@@ -59,11 +60,11 @@ $other = array('attr' => 'Name', 'op' => 'LIKE', 'val' => 'x', 'cnj' => 'and');
 
 check('AutoDelete with no monitor term is refused', make(array('AutoDelete' => 1), array($other))->canEdit($u), false);
 check('AutoDelete limited to a denied monitor is refused', make(array('AutoDelete' => 1), array($mon('2')))->canEdit($u), false);
-check('AutoDelete naming editable and denied monitors is refused', make(array('AutoDelete' => 1), array($mon('["1","2"]', array('op' => 'IN'))))->canEdit($u), false);
+check('AutoDelete naming viewable and denied monitors is refused', make(array('AutoDelete' => 1), array($mon('["1","2"]', array('op' => 'IN'))))->canEdit($u), false);
 check('an OR term next to the monitor term is refused', make(array('AutoDelete' => 1), array($mon('1'), array_merge($other, array('cnj' => 'or'))))->canEdit($u), false);
 check('a not-equal monitor term is refused', make(array('AutoDelete' => 1), array($mon('1', array('op' => '!='))))->canEdit($u), false);
-check('AutoDelete limited to an editable monitor is allowed', make(array('AutoDelete' => 1), array($mon('1')))->canEdit($u), true);
-check('an editable monitor list is allowed', make(array('AutoMove' => 1), array($mon('["1"]', array('op' => 'IN'))))->canEdit($u), true);
+check('AutoDelete limited to a viewable monitor is allowed', make(array('AutoDelete' => 1), array($mon('1')))->canEdit($u), true);
+check('a viewable monitor list is allowed', make(array('AutoMove' => 1), array($mon('["1"]', array('op' => 'IN'))))->canEdit($u), true);
 check('a filter with no action is allowed', make(array(), array($other))->canEdit($u), true);
 
 @unlink($stubdir.'/database.php'); @unlink($stubdir.'/FilterTerm.php'); @unlink($stubdir.'/Monitor.php'); @rmdir($stubdir);

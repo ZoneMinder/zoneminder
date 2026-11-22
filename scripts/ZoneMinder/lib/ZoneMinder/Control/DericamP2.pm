@@ -108,7 +108,11 @@ sub getCamParams
         my $content = $res->decoded_content;
 
         while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-            $CamParams{$1} = $2;
+            my $key = $1;
+            my $val = $2;
+            $val =~ s/^\s+|\s+$//g;
+            $val =~ s/^["']|["']$//g;
+            $CamParams{$key} = $val;
         }
     }
     else

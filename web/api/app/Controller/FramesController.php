@@ -161,21 +161,26 @@ class FramesController extends AppController {
  * @return void
  */
 	public function add() {
-		if ($this->request->is('post')) {
-			global $user;
-			if ($user and (!$user->canEdit('Events'))) {
-				throw new UnauthorizedException(__('Insufficient Privileges'));
-			}
-			$this->requireRequestEventEdit();
-			$columns = $this->requestColumns();
-			$this->Frame->set($columns);
-			if ($this->Frame->validates() and
-				$this->Frame->getDataSource()->create($this->Frame, array_keys($columns), array_values($columns))) {
-				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
-			}
+		if (!$this->request->is('post')) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
 		}
-		$events = $this->Frame->Event->find('list');
-		$this->set(compact('events'));
+		global $user;
+		if ($user and (!$user->canEdit('Events'))) {
+			throw new UnauthorizedException(__('Insufficient Privileges'));
+		}
+		$this->requireRequestEventEdit();
+		$columns = $this->requestColumns();
+		$this->Frame->set($columns);
+		if ($this->Frame->validates() and
+			$this->Frame->getDataSource()->create($this->Frame, array_keys($columns), array_values($columns))) {
+			$message = 'Saved';
+		} else {
+			$message = $this->Frame->validationErrors ? $this->Frame->validationErrors : 'Error';
+		}
+		$this->set(array(
+			'message' => $message,
+			'_serialize' => array('message')
+		));
 	}
 
 /**
@@ -199,13 +204,17 @@ class FramesController extends AppController {
 			}
 			if (count($columns) and $this->Frame->updateAll($columns,
 				array('Frame.EventId' => $eventId, 'Frame.FrameId' => $frameId))) {
-				return $this->flash(__('The frame has been saved.'), array('action' => 'index'));
+				$message = 'Saved';
+			} else {
+				$message = count($columns) ? 'Error' : 'No fields to save';
 			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$this->request->data = $this->findFrame($eventId, $frameId);
+			throw new BadRequestException(__('Invalid method. Should be post or put'));
 		}
-		$events = $this->Frame->Event->find('list');
-		$this->set(compact('events'));
 	}
 
 /**

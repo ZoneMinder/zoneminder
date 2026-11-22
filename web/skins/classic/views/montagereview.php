@@ -92,6 +92,8 @@ if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )
 if (isset($_REQUEST['current'])) {
   $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
   $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
+  // An unparsable time is false, which would put the window around 1970
+  if ($defaultCurrentTimeSecs === false) unset($defaultCurrentTimeSecs);
 }
 
 // Range precedence: deprecated minTime/maxTime URL params (kept for old bookmarks)
@@ -119,6 +121,13 @@ if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
 
   if (isset($_REQUEST['maxTime']))
     $maxTime = validHtmlStr($_REQUEST['maxTime']);
+
+  // Only one end given: derive the other as the no-parameter default does
+  if (!isset($maxTime)) {
+    $maxTime = date('Y-m-d H:i:s', time());
+  } else if (!isset($minTime)) {
+    $minTime = date('Y-m-d H:i:s', strtotime($maxTime) - 3600);
+  }
 }
 
 // AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
@@ -242,7 +251,9 @@ $eventsSql = 'SELECT
 
 $monitor_ids_sql = '';
 if (count($user->unviewableMonitorIds())) {
-  $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
+  // IN () is a syntax error, so a user who can view no monitor matches nothing
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  $eventsSql .= ' AND E.MonitorId IN ('.(count($viewableMonitorIds) ? implode(',', $viewableMonitorIds) : '0').')';
 }
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';

@@ -7,7 +7,7 @@ class Group extends ZM_Object {
   protected static $permissions = array();
   protected $defaults = array(
       'Id'              =>  null,
-      'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Group'),
+      'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/u', 'default'=>'Group'),
       'ParentId'        =>  null,
       );
   protected static $monitor_ids_cache = array();

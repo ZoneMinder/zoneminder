@@ -12,6 +12,10 @@ class EncoderTemplatesController extends AppController {
   public function index() {
     $this->EncoderTemplate->recursive = -1;
     $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EncoderTemplate->schema()));
+    }
     if (!empty($this->request->query['Encoder'])) {
       $conditions['EncoderTemplate.Encoder'] = $this->request->query['Encoder'];
     }
@@ -75,6 +79,7 @@ class EncoderTemplatesController extends AppController {
     if (!$this->EncoderTemplate->exists($id)) {
       throw new NotFoundException(__('Invalid encoder template'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->EncoderTemplate, $id);
     if ($this->EncoderTemplate->save($this->request->data)) {
       $this->set(array(

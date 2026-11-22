@@ -83,7 +83,7 @@ class Storage extends ZM_Object {
 
   public function MonitorCount() {
     if ( !property_exists($this, 'MonitorCount') ) {
-      $this->{'MonitorCount'} = dbFetchOne('SELECT COUNT(*) AS MonitorCount FROM Monitors WHERE StorageId=? OR SecondaryStorageId=?', 'MonitorCount', array($this->Id(), $this->Id()));
+      $this->{'MonitorCount'} = dbFetchOne('SELECT COUNT(*) AS MonitorCount FROM Monitors WHERE StorageId=? AND Deleted=false', 'MonitorCount', array($this->Id()));
     }
     return $this->{'MonitorCount'};
   }

@@ -234,6 +234,10 @@ bool VideoStream::OpenStream( ) {
                            tmp_opicture->linesize, tmp_opicture->buf[0]->data, pf,
                            codec_context->width, codec_context->height, 1);
     }
+  } else {
+    // SetupCodec found no video encoder for this format
+    Error("No video stream to open for format %s", format);
+    return false;
   } // end if ost
 
   /* open the output file, if needed */
@@ -364,18 +368,13 @@ VideoStream::~VideoStream( ) {
     av_write_trailer( ofc );
   }
 
-  /* free the streams */
-  for ( unsigned int i = 0; i < ofc->nb_streams; i++ ) {
-    av_freep( &ofc->streams[i] );
-  }
-
   if ( !(of->flags & AVFMT_NOFILE) ) {
     /* close the output file */
     avio_close( ofc->pb );
   }
 
-  /* free the stream */
-  av_free( ofc );
+  /* free the context and its streams */
+  avformat_free_context( ofc );
 
   /* free format and codec_name data. */
   if ( codec_and_format ) {

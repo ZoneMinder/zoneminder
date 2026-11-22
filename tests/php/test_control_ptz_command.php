@@ -217,5 +217,25 @@ check('CanAutoZoom() returns default 0', $autoZoom, 0);
 $skinFuncs = file_get_contents(__DIR__.'/../../web/skins/classic/includes/control_functions.php');
 check('controlWhite does not have typo data-ytell="1)"', strpos($skinFuncs, 'data-ytell="1)"'), false);
 
+// ----------------------------------------------------------------------------
+// Test 9: moveMap sends the point in the camera's own frame
+// ----------------------------------------------------------------------------
+// A 640x480 camera rotated 90 or 270 is shown 480x640. Image::Rotate(90) puts camera
+// pixel 160,360 at 119,160 of the rotated image, and Rotate(270) puts 480,120 at 120,159.
+$map = array(
+  'ROTATE_0' => '--xcoord=120 --ycoord=160',
+  'ROTATE_90' => '--xcoord=160 --ycoord=360',
+  'ROTATE_180' => '--xcoord=520 --ycoord=320',
+  'ROTATE_270' => '--xcoord=480 --ycoord=120',
+  'FLIP_HORI' => '--xcoord=520 --ycoord=160',
+  'FLIP_VERT' => '--xcoord=120 --ycoord=320',
+);
+foreach ($map as $orientation => $want) {
+  $_REQUEST = array('control' => 'moveMap', 'x' => 120, 'y' => 160, 'scale' => 100);
+  $cmd = buildControlCommand(new MockMonitor($orientation, $ctrl, 640, 480));
+  preg_match('/--xcoord=\S+ --ycoord=\S+/', $cmd, $m);
+  check("moveMap $orientation sends $want", isset($m[0]) ? $m[0] : $cmd, $want);
+}
+
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

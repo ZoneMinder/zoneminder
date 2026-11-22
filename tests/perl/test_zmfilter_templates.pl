@@ -29,6 +29,7 @@ our (%Config, @sent, @frames);
 our $logs = 0;
 sub Debug {} sub Info {} sub Warning {} sub Error {} sub logDebugging { 0 }
 sub zmDbExecute {
+  if ($_[0] =~ /SET `Emailed`=1/) { push @ZF::saved, $_[1]; return 1; }
   my @rows = @frames;
   return (bless({rows=>\@rows}, 'ZF::Sth'), 1);
 }

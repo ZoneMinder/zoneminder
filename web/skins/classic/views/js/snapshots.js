@@ -45,6 +45,11 @@ function ajaxRequest(params) {
   })
       .done(function(data) {
         ajax = null;
+        if (data.result == 'Error') {
+          table.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
@@ -53,8 +58,9 @@ function ajaxRequest(params) {
         // Every reload aborts the request in flight, so those are not failures.
         if (jqXHR.statusText == 'abort') return;
         ajax = null;
+        // Refreshing here would re-run the failing request without end.
+        table.bootstrapTable('hideLoading');
         logAjaxFail(jqXHR);
-        table.bootstrapTable('refresh');
       });
 }
 
@@ -92,7 +98,7 @@ function getArchivedSelections() {
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  if (!canEdit.Events) {
+  if (!canEdit.Snapshots) {
     enoperm();
     return;
   }
@@ -101,6 +107,11 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+selections.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+        } else if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         $j('#snapshotTable').bootstrapTable('refresh');
       })
       .fail( function(jqxhr) {
@@ -139,15 +150,16 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // enable or disable buttons based on current selection and user rights
+  // enable or disable buttons based on current selection and user rights. The table
+  // drops its selection on every reload without an uncheck event, so check after each render too.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table',
   function() {
     selections = table.bootstrapTable('getSelections');
 
     //exportBtn.prop('disabled', !(selections.length && canView.Events));
     //downloadBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+    deleteBtn.prop('disabled', !(selections.length && canEdit.Snapshots));
   });
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -186,7 +198,7 @@ function initPage() {
 
   // Manage the UNARCHIVE button
   document.getElementById("unarchiveBtn").addEventListener("click", function onUnarchiveClick(evt) {
-    if ( ! canEdit.Events ) {
+    if ( ! canEdit.Snapshots ) {
       enoperm();
       return;
     }
@@ -204,7 +216,7 @@ function initPage() {
 
   // Manage the EDIT button
   document.getElementById("editBtn").addEventListener("click", function onEditClick(evt) {
-    if ( ! canEdit.Events ) {
+    if ( ! canEdit.Snapshots ) {
       enoperm();
       return;
     }
@@ -250,7 +262,7 @@ function initPage() {
   */
   // Manage the DELETE button
   document.getElementById("deleteBtn").addEventListener("click", function onDeleteClick(evt) {
-    if ( ! canEdit.Events ) {
+    if ( ! canEdit.Snapshots ) {
       enoperm();
       return;
     }

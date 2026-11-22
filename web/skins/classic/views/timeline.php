@@ -156,7 +156,9 @@ WHERE NOT isnull(StartDateTime)';
 $eventsValues = array();
 
 if ( count($user->unviewableMonitorIds()) ) {
-  $monFilterSql = ' AND E.MonitorId IN (' . implode(',', $user->viewableMonitorIds()) . ')';
+  // IN () is a syntax error, so a user who can view no monitor matches nothing
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  $monFilterSql = ' AND E.MonitorId IN (' . (count($viewableMonitorIds) ? implode(',', $viewableMonitorIds) : '0') . ')';
   $rangeSql .= $monFilterSql;
   $eventsSql .= $monFilterSql;
   $eventIdsSql .= $monFilterSql;
@@ -273,10 +275,19 @@ $majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], 
 
 // Adjust the range etc for scale
 // Align on local wall clock boundaries: epoch seconds are only a multiple of a day or an hour in UTC.
-$scaleStep = $majXScale['factor']*$majXScale['align'];
-$minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+if ( $majXScale['name'] == 'month' ) {
+  // Months and years are not a fixed number of seconds, so round to calendar boundaries.
+  $minTimeT = mktime(0, 0, 0, date('n', $minTimeT), 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, date('n', $maxTimeT)+1, 0, date('Y', $maxTimeT));
+} else if ( $majXScale['name'] == 'year' ) {
+  $minTimeT = mktime(0, 0, 0, 1, 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, 12, 31, date('Y', $maxTimeT));
+} else {
+  $scaleStep = $majXScale['factor']*$majXScale['align'];
+  $minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+  $maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
+}
 $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
-$maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
 $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);
@@ -326,16 +337,11 @@ if ( !$events_result ) {
   return;
 }
 
-$max_aspect_ratio = 0;
-
 while ($event = $events_result->fetch(PDO::FETCH_ASSOC)) {
   if ( !isset($monitors[$event['MonitorId']]) ) {
     $monitor = $monitors[$event['MonitorId']] = ZM\Monitor::find_one(array('Id'=>$event['MonitorId']));
     $monEventSlots[$event['MonitorId']] = array();
     $monFrameSlots[$event['MonitorId']] = array();
-    $aspect_ratio = round($monitor->Width() / $monitor->Height(), 2);
-    if ( $aspect_ratio > $max_aspect_ratio )
-      $max_aspect_ratio = $aspect_ratio;
   }
 
   $currEventSlots = &$monEventSlots[$event['MonitorId']];
@@ -458,6 +464,7 @@ foreach (array_keys($monEventSlots) as $monitorId) {
           if ( $currSlot['width'] < $maxEventWidth ) {
             // Merge slots for the same long event
             $currSlot['width']++;
+            if (isset($currSlot['units'])) $currSlot['units'][] = array($currEventSlots[$i]['event']['Id'], getSlotFrame($currEventSlots[$i]));
             unset( $currEventSlots[$i] );
             continue;
           } else if ( $currSlot['offset'] < $currEventSlots[$i]['offset'] ) {
@@ -465,7 +472,12 @@ foreach (array_keys($monEventSlots) as $monitorId) {
             $currEventSlots[$i]['frame'] = array( 'FrameId'=>$currEventSlots[$i]['offset'] );
           }
         } else if ( $currSlot['width'] < $minEventWidth ) {
-          // Merge multiple small events
+          // Merge multiple small events. Remember which event owns each merged
+          // slot so a click or hover can pick the one under the cursor.
+          if (!isset($currSlot['units'])) {
+            $currSlot['units'] = array_fill(0, $currSlot['width'], array($currSlot['event']['Id'], getSlotFrame($currSlot)));
+          }
+          $currSlot['units'][] = array($currEventSlots[$i]['event']['Id'], getSlotFrame($currEventSlots[$i]));
           $currSlot['width']++;
           unset( $currEventSlots[$i] );
           continue;
@@ -564,7 +576,7 @@ if ( $mode == 'overlay' ) {
   $top = 0;
   $barCount = 1;
   foreach ( array_keys($monitors) as $monitorId ) {
-    $chart['eventBars'][$monitorId] = array( 'top' => $top );
+    $chart['activityBars'][$monitorId] = array( 'top' => $top );
     $chart['eventBars'][$monitorId] = array( 'top' => $top+$chart['graph']['activityBarHeight']+1 );
     $top +=  $chart['graph']['activityBarHeight']+1+$chart['graph']['eventBarHeight']+1;
   }
@@ -628,7 +640,8 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
         }
         if ( $scale['name'] != 'second' && $zoomClass ) {
           $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+          // End on the block's last pixel: the first pixel of the next block would be aligned up to a whole extra scale step.
+          $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
@@ -641,7 +654,7 @@ function drawXGrid( $chart, $scale, $labelClass, $tickClass, $gridClass, $zoomCl
 
   if ( $zoomClass ) {
     $zoomMinTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($lastTick * $chart['data']['x']['density'])) );
-    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + ($i * $chart['data']['x']['density'])) );
+    $zoomMaxTime = date( STRF_FMT_DATETIME_DB, (int)($chart['data']['x']['lo'] + (($i-1) * $chart['data']['x']['density'])) );
 ?>
             <div class="<?php echo $zoomClass ?>" style="left: <?php echo 100*($lastTick-1)/$chart['graph']['width'] ?>%; width: <?php echo round(100*($i-$lastTick)/$chart['graph']['width'],1) ?>%;" title="<?php echo translate('ZoomIn') ?>" data-on-click="tlZoomBounds" data-zoom-min-time="<?php echo $zoomMinTime ?>" data-zoom-max-time="<?php echo $zoomMaxTime ?>"></div>
 <?php
@@ -804,6 +817,7 @@ foreach ( array_keys($monEventSlots) as $monitorId ) {
   echo "<div class=\"event monitorColour{$slot['event']['MonitorId']}\"
             style=\"left:{$left}%; width: {$width}%;\"
   data-event-id=\"{$slot['event']['Id']}\" data-frame-id=\"".getSlotFrame($slot)."\"".
+  ( isset($slot['units']) ? ' data-slot-targets="'.implode(',', array_map(function($u) { return (int)$u[0].':'.(int)$u[1]; }, $slot['units'])).'"' : '' ).
   ( $mouseover ? ' data-on-mouseover-this="previewEvent" data-on-click-this="showEvent"' : ' data-on-click-this="previewEvent"').
   '></div>';
       unset( $slot );

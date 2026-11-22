@@ -30,15 +30,16 @@ if ($message) {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_scalar($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+if (!is_array($advsearch)) $advsearch = array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'Id';
-if (isset($_REQUEST['sort'])) {
+if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 
@@ -53,7 +54,7 @@ if (isset($_REQUEST['offset'])) {
 }
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
@@ -77,7 +78,10 @@ switch ($task) {
 			return;
 		}
 
-    foreach ($ids as $id) $data[] = deleteRequest($id);
+    // Only the problems are reported; snapshots.js shows them.
+    $messages = array();
+    foreach ($ids as $id) $messages = array_merge($messages, deleteRequest($id));
+    $data = array('message' => $messages);
     break;
   case 'query' :
     $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
@@ -96,12 +100,9 @@ function deleteRequest($id) {
   $message = array();
   $snapshot = new ZM\Snapshot($id);
   if ( !$snapshot->Id() ) {
-    $message[] = array($id=>'Snapshot not found.');
-  //} else if ( $snapshot->Archived() ) {
-    //$message[] = array($id=>'Event is archived, cannot delete it.');
-  } else {
-    $snapshot->delete();
-    $message[] = array($id=>'Snapshot deleted.');
+    $message[] = 'Snapshot '.$id.' not found.';
+  } else if ( !$snapshot->delete() ) {
+    $message[] = 'Snapshot '.$id.' could not be deleted.';
   }
   
   return $message;
@@ -148,7 +149,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
     } else if ( $search != '' ) {
-      $search = '%' .$search. '%';
+      // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+      $search = '%' .str_replace(',', '_', $search). '%';
       $terms = array();
       foreach ( $columns as $col ) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search, 'tablename'=>'Snapshots');

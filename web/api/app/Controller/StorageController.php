@@ -88,27 +88,32 @@ class StorageController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->pinRequestId($this->Storage, null);
-      $this->Storage->create();
-      if ( $this->Storage->save($this->request->data) ) {
-				# Might be nice to send it a start request
-        #$this->daemonControl($this->Storage->id, 'start', $this->request->data);
-        return $this->flash(__('The storage area has been saved.'), array('action' => 'index'));
-      }
-      $this->set(array(
-        'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->Storage, null);
+    $this->Storage->create();
+    if ( $this->Storage->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->Storage->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->set(array(
+      'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**
@@ -131,6 +136,7 @@ class StorageController extends AppController {
     if ( !$this->Storage->exists($id) ) {
       throw new NotFoundException(__('Invalid storage area'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->Storage, $id);
     if ( $this->Storage->save($this->request->data) ) {
       $message = 'Saved';

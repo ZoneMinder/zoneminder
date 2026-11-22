@@ -164,7 +164,9 @@ function _extractDatetimeRange(&$node, &$minTime, &$maxTime, &$expandable, $subO
 
   if ( $node['data']['type'] == 'cnj' && $node['data']['value'] == 'or' ) {
     $subOr = true;
-  } else if ( !empty($node['left']['data']['dtAttr']) ) {
+  } else if ( !empty($node['left']['data']['dtAttr']) and
+    // Terms on the current date and time test the clock, not the event, so they do not bound the window.
+    !in_array($node['left']['data']['value'], array('CurrentDateTime', 'CurrentDate', 'CurrentTime', 'CurrentWeekday')) ) {
     if ( $subOr ) {
       $expandable = false;
     } elseif ( $node['data']['type'] == 'op' ) {

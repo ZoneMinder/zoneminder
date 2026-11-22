@@ -242,11 +242,31 @@ sub moveStop
     $self->focusStop( $params );
 }
 
+sub _pan_speed
+{
+    my $self = shift;
+    my $params = shift;
+    my $speed = $self->getParam( $params, 'panspeed', 0x18 );
+    $speed = 0x01 if $speed < 0x01;
+    $speed = 0x18 if $speed > 0x18;
+    return $speed;
+}
+
+sub _tilt_speed
+{
+    my $self = shift;
+    my $params = shift;
+    my $speed = $self->getParam( $params, 'tiltspeed', 0x14 );
+    $speed = 0x01 if $speed < 0x01;
+    $speed = 0x14 if $speed > 0x14;
+    return $speed;
+}
+
 sub moveConUp
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x01, SYNC );
@@ -262,7 +282,7 @@ sub moveConDown
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, 0x00, $speed, 0x03, 0x02, SYNC );
@@ -278,7 +298,7 @@ sub moveConLeft
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->_pan_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $speed, 0x00, 0x01, 0x03, SYNC );
@@ -294,7 +314,7 @@ sub moveConRight
 {
     my $self = shift;
     my $params = shift;
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->_pan_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $speed, 0x00, 0x02, 0x03, SYNC );
@@ -310,8 +330,8 @@ sub moveConUpLeft
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up/Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x01, SYNC );
@@ -327,8 +347,8 @@ sub moveConUpRight
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Up/Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x01, SYNC );
@@ -344,8 +364,8 @@ sub moveConDownLeft
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down/Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x01, 0x02, SYNC );
@@ -361,8 +381,8 @@ sub moveConDownRight
 {
     my $self = shift;
     my $params = shift;
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Move Down/Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x01, $panspeed, $tiltspeed, 0x02, 0x02, SYNC );
@@ -379,7 +399,7 @@ sub moveRelUp
     my $self = shift;
     my $params = shift;
     my $step = $self->getParam( $params, 'tiltstep' );
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->_tilt_speed( $params );
     Debug( "Step Up" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, SYNC );
 
@@ -391,7 +411,7 @@ sub moveRelDown
     my $self = shift;
     my $params = shift;
     my $step = -$self->getParam( $params, 'tiltstep' );
-    my $speed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $speed = $self->_tilt_speed( $params );
     Debug( "Step Down" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, 0x00, $speed, 0x00, 0x00, 0x00, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, SYNC );
     $self->sendCmd( \@msg );
@@ -402,7 +422,7 @@ sub moveRelLeft
     my $self = shift;
     my $params = shift;
     my $step = -$self->getParam( $params, 'panstep' );
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->_pan_speed( $params );
     Debug( "Step Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, SYNC );
     $self->sendCmd( \@msg );
@@ -413,7 +433,7 @@ sub moveRelRight
     my $self = shift;
     my $params = shift;
     my $step = $self->getParam( $params, 'panstep' );
-    my $speed = $self->getParam( $params, 'panspeed', 0x40 );
+    my $speed = $self->_pan_speed( $params );
     Debug( "Step Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $speed, 0x00, ($step&0xf000)>>12, ($step&0x0f00)>>8, ($step&0x00f0)>>4, ($step&0x000f)>>0, 0x00, 0x00, 0x00, 0x00, SYNC );
     $self->sendCmd( \@msg );
@@ -425,8 +445,8 @@ sub moveRelUpLeft
     my $params = shift;
     my $panstep = -$self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     Debug( "Step Up/Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
     $self->sendCmd( \@msg );
@@ -438,8 +458,8 @@ sub moveRelUpRight
     my $params = shift;
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = $self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     Debug( "Step Up/Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
     $self->sendCmd( \@msg );
@@ -451,8 +471,8 @@ sub moveRelDownLeft
     my $params = shift;
     my $panstep = -$self->getParam( $params, 'panstep' );
     my $tiltstep = -$self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     Debug( "Step Down/Left" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
     $self->sendCmd( \@msg );
@@ -464,8 +484,8 @@ sub moveRelDownRight
     my $params = shift;
     my $panstep = $self->getParam( $params, 'panstep' );
     my $tiltstep = -$self->getParam( $params, 'tiltstep' );
-    my $panspeed = $self->getParam( $params, 'panspeed', 0x40 );
-    my $tiltspeed = $self->getParam( $params, 'tiltspeed', 0x40 );
+    my $panspeed = $self->_pan_speed( $params );
+    my $tiltspeed = $self->_tilt_speed( $params );
     Debug( "Step Down/Right" );
     my @msg = ( 0x80|$self->{Monitor}->{ControlAddress}, 0x01, 0x06, 0x03, $panspeed, $tiltspeed, ($panstep&0xf000)>>12, ($panstep&0x0f00)>>8, ($panstep&0x00f0)>>4, ($panstep&0x000f)>>0, ($tiltstep&0xf000)>>12, ($tiltstep&0x0f00)>>8, ($tiltstep&0x00f0)>>4, ($tiltstep&0x000f)>>0, SYNC );
     $self->sendCmd( \@msg );

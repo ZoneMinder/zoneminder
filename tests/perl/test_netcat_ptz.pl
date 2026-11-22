@@ -35,6 +35,7 @@ sub content { $_[0]->{body} }
 package FakeUA;
 sub new { return bless {reqs => []}, $_[0]; }
 sub agent {}
+sub get { return FakeResponse->new(''); }
 sub request {
   my ($self, $req) = @_;
   push @{$self->{reqs}}, $req;
@@ -131,6 +132,27 @@ sub camera {
     check('presetHome uses GotoHomePosition action header',
       $ct =~ /action="http:\/\/www\.onvif\.org\/ver20\/ptz\/wsdl\/GotoHomePosition"/ ? 1 : 0, 1);
   }
+}
+
+# 5. Credentials from the monitor Path are percent-encoded there
+{
+  $ZoneMinder::Control::Netcat::username = undef;
+  $ZoneMinder::Control::Netcat::password = undef;
+  $ZoneMinder::Control::Netcat::address = undef;
+  $active_ua = FakeUA->new();
+  my $control = bless {
+    Monitor => {
+      ControlAddress => '',
+      ControlDevice => '000',
+      Path => 'rtsp://ad%40min:p%40ss%3Aw@10.9.9.9:554/stream1',
+    },
+  }, 'ZoneMinder::Control::Netcat';
+  no warnings 'redefine';
+  local *ZoneMinder::Control::Netcat::loadMonitor = sub {};
+  $control->open();
+  check('Path user is decoded', $ZoneMinder::Control::Netcat::username, 'ad@min');
+  check('Path password is decoded', $ZoneMinder::Control::Netcat::password, 'p@ss:w');
+  check('Path address is 10.9.9.9', $ZoneMinder::Control::Netcat::address, '10.9.9.9');
 }
 
 print "\n$passes passed, $failures failed\n";

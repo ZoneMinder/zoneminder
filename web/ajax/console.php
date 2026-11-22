@@ -80,6 +80,13 @@ function monitorMatchesSearch($monitor, $search) {
   return false;
 }
 
+// The Source filter matches what the Source column shows, or the Path, as the
+// filter bar does. The raw Host holds credentials and hides the port.
+function monitorMatchesSource($monitor, $regexp) {
+  $Monitor = new ZM\Monitor($monitor);
+  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path());
+}
+
 // Source, Server, Storage and Function are display values, not row columns.
 function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
   switch ($sort) {
@@ -94,6 +101,11 @@ function monitorSortValue($monitor, $sort, $ServersById, $StorageById) {
   }
   if (isset($monitor[$sort])) return $monitor[$sort];
   return preg_match('/(Events|Count|Sequence)$/', $sort) ? 0 : '';
+}
+
+// A monitor with no events has NULL, or no Event_Summaries row at all.
+function monitorEventDiskSpace($monitor, $period) {
+  return human_filesize(isset($monitor[$period.'EventDiskSpace']) ? $monitor[$period.'EventDiskSpace'] : 0);
 }
 
 function queryRequest() {
@@ -129,11 +141,11 @@ function queryRequest() {
   }
   
   // Get search parameter
-  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+  $search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
   
   // Get sort parameters
-  $sort = isset($_REQUEST['sort']) ? $_REQUEST['sort'] : 'Sequence';
-  $order = isset($_REQUEST['order']) ? strtoupper($_REQUEST['order']) : 'ASC';
+  $sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST['sort'] : 'Sequence';
+  $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) ? strtoupper($_REQUEST['order']) : 'ASC';
   
   // Build monitor query with filters from request parameters, falling back to cookies
   $conditions = array();
@@ -233,8 +245,7 @@ function queryRequest() {
   if ($request_filters['Source']) {
     $regexp = monitorNameRegexp($request_filters['Source']);
     $filtered_monitors = array_filter($filtered_monitors, function($monitor) use ($regexp) {
-      // Match against Path field directly instead of creating Monitor object
-      return (preg_match($regexp, $monitor['Path']) || preg_match($regexp, $monitor['Device']) || preg_match($regexp, $monitor['Host']));
+      return monitorMatchesSource($monitor, $regexp);
     });
   }
   
@@ -433,7 +444,7 @@ function queryRequest() {
     
     foreach ($eventCounts as $period => $eventCount) {
       $row[$period.'Events'] = (int)$monitor[$period.'Events'];
-      $row[$period.'EventDiskSpace'] = human_filesize($monitor[$period.'EventDiskSpace']);
+      $row[$period.'EventDiskSpace'] = monitorEventDiskSpace($monitor, $period);
       
       // Generate filter querystring for this period and monitor
       $filter = addFilterTerm(

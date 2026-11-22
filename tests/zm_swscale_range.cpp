@@ -176,3 +176,34 @@ TEST_CASE("SWScale does not keep full-range output after a YUVJ420P conversion",
                          AV_PIX_FMT_RGB24, AV_PIX_FMT_YUV420P, w, h, 1, 1) == 0);
   REQUIRE(out[0] >= 14);  // limited range black is Y=16
 }
+
+// sws_scale() reports failure with a negative AVERROR (for example -EINVAL for
+// null image pointers), not only with 0. Convert() must not return success.
+TEST_CASE("SWScale::Convert(AVFrame) fails when sws_scale returns a negative error", "[swscale]") {
+  SWScale scaler;
+  REQUIRE(scaler.init());
+  AVFrame *in = av_frame_alloc();
+  AVFrame *out = av_frame_alloc();
+  REQUIRE(in != nullptr);
+  REQUIRE(out != nullptr);
+  in->format = AV_PIX_FMT_YUV420P;
+  in->width = 16;
+  in->height = 16;
+  out->format = AV_PIX_FMT_RGB24;
+  out->width = 16;
+  out->height = 16;
+  // No buffers attached: the data pointers are null, which sws_scale rejects.
+  int r = scaler.Convert(in, out);
+  av_frame_free(&in);
+  av_frame_free(&out);
+  REQUIRE(r != 0);
+}
+
+TEST_CASE("fix_deprecated_pix_fmt maps every YUVJ format to its limited-range twin", "[swscale]") {
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ420P) == AV_PIX_FMT_YUV420P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ422P) == AV_PIX_FMT_YUV422P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ444P) == AV_PIX_FMT_YUV444P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ440P) == AV_PIX_FMT_YUV440P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUVJ411P) == AV_PIX_FMT_YUV411P);
+  REQUIRE(fix_deprecated_pix_fmt(AV_PIX_FMT_YUV411P) == AV_PIX_FMT_YUV411P);
+}

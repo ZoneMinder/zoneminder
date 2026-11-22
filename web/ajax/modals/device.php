@@ -43,7 +43,7 @@ if ( !$newDevice ) {
             </tr>
             <tr>
               <th scope="row" class="text-right pr-2"><?php echo translate('KeyString') ?></th>
-              <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>"/></td>
+              <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>" maxlength="32"/></td>
             </tr>
           </tbody>
         </table>

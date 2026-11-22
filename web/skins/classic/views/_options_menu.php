@@ -115,6 +115,7 @@ $builtinKeys = array_keys(getMenuItemFunctions());
                     </select>
                     <input type="text" name="items[<?php echo $id ?>][Icon]" class="form-control form-control-sm iconNameInput"
                       id="iconName-<?php echo $id ?>"
+                      data-default-icon="<?php echo htmlspecialchars(ZM\MenuItem::$defaultIcons[$item->MenuKey()] ?? 'menu') ?>"
                       value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>"
                       placeholder="<?php echo $effIconType == 'image' ? 'graphics/menu/icon.png' : htmlspecialchars($effIcon) ?>"
                       style="width:<?php echo $effIconType == 'image' ? '200' : '140' ?>px;<?php echo $effIconType == 'none' ? 'display:none;' : '' ?>"

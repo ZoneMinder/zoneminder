@@ -94,10 +94,16 @@ class ZonesController extends AppController {
     global $user;
     # null means no restriction. An empty list means the user may see no monitor, so no zone.
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Zone->schema()));
+    }
     $options = array();
     if ($allowedMonitors !== null) {
-      $options['conditions'] = array('Zone.MonitorId' => $allowedMonitors);
+      $conditions[] = array('Zone.MonitorId' => $allowedMonitors);
     }
+    if (count($conditions)) $options['conditions'] = $conditions;
     $zones = $this->Zone->find('all', $options);
     $this->set(array(
       'zones' => $zones,
@@ -138,7 +144,7 @@ class ZonesController extends AppController {
     if ( $zone ) {
       require_once __DIR__ .'/../../../includes/Monitor.php';
       $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $message = 'Saved';
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
@@ -188,7 +194,7 @@ class ZonesController extends AppController {
         if ($monitorId !== null and $monitorId != $oldMonitorId) $monitorIds[] = $monitorId;
         foreach ($monitorIds as $reloadId) {
           $monitor = new ZM\Monitor($reloadId);
-          if ($monitor->Type() != 'WebSite') $monitor->zmcControl('reload');
+          if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
         }
       } else {
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
@@ -223,7 +229,7 @@ class ZonesController extends AppController {
     $this->requireMonitorEdit($monitorId);
     if ( $this->Zone->delete() ) {
       $monitor = new ZM\Monitor($monitorId);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),

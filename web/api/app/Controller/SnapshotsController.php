@@ -78,6 +78,9 @@ class SnapshotsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -102,21 +105,22 @@ class SnapshotsController extends AppController {
 			$this->Snapshot->create();
 
       if ( $this->Snapshot->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The snapshot has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Snapshot->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Snapshot");
         $this->set(array(
           'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
-          '_serialize' => array('message')
+          'id' => null,
+          '_serialize' => array('message', 'id')
         ));
         return;
       }
     } # end if post
-    $monitors = $this->Snapshot->Event->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -130,6 +134,7 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

@@ -112,7 +112,16 @@ if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
 
 switch ($task) {
   case 'archive' :
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
@@ -120,7 +129,16 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
@@ -159,16 +177,23 @@ function archiveRequest($task, $eid) {
   // (an array becomes '') so ZM\Event loads the real row (refs GHSA-6h8f-gx4m-qqw4).
   $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
+  if (!$event->Id()) {
+    ZM\Warning('Event '.$eid.' not found');
+    return 'Event '.$eid.' not found';
+  }
   # Anyone who can view an event may archive it, unarchiving needs edit. Either way
   # that is checked on the event itself so that its monitor's permission applies.
-  if (!$event->Id() or !($archiveVal ? $event->canView() : $event->canEdit())) {
+  if (!($archiveVal ? $event->canView() : $event->canEdit())) {
     ZM\Warning('No permission to '.$task.' event '.validCardinal($eid));
-    return;
+    return 'No permission to '.$task.' event '.validCardinal($eid);
   }
-  dbQuery(
+  if (!dbQuery(
     'UPDATE Events SET Archived = ? WHERE Id = ?',
     array($archiveVal, $event->Id())
-  );
+  )) {
+    return 'Failed to update event '.$eid;
+  }
+  return '';
 }
 
 function deleteRequest($eid) {
@@ -226,6 +251,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       if (!in_array($col, $whitelist)) return null;
       if ($col == 'Tags') return 'Tags';
       if ($col == 'Monitor') return 'M.Name';
+      // Storage is a display name; Events only has StorageId.
+      if ($col == 'Storage') return 'E.StorageId';
       return 'E.'.$col;
     };
     // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events
@@ -319,7 +346,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
     '.$where.' 
     GROUP BY E.Id, Monitor
-    '.($sort?' ORDER BY '.$sort:'');
+    '.' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
 
     if ((int)($filter->limit()) and !$has_post_sql_conditions) {
       $sql .= ' LIMIT '.(int)($filter->limit());
@@ -373,7 +400,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
         $terms[count($terms)-1]['cbr'] = 1;
         $search_filter->addTerms($terms);
       } else if ($search != '') {
-        $search = '%' .$search. '%';
+        // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+        $search = '%' .str_replace(',', '_', $search). '%';
         $terms = array();
         // MonitorName is M.Name, which the Monitor column shows.
         foreach (array_merge($columns, array('MonitorName')) as $col) {
@@ -391,7 +419,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
       LEFT JOIN Tags AS T ON T.Id = ET.TagId 
       WHERE M.Deleted = false AND ('.$search_filter->sql().')
       GROUP BY E.Id'
-      .($sort ? ' ORDER BY '.$sort : '');
+      .' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
 
       $filtered_rows = dbFetchAll($sql);
       ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);

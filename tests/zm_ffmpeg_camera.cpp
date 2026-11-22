@@ -230,3 +230,24 @@ TEST_CASE("FfmpegCamera: priming a v4l2 path twice opens it as v4l2 both times")
   REQUIRE(camera->PrimeCapture() <= 0);
   REQUIRE(static_cast<FfmpegCamera *>(camera.get())->Path() == path);
 }
+
+TEST_CASE("FindForcedInputFormat: input_format forces the demuxer and is consumed") {
+  AVDictionary *opts = nullptr;
+  av_dict_set(&opts, "input_format", "mjpeg", 0);
+  av_dict_set(&opts, "tls_verify", "0", 0);
+  auto format = FindForcedInputFormat(&opts);
+  REQUIRE(format != nullptr);
+  REQUIRE(std::string(format->name).find("mjpeg") != std::string::npos);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  REQUIRE(av_dict_get(opts, "tls_verify", nullptr, 0) != nullptr);
+  av_dict_free(&opts);
+}
+
+TEST_CASE("FindForcedInputFormat: unknown name or no key leaves ffmpeg to probe") {
+  AVDictionary *opts = nullptr;
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  av_dict_set(&opts, "input_format", "no-such-demuxer", 0);
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  av_dict_free(&opts);
+}

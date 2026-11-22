@@ -24,19 +24,20 @@ if (!canEdit('System')) {
   return;
 }
 if ($action == 'state') {
-  if (!empty($_REQUEST['runState'])) {
+  if (!empty($_REQUEST['runState']) and is_string($_REQUEST['runState'])) {
     packageControl($_REQUEST['runState']);
     ZM\AuditAction('apply', 'state', 0, 'State: '.$_REQUEST['runState']);
     $refreshParent = true;
   }
 } else if ($action == 'save') {
   $stateName = !empty($_REQUEST['newState']) ? $_REQUEST['newState'] : ($_REQUEST['runState'] ?? '');
+  if (!is_string($stateName)) $stateName = '';
   // zmpkg.pl treats these names as commands, so a state with one of them could never be applied
-  if (is_string($stateName) and preg_match('/^(?:start|stop|restart|status|logrot|version)$/', $stateName)) {
+  if (preg_match('/^(?:start|stop|restart|status|logrot|version)$/', $stateName)) {
     global $error_message;
     ZM\Error('A run state cannot be named '.$stateName);
     $error_message .= 'A run state cannot be named '.validHtmlStr($stateName).'<br/>';
-  } else if (!empty($_REQUEST['runState']) || !empty($_REQUEST['newState'])) {
+  } else if (!empty($stateName)) {
     $sql = 'SELECT `Id`,`Capturing`,`Analysing`,`Recording` FROM `Monitors` WHERE `Deleted`=false ORDER BY `Id`';
     $definitions = array();
     foreach (dbFetchAll($sql) as $monitor ) {
@@ -49,8 +50,10 @@ if ($action == 'state') {
     ZM\AuditAction('save', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 } else if ($action == 'delete') {
-  if (isset($_REQUEST['runState'])) {
+  if (isset($_REQUEST['runState']) and is_string($_REQUEST['runState'])) {
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
+    // Deleting the active state would leave none active, so events would be recorded with no StateId. Fall back to default like zmpkg.pl does.
+    dbQuery('UPDATE `States` SET `IsActive`=1 WHERE `Name`=\'default\' AND NOT EXISTS (SELECT 1 FROM (SELECT `Id` FROM `States` WHERE `IsActive`=1) AS `Active`)');
     ZM\AuditAction('delete', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 }

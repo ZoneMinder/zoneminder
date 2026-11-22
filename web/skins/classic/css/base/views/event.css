@@ -264,6 +264,7 @@ height: 100%;
   z-index: 5;
   overflow-x: clip;
   cursor: pointer;
+  touch-action: none; /* dragging scrubs, it must not scroll the page */
 }
 
 #progressBar .progressBox {

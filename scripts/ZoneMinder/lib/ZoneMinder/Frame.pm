@@ -47,6 +47,7 @@ $table = 'Frames';
 );
 
 sub Event {
+	require ZoneMinder::Event;
 	return new ZoneMinder::Event( $_[0]{EventId} );
 } # end sub Event
 

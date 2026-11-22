@@ -112,6 +112,9 @@ class UserPreferenceController extends AppController {
       # write a preference for another account.
       $own = $this->currentUserId();
       if ($own !== null) $data['UserId'] = $own;
+      if (!is_array($data) or !isset($data['UserId']) or !isset($data['Name'])) {
+        throw new BadRequestException(__('UserId and Name are required'));
+      }
       $exists = $this->UserPreference->find('first', ['conditions'=>['UserId'=>$data['UserId'],'Name'=>$data['Name']]]);
       if ($exists) {
         $this->UserPreference->id = $exists['UserPreference']['Id'];
@@ -124,7 +127,7 @@ class UserPreferenceController extends AppController {
         $message = 'Success';
       } else {
         $message = 'Failure';
-        ZM\Warning($this->validationErrors);
+        ZM\Warning(json_encode($this->UserPreference->validationErrors));
       }
     } else {
       ZM\Error("NOT POST in add()");

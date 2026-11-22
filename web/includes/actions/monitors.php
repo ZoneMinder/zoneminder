@@ -43,6 +43,9 @@ if ($action == 'save') {
       $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
       continue;
     }
+    // The bulk form sends every field for every monitor; a monitor it changes
+    // nothing on is left alone instead of having its capture stopped and restarted.
+    if (!count($Monitor->changes($newMonitor))) continue;
     if ($Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('stop');
     }
@@ -53,6 +56,7 @@ if ($action == 'save') {
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
+      $Monitor->zmtrackControl('start');
     }
   } // end foreach mid
 

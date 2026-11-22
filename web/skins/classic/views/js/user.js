@@ -22,7 +22,9 @@ function validateForm( form, newUser ) {
 
 function initPage() {
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    // A new user has no Id yet, and then a password is required.
+    const uid = this.elements['uid'];
+    if ( validateForm(this, !uid || !parseInt(uid.value)) ) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -77,8 +79,9 @@ function getEffectivePermission(monitor) {
     }
   }
   if (gp_permissions['None']) return 'None';
-  if (gp_permissions['View']) return 'View';
+  // Any group granting Edit makes the monitor editable (editableMonitor()), so Edit wins over View.
   if (gp_permissions['Edit']) return 'Edit';
+  if (gp_permissions['View']) return 'View';
   const monitors_permission = $j('#user\\[Monitors\\]').val();
   if (!role) return monitors_permission;
 
@@ -92,8 +95,9 @@ function getEffectivePermission(monitor) {
     if (perm && group.monitor_ids.includes(monitor.id)) role_gp_permissions[perm] = perm;
   }
   if (role_gp_permissions['None']) return 'None';
-  if (role_gp_permissions['View']) return 'View';
+  // Any group granting Edit makes the monitor editable (editableMonitor()), so Edit wins over View.
   if (role_gp_permissions['Edit']) return 'Edit';
+  if (role_gp_permissions['View']) return 'View';
   const levels = ['None', 'View', 'Edit', 'Create'];
   return levels.indexOf(role.monitors) > levels.indexOf(monitors_permission) ? role.monitors : monitors_permission;
 }

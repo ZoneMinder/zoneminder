@@ -110,9 +110,12 @@ sub s3 {
         require Net::Amazon::S3::Vendor::Generic;
         my $vendor = undef;
         if ($aws_host) {
+          # Net::Amazon::S3 uses https unless told otherwise
+          my $use_https = ($aws_host !~ /^http:\/\//i);
           $aws_host =~ s/^https?:\/\///ig;
           $vendor = Net::Amazon::S3::Vendor::Generic->new(
             host=>$aws_host,
+            use_https => $use_https,
             authorization_method => 'Net::Amazon::S3::Signature::V4',
             use_virtual_host => 0,
           );

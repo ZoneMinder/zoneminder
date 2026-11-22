@@ -18,6 +18,7 @@
 #include "zm_catch2.h"
 
 #include "zm_crypt.h"
+#include "zm_user.h"
 
 TEST_CASE("JWT validation") {
   std::string key = "testsecret-at-least-32-bytes-long";
@@ -161,4 +162,17 @@ TEST_CASE("zm::crypto::LogFingerprint") {
   REQUIRE(fp.find(auth) == std::string::npos);
   REQUIRE(LogFingerprint(auth) == fp);
   REQUIRE(LogFingerprint(auth + "0") != fp);
+}
+
+TEST_CASE("checkPass accepts every password the web accepts") {
+  // The web sets no upper limit; this is PHP 8.3 password_hash() of 100 'a's.
+  std::string password(100, 'a');
+  const char *web_hash = "$2y$10$.XGIdURsvqkfCio5YZaW6ecTBaOtT1jFS1eq.HucuBwb./CQ6EfP6";
+
+  REQUIRE(checkPass(std::string(65, 'a')));
+  REQUIRE(checkPass(password));
+  REQUIRE(verifyPassword("user", password.c_str(), web_hash));
+  REQUIRE_FALSE(verifyPassword("user", std::string(100, 'b').c_str(), web_hash));
+
+  REQUIRE_FALSE(checkPass(""));
 }

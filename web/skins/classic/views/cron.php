@@ -76,7 +76,7 @@ if (!empty($_REQUEST['error'])) {
             <i class="material-icons">add_circle</i>
             <span class="text">&nbsp;<?php echo translate('CronAddTask') ?></span>
           </button>
-          <button type="submit" class="btn-danger" name="deleteBtn" value="Delete"
+          <button type="button" class="btn-danger" name="deleteBtn" value="Delete" data-on-click-this="DeleteCronTask"
             title="<?php echo translate('Delete') ?>" disabled="disabled">
             <i class="material-icons">delete</i>
             <span class="text">&nbsp;<?php echo translate('Delete') ?></span>

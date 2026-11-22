@@ -115,6 +115,10 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+			return;
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -138,21 +142,22 @@ class GroupsController extends AppController {
 			$this->Group->create();
 
       if ( $this->Group->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The group has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Group->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Group");
         $this->set(array(
           'message' => $this->Group->validationErrors ? $this->Group->validationErrors : 'Error',
-          '_serialize' => array('message')
+          'id' => null,
+          '_serialize' => array('message', 'id')
         ));
         return;
       }
     } # end if post
-    $monitors = $this->Group->Monitor->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -166,6 +171,7 @@ class GroupsController extends AppController {
 		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
@@ -241,7 +247,8 @@ class GroupsController extends AppController {
     # Deleting a group removes its monitors from it, which can lift a deny on them.
     $group = new ZM\Group($id);
     $this->requireMembershipEdit($group->MonitorIds());
-    dbQuery('UPDATE `Groups` SET `ParentId`=NULL WHERE `ParentId`=?', array($id));
+    # Children move up to this group's parent, as deleting one in the web ui does.
+    dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
 
 		if ( $this->Group->delete() ) {
       $this->set(array(

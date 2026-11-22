@@ -184,9 +184,9 @@ if ($has_hls) {
     if (ZM_AUTH_RELAY == 'hashed') {
       $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
     } else if (ZM_AUTH_RELAY == 'plain') {
-      $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
+      $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '') . '&amp;pass=' . ($_SESSION['password'] ?? '');
     } else if (ZM_AUTH_RELAY == 'none') {
-      $hlsSrc .= '&amp;user=' . $_SESSION['username'];
+      $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '');
     }
   }
 }

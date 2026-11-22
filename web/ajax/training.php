@@ -576,7 +576,7 @@ switch ($action) {
 
     // Validate and sanitize annotation labels
     foreach ($annotations as $ann) {
-      if (!isset($ann['label']) || !preg_match('/^[\p{L}0-9_-]+$/u', $ann['label'])) {
+      if (!isset($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
         ajaxError('Invalid label: labels must contain only Unicode letters, numbers, hyphens, and underscores');
         break 2;
       }

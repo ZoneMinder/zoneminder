@@ -54,6 +54,11 @@ sub new { return bless {ModectDuringPTZ => 1, ControlAddress => 'x'}, $_[0]; }
 sub suspendMotionDetection {}
 sub resumeMotionDetection {}
 
+package CountingMonitor;
+sub new { return bless {ModectDuringPTZ => 0, ControlAddress => 'x', calls => $_[1]}, $_[0]; }
+sub suspendMotionDetection { $_[0]->{calls}{suspend}++ }
+sub resumeMotionDetection { $_[0]->{calls}{resume}++ }
+
 package main;
 
 # Replies per get(), in order; the last one repeats.
@@ -102,6 +107,22 @@ check('moveConUpLeft: arg1 is the vertical, arg2 the horizontal speed',
   $c->moveStop();
   check('moveStop stops the code that was started',
     $urls[-1], 'cgi-bin/ptz.cgi?action=stop&code=Right&channel=0&arg1=0&arg2=3&arg3=0');
+}
+
+# The zoom and focus stops give motion detection back after the move
+# suspended it; they clear LastCmd, so a later moveStop cannot.
+foreach my $pair (['zoomConTele', 'zoomStop'], ['focusConNear', 'focusStop']) {
+  my ($start, $stop) = @$pair;
+  @urls = ();
+  @replies = (1);
+  my %calls;
+  my $c = control();
+  $c->{Monitor} = CountingMonitor->new(\%calls);
+  $c->$start({});
+  $c->$stop();
+  $c->moveStop();
+  check("$start suspends motion detection", $calls{suspend}, 1);
+  check("$stop resumes motion detection", $calls{resume}, 1);
 }
 
 # sendCmd result when the first try fails and the retry works

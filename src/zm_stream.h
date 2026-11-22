@@ -24,7 +24,9 @@
 #include "zm_logger.h"
 #include "zm_mpeg.h"
 #include "zm_time.h"
+#include <algorithm>
 #include <atomic>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <sys/un.h>
@@ -209,6 +211,13 @@ class StreamBase {
   // callers that have to colour convert anyway and can therefore scale in the
   // same swscale pass. 0 means the image is at full size. See #3681.
   Image *prepareImage(Image *image, int pre_scaled_by = 0);
+  // For a frame that went out unzoomed, through prepareImage or not, so a later
+  // zoom-in starts from the whole frame.
+  void unzoomedFrameSent() {
+    last_zoom = ZM_SCALE_BASE;
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
 
   // Dimensions a caller should produce the source image at so the scale folds
   // into a colour conversion it has to do anyway. Returns the scale used, which
@@ -291,6 +300,18 @@ class StreamBase {
     if (p_scale <= 0)
       return DEFAULT_SCALE;
     return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
+  // The scale= query parameter of zms.
+  static int ParseScaleParam(const char *value) {
+    // Anything that is not a positive number, a negative one included, is 100%.
+    const long parsed = strtol(value, nullptr, 10);
+    return clampScale(parsed > MAX_SCALE ? static_cast<int>(MAX_SCALE) : static_cast<int>(std::max(parsed, 0L)));
+  }
+  // The time= query parameter of zms, in seconds. The double is often a hair
+  // below the time given, so it is rounded to whole microseconds, as frame times
+  // are; truncating it to a nanosecond clock landed just before that frame.
+  static SystemTimePoint ParseTimeParam(const char *value) {
+    return SystemTimePoint(std::chrono::round<Microseconds>(FPSeconds(atof(value))));
   }
   void setStreamScale(int p_scale) {
     scale = clampScale(p_scale);

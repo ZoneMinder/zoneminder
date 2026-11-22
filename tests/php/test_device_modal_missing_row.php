@@ -14,7 +14,7 @@ namespace {
   function getCSRFinputHTML() { return ''; }
   function dbFetchOne($sql, $col = null, $params = array()) { return false; }
   $deleted = array();
-  function dbQuery($sql, $params = array()) { $GLOBALS['deleted'][] = $params[0]; }
+  function dbQuery($sql, $params = array()) { $GLOBALS['deleted'][] = $params[0]; return true; }
   function validStr($v) { return strip_tags((string)$v); }
   function ajaxResponse() {}
   function ajaxError($m) {}

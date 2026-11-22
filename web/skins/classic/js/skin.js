@@ -313,8 +313,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
-    // Trigger autorefresh of the widget bar stats on the navbar
-    if ( $j('.navbar').length ) {
+    // Trigger autorefresh of the widget bar stats on the navbar. A refresh
+    // time of 0 means off; setInterval would treat it as "as fast as possible".
+    if ( $j('.navbar').length && navBarRefresh > 0 ) {
       setInterval(getNavBar, navBarRefresh);
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
@@ -813,14 +814,14 @@ function convertLabelFormat(LabelFormat, monitorName) {
     'Y': 'YYYY',
     'z': 'ZZ',
     'Z': 'z',
-    'f': 'SS',
-    'N': '['+monitorName+']',
-    '%': '%'};
-  var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
-    var value = replacements[key];
-    return momentFormat.replace('%' + key, value);
-  }, LabelFormat);
-  return momentLabelFormat;
+    'f': 'SS'};
+  const lit = (s) => s ? '[' + s.replace(/[\[\]]/g, '') + ']' : '';
+  return LabelFormat.replace(/%(.)|([^%]+)|%$/g, (m, k, t) => {
+    if (t !== undefined) return lit(t);
+    if (k === 'N') return lit(monitorName);
+    if (k === '%') return '[%]';
+    return replacements[k] !== undefined ? replacements[k] : lit(m);
+  });
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
@@ -994,7 +995,9 @@ function setCookie(name, value, seconds) {
     // that cannot overflow a signed 32bit int in a client that converts it.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
+  // Encoded so a ';' or '%' in a typed filter value is not cut off or decoded
+  // twice; PHP decodes $_COOKIE and getCookie() below decodes it again.
+  document.cookie = name + "=" + encodeURIComponent(newValue || "") + expires + "; path=/; samesite=strict";
 }
 
 /*
@@ -1020,6 +1023,11 @@ function getCookie(name) {
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) == 0) {
       result = c.substring(nameEQ.length, c.length);
+      try {
+        result = decodeURIComponent(result);
+      } catch {
+        // Written before values were encoded and holding a bare '%': keep it as is
+      }
       break;
     }
   }
@@ -1056,7 +1064,9 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+    // The version view has no page, so the response is HTML, not JSON.
+    // index.php only runs actions sent by POST; csrf-magic adds the token to it.
+    $j.post(thisUrl + '?view=version', {action: 'version', option: option})
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })
@@ -1173,6 +1183,10 @@ function stateStuff(action, runState, newState) {
     timeout: 0
   }).done(function(data) {
     location.reload();
+  }).fail(function(jqxhr, textStatus, error) {
+    // Put the modal back so the user can see it failed and try again.
+    $j('#pleasewait').addClass('hidden');
+    logAjaxFail(jqxhr, textStatus, error);
   });
 }
 
@@ -1275,7 +1289,9 @@ function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;
   var i = 0;
-  while ((size / step) > 0.9) {
+  // NaN (a blank field) would print "NaNB" and Infinity would loop for ever.
+  if (!Number.isFinite(size)) return 'n/a';
+  while ((size / step) > 0.9 && i < units.length - 1) {
     size = size / step;
     i++;
   }
@@ -1303,10 +1319,12 @@ function manageShutdownBtns(element) {
   $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
       .done(function(data) {
         respText.removeClass('invisible');
-        if ( data.rc ) {
+        if ( data.result == 'Error' ) {
+          respText.html('<h2>Error</h2>' + data.message);
+        } else if ( data.rc ) {
           respText.html('<h2>Error</h2>' + data.output);
         } else {
-          $j('#cancelBtn').prop('disabled', false);
+          $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
             respText.html('<h2>Success</h2>Event has been cancelled');
           } else {
@@ -1607,6 +1625,23 @@ function go2rtcApiUrl(path) {
   return url;
 }
 
+// The RTSP2Web URL for a ZM_RTSP2WEB_PATH plus a suffix such as
+// "/stream/1/channel/0/webrtc". ZM_RTSP2WEB_PATH may include a path prefix when
+// RTSP2Web is behind a reverse proxy, so the suffix is appended to the base path
+// rather than replacing it, the way zmc talks to RTSP2Web.
+function rtsp2webUrl(base, suffix) {
+  const url = new URL(base);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//stream".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  pathname += suffix.startsWith('/') ? suffix : '/' + suffix;
+  url.pathname = pathname;
+  // Credentials in the configured path are for zmc, not for the browser.
+  url.username = '';
+  url.password = '';
+  return url;
+}
+
 function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
@@ -1683,8 +1718,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
   ensureHlsLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(rtsp2webSrc);
-    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+    const hlsUrl = rtsp2webUrl(rtsp2webSrc, '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8').href;
 
     const video = document.createElement('video');
     video.removeAttribute('controls');
@@ -3876,7 +3910,8 @@ const stringToLocaleString = function(str) {
       result = '';
       matches.forEach((match, index) => {
         const num = Number(match);
-        result += (!isNaN(num)) ? num.toLocaleString() : match;
+        // Number(' ') is 0, so whitespace between two numbers must stay as is
+        result += (match.trim() !== '' && !isNaN(num)) ? num.toLocaleString() : match;
       });
     }
   }

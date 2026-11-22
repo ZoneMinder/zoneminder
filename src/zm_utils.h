@@ -97,6 +97,11 @@ std::string ClientAddress(const std::string &remote_addr,
                           const std::string &forwarded_for,
                           const std::string &trusted_proxies);
 
+// The host part of a URL: an IPv6 literal (contains ':') is wrapped in
+// brackets unless it already is, so a port can follow it. Matches
+// Server::Url() in web/includes/Server.php.
+std::string UrlHost(const std::string &host);
+
 // Separator characters between entries in a monitor's Options field. The ui
 // offers a textarea, so an option may be on its own line as well as after a
 // comma. av_dict_parse_string() takes a set of separator characters and skips

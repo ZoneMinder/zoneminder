@@ -27,28 +27,29 @@ function cycleStart() {
 
 function cycleNext() {
   if (!monitorData.length) return;
-  monIdx ++;
-  if ( monIdx >= monitorData.length ) {
-    monIdx = 0;
+  // Do not move monIdx: a second click before the page unloads would skip a monitor.
+  let idx = Number(monIdx) + 1;
+  if ( idx >= monitorData.length ) {
+    idx = 0;
   }
-  if ( !monitorData[monIdx] ) {
-    console.log('No monitorData for ' + monIdx);
+  if ( !monitorData[idx] ) {
+    console.log('No monitorData for ' + idx);
   }
 
-  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode), cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[idx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePrev() {
   if (!monitorData.length) return;
-  monIdx --;
-  if ( monIdx < 0 ) {
-    monIdx = monitorData.length - 1;
+  let idx = Number(monIdx) - 1;
+  if ( idx < 0 ) {
+    idx = monitorData.length - 1;
   }
-  if ( !monitorData[monIdx] ) {
-    console.log('No monitorData for ' + monIdx);
+  if ( !monitorData[idx] ) {
+    console.log('No monitorData for ' + idx);
   }
 
-  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode), cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[idx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function initCycle() {
@@ -60,6 +61,7 @@ function initCycle() {
 }
 
 function changeSize() {
+  if (!monitor) return;
   var width = $j('#width').val();
   var height = $j('#height').val();
 
@@ -97,6 +99,7 @@ function changeScale() {
 } // end function changeScale()
 
 function applyScale() {
+  if (!monitor) return;
   var scale = $j('#scale').val();
   var width = $j('#width').val();
   var height = $j('#height').val();

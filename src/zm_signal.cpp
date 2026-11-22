@@ -53,7 +53,7 @@ std::atomic<int> crash_log_fd{-1};
 // Where and as whom the report goes to syslog. A target is never changed or
 // freed once published: zmSetCrashSyslog() publishes a new one instead, so a
 // handler reading one on another thread never sees it half written. One is
-// leaked per Logger reopen of syslog, which is rare.
+// only leaked when the ident or path actually changes.
 struct CrashSyslogTarget {
   struct sockaddr_un addr;
   char ident[64];
@@ -162,7 +162,8 @@ void crash_syslog(const char *str) {
          reinterpret_cast<const struct sockaddr *>(&target->addr), sizeof(target->addr));
 }
 
-void crash_syslog(const CrashLine &line) {
+// Only the backtrace() fallback in zm_die_handler calls this; libunwind builds don't.
+[[maybe_unused]] void crash_syslog(const CrashLine &line) {
   crash_syslog(line.c_str());
 }
 
@@ -264,10 +265,17 @@ void zmSetCrashLogFile(int fd) {
   if (dup2(fd, reserved) >= 0) fcntl(reserved, F_SETFD, FD_CLOEXEC);
 }
 
-void zmSetCrashSyslog(const char *ident, const char *path) {
+bool zmSetCrashSyslog(const char *ident, const char *path) {
+  const char *stored_ident = ident && *ident ? ident : "zoneminder";
+  const CrashSyslogTarget *current = crash_syslog_target.load();
+  if (current
+      and !strncmp(current->addr.sun_path, path, sizeof(current->addr.sun_path) - 1)
+      and !strncmp(current->ident, stored_ident, sizeof(current->ident) - 1))
+    return false;
+
   if (crash_syslog_fd.load() < 0) {
     int created = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (created < 0) return;
+    if (created < 0) return false;
     fcntl(created, F_SETFD, FD_CLOEXEC);
     fcntl(created, F_SETFL, O_NONBLOCK);
     int expected = -1;
@@ -278,8 +286,9 @@ void zmSetCrashSyslog(const char *ident, const char *path) {
   auto *target = new CrashSyslogTarget();
   target->addr.sun_family = AF_UNIX;
   strncpy(target->addr.sun_path, path, sizeof(target->addr.sun_path) - 1);
-  strncpy(target->ident, ident && *ident ? ident : "zoneminder", sizeof(target->ident) - 1);
+  strncpy(target->ident, stored_ident, sizeof(target->ident) - 1);
   crash_syslog_target = target;
+  return true;
 }
 
 void zmSetThreadAltStack() {

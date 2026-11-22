@@ -104,6 +104,9 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 #Whether to show the controls button
 $hasPtzControls = false;
 require_once('includes/MonitorAction.php');
+# The toggle must also work for a monitor that has only manual actions
+$monitorHasActions = (ZM_OPT_CONTROL && canView('Control') &&
+  count(ZM\MonitorAction::find(array('MonitorId'=>$monitor->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1))));
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
@@ -270,7 +273,7 @@ echo getNavBarHTML() ?>
         </button>
         <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>"
 <?php
-    if ($monitor->Controllable() && canView('Control') && ($monitor->Type() != 'WebSite')) {
+    if (($monitor->Controllable() || $monitorHasActions) && canView('Control') && ($monitor->Type() != 'WebSite')) {
       echo 'title="'.translate('Toggle PTZ Controls').'"';
     } else {
       echo 'disabled="disabled" title="'.translate('PTZ Not available').'"';
@@ -502,10 +505,11 @@ if ( $hasPtzControls ) {
 
 <!-- START table Events -->
 <?php
-if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
+// Always rendered so that moving from a WebSite monitor to a camera has a table to show
+if ( canView('Events') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
-      <div id="events" class="row justify-content-center table-responsive-sm">
+      <div id="events" class="row justify-content-center table-responsive-sm"<?php echo ($monitor->Type() == 'WebSite') ? ' style="display:none;"' : '' ?>>
         <table 
           id="eventList"
           data-locale="<?php echo i18n() ?>"
@@ -550,7 +554,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
         </table>
       </div>
 <?php
-} //end if ( canView('Events') && ($monitor->Type() != 'WebSite') )
+} //end if ( canView('Events') )
 ?>
 <!-- END table Events -->
 

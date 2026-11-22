@@ -188,7 +188,7 @@ our %mem_data = (
     last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
     analysis_image_count => { type=>'int32', seq=>$mem_seq++ },
     audio_level_until => { type=>'uint32', seq=>$mem_seq++ },
-    analysis_pad     => { type=>'uint8[4]', seq=>$mem_seq++ },
+    onvif_status     => { type=>'uint32', seq=>$mem_seq++ }, # 0 not in use, 1 not subscribed, 2 subscribed
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -567,6 +567,7 @@ sub zmGetMonitorActions {
 sub zmMonitorEnable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -575,6 +576,7 @@ sub zmMonitorEnable {
 sub zmMonitorDisable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -583,6 +585,7 @@ sub zmMonitorDisable {
 sub zmMonitorSuspend {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -591,6 +594,7 @@ sub zmMonitorSuspend {
 sub zmMonitorResume {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});

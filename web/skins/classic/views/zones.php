@@ -25,7 +25,13 @@ if ( isset($_REQUEST['mid']) ) {
 } else if ( isset($_REQUEST['mids']) and is_array($_REQUEST['mids']) ) {
   $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
 } else if ($user->unviewableMonitorIds()) {
-  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')', 'Id', $user->viewableMonitorIds());
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  if ( count($viewableMonitorIds) ) {
+    $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $viewableMonitorIds)).')', 'Id', $viewableMonitorIds);
+  } else {
+    // IN () is a syntax error, so a user who can view no monitor has no zones
+    $mids = array();
+  }
 } else {
   $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false', 'Id');
 }
@@ -70,7 +76,7 @@ echo getNavBarHTML();
       $row['Points'] = coordsToPoints($row['Coords']);
       # Percent coordinates are always written with decimals; without any they are pixels
       if (strpos($row['Coords'], '.') === false) {
-        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
+        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight(), true);
       }
 
       $row['OutOfBounds'] = false;

@@ -95,6 +95,9 @@ if ($protocol) {
       ControlDevice   => $device // '',
       ControlAddress  => $address // '',
       AutoStopTimeout => $options{autostop} // 0,
+      # There is no shared memory in this mode, so motion detection can't be
+      # suspended; without this, modules that suspend it die on every move.
+      ModectDuringPTZ => 1,
     },
   }, $module;
 
@@ -158,6 +161,9 @@ if ($options{command}) {
     shutdown(CLIENT, 1);
   } else {
     Error("Unable to connect to zmcontrol server at $sock_file");
+    # Callers such as the cron entries of scheduled actions need to know the
+    # command was not delivered.
+    exit(1);
   }
 } else {
   # We are the server
@@ -245,7 +251,10 @@ if ($options{command}) {
       $control->keepAlive();
     }
 
-    my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+    # Not the whole $timeout: a command that arrives just before a keepAlive is
+    # due would otherwise push the next one a full interval further out.
+    my $wait = $control->can('keepAlive') ? $control->keepAliveWait($timeout) : $timeout;
+    my $nfound = select(my $rout = $rin, undef, undef, $wait);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);

@@ -93,9 +93,14 @@ class UsersController extends AppController {
         return;
       }
 
+      // save() takes the primary key from the data, so an Id in the body would
+      // update that user instead of creating one.
+      $this->pinRequestId($this->User, null);
       $this->User->create();
+      $id = null;
       if ($this->User->save($this->request->data)) {
         $message = 'Saved';
+        $id = $this->User->id;
       } else {
         $message = 'Error';
         // if there is a validation message, use it
@@ -108,9 +113,9 @@ class UsersController extends AppController {
       throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
-      'user'        => $this->User,
       'message'     => $message,
-      '_serialize'  => array('message')
+      'id'          => $id,
+      '_serialize'  => array('message', 'id')
     ));
 	}
 
@@ -196,10 +201,13 @@ class UsersController extends AppController {
 			throw new NotFoundException(__('Invalid user'));
 		}
 		$this->request->allowMethod('post', 'delete');
+		# User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+		$this->loadModel('UserPreference');
+		$this->UserPreference->deleteAll(array('UserPreference.UserId' => $id), false);
 		if ($this->User->delete()) {
 			$message = 'The user has been deleted.';
 		} else {
-			$message = 'The user could not be deleted. Please, try again.';
+			throw new InternalErrorException(__('The user could not be deleted.'));
 		}
 		$this->set(array(
 			'message' => $message,

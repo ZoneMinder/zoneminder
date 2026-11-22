@@ -58,7 +58,7 @@ if ( !$snapshot->Id() ) {
 <!--
         <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Edit') ?>" disabled><i class="fa fa-pencil"></i></button>
 -->
-        <button type="submit" name="action" value="save" id="saveBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
+        <button type="submit" name="action" value="save" id="saveBtn" class="btn btn-normal"<?php echo (canEdit('Events') or $snapshot->CreatedBy() == $user->Id()) ? '' : ' disabled="disabled"' ?> data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
         <button type="button" id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>"><i class="fa fa-external-link"></i></button>
         <button type="button" id="downloadBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Download') ?>" disabled><i class="fa fa-download"></i></button>
         <button type="button" id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>"><i class="fa fa-trash"></i></button>
@@ -75,7 +75,7 @@ if ( !$snapshot->Id() ) {
         <?php echo $snapshot->CreatedOn() ?>
       </div>
       <div class="form-group Name"><label><?php echo translate('Reference') ?></label>
-        <input type="text" name="snapshot[Name]" value="<?php echo validHtmlStr($snapshot->Name()); ?>"/>
+        <input type="text" name="snapshot[Name]" value="<?php echo validHtmlStr($snapshot->Name()); ?>" maxlength="64"/>
       </div>
       <div class="form-group Description"><label>
         <?php echo translate('Notes') ?></label>

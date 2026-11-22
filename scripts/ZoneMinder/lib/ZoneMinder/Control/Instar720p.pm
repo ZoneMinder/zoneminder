@@ -90,7 +90,7 @@ sub open {
   my $res = $self->{ua}->get($$self{base_url}.'param.cgi?cmd=get_instar_guest&-index=13&cmd=get_instar_guest&-index=47&cmd=get_instar_guest&-index=48');
   if ( $res->is_success ) {
     $self->{state} = 'open';
-    return;
+    return 1;
   }
 
   if ( $res->status_line() eq '401 Unauthorized' ) {
@@ -110,11 +110,11 @@ sub open {
           $res = $self->{ua}->get($$self{base_url}.'param.cgi?cmd=getuserinfo');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
-            return;
+            return 1;
           } elsif ( $res->status_line eq '400 Bad Request' ) {
           # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
             $self->{state} = 'open';
-            return;
+            return 1;
           } else {
             Error('Authentication still failed after updating REALM: ' . $res->status_line);
             $headers = $res->headers();
@@ -137,6 +137,7 @@ sub open {
   } # end if $res->status_line() eq '401 Unauthorized'
 
   $self->{state} = 'closed';
+  return 0;
 }
 
 sub close {
@@ -158,11 +159,11 @@ sub sendCmd {
     # Try again
     $res = $self->{ua}->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
+      $result = !undef;
       # Command to camera appears successful, write Info item to log
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
-      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 

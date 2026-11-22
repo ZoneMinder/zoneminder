@@ -194,6 +194,17 @@ inline int zmu_parse_monitor_id(const char *arg) {
   return static_cast<int>(id);
 }
 
+// Parse an integer option argument. Returns false unless the whole string is an integer that fits in an int
+inline bool zmu_parse_int(const char *arg, int *value) {
+  if (!arg || !*arg) return false;
+  char *end = nullptr;
+  errno = 0;
+  long v = strtol(arg, &end, 10);
+  if (errno || *end || v < INT_MIN || v > INT_MAX) return false;
+  *value = static_cast<int>(v);
+  return true;
+}
+
 // Returns an error message when the options given cannot work, or an empty string
 inline std::string zmu_check_options(int function, int mon_id) {
   if ((function & ZMU_MONITOR_FUNCTIONS) && mon_id <= 0)
@@ -275,6 +286,15 @@ void exit_zmu(int exit_code) {
   zmDbClose();
 
   exit(exit_code);
+}
+
+static int zmu_int_option(const char *arg, char opt) {
+  int value = 0;
+  if (!zmu_parse_int(arg, &value)) {
+    fprintf(stderr, "Error, invalid value '%s' for -%c\n", arg ? arg : "", opt);
+    Usage();
+  }
+  return value;
 }
 
 int main(int argc, char *argv[]) {
@@ -388,15 +408,15 @@ int main(int argc, char *argv[]) {
     case 'i':
       function |= ZMU_IMAGE;
       if (optarg)
-        image_idx = atoi(optarg);
+        image_idx = zmu_int_option(optarg, 'i');
       break;
     case 'S':
-      scale = atoi(optarg);
+      scale = zmu_int_option(optarg, 'S');
       break;
     case 't':
       function |= ZMU_TIME;
       if (optarg)
-        image_idx = atoi(optarg);
+        image_idx = zmu_int_option(optarg, 't');
       break;
     case 'R':
       function |= ZMU_READ_IDX;
@@ -450,28 +470,28 @@ int main(int argc, char *argv[]) {
       function |= ZMU_BRIGHTNESS;
       if (optarg) {
         have_brightness = true;
-        brightness = atoi(optarg);
+        brightness = zmu_int_option(optarg, 'B');
       }
       break;
     case 'C':
       function |= ZMU_CONTRAST;
       if (optarg) {
         have_contrast = true;
-        contrast = atoi(optarg);
+        contrast = zmu_int_option(optarg, 'C');
       }
       break;
     case 'H':
       function |= ZMU_HUE;
       if (optarg) {
         have_hue = true;
-        hue = atoi(optarg);
+        hue = zmu_int_option(optarg, 'H');
       }
       break;
     case 'O':
       function |= ZMU_COLOUR;
       if (optarg) {
         have_colour = true;
-        colour = atoi(optarg);
+        colour = zmu_int_option(optarg, 'O');
       }
       break;
     case 'U':
@@ -553,7 +573,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (!checkUser(username)) {
-        Error("Username greater than allowed 32 characters");
+        Error("Username greater than allowed 64 characters");
         exit_zmu(-1);
       }
 
@@ -569,11 +589,11 @@ int main(int argc, char *argv[]) {
       }
       if ( !username.empty() && !password.empty() ) {
         if ( !checkUser(username)) {
-          Error("username greater than allowed 32 characters");
+          Error("username greater than allowed 64 characters");
           exit_zmu(-1);
         }
         if ( !checkPass(password)) {
-          Error("password greater than allowed 64 characters");
+          Error("Password must be supplied");
           exit_zmu(-1);
         }
         user = zmLoadUser(username, password);

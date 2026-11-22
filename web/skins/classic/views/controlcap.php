@@ -46,6 +46,15 @@ if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
       $view = 'error';
       return;
     }
+  } else if ( !empty($_REQUEST['dupId']) ) {
+    // Clone: start from an existing control, saved as a new one since cid stays empty
+    $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['dupId']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+    unset($Control['Id']);
+    $Control['Name'] = mb_substr('Clone of '.$Control['Name'], 0, 64);
   } else {
     $Control = array(
       'Name' => translate('New'),

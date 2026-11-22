@@ -40,6 +40,7 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=devices&action=delete&markDids[]='+selections.join('&markDids[]='))
       .done( function(data) {
+        if (data.result == 'Error') alert(data.message);
         $j('#devicesTable').bootstrapTable('refresh');
         window.location.reload(true);
       })
@@ -61,6 +62,10 @@ function processClicks(event, field, value, row, $element) {
     console.log('Url sent to device: ' + url);
     $j.getJSON(thisUrl + url)
         .done(function(data) {
+          if (data.result == 'Error') {
+            alert(data.message);
+            return;
+          }
           // TODO - verify if either of these are needed
           $j('#devicesTable').bootstrapTable('refresh');
           window.location.reload(true);

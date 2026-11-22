@@ -28,7 +28,14 @@ public function beforeFilter() {
  */
 public function index() {
   $this->State->recursive = 0;
-  $states = $this->State->find('all');
+  $named_params = $this->request->params['named'];
+  if ( $named_params ) {
+    $this->FilterComponent = $this->Components->load('Filter');
+    $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->State->schema()));
+  } else {
+    $conditions = array();
+  }
+  $states = $this->State->find('all', array('conditions' => $conditions));
   $this->set(array(
     'states' => $states,
     '_serialize' => array('states')
@@ -60,26 +67,31 @@ public function view($id = null) {
  */
 public function add() {
 
-  if ($this->request->is('post')) {
-
-    global $user;
-    $canEdit = (!$user) || ($user->System() == 'Edit');
-    if ( !$canEdit ) {
-      throw new UnauthorizedException(__('Insufficient privileges'));
-      return;
-    }
-
-    $this->State->create();
-    if ($this->State->save($this->request->data)) {
-      $message = 'Saved';
-    } else {
-      $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
-    }
-    $this->set(array(
-      'message' => $message,
-      '_serialize' => array('message')
-    ));
+  if (!$this->request->is('post')) {
+    throw new BadRequestException(__('Invalid method. Should be post'));
   }
+
+  global $user;
+  $canEdit = (!$user) || ($user->System() == 'Edit');
+  if ( !$canEdit ) {
+    throw new UnauthorizedException(__('Insufficient privileges'));
+    return;
+  }
+
+  $this->pinRequestId($this->State, null);
+  $this->State->create();
+  $id = null;
+  if ($this->State->save($this->request->data)) {
+    $message = 'Saved';
+    $id = $this->State->id;
+  } else {
+    $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
+  }
+  $this->set(array(
+    'message' => $message,
+    'id' => $id,
+    '_serialize' => array('message', 'id')
+  ));
 }
 
 /**
@@ -103,7 +115,7 @@ public function edit($id = null) {
 
   $this->request->allowMethod('post', 'put');
   // Without the id, save() inserts a new state instead of updating this one.
-  $this->State->id = $id;
+  $this->pinRequestId($this->State, $id);
   if ( $this->State->save($this->request->data) ) {
     $message = 'Saved';
   } else {
@@ -154,6 +166,9 @@ public function change() {
     return;
   }
 
+  if ( empty($this->request->params['pass'][0]) ) {
+    throw new BadRequestException(__('A state name is required'));
+  }
   $newState = $this->request->params['pass'][0];
   $blah = $this->packageControl($newState);
 

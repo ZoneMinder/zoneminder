@@ -12,6 +12,7 @@ var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
+var watchRate = null; /* Rate picked on this page, null until the user changes it */
 var currentMonitor;
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
@@ -172,6 +173,9 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
+  // streamCmdStop() clears the callback so a status reply does not undo the stopped
+  // buttons, so put it back for the stream that is now playing.
+  monitorStream.onplay = onPlay;
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'inactive');
@@ -196,6 +200,8 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   if (document.hidden && action) {
     // Defer autoplay until the tab becomes visible again.
     prevStateStarted = 'played';
@@ -215,6 +221,8 @@ function streamCmdPlay(action) {
 }
 
 function streamCmdStop() {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   monitorStream.isActive = false;
   monitorStream.stop();
   updatePlayerControls("stop");
@@ -508,7 +516,7 @@ function controlCmd(event) {
 
 function controlCmdImage(x, y) {
   const data = {};
-  data.scale = scale;
+  data.scale = SCALE_BASE; // x and y are already in monitor pixels
   data.control = imageControlMode;
   data.x = x;
   data.y = y;
@@ -660,13 +668,16 @@ function zoomOutClick(event) {
   }
 }
 
+var websiteRefreshTimer;
+
 function reloadWebSite() {
-  document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+  const feed = document.getElementById('imageFeed'+monitorId);
+  if (feed) feed.innerHTML = feed.innerHTML;
 }
 
 function updatePresetLabels() {
   var lblNdx = $j('#ctrlPresetForm option:selected').val();
-  $j('#newLabel').val(labels[lblNdx]);
+  $j('#newLabel').val(labels[lblNdx] || '');
 }
 
 
@@ -676,6 +687,8 @@ function changeControl(e) {
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
+            // zmu printed nothing, so nothing was applied; keep the slider where it is
+            if (control.value === '') return;
             const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             if (element.length) {
               element.val(control.value);
@@ -709,12 +722,22 @@ function getSettingsModal() {
       .fail(logAjaxFail);
 }
 
+// ajax/events.php lists events it could not delete (archived, no edit rights,
+// already gone) in notDeleted, and a refusal comes back as result Error.
+function reportUndeletedEvents(data) {
+  if (!data.message) return;
+  if (data.result == 'Error' || (data.notDeleted && data.notDeleted.length)) {
+    alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+  }
+}
+
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
     if (window.event.shiftKey) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
+            reportUndeletedEvents(data);
             eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
@@ -744,6 +767,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
+          reportUndeletedEvents(data);
           eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
@@ -767,6 +791,8 @@ function controlSetClicked() {
   $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
+        // The page's labels are those of the monitor it was loaded for; use this monitor's.
+        labels = JSON.parse($j('#ctrlPresetForm').attr('data-labels') || '{}');
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);
@@ -781,6 +807,8 @@ function controlSetClicked() {
 }
 
 function streamPrepareStart(monitor=null) {
+  // The previous monitor may have been a WebSite with a refresh timer
+  clearInterval(websiteRefreshTimer);
   // Only enable the settings button for local cameras
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
@@ -814,6 +842,8 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
+      // destroy does not remove handlers, and this runs again on every monitor switch
+      eventListTable.off('post-body.bs.table click-cell.bs.table all.bs.table');
       eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
       eventListTable.on('post-body.bs.table', function(data) {
@@ -839,7 +869,7 @@ function streamPrepareStart(monitor=null) {
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
-    setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
+    websiteRefreshTimer = setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
   }
 
   // Manage the generate Edit button
@@ -886,6 +916,10 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  // The rate rendered into the other monitors' streams is the one from page load
+  if (watchRate !== null && monitorStream.url_to_zms) {
+    monitorStream.url_to_zms = monitorStream.url_to_zms.replace(/&maxfps=[^&]*/, '') + '&maxfps=' + watchRate;
+  }
 
   monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
@@ -960,7 +994,8 @@ function streamReStart(oldId, newId) {
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
   if (volumeSlider) {
-    monitorStream.destroyVolumeSlider();
+    // A WebSite monitor opened directly never had a stream.
+    if (monitorStream) monitorStream.destroyVolumeSlider();
     volumeSlider.id = 'volumeSlider'+newId;
   }
   const controlMute = document.getElementById('controlMute'+oldId);
@@ -974,6 +1009,9 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
   controlWhatDisplay(oldId, newId);
   eventListTable.bootstrapTable('destroy');
+  // A WebSite monitor has no events to list
+  // (css() rather than show() so the .hidden class of the PTZ/events toggle still applies)
+  $j('#events').css('display', (currentMonitor.monitorType == 'WebSite') ? 'none' : '');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
@@ -1034,7 +1072,8 @@ function applyMonitorControllable() {
     console.log('ptz toggle is not present. Likely OPT_CONTROL is off');
     return;
   }
-  if (currentMonitor.monitorControllable) {
+  // A monitor with manual actions gets a panel even when it has no control of its own
+  if (currentMonitor.monitorControllable || currentMonitor.ptzControls) {
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
@@ -1256,8 +1295,9 @@ var secondsToCycle = 0;
 function nextCycleView() {
   const stream = (monitorStream) ? monitorStream.getAVStream() : null;
   const playerErrorLimitReached = monitorStream && monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.player) >= monitorStream.limitCountErrors;
-  if (stream && stream.readyState >= 2) secondsToCycle --;
-  if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
+  // A WebSite monitor has no video to wait for, so count down on it too.
+  if ((currentMonitor.monitorType == 'WebSite') || (stream && stream.readyState >= 2)) secondsToCycle --;
+  if (secondsToCycle<=0 || (monitorStream && monitorStream.fatalError) || playerErrorLimitReached) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
@@ -1293,6 +1333,7 @@ function cycleStop() {
 // FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (++monIdx) % monitorData.length;
   if (!monitorData[monIdx]) {
@@ -1307,6 +1348,7 @@ function cycleNext() {
 
 function cyclePrev() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (monIdx <= 0) ? monitorData.length - 1 : monIdx-1;
   if (!monitorData[monIdx]) {
@@ -1371,6 +1413,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
+  watchRate = newvalue;
   setCookie('zmWatchRate', newvalue);
 }
 

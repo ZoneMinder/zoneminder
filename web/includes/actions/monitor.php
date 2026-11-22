@@ -101,37 +101,7 @@ if ($action == 'save') {
   $monitor = new ZM\Monitor($mid);
 
   // Define a field type for anything that's not simple text equivalent
-  $types = array(
-      'Triggers' => array(),
-      'Controllable' => 0,
-      'TrackMotion' => 0,
-      'ModectDuringPTZ' =>  0,
-      'RTSP2WebEnabled' => 0,
-      'Go2RTCEnabled' => 0,
-      'Go2RTCDisableBackChannel' => 0,
-      'JanusEnabled' => 0,
-      'JanusAudioEnabled' => 0,
-      'Restream' => 0,
-//       'Janus_RTSP_Session_Timeout' => 0,
-      'Exif' => 0,
-      'V4LMultiBuffer'  => '',
-      'WallClockTimestamps' => 0,
-      'RecordAudio' => 0,
-      'AudioDetection' => 0,
-      'Method' => 'raw',
-      'GroupIds'  =>  array(),
-      'LinkedMonitors'  => array(),
-      'MQTT_Enabled'  =>  0,
-      'RTSPServer' => 0,
-      'SectionLengthWarn' => 0,
-      'SOAP_wsa_compl' => 0 
-      );
-
-  # The Control tab is only drawn with ZM_OPT_CONTROL and View permission on
-  # Control. Without it these checkboxes are absent, not unchecked.
-  if (!ZM_OPT_CONTROL or !canView('Control')) {
-    unset($types['Controllable'], $types['TrackMotion'], $types['ModectDuringPTZ']);
-  }
+  $types = monitorFormUncheckedDefaults();
 
   # Checkboxes don't return an element in the POST data, so won't be present in newMonitor.
   # So force a value for these fields.
@@ -249,6 +219,29 @@ if ($action == 'save') {
           $newA = $newW * $newH;
           $oldA = $oldMonitor->Width() * $oldMonitor->Height();
 
+          // Coordinates without a decimal point are pixels to zmc. Turn those
+          // zones into percentage zones at the old size first, otherwise the
+          // rotation below writes them with decimals, which zmc reads as
+          // percentages, and a resize leaves them covering the wrong area.
+          foreach ( $zones as &$zone ) {
+            if ( $oldA <= 0 or strpos($zone['Coords'], '.') !== false ) continue;
+            $points = coordsToPoints($zone['Coords']);
+            if ( !$points ) continue;
+            convertPixelPointsToPercent($points, $oldMonitor->Width(), $oldMonitor->Height(), true);
+            $zonePixelArea = getPolyArea($points) / 10000.0 * $oldA;
+            $newZone = $zone;
+            $newZone['Units'] = 'Percent';
+            $newZone['Coords'] = pointsToCoords($points);
+            convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
+            $zoneChanges = getFormChanges($zone, $newZone, $types);
+            if ( count($zoneChanges) ) {
+              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id']));
+            }
+            $zone = $newZone;
+          }
+          unset($zone);
+
           if ( ($newW == $oldMonitor->Height()) and ($newH == $oldMonitor->Width()) ) {
             // Rotation: swap x,y percentage coords
             foreach ( $zones as $zone ) {
@@ -271,6 +264,9 @@ if ($action == 'save') {
             // Non-rotation resize: coords stay the same (percentages),
             // but rescale threshold pixel counts by area ratio
             foreach ( $zones as $zone ) {
+              // Percent zones carry thresholds that are a percentage of the
+              // zone, so they do not change with the area.
+              if ($zone['Units'] == 'Percent') continue;
               $newZone = $zone;
               $newZone['MinAlarmPixels'] = intval(round(($zone['MinAlarmPixels']*$newA)/$oldA));
               $newZone['MaxAlarmPixels'] = intval(round(($zone['MaxAlarmPixels']*$newA)/$oldA));
@@ -497,6 +493,7 @@ if ($action == 'save') {
       if ( $monitor->Controllable() ) {
         $monitor->sendControlCommand('start');
       }
+      $monitor->zmtrackControl('start');
     }
     // really should thump zmwatch and maybe zmtrigger too.
     //daemonControl( 'restart', 'zmwatch.pl' );

@@ -12,6 +12,14 @@ const vm = require('vm');
 const src = fs.readFileSync(
     path.join(__dirname, '../../web/js/MonitorStream.js'), 'utf8');
 
+// MonitorStream builds RTSP2Web URLs with rtsp2webUrl() from skin.js, which
+// every page loads before it; load the real one rather than a copy.
+const skinSrc = fs.readFileSync(
+    path.join(__dirname, '../../web/skins/classic/js/skin.js'), 'utf8');
+const rtsp2webUrlSrc =
+    skinSrc.match(/function rtsp2webUrl\(base, suffix\) \{[\s\S]*?\n\}\n/);
+assert.ok(rtsp2webUrlSrc, 'rtsp2webUrl() not found in skin.js');
+
 let passed = 0;
 let failed = 0;
 function test(name, fn) {
@@ -57,6 +65,7 @@ function mseUrlFor(path2web) {
   });
   globals.window = sandbox;
   vm.createContext(sandbox);
+  vm.runInContext(rtsp2webUrlSrc[0], sandbox, {filename: 'skin.js'});
   vm.runInContext(src, sandbox, {filename: 'MonitorStream.js'});
   globals.startMsePlay = (ctx, v, url) => seen.push(url);
   const m = new globals.MonitorStream({

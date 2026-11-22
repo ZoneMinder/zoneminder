@@ -431,6 +431,8 @@ sub set_config {
 # Probe the camera's capabilities: everything get_config returns, plus test
 # which interfaces respond vs. return InterfaceNotFound. Useful for
 # characterising an unknown Dahua/Amcrest model without writing ad-hoc scripts.
+# Strictly read-only: it never sends a method that changes camera state (no
+# reboot, no PTZ move), so it is safe to run against a live camera.
 #   zmcontrol.pl --protocol Dahua_RPC --address admin:pass@IP --command probe
 sub probe {
   my $self = shift;
@@ -454,9 +456,9 @@ sub probe {
       my $r = $self->rpc_call($m, {channel => 0}, object => $ptz_obj);
       $out{ptz}{$m} = ($r and $r->{result}) ? $r->{params} : ($r->{error}{message}//'?');
     }
-    # Test a safe ptz.start (GotoPreset 0 — no physical movement on most models)
-    my $t = $self->rpc_call('ptz.start', {code=>'GotoPreset',arg1=>0,arg2=>0,arg3=>0,channel=>0}, object=>$ptz_obj);
-    $out{ptz}{'ptz.start(GotoPreset)'} = ($t and $t->{result}) ? 'accepted' : ($t->{error}{message}//'?');
+    # No ptz.start test here: even GotoPreset can move the camera, and the
+    # getCurrentProtocolCaps/getStatus/getPresets calls above already show
+    # whether PTZ is available.
   }
 
   # --- Coaxial (light/siren/deterrence) ---
@@ -472,13 +474,36 @@ sub probe {
     $out{config}{$n} = ($r and $r->{result}) ? $r->{params}{table} : ($r->{error}{message}//'?');
   }
 
-  # --- Reachability of control methods (read-only tests) ---
-  for my $m (qw(magicBox.reboot system.listMethod)) {
-    my $r = $self->rpc_call($m);
-    # We only check if the method exists (reboot intentionally not sent; listMethod is safe)
-    $out{methods}{$m} = ($r and defined $r->{result})
-      ? ($r->{result} ? 'available' : 'error: '.($r->{error}{message}//'?'))
-      : 'unreachable';
+  # --- Method reachability (read-only) ---
+  # system.listMethod is safe and returns the method names the camera
+  # implements. magicBox.reboot would power-cycle the camera, so it is never
+  # sent: we only look for it in the returned list.
+  my $lm = $self->rpc_call('system.listMethod');
+  my @methods;
+  if ($lm and $lm->{result}) {
+    # Dahua answers {"params":{"method":[names]}}; accept a bare list too.
+    my $p = $lm->{params};
+    $p = $p->{method} if ref($p) eq 'HASH';
+    @methods = map { ref($_) eq 'HASH' ? ($_->{method} // $_->{name} // '') : ($_ // '') } @$p
+      if ref($p) eq 'ARRAY';
+    @methods = grep { length } @methods;
+  }
+  if ($lm and defined $lm->{result}) {
+    $out{methods}{'system.listMethod'} = $lm->{result}
+      ? 'available'.(@methods ? ': '.scalar(@methods).' methods' : '')
+      : 'error: '.($lm->{error}{message}//'?');
+  } else {
+    $out{methods}{'system.listMethod'} = 'unreachable';
+  }
+
+  for my $m (qw(magicBox.reboot ptz.start configManager.setConfig)) {
+    if (@methods) {
+      $out{methods}{$m} = (grep { $_ eq $m } @methods)
+        ? 'present in method list' : 'not in method list';
+    } else {
+      # Unknown/empty list format: report without guessing.
+      $out{methods}{$m} = 'not tested';
+    }
   }
 
   return \%out;

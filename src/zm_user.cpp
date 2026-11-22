@@ -489,7 +489,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
 bool checkUser(const std::string &username) {
   if (username.empty())
     return false;
-  if (username.length() > 32)
+  // Users.Username is latin1 varchar(64): up to 192 bytes over the utf8mb4 connection.
+  if (username.length() > 192)
     return false;
 
   return true;
@@ -498,8 +499,6 @@ bool checkUser(const std::string &username) {
 // Function to check password length
 bool checkPass(const std::string &password) {
   if (password.empty())
-    return false;
-  if (password.length() > 64)
     return false;
 
   return true;

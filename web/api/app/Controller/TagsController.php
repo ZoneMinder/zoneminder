@@ -35,7 +35,13 @@ class TagsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Tag->schema()));
+      # Name and Id are also Events columns, and the Events.Id filter joins Events, so
+      # a bare Name:x would be ambiguous. Events.Id stays as the caller wrote it.
+      $named = array();
+      foreach ($this->request->params['named'] as $attribute => $value) {
+        $named[(!in_array(trim($attribute), $this->FilterComponent->paramsToFilterOut) and strpos($attribute, '.') === false) ? 'Tag.'.$attribute : $attribute] = $value;
+      }
+      $conditions = $this->FilterComponent->buildFilter($named, array_keys($this->Tag->schema()));
     } else {
       $conditions = array();
     }
@@ -113,6 +119,9 @@ class TagsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -137,21 +146,22 @@ class TagsController extends AppController {
 			$this->Tag->create();
 
       if ( $this->Tag->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The tag has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Tag->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Tag");
         $this->set(array(
           'message' => $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error',
-          '_serialize' => array('message')
+          'id' => null,
+          '_serialize' => array('message', 'id')
         ));
         return;
       }
     } # end if post
-    $monitors = $this->Tag->Event->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -165,6 +175,7 @@ class TagsController extends AppController {
 		if ( !$this->Tag->exists($id) ) {
 			throw new NotFoundException(__('Invalid tag'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

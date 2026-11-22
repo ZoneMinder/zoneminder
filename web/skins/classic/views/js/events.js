@@ -115,9 +115,11 @@ function processRows(rows) {
     row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
     row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';
 
-    const date = new Date(0); // Have to init it fresh.  setSeconds seems to add time, not set it.
-    date.setSeconds(row.Length);
-    row.Length = date.toISOString().substr(11, 8);
+    // Not a Date: its time of day wraps at 24 hours, and events can run longer.
+    const totalSecs = Math.floor(row.Length) || 0;
+    row.Length = String(Math.floor(totalSecs / 3600)).padStart(2, '0') + ':' +
+        String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0') + ':' +
+        String(totalSecs % 60).padStart(2, '0');
     if (ZM_DATETIME_FORMAT_PATTERN) {
       if (window.DateTime) {
         row.StartDateTime = DateTime.fromSQL(row.StartDateTime)
@@ -224,7 +226,7 @@ function unarchiveEvents(event_ids) {
     url: thisUrl + '?request=events&task=unarchive',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
@@ -260,7 +262,7 @@ function deleteEvents(event_ids) {
     url: thisUrl + '?request=events&task=delete',
     data: {'eids[]': chunk},
     success: function(data) {
-      if (data.message) alert(data.message.join("\n"));
+      if (data.message) alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
 
       if (!event_ids.length) {
         $j('#eventTable').bootstrapTable('refresh');
@@ -331,6 +333,29 @@ function getObjdetectModal(eid) {
       });
 }
 
+// Enable or disable buttons based on current selection and user rights
+function updateToolbarButtons() {
+  const selections = table.bootstrapTable('getSelections');
+
+  viewButton.prop('disabled', !(selections.length && canView.Events));
+  archiveButton.prop('disabled', !(selections.length && canEdit.Events));
+  if (!(getArchivedSelections() && canEdit.Events)) {
+    unarchiveButton.prop('disabled', true);
+    if (!getArchivedSelections()) {
+      unarchiveButton.prop('title', 'Please select an event that is archived.');
+    } else {
+      unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
+    }
+  } else {
+    unarchiveButton.prop('disabled', false);
+    unarchiveButton.prop('title', unarchiveString);
+  }
+  editButton.prop('disabled', !(selections.length && canEdit.Events));
+  exportButton.prop('disabled', !(selections.length && canView.Events));
+  downloadButton.prop('disabled', !(selections.length && canView.Events));
+  deleteButton.prop('disabled', !(selections.length && canEdit.Events));
+}
+
 function initPage() {
   // Remove the thumbnail column from the DOM if thumbnails are off globally
   if (!WEB_LIST_THUMBS) $j('th[data-field="Thumbnail"]').remove();
@@ -344,30 +369,10 @@ function initPage() {
     table.bootstrapTable('hideColumn', 'Emailed');
   }
 
-  // enable or disable buttons based on current selection and user rights
+  // The table drops its selection on every reload without any uncheck event, so
+  // the buttons are re-evaluated after each load as well as on selection changes.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    const selections = table.bootstrapTable('getSelections');
-
-    viewButton.prop('disabled', !(selections.length && canView.Events));
-    archiveButton.prop('disabled', !(selections.length && canEdit.Events));
-    if (!(getArchivedSelections() && canEdit.Events)) {
-      unarchiveButton.prop('disabled', true);
-      if (!getArchivedSelections()) {
-        unarchiveButton.prop('title', 'Please select an event that is archived.');
-      } else {
-        unarchiveButton.prop('title', 'You must have events edit permission to unarchive');
-      }
-    } else {
-      unarchiveButton.prop('disabled', false);
-      unarchiveButton.prop('title', unarchiveString);
-    }
-    editButton.prop('disabled', !(selections.length && canEdit.Events));
-    exportButton.prop('disabled', !(selections.length && canView.Events));
-    downloadButton.prop('disabled', !(selections.length && canView.Events));
-    deleteButton.prop('disabled', !(selections.length && canEdit.Events));
-  });
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table', updateToolbarButtons);
 
   table.on('sort.bs.table', function(evt, name, order) {
     const sortField = (name == 'Monitor') ? 'MonitorName' : name;
@@ -404,6 +409,12 @@ function initPage() {
     window.location.assign('?view=timeline'+filterQuery);
   });
 
+  // Manage the TAGS Button
+  document.getElementById('tagsBtn').addEventListener('click', function onTagsClick(evt) {
+    evt.preventDefault();
+    window.location.assign('?view=tags');
+  });
+
   // Manage the FILTER Button
   document.getElementById('filterBtn').addEventListener('click', function onFilterClick(evt) {
     evt.preventDefault();
@@ -430,6 +441,11 @@ function initPage() {
       url: thisUrl + '?request=events&task=archive',
       data: {'eids[]': selections},
       success: function(data) {
+        // ajaxError() answers 200 with result=Error; events that could not
+        // be archived come back in message (a list).
+        if (data.message && (data.result == 'Error' || data.message.length)) {
+          alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+        }
         $j('#eventTable').bootstrapTable('refresh');
       },
       error: logAjaxFail
@@ -575,7 +591,13 @@ function initPage() {
       const el = $j(this);
       const name = el.attr('name');
       if (urlParams.has(name)) {
-        el.val(urlParams.get(name));
+        const value = urlParams.get(name);
+        // buildFilterQuery joins a multiple select's values with commas
+        if (el.prop('multiple')) {
+          el.val(value === '' ? [] : value.split(',')).trigger('chosen:updated');
+        } else {
+          el.val(value);
+        }
       }
     });
 
@@ -588,7 +610,10 @@ function initPage() {
     filterEvents({}, {skipPushState: true});
   });
 
-  table.bootstrapTable('resetSearch');
+  // Drop a search text restored from the cookie. resetSearch also sets the page
+  // to 1 and stores that, so it is skipped when there is nothing to clear and the
+  // page the cookie remembers is kept when coming back from the event view.
+  if (table.bootstrapTable('getOptions').searchText) table.bootstrapTable('resetSearch');
   // The table is initially given a hidden style, so now that we are done rendering, show it
   table.show();
 }

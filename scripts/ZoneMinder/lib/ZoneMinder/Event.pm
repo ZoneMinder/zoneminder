@@ -278,7 +278,7 @@ sub GenerateVideo {
   chdir($event_path);
   # Name is user editable; keep the output file inside the event directory.
   ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
-  $video_name =~ s/^\./_/;
+  $video_name =~ s/^[-.]/_/;
 
   my @file_parts;
   if ( $rate ) {
@@ -366,6 +366,7 @@ sub GenerateVideo {
 
     Debug('Executing: '.join(' ', @command));
 
+    my $old_diskspace = $$self{DiskSpace};
     my $pid = fork();
     if ( !defined $pid ) {
       Error("Unable to fork for video generation: $!");
@@ -389,6 +390,16 @@ sub GenerateVideo {
     }
 
     Info("Finished $video_file");
+    # The new file is part of the event, so a later move or delete must account for it.
+    my $new_diskspace = $self->DiskSpace(undef);
+    if ( $$self{Id} and defined $new_diskspace ) {
+      # Only DiskSpace: the event may still be recording, so a full save would write back stale values.
+      if ( defined ZoneMinder::Database::zmDbDo('UPDATE Events SET DiskSpace=? WHERE Id=?', $new_diskspace, $$self{Id}) ) {
+        $self->Storage()->adjust_diskspace($new_diskspace-$old_diskspace) if $old_diskspace;
+      } else {
+        Warning("Unable to save DiskSpace of event $$self{Id}");
+      }
+    }
     return $event_path.'/'.$video_file;
   } else {
     Info("Video file $video_file already exists for event $self->{Id}");
@@ -452,6 +463,13 @@ sub delete {
     #
     # Retry on deadlock (MariaDB ER_LOCK_DEADLOCK = 1213) only when we own
     # the TX; if the caller is managing one, bail and let them decide.
+
+    # Resolved once, outside the retry loop: DiskSpace() can stat the event
+    # directory and Storage() can hit the db, and neither changes between
+    # attempts.
+    my $storage = $event->Storage();
+    my $reclaim = $event->DiskSpace();
+
     my $attempt = 0;
     my $max_attempts = 5;
     while (1) {
@@ -483,6 +501,17 @@ sub delete {
         }
       }
 
+      if (!$err and !$in_transaction and $reclaim) {
+        # Reclaim inside our own transaction, after the deletes succeed, so it
+        # commits or rolls back with them and is retried on deadlock. A relative
+        # single statement, see ZoneMinder::Storage::adjust_diskspace.
+        $storage->adjust_diskspace(-$reclaim);
+        $err = $ZoneMinder::Database::dbh->err() // 0;
+        if ($err) {
+          $errstr = $ZoneMinder::Database::dbh->errstr() // '';
+        }
+      }
+
       if (!$err) {
         $ZoneMinder::Database::dbh->commit() if !$in_transaction;
         last;
@@ -506,7 +535,9 @@ sub delete {
     # SELECT autocommits, so the absolute value it then writes clobbers any
     # adjustment zmc or another filter made in between.
     # See ZoneMinder::Storage::adjust_diskspace.
-    $event->Storage()->adjust_diskspace(-$event->DiskSpace()) if $event->DiskSpace();
+    # When delete() owns the transaction the reclaim already ran inside it,
+    # above; only a caller-managed transaction reclaims here, once.
+    $storage->adjust_diskspace(-$reclaim) if $in_transaction and $reclaim;
   }
 
   if ( $event->Storage()->DoDelete() ) {
@@ -725,6 +756,12 @@ sub CopyTo {
     return 'No permission to copy event.';
   }
 
+  # An event with no EndDateTime is still being recorded: zmc keeps writing
+  # frames into the source directory, which MoveTo then deletes.
+  if ( !$$self{EndDateTime} ) {
+    return "Event $$self{Id} has no EndDateTime, it is still being recorded.";
+  }
+
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
@@ -940,8 +977,9 @@ sub recover_timestamps {
   if ( @capture_jpgs ) {
     $$Event{Frames} = scalar @capture_jpgs;
     $$Event{SaveJPEGs} |= 1;
-    # can get start and end times from stat'ing first and last jpg
-    @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
+    # can get start and end times from stat'ing first and last jpg,
+    # in frame order: numbers past the zero padding do not sort as text
+    @capture_jpgs = sort { ($a =~ /^(\d+)/)[0] <=> ($b =~ /^(\d+)/)[0] } @capture_jpgs;
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
@@ -1151,6 +1189,11 @@ FROM `Frames` WHERE `EventId`=?';
     $length = $self->{Length} // 0;
     $end_date_time = time2str('%Y-%m-%d %H:%M:%S', $start + $length);
   }
+  # zmc renames incomplete.* to the final name before it records that in the
+  # row, so an event it left open can have a DefaultVideo naming a file that is
+  # gone.
+  my $default_video = $self->{DefaultVideo};
+  $self->fix_DefaultVideo();
   my $frames = List::Util::max($frame->{Frames} // 0, $self->{Frames} // 0);
   my $alarm_frames = List::Util::max($frame->{AlarmFrames} // 0, $self->{AlarmFrames} // 0);
   my $tot_score = List::Util::max($frame->{TotScore} // 0, $self->{TotScore} // 0);
@@ -1166,6 +1209,7 @@ FROM `Frames` WHERE `EventId`=?';
       MaxScore => $max_score,
       Notes => $self->Notes() . ' ' . $text,
     );
+  $changes{DefaultVideo} = $self->{DefaultVideo} if ($self->{DefaultVideo} // '') ne ($default_video // '');
   # Like zmc's own close (~Event: Name = IF(Name='New Event', ...)), keep a name
   # the user gave the event; only the placeholder gets the recovered name.
   if (($self->{Name} // 'New Event') eq 'New Event') {

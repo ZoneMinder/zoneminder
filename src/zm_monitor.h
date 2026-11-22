@@ -341,7 +341,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      * Carved out of analysis_pad rather than appended, so neither the 888-byte
      * total nor any existing offset moves. */
     SharedValue<uint32_t> audio_level_until;   /* +880 */
-    uint32_t analysis_pad;         /* +884   keep 16-byte multiple */
+    /* State of the ONVIF event subscription, published by the ONVIF poll
+     * thread for the web interface: 0 ONVIF events not in use, 1 enabled but
+     * not subscribed (connecting, retrying or failing), 2 subscribed and
+     * polling. Carved out of analysis_pad, so no offset or size moves. */
+    SharedValue<uint32_t> onvif_status;        /* +884   keep 16-byte multiple */
     /* 888 total */
   } SharedData;
   // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
@@ -363,6 +367,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, audio_level_until) == 880, "audio_level_until offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, onvif_status) == 884, "onvif_status offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -735,6 +740,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        no_zones_warned = false;  // Whether the no-zones warning was already logged for the current no-zones state
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
@@ -1335,6 +1341,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void Reload();
   void ReloadZones();
+  const std::vector<Zone> &Zones() const { return zones; }
+  // Zone has a const member and cannot be assigned, so a zone is replaced by
+  // swapping in a whole new list.
+  void SetZones(std::vector<Zone> &&new_zones) { zones = std::move(new_zones); }
   void ReloadLinkedMonitors();
 
   void LoadActions();

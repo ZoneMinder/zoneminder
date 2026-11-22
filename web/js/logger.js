@@ -17,7 +17,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 $j.ajaxSetup({timeout: AJAX_TIMEOUT});
-const reportLogs = (typeof(ZM_LOG_INJECT) !== 'undefined') && ((ZM_LOG_INJECT !== '0') || canEdit["System"]);
+// skin.js.php emits a boolean option that is off as '' (PHP empty('0')), so test both.
+const reportLogs = (typeof(ZM_LOG_INJECT) !== 'undefined') && ((ZM_LOG_INJECT && ZM_LOG_INJECT !== '0') || canEdit["System"]);
 
 if (!window.console) {
   window.console =
@@ -39,10 +40,9 @@ if (!window.console) {
 // would otherwise spam the log. Ignore anything sourced from an extension,
 // unless ZM_LOG_BROWSER_EXTENSIONS is enabled (useful to detect a plugin
 // touching the ZoneMinder tab).
-// ZM_LOG_BROWSER_EXTENSIONS is emitted as the string '0'/'1' (boolean config),
-// matching the ZM_LOG_INJECT convention above.
+// ZM_LOG_BROWSER_EXTENSIONS is a boolean config, off as '' like ZM_LOG_INJECT above.
 const logExtensionSources =
-  (typeof ZM_LOG_BROWSER_EXTENSIONS !== 'undefined') && (ZM_LOG_BROWSER_EXTENSIONS !== '0');
+  (typeof ZM_LOG_BROWSER_EXTENSIONS !== 'undefined') && Boolean(ZM_LOG_BROWSER_EXTENSIONS && ZM_LOG_BROWSER_EXTENSIONS !== '0');
 
 function isExtensionSource(url) {
   return (typeof url === 'string') &&

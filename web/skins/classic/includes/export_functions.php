@@ -868,6 +868,8 @@ function exportFileList(
 
   if ($exportMisc) {
     foreach ($files as $file) {
+      // Pages left behind by an earlier export link to files that are not in this one
+      if (preg_match('/^zmEvent(?:Detail|Frames|Images)\.html$/', $file)) continue;
       $exportFileList[$file] = $file;
     }
     $files = array();
@@ -1036,7 +1038,7 @@ function exportEvents(
     return false;
   }
   foreach ($exportFileList as $exportFile) {
-    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    $exportFile = $export_root.($connkey?'_'.$connkey:'').'/'.$exportFile;
     fwrite($fp, $exportFile.PHP_EOL);
   }
   fwrite($fp, $listFile.PHP_EOL);

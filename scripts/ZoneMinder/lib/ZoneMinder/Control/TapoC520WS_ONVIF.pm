@@ -332,7 +332,7 @@ sub autoStop {
 </s:Body>';
     }
 
-    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
     usleep($duration);
     $self->sendCmd($cmd, $msg_body, $content_type);
   }
@@ -371,6 +371,9 @@ sub moveMap {
   my $params = shift;
   my $x = $self->getParam($params,'xcoord');
   my $y = $self->getParam($params,'ycoord');
+  # ONVIF positions are normalised to -1..1, the click arrives in image pixels
+  $x = sprintf('%.4f', 2 * $x / ($self->{Monitor}->{Width} || 1) - 1);
+  $y = sprintf('%.4f', 1 - 2 * $y / ($self->{Monitor}->{Height} || 1));
   Debug("Move map to $x x $y");
 
   my $cmd = $controlUri;
@@ -386,7 +389,7 @@ sub moveMap {
     </Speed>
   </AbsoluteMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/AbsoluteMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -409,7 +412,7 @@ sub moveRel {
     </Translation>
   </RelativeMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/RelativeMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -641,7 +644,7 @@ sub presetHome {
     <ProfileToken>' . $profileToken . '</ProfileToken>
   </GotoHomePosition>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoPreset"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoHomePosition"';
   $self->sendCmd( $cmd, $msg_body, $content_type );
 }
 

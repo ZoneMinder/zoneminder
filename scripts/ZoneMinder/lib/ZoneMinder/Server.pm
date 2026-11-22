@@ -108,6 +108,24 @@ sub parse_bsd_top_cpu {
   return ($user/$cpus, $nice/$cpus, $system/$cpus, $idle/$cpus);
 } # end sub parse_bsd_top_cpu
 
+# Parse the "%Cpu(s):" line of Linux's top. Its columns are separated by commas,
+# but a value of 100.0 is printed without the leading spaces, gluing it to the
+# previous field ("... 0.0 ni,100.0 id, ..."), so an awk on field positions
+# drops the label and reads idle as 0. Match on the labels instead. Returns
+# ($user, $nice, $system, $idle), or the empty list if nothing matched.
+sub parse_linux_top_cpu {
+  my $top_output = shift;
+
+  foreach my $line (split(/\n/, $top_output)) {
+    if ($line =~ /([\d.]+)\s*us\b.*?([\d.]+)\s*sy\b.*?([\d.]+)\s*ni\b.*?([\d.]+)\s*id\b/) {
+      my ($user, $system, $nice, $idle) = ($1, $2, $3, $4);
+      return ($user + 0, $nice + 0, $system + 0, $idle + 0);
+    } # end if line match
+  } # end foreach line
+
+  return ();
+} # end sub parse_linux_top_cpu
+
 sub CpuUsage {
 
   my $fileNameCurStat = '/proc/stat';
@@ -168,15 +186,21 @@ sub CpuUsage {
     # Get CPU utilization percentages
     my $uname_output = lc(qx($ZoneMinder::Config{ZM_PATH_UNAME} -s));
     chomp($uname_output);
+    my $is_bsd = ($uname_output eq 'freebsd');
     my $top_cmd = '';
-    if ($uname_output eq 'freebsd') {
+    if ($is_bsd) {
       $top_cmd = q`top -b -n 1 | grep "^CPU" | sed 's/%//g' | awk '{print $2, $6, $4, $10}'`;
     } else {
-      $top_cmd = q`top -b -n 1 | grep -i "^%Cpu(s)" | awk '{print $2, $4, $6, $8}'`;
+      $top_cmd = q`top -b -n 1 | grep -i "^%Cpu(s)"`;
     }
     my $top_output = `$top_cmd` // '';
 
-    if ($top_output =~ /\d/) {
+    if (!$is_bsd) {
+      # Don't use awk field positions: a 100.0 value loses its leading spaces,
+      # so "0.0 ni,100.0 id," would give a field of "id," and read idle as 0.
+      my ($user, $nice, $system, $idle) = parse_linux_top_cpu($top_output);
+      return ($user, $nice, $system, $idle, $user + $system) if defined $user;
+    } elsif ($top_output =~ /\d/) {
       # split on an empty $top_output returns an empty list, so default all four
       # before touching them or we warn under -w on every interval.
       my ($user, $system, $nice, $idle) = split(/ /, $top_output);
@@ -266,20 +290,23 @@ sub UrlToZMS {
 
 sub Url {
   my $this = shift;
-  my $port = shift if @_;
+  my $port = shift;
 
   if (!$this->Id()) {
     return '';
   }
 
   my $url = $this->Protocol().'://';
-  $url .= $this->Hostname();
+  my $hostname = $this->Hostname();
+  # An IPv6 literal must be bracketed to be followed by a port.
+  $hostname = '['.$hostname.']' if $hostname =~ /:/ and $hostname !~ /^\[/;
+  $url .= $hostname;
   if ( !$port ) {
     $port = $this->Port();
   }
   if ( $this->Protocol() eq 'https' and $port == 443 ) {
   } elsif ( $this->Protocol() eq 'http' and $port == 80 ) {
-  } else {
+  } elsif ( $port ) {
     $url .= ':'.$port;
   }
   return $url;

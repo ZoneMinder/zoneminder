@@ -382,7 +382,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-    int c = getopt_long(argc, argv, "m:h:v", long_options, &option_index);
+    int c = getopt_long(argc, argv, "m:hv", long_options, &option_index);
     if (c == -1)
       break;
 
@@ -440,10 +440,9 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<xop::RtspServer> rtspServer = xop::RtspServer::Create(eventLoop.get());
   rtspServer->SetVersion("ZoneMinder RTSP Server");
 
-  if (config.opt_use_auth) {
-    std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
-    rtspServer->SetAuthenticator(authenticator);
-  }
+  // Always installed: it checks opt_use_auth when a connection authenticates, so a reload can turn auth on.
+  std::shared_ptr<ZM_RtspServer_Authenticator> authenticator(new ZM_RtspServer_Authenticator());
+  rtspServer->SetAuthenticator(authenticator);
 
   if (!rtspServer->Start("0.0.0.0", config.min_rtsp_port)) {
     Debug(1, "Failed starting RTSP server on port %d", config.min_rtsp_port);
@@ -523,11 +522,13 @@ int main(int argc, char *argv[]) {
     }
 
     if (zm_reload) {
+      // Clear first so a SIGHUP that arrives while reloading is not lost.
+      zm_reload = false;
       Info("Reloading configuration");
+      zmLoadStaticConfig();
       zmLoadDBConfig();
       // The RTSP server threads keep logging through the reload.
       logReload(log_id_string);
-      zm_reload = false;
     }  // end if zm_reload
   } // end while !zm_terminate
 

@@ -1997,12 +1997,12 @@ bool Monitor::FrameDue(SystemTimePoint ts, SystemTimePoint &next_due, Microsecon
 }
 
 // Sleeping in zmc only delays reads from a network camera, which sends at its
-// own rate, and the backlog arrives late. Frames can be dropped after decoding
-// instead: the packets, and so the recording, stay whole. A monitor that
-// encodes its recording from decoded images, and a local camera, which does
-// honour the delay, keep the sleep.
-bool Monitor::MaxFPSByDropping(bool is_local, VideoWriter writer) {
-  return !is_local and writer != ENCODE;
+// own rate. Frames of a camera that goes through the decoder (Ffmpeg) can be
+// dropped after decoding instead, so the packets and the recording stay whole.
+// Cameras that fill packet->image directly (File, Remote HTTP, libcurl, VNC),
+// local cameras, and monitors that encode their recording keep the sleep.
+bool Monitor::MaxFPSByDropping(CameraType type, VideoWriter writer) {
+  return type == FFMPEG and writer != ENCODE;
 }
 
 bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec) {

@@ -142,8 +142,12 @@ TEST_CASE("Monitor::FrameDue keeps MaxFPS frames of a faster source", "[Monitor]
   }
 }
 
-TEST_CASE("Monitor::MaxFPSByDropping leaves local cameras and encoding alone", "[Monitor][maxfps]") {
-  REQUIRE(Monitor::MaxFPSByDropping(false, Monitor::PASSTHROUGH));
-  REQUIRE_FALSE(Monitor::MaxFPSByDropping(true, Monitor::PASSTHROUGH));
-  REQUIRE_FALSE(Monitor::MaxFPSByDropping(false, Monitor::ENCODE));
+TEST_CASE("Monitor::MaxFPSByDropping applies only to decoder-fed cameras", "[Monitor][maxfps]") {
+  REQUIRE(Monitor::MaxFPSByDropping(Monitor::FFMPEG, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::FFMPEG, Monitor::ENCODE));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::LOCAL, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::FILE, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::REMOTE, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::LIBCURL, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::VNC, Monitor::PASSTHROUGH));
 }

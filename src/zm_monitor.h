@@ -1303,9 +1303,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // the following frame is wanted, delay 1/MaxFPS (0 = no limit).
   static bool FrameDue(SystemTimePoint ts, SystemTimePoint &next_due, Microseconds delay);
   // True when MaxFPS is applied by dropping decoded frames in the decoder
-  // instead of sleeping in zmc.
-  static bool MaxFPSByDropping(bool is_local, VideoWriter writer);
-  bool MaxFPSByDropping() const { return MaxFPSByDropping(camera && camera->IsLocal(), videowriter); }
+  // instead of sleeping in zmc. Only Ffmpeg cameras qualify: their packets
+  // carry in_frame and go through the decoder. File, Remote HTTP, libcurl, VNC
+  // and Local cameras fill packet->image directly, so they keep the sleep.
+  static bool MaxFPSByDropping(CameraType type, VideoWriter writer);
+  bool MaxFPSByDropping() const { return MaxFPSByDropping(type, videowriter); }
   // True when the section_length boundary lies between two packet timestamps
   // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
   static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);

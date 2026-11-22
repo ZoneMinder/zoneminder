@@ -24,7 +24,7 @@ use File::Temp qw(tempdir);
 use File::Path qw(make_path);
 use FindBin;
 
-my $repo = $ENV{ZMT_REPO} // "$FindBin::Bin/../..";
+my $repo = $ENV{ZMT_REPO} // $ENV{ZM_TEST_ROOT} // "$FindBin::Bin/../..";
 
 sub write_file {
   my ($path, $content) = @_;

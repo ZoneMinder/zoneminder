@@ -11,6 +11,17 @@ switch ( $_REQUEST['action'] ) {
     $sql = 'SELECT * FROM Tags ORDER BY LastAssignedDate DESC';
     $tags = dbFetchAll($sql);
 
+    // A tag used only on events of monitors this user cannot see is left out, as in gettags.
+    $usedTags = array();
+    $visibleTags = array();
+    foreach (dbFetchAll('SELECT ET.TagId, E.MonitorId FROM Events_Tags AS ET INNER JOIN Events AS E ON E.Id = ET.EventId GROUP BY ET.TagId, E.MonitorId') as $row) {
+      $usedTags[$row['TagId']] = true;
+      if (visibleMonitor($row['MonitorId'])) $visibleTags[$row['TagId']] = true;
+    }
+    $tags = array_values(array_filter($tags, function($tag) use ($usedTags, $visibleTags) {
+      return !isset($usedTags[$tag['Id']]) or isset($visibleTags[$tag['Id']]);
+    }));
+
     // Re-sort so tags THIS user has applied recently come first, ahead of
     // the global "most recently applied by anyone" fallback order. The
     // recency list is stored server-side (User_Preferences), keyed by Tag

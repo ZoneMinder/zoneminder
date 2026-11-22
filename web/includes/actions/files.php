@@ -37,9 +37,9 @@ if ($action == 'delete') {
   $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : ZM_DIR_EVENTS;
   $is_ok_path = false;
   foreach (ZM\Storage::find() as $storage) {
-    $rc = strstr($path, $storage->Path(), true);
-    if ((false !== $rc) and ($rc == '')) {
-      # Must be at the beginning
+    # Must be the Storage path or below it: "/events2" is not below "/events".
+    $base = rtrim($storage->Path(), '/');
+    if ($base !== '' and ($path === $base or strpos($path, $base.'/') === 0)) {
       $is_ok_path = true;
     }
   }

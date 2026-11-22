@@ -1743,7 +1743,7 @@ function runtimeStatus($running=null) {
       $state = '';
   }
 
-  return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
+  return $running ? ($state ? htmlspecialchars($state) : translate('Running')) : translate('Stopped');
 }
 
 function getStatsTableHTML($eid, $fid, $row='') {

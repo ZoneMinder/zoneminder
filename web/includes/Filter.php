@@ -1559,6 +1559,47 @@ class Filter extends ZM_Object {
     return false;
   }
 
+  public function hasAutoAction() {
+    return ($this->AutoDelete() or $this->AutoUnarchive() or $this->AutoArchive() or
+      $this->AutoMove() or $this->AutoCopy() or $this->AutoVideo() or
+      $this->AutoUpload() or $this->AutoEmail() or $this->AutoMessage());
+  }
+
+  // True when every monitor the user may not edit is excluded by the terms: an
+  // AND-ed Monitor term naming only monitors the user can edit.
+  public function limitedToEditableMonitors($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    $restricted = false;
+    foreach (Monitor::find(['Deleted'=>false]) as $m) {
+      if (!$m->canEdit($u)) {
+        $restricted = true;
+        break;
+      }
+    }
+    if (!$restricted) return true;
+
+    $limited = false;
+    foreach ($this->terms() as $i => $term) {
+      if ($i and isset($term['cnj']) and strtolower($term['cnj']) == 'or') return false;
+      if (!isset($term['attr']) or $term['attr'] != 'Monitor') continue;
+      $op = empty($term['op']) ? '=' : $term['op'];
+      if (!in_array($op, ['=', '=[]', 'IN'])) continue;
+      $ids = array_filter(self::decode_multi($term['val'] ?? ''), function($v) { return $v !== '' and $v !== null; });
+      if (!count($ids)) continue;
+      $ok = true;
+      foreach ($ids as $id) {
+        $m = Monitor::find_one(['Id'=>$id]);
+        if (!$m or !$m->canEdit($u)) {
+          $ok = false;
+          break;
+        }
+      }
+      if ($ok) $limited = true;
+    }
+    return $limited;
+  }
+
   public function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;
@@ -1572,6 +1613,10 @@ class Filter extends ZM_Object {
     // equivalent to shell access on the server. Restrict it to System editors,
     // who were already granted access above.
     if ($this->AutoExecute()) return false;
+
+    // zmfilter.pl runs a filter on every monitor, whatever its owner may edit, so
+    // a filter with an action must itself be limited to monitors the owner can edit.
+    if ($this->hasAutoAction() and !$this->limitedToEditableMonitors($u)) return false;
 
     // Users who can edit Events may run filters that change events
     // (move/copy/delete/archive/etc).

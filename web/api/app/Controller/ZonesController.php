@@ -144,7 +144,7 @@ class ZonesController extends AppController {
     if ( $zone ) {
       require_once __DIR__ .'/../../../includes/Monitor.php';
       $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $message = 'Saved';
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
@@ -194,7 +194,7 @@ class ZonesController extends AppController {
         if ($monitorId !== null and $monitorId != $oldMonitorId) $monitorIds[] = $monitorId;
         foreach ($monitorIds as $reloadId) {
           $monitor = new ZM\Monitor($reloadId);
-          if ($monitor->Type() != 'WebSite') $monitor->zmcControl('reload');
+          if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
         }
       } else {
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
@@ -229,7 +229,7 @@ class ZonesController extends AppController {
     $this->requireMonitorEdit($monitorId);
     if ( $this->Zone->delete() ) {
       $monitor = new ZM\Monitor($monitorId);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),

@@ -27,13 +27,13 @@ function test(name, fn) {
   }
 }
 
-// One server rendered row from views/_options_menu.php for a built-in entry
-// without a custom icon.
-function load(defaultIcon) {
+// One server rendered row from views/_options_menu.php for a built-in entry,
+// without a custom icon unless customIcon is given.
+function load(defaultIcon, customIcon) {
   const select = {kind: 'select', value: 'material', data: {'item-id': '1'}};
   const input = {
-    kind: 'input', value: '',
-    attrs: {'placeholder': defaultIcon},
+    kind: 'input', value: customIcon || '',
+    attrs: {'placeholder': customIcon || defaultIcon},
     data: defaultIcon === undefined ? {} : {'default-icon': defaultIcon},
   };
   const preview = {kind: 'preview', html: '<i class="material-icons">' + defaultIcon + '</i>'};
@@ -93,6 +93,10 @@ function load(defaultIcon) {
       select.value = type;
       handlers['change .iconTypeSelect'].call(select);
     },
+    type(name) {
+      input.value = name;
+      handlers['input .iconNameInput'].call(input);
+    },
     preview, input,
   };
 }
@@ -118,6 +122,38 @@ test('a row without a default (a new entry) still falls back to "menu"', () => {
   page.choose('fontawesome');
   page.choose('material');
   assert.strictEqual(page.preview.html, '<i class="material-icons">menu</i>');
+});
+
+// An empty name saves as NULL and MenuItem::effectiveIconType() then renders
+// the default material icon whatever type was chosen (except None).
+test('Font Awesome with no name previews the default icon the navbar shows', () => {
+  const page = load('dashboard');
+  page.choose('fontawesome');
+  assert.strictEqual(page.preview.html, '<i class="material-icons">dashboard</i>');
+});
+
+test('Image with no path previews the default icon the navbar shows', () => {
+  const page = load('event');
+  page.choose('image');
+  assert.strictEqual(page.preview.html, '<i class="material-icons">event</i>');
+});
+
+test('a Font Awesome name or image path still previews as typed', () => {
+  const page = load('dashboard');
+  page.choose('fontawesome');
+  page.type('fa-home');
+  assert.strictEqual(page.preview.html, '<i class="fa fa-home"></i>');
+  page.choose('image');
+  page.type('graphics/menu/x.png');
+  assert.ok(page.preview.html.startsWith('<img src="graphics/menu/x.png"'), page.preview.html);
+  page.choose('none');
+  assert.strictEqual(page.preview.html, '');
+});
+
+test('clearing a custom material icon previews the default, not the old icon', () => {
+  const page = load('dashboard', 'star');
+  page.type('');
+  assert.strictEqual(page.preview.html, '<i class="material-icons">dashboard</i>');
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

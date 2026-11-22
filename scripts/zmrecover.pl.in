@@ -269,7 +269,7 @@ Debug("@Monitors");
             } # event path exists
           } # end foreach event_link
             
-          # Now check for events that have lost their link. We can determine event Id from .mp4
+          # Now check for events that have lost their link. We can determine event Id from the video file
           
           my @time_dirs = glob('[0-9][0-9]/[0-9][0-9]/[0-9][0-9]');
           foreach my $event_dir ( @time_dirs ) {
@@ -286,9 +286,9 @@ Debug("@Monitors");
             Debug('Have ' . @contents . " files in $day_dir/$event_dir");
             closedir(DIR);
 
-            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");

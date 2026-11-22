@@ -263,7 +263,7 @@ my $alarmed = undef;
 while( 1 ) {
   if ( zmIsAlarmed($monitor) ) {
     my ( $alarm_x, $alarm_y ) = zmGetAlarmLocation($monitor);
-    if ( $alarm_x >= 0 && $alarm_y >= 0 ) {
+    if ( defined($alarm_x) && defined($alarm_y) && $alarm_x >= 0 && $alarm_y >= 0 ) {
       Debug("Got alarm at $alarm_x, $alarm_y");
       Suspend($monitor);
       Track($monitor, $alarm_x, $alarm_y);

@@ -2828,7 +2828,7 @@ function handleTouchActionGeneral(action, evt) {
   }
 }
 
-/* Processing any key press*/
+/* Processing any key press */
 function handleKeydownGeneral(evt) {
   const target = evt.target;
   const key = evt.key;
@@ -2846,6 +2846,49 @@ function handleKeydownGeneral(evt) {
       submitThisForm();
     }
   }
+
+  // Handle Left/Right arrow navigation for visible replay controls in zone view
+  if (currentView == 'zone') {
+    if (evt.code === "ArrowRight" || evt.code === "ArrowLeft") {
+      const controls = document.getElementById('replayControls');
+      if (controls && isElementReallyVisible(controls)) {
+        zoneObjectSize_stepReplay(evt.code === "ArrowRight" ? 1 : -1);
+      }
+    }
+  }
+}
+
+//Checks whether an element is visually rendered and at least partially within the viewport.
+function isElementReallyVisible(el) {
+  if (!el) return false;
+
+  // 1. Check CSS visibility (display: none, visibility: hidden, opacity: 0)
+  if (typeof el.checkVisibility === 'function') {
+    if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+      return false;
+    }
+  }
+
+  // 2. Check element dimensions and viewport intersection
+  const rect = el.getBoundingClientRect();
+  
+  // Element has zero width or height
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+
+  // Check if the element is completely outside the viewport
+  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+
+  const isInViewport = (
+    rect.top < windowHeight &&
+    rect.bottom > 0 &&
+    rect.left < windowWidth &&
+    rect.right > 0
+  );
+
+  return isInViewport;
 }
 
 function handleMouseover(evt) {

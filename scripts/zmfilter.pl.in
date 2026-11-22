@@ -381,13 +381,18 @@ sub checkFilterEvent {
   } # end if AutoDelete
 
 
-  if ( $filter->{AutoMove} ) {
+  if ( $filter->{AutoMove} and ($Event->{StorageId}//-1) == $filter->{AutoMoveTo} ) {
+    Debug("Event $Event->{Id} is already in storage area $filter->{AutoMoveTo}, not moving it");
+  } elsif ( $filter->{AutoMove} ) {
     my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
     Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
     $_ = $Event->MoveTo($NewStorage);
     Error($_) if $_;
   }
-  if ( $filter->{AutoCopy} ) {
+  if ( $filter->{AutoCopy} and (($Event->{StorageId}//-1) == $filter->{AutoCopyTo}
+      or ($Event->{SecondaryStorageId}//-1) == $filter->{AutoCopyTo}) ) {
+    Debug("Event $Event->{Id} is already in storage area $filter->{AutoCopyTo}, not copying it");
+  } elsif ( $filter->{AutoCopy} ) {
     # Copy To is different from MoveTo in that it JUST copies the files
     # So we still need to update the Event object with the new SecondaryStorageId
     my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});

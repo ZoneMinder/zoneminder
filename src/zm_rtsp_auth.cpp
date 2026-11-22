@@ -22,14 +22,26 @@
 #include "zm_logger.h"
 #include "zm_utils.h"
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <random>
 #include <utility>
 
 namespace zm {
 
+namespace {
+// A fixed cnonce lets a server or an on-path attacker precompute Digest responses.
+std::string MakeCnonce() {
+  std::random_device rd;
+  char buf[9];
+  snprintf(buf, sizeof(buf), "%08x", static_cast<unsigned int>(rd()));
+  return std::string(buf);
+}
+}  // namespace
+
 Authenticator::Authenticator(const std::string &username, const std::string &password)
   : fAuthMethod(AUTH_UNDEFINED),
-    fCnonce("0a4f113b"),
+    fCnonce(MakeCnonce()),
     fUsername(std::move(username)),
     fPassword(std::move(password)),
     nc(1) {}

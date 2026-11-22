@@ -115,7 +115,9 @@ void StreamBase::updateFrameRate(double fps) {
   if (max_fps > 0.0) {
     // Min frame repeat?
     // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.
-    while ( (int)effective_fps > (int)max_fps ) {
+    // Compare as doubles: casting an infinite or huge maxfps to int is undefined and
+    // wraps to INT_MIN, which never lets this loop finish.
+    while (std::floor(effective_fps) > std::floor(max_fps)) {
       effective_fps /= 2.0;
       frame_mod *= 2;
       Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",

@@ -32,6 +32,7 @@ class LabelMonitor : public Monitor {
     if (!config.timestamp_code_char) config.timestamp_code_char = "%";
     name = "Cam";
   }
+  void SetName(const std::string &n) { name = n; }
 };
 
 SystemTimePoint At(int64_t seconds, int64_t millis) {
@@ -63,4 +64,24 @@ TEST_CASE("Monitor::Substitute keeps a long strftime expansion", "[Monitor][Labe
   for (int i = 0; i < 20; i++) format += "%c ";
   const std::string text = monitor.Substitute(format, At(1000, 0));
   REQUIRE(text.size() > 300);
+}
+
+// %N is expanded before strftime runs (BSD strftime drops the % of unknown
+// conversions), and a % inside the name is not taken as a strftime macro.
+TEST_CASE("Monitor::Substitute expands the name before strftime", "[Monitor][Label]") {
+  LabelMonitor monitor;
+  monitor.SetName("50%Yard");
+  REQUIRE(monitor.Substitute("%N", At(1000, 0)) == "50%Yard");
+  REQUIRE(monitor.Substitute("%%N", At(1000, 0)) == "%N");
+}
+
+TEST_CASE("Monitor::Substitute does not cut a UTF-8 character at the length cap", "[Monitor][Label]") {
+  LabelMonitor monitor;
+  std::string name = "a";
+  for (int i = 0; i < 600; i++) name += "\xc3\xa9";  // e-acute, 2 bytes
+  monitor.SetName(name);
+  const std::string text = monitor.Substitute("%N", At(1000, 0));
+  REQUIRE(text.size() <= 1024);
+  REQUIRE(text.size() == 1023);
+  REQUIRE((static_cast<unsigned char>(text.back()) & 0xC0) == 0x80);
 }

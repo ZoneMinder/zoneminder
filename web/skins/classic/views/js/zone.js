@@ -427,19 +427,24 @@ function constrainValue(value, loVal, hiVal) {
   return value;
 }
 
-function updateActivePoint(index) {
+function clampDragPosition(position, frameW, frameH) {
+  position.left = constrainValue(position.left, 0, frameW);
+  position.top = constrainValue(position.top, 0, frameH);
+}
+
+function updateActivePoint(index, position) {
   const point = $j('#point'+index);
   if (!point.length) return;
   const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   const frameW = imageFeed.clientWidth;
   const frameH = imageFeed.clientHeight;
 
-  let point_left = parseInt(point.css('left'), 10);
+  let point_left = (position && typeof position === 'object') ? position.left : parseInt(point.css('left'), 10);
   if ( point_left < 0 ) {
     point.css('left', '0px');
     point_left = 0;
   }
-  let point_top = parseInt(point.css('top'));
+  let point_top = (position && typeof position === 'object') ? position.top : parseInt(point.css('top'));
   if ( point_top < 0 ) {
     point.css('top', '0px');
     point_top = 0;
@@ -633,10 +638,12 @@ function drawZonePoints() {
     $j(imageFeed).append(div);
 
     div.draggable({
-      'containment': imageFeed,
       'start': setActivePoint.bind(i, i),
       'stop': fixActivePoint.bind(i, i),
-      'drag': updateActivePoint.bind(i, i)
+      'drag': function(event, ui) {
+        clampDragPosition(ui.position, imageFeed.clientWidth, imageFeed.clientHeight);
+        updateActivePoint(i, ui.position);
+      }
     });
   }); // end $j.each point
 

@@ -20,7 +20,7 @@ if ( $cid ) {
     'Id' => 0,
     'DatasetId' => null,
     'ClassName' => '',
-    'ClassIndex' => 0,
+    'ClassIndex' => '',
     'Description' => '',
     'Aliases' => ''
   );
@@ -65,7 +65,7 @@ if ($result) {
               </tr>
               <tr class="ClassIndex">
                 <th scope="row"><?php echo translate('Class Index') ?></th>
-                <td><input type="number" name="newClass[ClassIndex]" value="<?php echo validCardinal($class['ClassIndex']) ?>" step="1" min="0" required/></td>
+                <td><input type="number" name="newClass[ClassIndex]" value="<?php echo $cid ? validCardinal($class['ClassIndex']) : '' ?>" step="1" min="0"<?php echo $cid ? ' required' : ' placeholder="'.translate('NextFreeIndex').'"' ?>/></td>
               </tr>
               <tr class="Description">
                 <th scope="row"><?php echo translate('Description') ?></th>

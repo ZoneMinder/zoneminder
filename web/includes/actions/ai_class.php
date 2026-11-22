@@ -31,10 +31,28 @@ if ($action == 'save') {
     $dbClass = dbFetchOne('SELECT * FROM AI_Object_Classes WHERE Id=?', NULL, [$_REQUEST['id']]);
   } else {
     $dbClass = array();
+    // A new class left without an index gets the next one in its dataset.
+    if (!isset($_REQUEST['newClass']['ClassIndex']) or $_REQUEST['newClass']['ClassIndex'] === '') {
+      $_REQUEST['newClass']['ClassIndex'] = dbFetchOne(
+        'SELECT COALESCE(MAX(ClassIndex)+1, 0) AS NextIndex FROM AI_Object_Classes WHERE DatasetId=?',
+        'NextIndex', [validCardinal($_REQUEST['newClass']['DatasetId'] ?? 0)]);
+    }
+  }
+
+  // An index is the number a dataset's model gives one class, so two classes
+  // of a dataset can't share it.
+  $taken = dbFetchOne('SELECT ClassName FROM AI_Object_Classes WHERE DatasetId=? AND ClassIndex=? AND Id!=?',
+    'ClassName', [
+      (int)validCardinal($_REQUEST['newClass']['DatasetId'] ?? 0),
+      (int)validCardinal($_REQUEST['newClass']['ClassIndex']),
+      (int)validCardinal($_REQUEST['id'] ?? 0)]);
+  if ($taken !== false) {
+    $error_message .= sprintf(translate('ClassIndexInUse'), validHtmlStr($_REQUEST['newClass']['ClassIndex']),
+      validHtmlStr($taken)).'<br/>';
   }
 
   $types = array();
-  $changes = getFormChanges($dbClass, $_REQUEST['newClass'], $types);
+  $changes = $error_message ? array() : getFormChanges($dbClass, $_REQUEST['newClass'], $types);
 
   if (count($changes)) {
     if (!empty($_REQUEST['id'])) {

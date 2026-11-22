@@ -116,6 +116,11 @@ while (1) {
       sleep($interval);
     }
   }
+  # The setting can be turned off in the web UI while this daemon is running
+  if (!telemetryEnabled($dbh, $force)) {
+    print("ZoneMinder Telemetry Agent disabled.  Exiting.\n");
+    exit(0);
+  }
   my $now = time();
   my $since_last_check = $now - $lastCheck;
   Debug("Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
@@ -150,6 +155,14 @@ exit(0);
 ###############
 # SUBROUTINES #
 ###############
+
+# Whether ZM_TELEMETRY_DATA is still on in the database
+sub telemetryEnabled {
+  my ($dbh, $force) = @_;
+  return 1 if $force;
+  my ($value) = $dbh->selectrow_array('SELECT `Value` FROM `Config` WHERE `Name` = ?', undef, 'ZM_TELEMETRY_DATA');
+  return $value ? 1 : 0;
+}
 
 # collect data to send
 sub collectData {

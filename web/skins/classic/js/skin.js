@@ -2864,14 +2864,14 @@ function isElementReallyVisible(el) {
 
   // 1. Check CSS visibility (display: none, visibility: hidden, opacity: 0)
   if (typeof el.checkVisibility === 'function') {
-    if (!el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+    if (!el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) {
       return false;
     }
   }
 
   // 2. Check element dimensions and viewport intersection
   const rect = el.getBoundingClientRect();
-  
+
   // Element has zero width or height
   if (rect.width === 0 || rect.height === 0) {
     return false;

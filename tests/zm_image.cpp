@@ -842,3 +842,38 @@ TEST_CASE("Image::Blend YUV420P blends only luma", "[image]") {
       REQUIRE(p.data[2][y * p.stride[2] + x] == 0x44);
     }
 }
+
+// A fill box that reaches past the image is cut to the image. It used to write past the end of
+// the row, which with no row padding lands on the start of the next row.
+TEST_CASE("Image::Fill with a box past the right edge stays inside the image", "[image]") {
+  bootstrap_image_config();
+  for (int density : {1, 2}) {
+    Image image(8, 8, 8, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    REQUIRE(image.LineSize() == 8u);
+    memset(image.Buffer(), 0, image.Size());
+    Box limits(Vector2(2, 2), Vector2(20, 3));
+    if (density == 1) {
+      image.Fill(0xFF, &limits);
+    } else {
+      image.Fill(0xFF, density, &limits);
+    }
+    REQUIRE(*image.Buffer(7, 2) == 0xFF);
+    REQUIRE(*image.Buffer(2, 3) == 0xFF);
+    // Outside the box: the left of rows 3 and 4, and the rows below the box.
+    REQUIRE(*image.Buffer(0, 3) == 0);
+    REQUIRE(*image.Buffer(1, 3) == 0);
+    REQUIRE(*image.Buffer(0, 4) == 0);
+    REQUIRE(*image.Buffer(4, 4) == 0);
+  }
+}
+
+TEST_CASE("Image::Fill with a box wholly outside the image changes nothing", "[image]") {
+  bootstrap_image_config();
+  Image image(8, 8, 8, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  memset(image.Buffer(), 0, image.Size());
+  Box limits(Vector2(10, 2), Vector2(12, 3));
+  image.Fill(0xFF, &limits);
+  for (unsigned int i = 0; i < image.Size(); i++) {
+    REQUIRE(image.Buffer()[i] == 0);
+  }
+}

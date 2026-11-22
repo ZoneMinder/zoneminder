@@ -66,6 +66,10 @@ check('renders interface, dhcp-range, dhcp-option, dhcp-host and enabled flags i
 check('renders a value-less option without a trailing "="',
   dnsmasqConfText(['interface' => '']) === 'interface'.PHP_EOL);
 
+check('rejects conf-script (runs a program at start)',
+  dnsmasqConfText(['conf-script' => '/tmp/x.sh']) === false);
+check('rejects dumpfile (writes any path)',
+  dnsmasqConfText(['dumpfile' => '/tmp/x.pcap']) === false);
 check('rejects dhcp-script',
   dnsmasqConfText(['dhcp-script' => '/tmp/x.sh']) === false);
 

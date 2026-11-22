@@ -2708,7 +2708,7 @@ function findVideoEventFile ($Event, $ext="*") {
 function dnsmasqConfText($config) {
   if (!is_array($config)) return false;
   $denied = [
-    'dhcp-script', 'dhcp-luascript', 'conf-file', 'conf-dir', 'servers-file', 'addn-hosts',
+    'dhcp-script', 'conf-script', 'dumpfile', 'dhcp-luascript', 'conf-file', 'conf-dir', 'servers-file', 'addn-hosts',
     'hostsdir', 'dhcp-hostsfile', 'dhcp-optsfile', 'dhcp-hostsdir', 'dhcp-optsdir', 'dhcp-leasefile',
     'user', 'group', 'pid-file', 'log-facility', 'tftp-root',
   ];

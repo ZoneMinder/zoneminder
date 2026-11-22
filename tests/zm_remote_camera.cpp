@@ -18,6 +18,8 @@
 #include "zm_catch2.h"
 
 #include "zm_regexp.h"
+#include "zm_image.h"
+#include "zm_packet.h"
 #include "zm_remote_camera.h"
 #include "zm_remote_camera_http.h"
 #include "zm_signal.h"
@@ -27,7 +29,10 @@
 #include <unistd.h>
 #include <atomic>
 #include <chrono>
+#include <memory>
+#include <string>
 #include <thread>
+#include <vector>
 #include <cstring>
 
 TEST_CASE("SplitUserInfo") {
@@ -175,7 +180,50 @@ int HttpResponseFor(const std::string &reply, bool &watchdog_fired) {
   return result;
 }
 
+// An HTTP reply carrying a w x h JPEG.
+std::string JpegReply(unsigned int w, unsigned int h) {
+  Image source(w, h, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  source.Fill(0x00808080);
+  std::vector<JOCTET> jpeg(1 << 20);
+  size_t jpeg_size = 0;
+  REQUIRE(source.EncodeJpeg(jpeg.data(), &jpeg_size));
+  std::string reply = "HTTP/1.0 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: " +
+                      std::to_string(jpeg_size) + "\r\n\r\n";
+  reply.append(reinterpret_cast<const char *>(jpeg.data()), jpeg_size);
+  return reply;
+}
+
+// Capture() result for a 4x4 monitor served the reply.
+int HttpCaptureFor(const std::string &reply) {
+  config.http_timeout = 300;
+  config.watch_max_delay = 1;
+  config.http_version = "1.0";
+  config.http_ua = "test";
+  OneShotServer server(reply);
+  RemoteCameraHttp camera(nullptr, "simple", "127.0.0.1", server.Port(), "/", "", "",
+                          4, 4, 3, 0, 0, 0, 0, false, false);
+  camera.Initialise();
+  REQUIRE(camera.Connect() >= 0);
+  REQUIRE(camera.SendRequest() == 0);
+  std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
+  int result = camera.Capture(packet);
+  camera.Disconnect();
+  return result;
+}
+
 }  // namespace
+
+TEST_CASE("HTTP camera: a JPEG of a different size than the monitor is refused", "[RemoteCamera]") {
+  SECTION("same size is accepted") {
+    REQUIRE(HttpCaptureFor(JpegReply(4, 4)) == 1);
+  }
+  SECTION("larger than the monitor") {
+    REQUIRE(HttpCaptureFor(JpegReply(8, 8)) < 0);
+  }
+  SECTION("smaller than the monitor") {
+    REQUIRE(HttpCaptureFor(JpegReply(2, 2)) < 0);
+  }
+}
 
 TEST_CASE("HTTP camera: an empty single image body is an error, not an endless read", "[RemoteCamera]") {
   bool watchdog_fired = false;

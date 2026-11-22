@@ -367,6 +367,8 @@ sub checkFilterEvent {
   if ( $filter->{AutoExecute} ) {
     if ( !$Event->{Executed} ) {
       $delete_ok = undef if !executeCommand($filter, $Event);
+      # load() drops the Id of a deleted event, and a later save would insert it again
+      return if !$Event->{Id};
     }
   }
   if ( $filter->{AutoDelete} ) {
@@ -1038,7 +1040,9 @@ sub sendEmail {
 
   Debug("Sending notification email '$subject'");
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
-    $event->save({Emailed=>1});
+    # Not save(): zmc or the web ui may have changed the event since it was loaded
+    zmDbExecute('UPDATE `Events` SET `Emailed`=1 WHERE `Id`=?', $event->{Id});
+    $event->{Emailed} = 1;
     return 1;
   } else {
     Warning("Failed to send the email");
@@ -1383,9 +1387,8 @@ sub executeCommand {
     Error("Command '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     return 0;
   } else {
-    $Event->load(); # the command may have altered the database
-    $_ = $Event->save({Executed=>1});
-    Error($_) if $_;
+    zmDbExecute('UPDATE `Events` SET `Executed`=1 WHERE `Id`=?', $Event->{Id});
+    $Event->load(); # the command may have altered or deleted the event
   }
   return 1;
 }

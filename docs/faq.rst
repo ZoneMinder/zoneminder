@@ -394,7 +394,7 @@ To save a run state you should first configure your monitors for Modect, Record,
 
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
-The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <https://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
+The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <https://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at 8am and to the nighttime state at 8pm would be as follows,
 
 ::
 

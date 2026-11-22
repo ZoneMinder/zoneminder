@@ -766,6 +766,10 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   if (*it == pktQueue.end()) {
     // Should never be able to happen.
     *it = pktQueue.begin();
+    if (*it == pktQueue.end()) {
+      // The queue was cleared (Monitor::Pause) since the snapshot, so there is no packet to start on.
+      return it;
+    }
   }
  
   std::shared_ptr<ZMPacket> packet = *(*it);

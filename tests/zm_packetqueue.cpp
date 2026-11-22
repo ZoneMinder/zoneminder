@@ -141,6 +141,27 @@ TEST_CASE("PacketQueue: free_it unregisters an event start iterator") {
   queue.clear();
 }
 
+TEST_CASE("PacketQueue: an event start iterator on an emptied queue stays at the end") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setKeepKeyframes(false);
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(2);
+
+  // On an empty queue the video iterator is at end(), like one taken before the queue was cleared.
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  REQUIRE(analysis_it != nullptr);
+
+  packetqueue_iterator *start_it = queue.get_event_start_packet_it(*analysis_it, 10);
+  REQUIRE(start_it != nullptr);
+  REQUIRE(*start_it == *analysis_it);
+
+  queue.free_it(start_it);
+  queue.free_it(analysis_it);
+  queue.stop();
+  queue.clear();
+}
+
 // releaseDecoded() frees the decoded data of packets before the earliest point
 // an event could start, computed with the current pre-event window. A RELOAD
 // (zmu --reload) can widen that window without clearing the queue; the next

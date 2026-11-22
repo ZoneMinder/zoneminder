@@ -55,6 +55,11 @@ if ($action == 'Save') {
         return;
       }
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
+    } else if (!$uid) {
+      # A new user needs a password: without one the row keeps the column default, an empty password.
+      $error_message .= passwordProblemText('NewPasswordRequired').'<br/>';
+      unset($_REQUEST['redirect']);
+      return;
     } else {
       unset($_REQUEST['user']['Password']);
     }

@@ -110,7 +110,7 @@ ONVIFTagNames SeedTagNames() {
   ONVIFAddTagNames(names, "person", "People,PeopleDetect,Human,HumanShapeDetect");
   ONVIFAddTagNames(names, "car", "");
   ONVIFAddTagNames(names, "vehicle", "VehicleDetect");
-  ONVIFAddTagNames(names, "animal", "Pet,DogCat,DogCatDetect");
+  ONVIFAddTagNames(names, "animal", "Pet,DogCatDetect");
   ONVIFAddTagNames(names, "package", "PackageDeliver,PackagePickup");
   ONVIFAddTagNames(names, "face", "FaceDetect");
   ONVIFAddTagNames(names, "doorbell", "Visitor");
@@ -177,6 +177,10 @@ TEST_CASE("ONVIFEventTags", "[onvif]") {
     REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Human Vehicle"}}, names)
             == Tags{"person", "vehicle"});
     REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "ANIMAL"}}, names) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Human, Vehicle"}}, names)
+            == Tags{"person", "vehicle"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", ",Human,,Vehicle,"}}, names)
+            == Tags{"person", "vehicle"});
   }
 
   SECTION("Each tag once") {

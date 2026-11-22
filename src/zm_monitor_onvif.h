@@ -133,9 +133,9 @@ void ONVIFAddTagNames(ONVIFTagNames &names, const std::string &class_name, const
 
 // The event tags for an ONVIF alarm: the objects it names, wherever the camera
 // put them (the topic as Reolink PeopleDetect, an active item name without its
-// "Is" as Tapo IsPeople, or a class in an item value as Ajax
-// ClassTypes="Human Vehicle"), as the object classes names gives them, so they
-// match the tags object detection sets. An alarm that names no known object
+// "Is" as Tapo IsPeople, or classes in an item value, split on spaces and
+// commas, as Ajax ClassTypes="Human Vehicle"), as the object classes names
+// gives them, so they match the tags object detection sets. An alarm that names no known object
 // (motion, tamper, an unknown detector) is tagged with the last topic segment.
 std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items,
                                         const ONVIFTagNames &names);

@@ -280,7 +280,7 @@ std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vec
     if (active) {
       words.push_back(is_flag_name(item.name) ? item.name.substr(2) : item.name);
     } else {
-      for (const std::string &word : Split(value, ' ')) words.push_back(word);
+      for (const std::string &word : Split(value, " ,")) words.push_back(word);
     }
   }
   if (!segments.empty()) words.push_back(segments.back());

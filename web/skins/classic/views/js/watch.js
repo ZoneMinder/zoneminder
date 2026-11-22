@@ -687,6 +687,8 @@ function changeControl(e) {
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
+            // zmu printed nothing, so nothing was applied; keep the slider where it is
+            if (control.value === '') return;
             const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             if (element.length) {
               element.val(control.value);

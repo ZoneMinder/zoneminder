@@ -121,6 +121,13 @@ struct ONVIFEventItem {
 // this are at its definition.
 std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
                            const std::string &rule);
+
+// The event tags for an ONVIF alarm: the objects it names, wherever the camera
+// put them (see ONVIFEventNote), as common names -- PeopleDetect, IsPeople and
+// Human all give "person" -- so they match the tags object detection sets.
+// An alarm that names no known object (motion, tamper, an unknown detector) is
+// tagged with the last topic segment instead. The names are at its definition.
+std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items);
 #endif
 
 // Forward declaration
@@ -175,8 +182,10 @@ class ONVIF {
   void setHealthy(bool p_healthy);
 #ifdef WITH_GSOAP
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); }
+  void setTags(Event::StringSet &tagSet) { SetTagSet(tagSet); }
 #else
   void setNotes(Event::StringSet &) {}  // No-op without GSOAP
+  void setTags(Event::StringSet &) {}   // No-op without GSOAP
 #endif
 
  protected:
@@ -230,12 +239,14 @@ class ONVIF {
     SystemTimePoint termination_time;
     SystemTimePoint started;  // when the topic went active; kept across re-triggers
     std::string note;         // ONVIFEventNote() of the message that raised it
+    std::vector<std::string> tags;  // ONVIFEventTags() of that message
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
-  // The note of the most recent activation, kept so SetNoteSet can still name
-  // the cause of a momentary pulse that has already been erased from `alarms`
+  // The note and tags of the most recent activation, kept so SetNoteSet and
+  // SetTagSet can still name the cause of a momentary pulse that has already been erased from `alarms`
   // by the time the analysis thread samples it (refs #5301).
   std::string last_alarm_note_;
+  std::vector<std::string> last_alarm_tags_;
   bool expire_alarms_enabled;
   int max_alarm_duration_seconds;  // 0 = no limit
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
@@ -253,6 +264,7 @@ class ONVIF {
   void ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesResponse);
   void ClearAlarms();
   void SetNoteSet(Event::StringSet &noteSet);
+  void SetTagSet(Event::StringSet &tagSet);
   void enable_soap_logging(const std::string &log_path);
   void disable_soap_logging();
   void cleanup_subscription();

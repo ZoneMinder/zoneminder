@@ -102,6 +102,58 @@ TEST_CASE("ONVIFEventNote", "[onvif]") {
   }
 }
 
+TEST_CASE("ONVIFEventTags", "[onvif]") {
+  using Tags = std::vector<std::string>;
+
+  SECTION("Object in the topic") {
+    // Reolink
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"State", "true"}}) == Tags{"person"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/VehicleDetect", {{"State", "true"}}) == Tags{"vehicle"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/DogCatDetect", {{"State", "true"}}) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/FaceDetect", {{"State", "true"}}) == Tags{"face"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Package", {{"State", "true"}}) == Tags{"package"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Visitor", {{"State", "true"}}) == Tags{"doorbell"});
+    REQUIRE(ONVIFEventTags("tns1:UserAlarm/IVA/HumanShapeDetect", {{"State", "true"}}) == Tags{"person"});
+  }
+
+  SECTION("Object in an active item name, without its Is") {
+    // Tapo
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPeople", "true"}})
+            == Tags{"person"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent",
+                           {{"IsVehicle", "false"}, {"IsPet", "true"}}) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPackageDeliver", "true"}})
+            == Tags{"package"});
+  }
+
+  SECTION("Objects in an item value, any case") {
+    // Ajax / Profile M
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Human Vehicle"}})
+            == Tags{"person", "vehicle"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "ANIMAL"}}) == Tags{"animal"});
+  }
+
+  SECTION("Each tag once") {
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"ClassTypes", "Human"}})
+            == Tags{"person"});
+  }
+
+  SECTION("No object named: the last topic segment") {
+    REQUIRE(ONVIFEventTags("tns1:VideoSource/MotionAlarm", {{"State", "true"}}) == Tags{"MotionAlarm"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/CellMotionDetector/Motion", {{"IsMotion", "true"}}) == Tags{"Motion"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsLineCross", "true"}})
+            == Tags{"TPSmartEvent"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/LineDetector/Crossed", {{"ObjectId", "4"}}) == Tags{"Crossed"});
+    // "Is" is only a prefix before a capital
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/Foo/Bar", {{"Island", "true"}}) == Tags{"Bar"});
+  }
+
+  SECTION("Nothing to tag") {
+    REQUIRE(ONVIFEventTags("", {}).empty());
+    REQUIRE(ONVIFEventTags("///", {{"State", "true"}}).empty());
+  }
+}
+
 TEST_CASE("ONVIF interpret_alarm_value", "[onvif]") {
   // The alarm state decision these words now share with the event note; it
   // must not have changed.
@@ -161,6 +213,7 @@ TEST_CASE("ONVIF parse_event_message keeps every Data item and the Rule", "[onvi
     REQUIRE(rule == "MyTPSmartEventDetectorRule");
     REQUIRE(ONVIFEventNote(topic, items, rule)
             == "TPSmartEventDetector/TPSmartEvent IsPeople (MyTPSmartEventDetectorRule)");
+    REQUIRE(ONVIFEventTags(topic, items) == std::vector<std::string>{"person"});
   }
 
   SECTION("The alarm value is still the first state item, all items reach the note") {

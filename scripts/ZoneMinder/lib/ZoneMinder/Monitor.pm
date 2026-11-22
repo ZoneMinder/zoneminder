@@ -79,6 +79,7 @@ $serial = $primary_key = 'Id';
   ONVIF_Password
   ONVIF_Options
   ONVIF_Event_Listener
+  ONVIF_Event_Tags
   ONVIF_Alarm_Text
   use_Amcrest_API
   Device
@@ -204,6 +205,7 @@ $fields{model} = undef;
     ONVIF_Password => q`''`,
     ONVIF_Options => q`''`,
     ONVIF_Event_Listener => 0,
+    ONVIF_Event_Tags => 0,
     ONVIF_Alarm_Text => q`'MotionAlarm'`,
     use_Amcrest_API => 0,
     Device  =>  '',

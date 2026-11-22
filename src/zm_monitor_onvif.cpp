@@ -24,6 +24,7 @@
 #include "zm_utils.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -174,24 +175,37 @@ static const char* get_local_name(const char* name) {
   return colon ? colon + 1 : name;
 }
 
-// The vocabulary that alarm state and event notes are decided from, all lower
-// case. A camera with other words is handled by adding them here, not by a
-// per-vendor code path.
+// The vocabulary that alarm state, event notes and event tags are decided from,
+// all lower case. A camera with other words is handled by adding them here, not
+// by a per-vendor code path.
 namespace {
   // Values that say an alarm or item is inactive. "0", "00", ... also do.
   const char *const ONVIF_INACTIVE_VALUES[] = {"false", "inactive", "off", "no", "idle", "normal", "closed"};
-  // Item values that say the item is active, so the note names it without them.
-  const char *const ONVIF_NOTE_ACTIVE_VALUES[] = {"true", "active", "on", "yes"};
-  // Item names that only say the topic is active (ONVIF Core spec), left out of
-  // the note when they do. "1" counts as active for these (State=1).
-  const char *const ONVIF_NOTE_STATE_NAMES[] = {"state", "logicalstate"};
+  // Item values that say the item is active, so its name says it all.
+  const char *const ONVIF_ACTIVE_VALUES[] = {"true", "active", "on", "yes"};
+  // Item names that only say the topic is active (ONVIF Core spec), ignored
+  // when they do. "1" counts as active for these (State=1).
+  const char *const ONVIF_STATE_NAMES[] = {"state", "logicalstate"};
   // Item names whose value changes per object rather than per detection; as
   // event notes only accumulate, they would add a note for every object.
-  const char *const ONVIF_NOTE_ID_NAMES[] = {"objectid"};
+  const char *const ONVIF_ID_NAMES[] = {"objectid"};
   // Topic roots left off the front of the note: the root of every analytics
   // topic, which leaves at least the detector and event names after it.
   const char *const ONVIF_NOTE_DROPPED_ROOTS[] = {"ruleengine"};
-  const char *const ONVIF_NOTE_WHITESPACE = " \t\r\n";
+  // What cameras call an object, from the topic (Reolink PeopleDetect), an
+  // active item name without its "Is" (Tapo IsPeople) or a class in an item
+  // value (Ajax ClassTypes="Human Vehicle"), and the tag it becomes, so a tag
+  // means the same thing whichever camera, or zm_detect, set it.
+  const std::pair<const char *, const char *> ONVIF_TAG_NAMES[] = {
+    {"person", "person"}, {"people", "person"}, {"peopledetect", "person"},
+    {"human", "person"}, {"humanshapedetect", "person"},
+    {"vehicle", "vehicle"}, {"vehicledetect", "vehicle"}, {"car", "vehicle"},
+    {"animal", "animal"}, {"pet", "animal"}, {"dogcat", "animal"}, {"dogcatdetect", "animal"},
+    {"package", "package"}, {"packagedeliver", "package"}, {"packagepickup", "package"},
+    {"face", "face"}, {"facedetect", "face"},
+    {"visitor", "doorbell"},
+  };
+  const char *const ONVIF_WHITESPACE = " \t\r\n";
 
   template <size_t N>
   bool list_has(const char *const (&list)[N], const std::string &lower) {
@@ -202,28 +216,49 @@ namespace {
     if (list_has(ONVIF_INACTIVE_VALUES, StringToLower(value))) return true;
     return !value.empty() && value.find_first_not_of('0') == std::string::npos;
   }
+
+  // The topic's segments, without namespace prefixes, whitespace or empties.
+  StringVector topic_segments(const std::string &topic) {
+    StringVector segments;
+    for (const std::string &raw : Split(topic, '/')) {
+      std::string segment = get_local_name(Trim(raw, ONVIF_WHITESPACE).c_str());
+      if (!segment.empty()) segments.push_back(segment);
+    }
+    return segments;
+  }
+
+  // Whether item says more than that the topic is active. If it does, value is
+  // its trimmed value and active whether that is an active word, so the item
+  // name carries the meaning.
+  bool item_is_telling(const ONVIFEventItem &item, std::string &value, bool &active) {
+    value = Trim(item.value, ONVIF_WHITESPACE);
+    const std::string lower_name = StringToLower(item.name);
+    if (value.empty() || value_is_inactive(value) || list_has(ONVIF_ID_NAMES, lower_name)) return false;
+    const std::string lower_value = StringToLower(value);
+    active = list_has(ONVIF_ACTIVE_VALUES, lower_value);
+    return !(list_has(ONVIF_STATE_NAMES, lower_name) && (active || lower_value == "1"));
+  }
+
+  const char *tag_for(const std::string &word) {
+    const std::string lower = StringToLower(word);
+    for (const auto &[camera_name, tag] : ONVIF_TAG_NAMES)
+      if (lower == camera_name) return tag;
+    return nullptr;
+  }
 }  // namespace
 
 std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
                            const std::string &rule) {
-  StringVector segments;
-  for (const std::string &raw : Split(topic, '/')) {
-    std::string segment = get_local_name(Trim(raw, ONVIF_NOTE_WHITESPACE).c_str());
-    if (!segment.empty()) segments.push_back(segment);
-  }
+  StringVector segments = topic_segments(topic);
   if (segments.size() > 1 && list_has(ONVIF_NOTE_DROPPED_ROOTS, StringToLower(segments.front())))
     segments.erase(segments.begin());
 
   std::string note = Join(segments, "/");
-  if (note.empty()) note = Trim(topic, ONVIF_NOTE_WHITESPACE);  // nothing left to tidy
+  if (note.empty()) note = Trim(topic, ONVIF_WHITESPACE);  // nothing left to tidy
   for (const ONVIFEventItem &item : items) {
-    const std::string value = Trim(item.value, ONVIF_NOTE_WHITESPACE);
-    const std::string lower_name = StringToLower(item.name);
-    if (value.empty() || value_is_inactive(value) || list_has(ONVIF_NOTE_ID_NAMES, lower_name)) continue;
-    const std::string lower_value = StringToLower(value);
-    bool active = list_has(ONVIF_NOTE_ACTIVE_VALUES, lower_value);
-    if (list_has(ONVIF_NOTE_STATE_NAMES, lower_name) && (active || lower_value == "1")) continue;
-
+    std::string value;
+    bool active = false;
+    if (!item_is_telling(item, value, active)) continue;
     if (item.name.empty()) {
       if (!active) note += " " + value;
     } else {
@@ -232,6 +267,31 @@ std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEven
   }
   if (!rule.empty()) note += " (" + rule + ")";
   return note;
+}
+
+std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items) {
+  const StringVector segments = topic_segments(topic);
+  StringVector words;
+  for (const ONVIFEventItem &item : items) {
+    std::string value;
+    bool active = false;
+    if (!item_is_telling(item, value, active)) continue;
+    if (active) {
+      bool is_prefixed = item.name.size() > 2 && item.name.compare(0, 2, "Is") == 0 && std::isupper(static_cast<unsigned char>(item.name[2]));
+      words.push_back(is_prefixed ? item.name.substr(2) : item.name);
+    } else {
+      for (const std::string &word : Split(value, ' ')) words.push_back(word);
+    }
+  }
+  if (!segments.empty()) words.push_back(segments.back());
+
+  std::vector<std::string> tags;
+  for (const std::string &word : words) {
+    const char *tag = tag_for(word);
+    if (tag && std::find(tags.begin(), tags.end(), tag) == tags.end()) tags.push_back(tag);
+  }
+  if (tags.empty() && !segments.empty()) tags.push_back(segments.back());  // no object named
+  return tags;
 }
 
 ONVIF::ONVIF(Monitor *parent_) :
@@ -784,10 +844,11 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
 
     // Alarm entry for a topic going or staying active. Keeps the original start
     // time across re-triggers so max_alarm_duration counts from the first one.
-    auto alarm_entry = [&](const std::string &topic, const std::string &value, const std::string &note) -> AlarmEntry {
+    auto alarm_entry = [&](const std::string &topic, const std::string &value, const std::string &note,
+                           const std::vector<std::string> &tags) -> AlarmEntry {
       auto it = alarms.find(topic);
       SystemTimePoint started = (it != alarms.end()) ? it->second.started : std::chrono::system_clock::now();
-      return AlarmEntry{value, alarm_termination(topic), started, note};
+      return AlarmEntry{value, alarm_termination(topic), started, note, tags};
     };
 
     // Note: We do NOT clear alarms on empty PullMessages response.
@@ -828,6 +889,7 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
                                          [&](const ONVIFEventItem &item) { return item.value == value; }))
         items.push_back({"", value});
       const std::string note = ONVIFEventNote(topic, items, rule);
+      const std::vector<std::string> tags = ONVIFEventTags(topic, items);
 
       Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
            msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
@@ -871,8 +933,9 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
         if (state_is_active && alarms.count(last_topic) == 0) {
           // Camera reports an existing alarm we didn't know about
           Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
-          alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+          alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
           last_alarm_note_ = note;
+          last_alarm_tags_ = tags;
           if (!alarm_.active()) {
             setAlarmed(true);
             Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
@@ -912,16 +975,18 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
           // Alarm turned on
           Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
           if (alarms.count(last_topic) == 0) {
-            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
+            last_alarm_tags_ = tags;
             if (!alarm_.active()) {
               Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
               setAlarmed(true);
             }
           } else {
             // Update existing alarm value and refresh termination time
-            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
+          last_alarm_tags_ = tags;
           }
         }
       } else {
@@ -938,14 +1003,16 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
           }
         } else {
           if (alarms.count(last_topic) == 0) {
-            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
+            last_alarm_tags_ = tags;
             if (!alarm_.active()) {
               setAlarmed(true);
             }
           } else {
-            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note, tags);
             last_alarm_note_ = note;
+          last_alarm_tags_ = tags;
           }
         }
       }
@@ -1966,6 +2033,19 @@ void ONVIF::expire_stale_alarms(const SystemTimePoint &now) {
   }
   if (alarms.empty()) {
     setAlarmed(false);
+  }
+}
+
+// The tags of the active alarms, or of the last activation for a momentary
+// pulse that has already cleared, as SetNoteSet does for notes.
+void ONVIF::SetTagSet(Event::StringSet &tagSet) {
+  std::unique_lock<std::mutex> lck(alarms_mutex);
+  if (alarms.empty()) {
+    tagSet.insert(last_alarm_tags_.begin(), last_alarm_tags_.end());
+    return;
+  }
+  for (const auto &[topic, entry] : alarms) {
+    tagSet.insert(entry.tags.begin(), entry.tags.end());
   }
 }
 

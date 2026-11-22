@@ -257,6 +257,7 @@ class Monitor extends ZM_Object {
     'ONVIF_Options'   =>  '',
     'ONVIF_Alarm_Text'   =>  'MotionAlarm',
     'ONVIF_Event_Listener'  =>  '0',
+    'ONVIF_Event_Tags'  =>  array('type'=>'boolean', 'default'=>0),
     'use_Amcrest_API'  =>  '0',
     'Device'  =>  '',
     'Channel' =>  0,

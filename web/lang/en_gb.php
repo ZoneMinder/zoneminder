@@ -635,6 +635,7 @@ $SLANG = array(
     'ONVIF'                 => 'ONVIF',
     'ONVIF_Alarm_Text'      => 'ONVIF Alarm Text',
     'ONVIF_Event_Listener'  => 'ONVIF Event Listener',
+    'ONVIF_Event_Tags'      => 'Tag Events From ONVIF',
     'ONVIF_EVENTS_PATH'     => 'ONVIF Events Path',
     'ONVIF_Options'         => 'ONVIF Options',
     'ONVIF_URL'             => 'ONVIF URL',
@@ -1400,6 +1401,15 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
      <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
      help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
+   'OPTIONS_ONVIF_Event_Tags' => array(
+    'Help' => '
+     Tag events raised by the ONVIF event listener with what the camera detected.~~
+     Object detections from the camera become the same tags object detection uses:
+     person, vehicle, animal, package, face, and doorbell for a doorbell press.~~
+     An alarm that names no object, such as plain motion or tampering, is tagged with
+     the name of its topic, for example MotionAlarm.
     '
    ),
    'OPTIONS_ONVIF_Alarm_Text' => array(

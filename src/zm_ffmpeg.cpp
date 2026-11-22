@@ -24,6 +24,7 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cerrno>
 #include <climits>
@@ -516,7 +517,11 @@ static std::string zm_filter_file_option(const std::string &key, const std::stri
       size_t end = value.find(':', pos);
       if (end == std::string::npos) end = value.size();
       const std::string item = value.substr(pos, end - pos);
-      const std::string name = item.substr(0, item.find('='));
+      // libx264 and libx265 read '_' as '-' and x265 also drops a leading "--",
+      // so compare the name in the form the library will use.
+      std::string name = item.substr(0, item.find('='));
+      if (name.compare(0, 2, "--") == 0) name.erase(0, 2);
+      std::replace(name.begin(), name.end(), '_', '-');
       bool deny = false;
       for (const char *const *k = param_keys; *k; k++) {
         if (name == *k) deny = true;
@@ -565,11 +570,11 @@ int zm_parse_options(AVDictionary **pm, const std::string &options, const char *
         }
       }
     }
-    if (*key and value and *value and zm_filter_file_option(key, value).empty()) {
+    const std::string safe = (*key and value and *value) ? zm_filter_file_option(key, value) : std::string();
+    if (*key and value and *value and safe.empty()) {
       Warning("Ignoring option '%s' as it would write a file", key);
     } else if (*key) {
       if (value and *value) {
-        const std::string safe = zm_filter_file_option(key, value);
         int ret = av_dict_set(pm, key, safe.c_str(), 0);
         if (ret < 0) result = ret;
       } else {

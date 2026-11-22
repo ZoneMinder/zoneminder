@@ -146,3 +146,10 @@ TEST_CASE("zm_parse_options drops x265-params file-writing entries", "[ffmpeg]")
   auto o = parse("x265-params=analysis-save=/tmp/a:analysis-load=/tmp/b:scaling-list=/tmp/l:recon=/tmp/r:no-open-gop=1");
   REQUIRE(o["x265-params"] == "no-open-gop=1");
 }
+
+TEST_CASE("zm_parse_options drops file-writing entries spelled with _ or a leading --", "[ffmpeg]") {
+  auto o = parse("x264-params=dump_yuv=/tmp/d:keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30");
+  auto o2 = parse("x265-params=analysis_save=/tmp/a:--csv=/tmp/c:crf=20");
+  REQUIRE(o2["x265-params"] == "crf=20");
+}

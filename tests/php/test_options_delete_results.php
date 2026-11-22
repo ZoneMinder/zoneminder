@@ -21,7 +21,8 @@ class Storage {
   private $id; function __construct($id) { $this->id = $id; }
   function Id() { return $this->id; } function Name() { return "S".$this->id; }
   function EventCount() { return 0; } function MonitorCount() { return 0; }
-}');
+}
+class Server { static function InUseSummary($id) { return ""; } }');
 
 $root = isset($argv[1]) ? $argv[1] : __DIR__.'/../..';
 chdir($root.'/web');

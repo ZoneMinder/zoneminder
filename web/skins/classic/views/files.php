@@ -40,6 +40,27 @@ if ($path) {
       break;
     }
   }
+  # Without System view, only an event folder of a monitor the user can view,
+  # which is where the event page links to.
+  if ($is_ok_path and !canView('System')) {
+    $visible = false;
+    foreach ($storage_areas as $storage) {
+      $base = rtrim($storage->Path(), '/');
+      if (strpos($path, $base.'/') !== 0) continue;
+      $parts = explode('/', substr($path, strlen($base) + 1));
+      if (ctype_digit($parts[0])) {
+        $monitor = ZM\Monitor::find_one(['Id'=>$parts[0]]);
+        if ($monitor and $monitor->canView()) {
+          $visible = true;
+          break;
+        }
+      }
+    }
+    if (!$visible) {
+      $view = 'error';
+      return;
+    }
+  }
   if ($is_ok_path) {
     $path_parts = pathinfo($path);
 

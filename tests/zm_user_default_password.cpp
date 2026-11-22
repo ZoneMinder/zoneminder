@@ -17,6 +17,7 @@
 
 #include "zm_catch2.h"
 
+#include "zm_config.h"
 #include "zm_user.h"
 
 // zmLoadUser() refuses the password zm_create.sql seeds the admin account
@@ -30,4 +31,25 @@ TEST_CASE("isDefaultPassword") {
   REQUIRE_FALSE(isDefaultPassword(" admin"));
   REQUIRE_FALSE(isDefaultPassword("admin1"));
   REQUIRE_FALSE(isDefaultPassword(std::string("admin\0x", 7)));
+}
+
+// zms and zmu take the auth hash the web side hands out, so they must refuse
+// the secret the web side refuses.
+TEST_CASE("isUsableAuthHashSecret") {
+  REQUIRE(isUsableAuthHashSecret("test-secret-0123456789abcdef0123456789ab"));
+
+  REQUIRE_FALSE(isUsableAuthHashSecret(nullptr));
+  REQUIRE_FALSE(isUsableAuthHashSecret(""));
+  REQUIRE_FALSE(isUsableAuthHashSecret("...Change me to something unique..."));
+}
+
+TEST_CASE("zmLoadAuthUser refuses an unusable secret before looking anything up") {
+  const char *saved = config.auth_hash_secret;
+
+  config.auth_hash_secret = "";
+  REQUIRE(zmLoadAuthUser("0123456789abcdef0123456789abcdef", "admin", false) == nullptr);
+  config.auth_hash_secret = "...Change me to something unique...";
+  REQUIRE(zmLoadAuthUser("0123456789abcdef0123456789abcdef", "admin", false) == nullptr);
+
+  config.auth_hash_secret = saved;
 }

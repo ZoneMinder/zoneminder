@@ -32,6 +32,7 @@ namespace AuthHashCompareTest {
   const ZM_AUTH_HASH_IPS = false;
   const ZM_AUTH_HASH_TTL = 2;
   const ZM_AUTH_HASH_SECRET = 'test-secret';
+  const ZM_AUTH_HASH_SECRET_MIN_LENGTH = 32;
   const ZM_CASE_INSENSITIVE_USERNAMES = false;
 
   $GLOBALS['md5_override'] = null;
@@ -43,6 +44,8 @@ namespace AuthHashCompareTest {
   }
   $GLOBALS['secret_usable'] = true;
   function authHashSecretIsSet() { return $GLOBALS['secret_usable']; }
+  function loadConfigFiles() { return array(); }
+  function authHashSecretFix($c) { return 'fix'; }
   function getRemoteAddr() { return ''; }
   function authHashSessionAddrs() { return array(''); }
   function requestString($key) {

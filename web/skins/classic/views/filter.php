@@ -48,6 +48,8 @@ if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
 
 # Build filter names list for dropdown
 foreach (ZM\Filter::find(null, array('order'=>'lower(Name)')) as $Filter) {
+  # Another user's filter, with its command and email address, is not for this user to see.
+  if (!$Filter->canView()) continue;
   $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
   if ($Filter->Background()) $filterNames[$Filter->Id()] .= '*';
   if ($Filter->Concurrent()) $filterNames[$Filter->Id()] .= '&';

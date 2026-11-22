@@ -95,6 +95,8 @@ namespace {
     global $root;
     $GLOBALS['warnings'] = array(); $GLOBALS['size'] = null;
     $_REQUEST = array_merge(array('eid' => '7'), $req);
+    // The delete form posts deleteIndex and deleteName.
+    $_POST = $req;
     $view = 'video'; $rates = array(); $scales = array(); $skin = 'classic';
     ob_start();
     try {

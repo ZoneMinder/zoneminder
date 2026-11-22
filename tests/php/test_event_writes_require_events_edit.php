@@ -131,6 +131,8 @@ namespace {
     $GLOBALS['queries'] = array();
     $GLOBALS['warnings'] = array();
     $_REQUEST = $request;
+    // video.php only deletes on a POST
+    $_POST = isset($request['deleteIndex']) ? $request : array();
     $outcome = 'fell through';
     $rates = $scales = array();  // set by the skin around a real view
     $skin = 'classic';
@@ -291,10 +293,10 @@ namespace {
   run_request('skins/classic/views/video.php', 'View', array('view' => 'video', 'eid' => '7'));
   preg_match_all('/showIndex=\d+">([^<]+)<\/a>(.*?)<\/tr>/s', $GLOBALS['output'], $rows, PREG_SET_ORDER);
   $deletable = array();
-  foreach ($rows as $r) if (strpos($r[2], 'deleteIndex=') !== false) $deletable[] = $r[1];
+  foreach ($rows as $r) if (strpos($r[2], 'name="deleteIndex"') !== false) $deletable[] = $r[1];
   check('Events=View list offers Delete only for the generated video', $deletable, array('Event-7-r1-s1.mp4'));
   run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7'));
-  check('Events=Edit list offers Delete for every file', substr_count($GLOBALS['output'], 'deleteIndex='), 4);
+  check('Events=Edit list offers Delete for every file', substr_count($GLOBALS['output'], 'name="deleteIndex"'), 4);
   $GLOBALS['render'] = false;
   $GLOBALS['default_video'] = '';
   foreach ($files as $f) @unlink("$p/$f");
@@ -314,7 +316,7 @@ namespace {
   $GLOBALS['render'] = true;
   run_request('skins/classic/views/video.php', 'Edit', array('view' => 'video', 'eid' => '7'));
   $GLOBALS['render'] = false;
-  preg_match_all('/showIndex=(\d+)">([^<]+)<\/a>.*?downloadIndex=(\d+).*?deleteIndex=(\d+)/s', $GLOBALS['output'], $rows, PREG_SET_ORDER);
+  preg_match_all('/showIndex=(\d+)">([^<]+)<\/a>.*?downloadIndex=(\d+).*?name="deleteIndex" value="(\d+)"/s', $GLOBALS['output'], $rows, PREG_SET_ORDER);
   check('video list shows the 4 non-empty files', count($rows), 4);
   $aligned = 0;
   foreach ($rows as $r) {

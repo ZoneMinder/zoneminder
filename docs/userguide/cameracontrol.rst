@@ -179,6 +179,20 @@ sleep
   Send the camera to sleep.
 reset
   Reset the camera.
+reboot
+  Reboot the camera.
+lightOn, lightOff
+  Switch the camera's light on or off.
+indicatorLightOn, indicatorLightOff
+  Switch the camera's indicator light on or off.
+lightStatus, indicatorLightStatus
+  Return the state of the light or of the indicator light as a hash, with WhiteLight (for lightStatus) or Enable (for indicatorLightStatus) set to "On" or "Off". The watch page asks for these to show the state on its light buttons.
+audioPlay
+  Play the sound given by the --file option.
+audioStop
+  Stop any sound which may be playing.
+audioVolumeUp, audioVolumeDown
+  Raise or lower the audio volume.
 moveMap
   Move mapped to a specified location on the image.
 moveAbs<direction>
@@ -197,6 +211,10 @@ zoomCon<direction>
   Zoom continuously in the given direction until told to stop.
 zoomStop
   Stop any zooming which may be in progress.
+zoomAuto
+  Set zooming to be automatic.
+zoomMan
+  Set zooming to be manual.
 focusAuto
   Set focusing to be automatic.
 focusMan

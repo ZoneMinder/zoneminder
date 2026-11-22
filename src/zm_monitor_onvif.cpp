@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 
 // Publish the subscription state to shared memory so the web interface can
 // show it (refs #4191).
@@ -164,6 +165,73 @@ bool ONVIFAlarmExceedsMaxDuration(const SystemTimePoint &started, const SystemTi
   if (max_seconds <= 0) return false;
   if (started.time_since_epoch().count() == 0) return false;
   return now - started >= std::chrono::seconds(max_seconds);
+}
+
+// Helper function to get local element name (strip namespace prefix)
+static const char* get_local_name(const char* name) {
+  if (!name) return nullptr;
+  const char *colon = std::strrchr(name, ':');
+  return colon ? colon + 1 : name;
+}
+
+// The vocabulary that alarm state and event notes are decided from, all lower
+// case. A camera with other words is handled by adding them here, not by a
+// per-vendor code path.
+namespace {
+  // Values that say an alarm or item is inactive. "0", "00", ... also do.
+  const char *const ONVIF_INACTIVE_VALUES[] = {"false", "inactive", "off", "no", "idle", "normal", "closed"};
+  // Item values that say the item is active, so the note names it without them.
+  const char *const ONVIF_NOTE_ACTIVE_VALUES[] = {"true", "active", "on", "yes"};
+  // Item names that only say the topic is active (ONVIF Core spec), left out of
+  // the note when they do. "1" counts as active for these (State=1).
+  const char *const ONVIF_NOTE_STATE_NAMES[] = {"state", "logicalstate"};
+  // Item names whose value changes per object rather than per detection; as
+  // event notes only accumulate, they would add a note for every object.
+  const char *const ONVIF_NOTE_ID_NAMES[] = {"objectid"};
+  // Topic roots left off the front of the note: the root of every analytics
+  // topic, which leaves at least the detector and event names after it.
+  const char *const ONVIF_NOTE_DROPPED_ROOTS[] = {"ruleengine"};
+  const char *const ONVIF_NOTE_WHITESPACE = " \t\r\n";
+
+  template <size_t N>
+  bool list_has(const char *const (&list)[N], const std::string &lower) {
+    return std::find(std::begin(list), std::end(list), lower) != std::end(list);
+  }
+
+  bool value_is_inactive(const std::string &value) {
+    if (list_has(ONVIF_INACTIVE_VALUES, StringToLower(value))) return true;
+    return !value.empty() && value.find_first_not_of('0') == std::string::npos;
+  }
+}  // namespace
+
+std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
+                           const std::string &rule) {
+  StringVector segments;
+  for (const std::string &raw : Split(topic, '/')) {
+    std::string segment = get_local_name(Trim(raw, ONVIF_NOTE_WHITESPACE).c_str());
+    if (!segment.empty()) segments.push_back(segment);
+  }
+  if (segments.size() > 1 && list_has(ONVIF_NOTE_DROPPED_ROOTS, StringToLower(segments.front())))
+    segments.erase(segments.begin());
+
+  std::string note = Join(segments, "/");
+  if (note.empty()) note = Trim(topic, ONVIF_NOTE_WHITESPACE);  // nothing left to tidy
+  for (const ONVIFEventItem &item : items) {
+    const std::string value = Trim(item.value, ONVIF_NOTE_WHITESPACE);
+    const std::string lower_name = StringToLower(item.name);
+    if (value.empty() || value_is_inactive(value) || list_has(ONVIF_NOTE_ID_NAMES, lower_name)) continue;
+    const std::string lower_value = StringToLower(value);
+    bool active = list_has(ONVIF_NOTE_ACTIVE_VALUES, lower_value);
+    if (list_has(ONVIF_NOTE_STATE_NAMES, lower_name) && (active || lower_value == "1")) continue;
+
+    if (item.name.empty()) {
+      if (!active) note += " " + value;
+    } else {
+      note += " " + (active ? item.name : item.name + "=" + value);
+    }
+  }
+  if (!rule.empty()) note += " (" + rule + ")";
+  return note;
 }
 
 ONVIF::ONVIF(Monitor *parent_) :
@@ -716,10 +784,10 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
 
     // Alarm entry for a topic going or staying active. Keeps the original start
     // time across re-triggers so max_alarm_duration counts from the first one.
-    auto alarm_entry = [&](const std::string &topic, const std::string &value) -> AlarmEntry {
+    auto alarm_entry = [&](const std::string &topic, const std::string &value, const std::string &note) -> AlarmEntry {
       auto it = alarms.find(topic);
       SystemTimePoint started = (it != alarms.end()) ? it->second.started : std::chrono::system_clock::now();
-      return AlarmEntry{value, alarm_termination(topic), started};
+      return AlarmEntry{value, alarm_termination(topic), started, note};
     };
 
     // Note: We do NOT clear alarms on empty PullMessages response.
@@ -732,10 +800,11 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
     int msg_index = 0;
     for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
       msg_index++;
-      std::string topic, value, operation;
+      std::string topic, value, operation, rule;
+      std::vector<ONVIFEventItem> items;
 
       // Use improved parsing that handles different message structures
-      if (!parse_event_message(msg, topic, value, operation)) {
+      if (!parse_event_message(msg, topic, value, operation, items, rule)) {
         Debug(1, "ONVIF Got a message that we couldn't parse. Topic: %s",
               ((msg->Topic && msg->Topic->__any.text) ? msg->Topic->__any.text : "null"));
         continue;
@@ -753,6 +822,12 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
 
       last_topic = topic;
       last_value = value;
+      // A value found outside the tt:Data SimpleItems (ElementItem, fallback
+      // search) still belongs in the note.
+      if (!value.empty() && std::none_of(items.begin(), items.end(),
+                                         [&](const ONVIFEventItem &item) { return item.value == value; }))
+        items.push_back({"", value});
+      const std::string note = ONVIFEventNote(topic, items, rule);
 
       Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
            msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
@@ -796,9 +871,8 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
         if (state_is_active && alarms.count(last_topic) == 0) {
           // Camera reports an existing alarm we didn't know about
           Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
-          alarms[last_topic] = alarm_entry(last_topic, last_value);
-          last_alarm_topic_ = last_topic;
-          last_alarm_value_ = last_value;
+          alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+          last_alarm_note_ = note;
           if (!alarm_.active()) {
             setAlarmed(true);
             Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
@@ -838,18 +912,16 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
           // Alarm turned on
           Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
           if (alarms.count(last_topic) == 0) {
-            alarms[last_topic] = alarm_entry(last_topic, last_value);
-            last_alarm_topic_ = last_topic;
-            last_alarm_value_ = last_value;
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            last_alarm_note_ = note;
             if (!alarm_.active()) {
               Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
               setAlarmed(true);
             }
           } else {
             // Update existing alarm value and refresh termination time
-            alarms[last_topic] = alarm_entry(last_topic, last_value);
-            last_alarm_topic_ = last_topic;
-            last_alarm_value_ = last_value;
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            last_alarm_note_ = note;
           }
         }
       } else {
@@ -866,16 +938,14 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
           }
         } else {
           if (alarms.count(last_topic) == 0) {
-            alarms[last_topic] = alarm_entry(last_topic, last_value);
-            last_alarm_topic_ = last_topic;
-            last_alarm_value_ = last_value;
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            last_alarm_note_ = note;
             if (!alarm_.active()) {
               setAlarmed(true);
             }
           } else {
-            alarms[last_topic] = alarm_entry(last_topic, last_value);
-            last_alarm_topic_ = last_topic;
-            last_alarm_value_ = last_value;
+            alarms[last_topic] = alarm_entry(last_topic, last_value, note);
+            last_alarm_note_ = note;
           }
         }
       }
@@ -1467,46 +1537,9 @@ void ONVIF::set_credentials(struct soap *soap) {
 // Returns true if the value indicates an active alarm, false otherwise
 // Handles formats from: Hikvision, Dahua, Axis, Reolink, Amcrest, Hanwha, etc.
 bool ONVIF::interpret_alarm_value(const std::string &value) {
-  if (value.empty()) {
-    return false;  // Empty value = no alarm
-  }
-
-  // Convert to lowercase once for case-insensitive comparison
-  std::string lower_value = StringToLower(value);
-
-  // Check for explicit false/inactive values
-  if (lower_value == "false" ||
-      lower_value == "inactive" ||
-      lower_value == "off" ||
-      lower_value == "no" ||
-      lower_value == "idle" ||
-      lower_value == "normal" ||
-      lower_value == "closed") {
-    return false;
-  }
-
-  // Check for numeric zero values (0, 00, 000, etc.)
-  bool all_zeros = true;
-  for (char c : value) {
-    if (c != '0') {
-      all_zeros = false;
-      break;
-    }
-  }
-  if (all_zeros) {
-    return false;  // "0", "00", "000", etc. = no alarm
-  }
-
-  // Any other non-zero/non-empty value is considered active
-  // This handles "true", "active", "1", "001", direction strings, etc.
-  return true;
-}
-
-// Helper function to get local element name (strip namespace prefix)
-static const char* get_local_name(const char* name) {
-  if (!name) return nullptr;
-  const char *colon = std::strrchr(name, ':');
-  return colon ? colon + 1 : name;
+  // Empty, an ONVIF_INACTIVE_VALUES word (any case) or all zeros is no alarm.
+  // Any other value is active: "true", "active", "1", "001", direction strings, etc.
+  return !value.empty() && !value_is_inactive(value);
 }
 
 // Helper function to extract SimpleItem Name and Value attributes
@@ -1599,10 +1632,17 @@ static bool is_data_simple_item(const std::string &item_name) {
 //   msg->Message.__any.atts -> attributes of tt:Message (PropertyOperation, UtcTime)
 //   msg->Message.__any.elts -> first child element of tt:Message (tt:Source)
 //   To find tt:Data, iterate through elts and siblings using ->next
+//
+// Besides the value that decides the alarm state, every tt:Data SimpleItem
+// goes into items and the tt:Source Rule into rule, for the event note.
 bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
                                           std::string &topic,
                                           std::string &value,
-                                          std::string &operation) {
+                                          std::string &operation,
+                                          std::vector<ONVIFEventItem> &items,
+                                          std::string &rule) {
+  items.clear();
+  rule.clear();
   if (!msg || !msg->Topic || !msg->Topic->__any.text) {
     Debug(3, "ONVIF: Message has no topic");
     return false;
@@ -1641,9 +1681,9 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
     return false;
   }
 
-  // Step 2: Find tt:Data element among tt:Message's children
-  // msg->Message.__any.elts is the first child (usually tt:Source)
-  // Iterate through siblings using ->next to find tt:Data
+  // Step 2: Find the first tt:Data element among tt:Message's children, and the
+  // Rule in tt:Source. msg->Message.__any.elts is the first child (usually
+  // tt:Source); iterate through siblings using ->next.
   struct soap_dom_element *data_elt = nullptr;
   struct soap_dom_element *child = msg->Message.__any.elts;
 
@@ -1652,16 +1692,25 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
       const char *child_name = get_local_name(child->name);
       Debug(4, "ONVIF: tt:Message child: %s", child->name);
 
-      if (std::strcmp(child_name, "Data") == 0) {
+      if (!data_elt && std::strcmp(child_name, "Data") == 0) {
         data_elt = child;
         Debug(4, "ONVIF: Found tt:Data element");
-        break;
+      } else if (std::strcmp(child_name, "Source") == 0) {
+        for (struct soap_dom_element *source = child->elts; source; source = source->next) {
+          std::string item_name, item_value;
+          if (source->name && std::strcmp(get_local_name(source->name), "SimpleItem") == 0 &&
+              extract_simple_item_attrs(source, item_name, item_value) && item_name == "Rule") {
+            rule = item_value;
+          }
+        }
       }
     }
     child = child->next;
   }
 
-  // Step 3: If we found Data, look for SimpleItem within it
+  // Step 3: If we found Data, collect its SimpleItems. The alarm value is the
+  // first data SimpleItem or ElementItem, in document order.
+  bool have_value = false;
   if (data_elt && data_elt->elts) {
     struct soap_dom_element *item = data_elt->elts;
     while (item) {
@@ -1674,26 +1723,28 @@ bool ONVIF::parse_event_message(wsnt__NotificationMessageHolderType *msg,
           if (extract_simple_item_attrs(item, item_name, item_value)) {
             Debug(4, "ONVIF: SimpleItem in Data: Name=%s Value=%s",
                   item_name.c_str(), item_value.c_str());
+            items.push_back({item_name, item_value});
 
-            if (is_data_simple_item(item_name)) {
+            if (!have_value && is_data_simple_item(item_name)) {
               value = item_value;
+              have_value = true;
               Debug(3, "ONVIF: Extracted data value: %s=%s (operation=%s)",
                     item_name.c_str(), value.c_str(), operation.c_str());
-              return true;
             }
           }
         } else if (std::strcmp(item_elem_name, "ElementItem") == 0) {
           // ElementItem might have child elements with text values
-          if (item->elts && item->elts->text) {
+          if (!have_value && item->elts && item->elts->text) {
             value = item->elts->text;
+            have_value = true;
             Debug(3, "ONVIF: Found ElementItem value: %s", value.c_str());
-            return true;
           }
         }
       }
       item = item->next;
     }
   }
+  if (have_value) return true;
 
   // Step 4: Fallback - some cameras may have a different structure
   // Try to find SimpleItem anywhere in the message using depth-first search
@@ -1926,14 +1977,14 @@ void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
     // map here means a momentary pulse whose topic the camera has already cleared.
     // Name it from the last activation so the event note still says what fired,
     // rather than a bare "ONVIF" (refs #5301).
-    if (!last_alarm_topic_.empty()) {
-      noteSet.insert(last_alarm_topic_ + "/" + last_alarm_value_);
+    if (!last_alarm_note_.empty()) {
+      noteSet.insert(last_alarm_note_);
     }
     return;
   }
 
   for (const auto &[topic, entry] : alarms) {
-    noteSet.insert(topic + "/" + entry.value);
+    noteSet.insert(entry.note.empty() ? topic : entry.note);
   }
 }
 

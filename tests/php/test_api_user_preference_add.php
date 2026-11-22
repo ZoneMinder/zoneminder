@@ -66,4 +66,6 @@ $w = add(array('Name' => 'n', 'Value' => 'v', 'UserId' => 9));
 check('a flat UserId is replaced by the caller', $w['UserId'], 5);
 $w = add(array('Id' => 8, 'Name' => 'n'), array('UserPreference' => array('Id' => 3)));
 check('the caller\'s existing row is the one updated', $w['id'], 3);
+$w = add(array('UserPreference' => array('UserPreference' => array('Id' => 1, 'UserId' => 1, 'Value' => 'x'), 'Name' => 'n')));
+check('a body nested twice is saved as the caller, not its inner Id/UserId', array($w['UserId'], $w['id']), array(5, null));
 exit($failures ? 1 : 0);

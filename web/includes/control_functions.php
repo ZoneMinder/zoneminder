@@ -783,6 +783,12 @@ function buildControlCommand($monitor) {
       }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
+      // Saving a preset overwrites the one stored on the camera, which a user who may
+      // only view Control must not do.
+      if ( !canEdit('Control') ) {
+        ZM\Warning('Saving a preset requires Control edit permission');
+        return '';
+      }
       $preset = validInt($_REQUEST['preset']);
       if ( canEdit( 'Control' ) ) {
         // Stored as typed: it is escaped where it is output, and the query is prepared.

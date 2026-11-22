@@ -107,7 +107,7 @@ $maxX = 100;
 $minY = 0;
 $maxY = 100;
 
-if ( !isset($zone) ) {
+if ( !isset($zone['Points']) ) {
   if ( $zid > 0 ) {
     $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($monitor->Id(), $zid));
     if (!$zone) {

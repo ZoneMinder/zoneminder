@@ -67,5 +67,14 @@ $result = eval { TestGeneral::jsonDecode('{"a":@{[ $main::pwned3 = 1 ]}}') };
 check('code outside a string dies', $@ ? 'died' : 'no error', 'died');
 check('code outside a string does not run', defined $main::pwned3 ? 'set' : 'undef', 'undef');
 
+$result = eval { TestGeneral::jsonDecode('{"a":[1..1000000]}') };
+check('range operator between numbers is refused', $@ ? 'died' : 'no error: '.scalar(@{$result->{a}}).' elements', 'died');
+
+$result = eval { TestGeneral::jsonDecode('{"a":"a"."b"}') };
+check('string concatenation outside strings is refused', $@ ? 'died' : 'no error: '.$result->{a}, 'died');
+
+$result = eval { TestGeneral::jsonDecode('{"a":1.5e3,"b":-1.5e3,"c":[0,-2,3E+2,4.25e-1]}') };
+check('numbers with fraction and exponent decode', $@ ? "died: $@" : join(',', $result->{a}, $result->{b}, @{$result->{c}}), '1500,-1500,0,-2,300,0.425');
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

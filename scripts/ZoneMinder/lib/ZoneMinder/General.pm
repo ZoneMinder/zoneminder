@@ -642,12 +642,13 @@ sub jsonDecode {
       $comment = !$comment;
     }
   }
-  # Outside strings only JSON punctuation, numbers and true/false/null may appear;
+  # Outside strings only JSON punctuation, JSON number tokens and true/false/null may appear;
   # anything else would be run as Perl by the eval below.
   my $skeleton = $out;
   $skeleton =~ s/"(?:[^"\\]|\\.)*"//gs;
   $skeleton =~ s/\b(?:true|false|null)\b//g;
-  Fatal("Unable to decode JSON string '$value': unexpected content") if $skeleton !~ /\A[\s\{\}\[\],=>\d.eE+-]*\z/;
+  $skeleton =~ s/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?//g;
+  Fatal("Unable to decode JSON string '$value': unexpected content") if $skeleton !~ /\A[\s\{\}\[\],=>]*\z/;
   $out =~ s/=>true/=>1/g;
   $out =~ s/=>false/=>0/g;
   $out =~ s/=>null/=>undef/g;

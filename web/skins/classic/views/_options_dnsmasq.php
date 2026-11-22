@@ -173,14 +173,14 @@ function read_leasefile($file) {
   <tbody>
 <?php
 $monitors_by_ip = array();
-foreach (ZM\Monitor::find(['Type'=>'Remote']) as $monitor) {
+foreach (ZM\Monitor::find(['Type'=>'Remote', 'Deleted'=>0]) as $monitor) {
   if (preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches)) {
     $monitors_by_ip[gethostbyname($matches[2])] = $monitor;
   } else {
     $monitors_by_ip[gethostbyname($monitor->Host())] = $monitor;
   }
 }
-foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
   $url_parts = parse_url($monitor->Path());
   if ($url_parts !== false and isset($url_parts['host'])) {
     $monitors_by_ip[gethostbyname($url_parts['host'])] = $monitor;

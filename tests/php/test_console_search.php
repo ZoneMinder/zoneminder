@@ -26,6 +26,8 @@ if (!preg_match('/^function monitorMatchesSearch\(.*?\n\}/ms', $src, $m)) {
   exit(1);
 }
 eval($m[0]);
+// The helper it calls, when this version has one.
+if (preg_match('/^function pathWithoutQuery\(.*?\n\}/ms', $src, $h)) eval($h[0]);
 
 $front = array('Id'=>3, 'Name'=>'Front Door', 'Function'=>'Monitor', 'Path'=>'rtsp://10.0.0.5/live',
   'Device'=>null, 'Host'=>null, 'Status'=>'Running');
@@ -43,6 +45,9 @@ check('legacy Function column is not searched', monitorMatchesSearch($front, 'mo
 check('no match', monitorMatchesSearch($local, 'driveway'), false);
 check('missing status row', monitorMatchesSearch($local, 'running'), false);
 
+$qcred = array('Id'=>21, 'Name'=>'Gate', 'Path'=>'http://10.0.0.10/snap.cgi?user=admin&pwd=hunter3', 'Device'=>null, 'Host'=>'10.0.0.10', 'Status'=>null);
+check('credentials in the path query are not searched', monitorMatchesSearch($qcred, 'hunter3'), false);
+check('the path before the query is still searched', monitorMatchesSearch($qcred, 'snap.cgi'), true);
 check('credentials in the path are not searched', monitorMatchesSearch($cred, 'hunter2'), false);
 check('credentials in the host are not searched', monitorMatchesSearch($cred, 's3cret'), false);
 check('path host is still searched', monitorMatchesSearch($cred, '10.0.0.9'), true);

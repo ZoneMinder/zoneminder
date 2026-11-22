@@ -79,14 +79,21 @@ function monitorMatchesSearch($monitor, $search) {
   }
   // The raw Host and Path hold credentials: match what the Source column shows, as the Source filter does.
   $Monitor = new ZM\Monitor($monitor);
-  return stripos($Monitor->Source(), $search) !== false || stripos($Monitor->Path(), $search) !== false;
+  return stripos($Monitor->Source(), $search) !== false || stripos(pathWithoutQuery($Monitor->Path()), $search) !== false;
+}
+
+// Cameras often take credentials as query parameters (user=, pwd=), and Path()
+// only strips user:pass@, so match the path without its query string.
+function pathWithoutQuery($path) {
+  $cut = strcspn((string)$path, '?#');
+  return substr((string)$path, 0, $cut);
 }
 
 // The Source filter matches what the Source column shows, or the Path, as the
 // filter bar does. The raw Host holds credentials and hides the port.
 function monitorMatchesSource($monitor, $regexp) {
   $Monitor = new ZM\Monitor($monitor);
-  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path());
+  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, pathWithoutQuery($Monitor->Path()));
 }
 
 // Source, Server, Storage and Function are display values, not row columns.

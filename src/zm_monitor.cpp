@@ -1893,8 +1893,9 @@ Monitor::~Monitor() {
 }  // end Monitor::~Monitor()
 
 void Monitor::AddPrivacyBitmask() {
+  // Kept to tell whether the rebuilt mask differs from it.
+  std::unique_ptr<Image> previous_privacy_image = std::move(privacy_image);
   privacy_bitmask = nullptr;
-  privacy_image.reset();
 
   for (const Zone &zone : zones) {
     if (zone.IsPrivacy()) {
@@ -1910,8 +1911,15 @@ void Monitor::AddPrivacyBitmask() {
     privacy_bitmask = privacy_image->Buffer();
   // WebSocket passthrough would send the camera's unmasked bytes.
   websocket_video_info.SetPrivacyMasked(privacy_image != nullptr);
-  // WebSocket images made before now have the old mask, or none.
-  websocket_latest_image.MaskChanged();
+  // WebSocket images made before now have the old mask, or none. Zones are
+  // reloaded on every connect(), so only a mask that differs counts: otherwise
+  // the first image request after connecting would wait for the decoder.
+  const bool mask_unchanged = previous_privacy_image
+    ? (privacy_image && previous_privacy_image->Size() == privacy_image->Size()
+       && memcmp(previous_privacy_image->Buffer(), privacy_image->Buffer(), privacy_image->Size()) == 0)
+    : !privacy_image;
+  if (!mask_unchanged)
+    websocket_latest_image.MaskChanged();
 }
 
 Image *Monitor::GetAlarmImage() {

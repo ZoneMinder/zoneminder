@@ -681,6 +681,10 @@ class Monitor extends ZM_Object {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
+    if ($mode != 'stop' and $this->Deleted()) {
+      Warning('Attempt to control deleted monitor '.$this->{'Id'});
+      return;
+    }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
         $zmcArgs = '-d '.escapeshellarg($this->{'Device'});

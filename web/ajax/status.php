@@ -280,8 +280,13 @@ function collectData() {
     }
     $eventParam = $_REQUEST[$entitySpec['eventParam']];
     if (is_array($eventParam)) $eventParam = reset($eventParam);
-    $requestedEvent = new ZM\Event(validCardinal($eventParam));
-    if ($requestedEvent->Id() and !$requestedEvent->canView()) {
+    # Check the same cleaned id that the query binds (validInt).
+    $requestedEvent = new ZM\Event(validInt($eventParam));
+    if (!$requestedEvent->Id()) {
+      ajaxError('Event not found');
+      return;
+    }
+    if (!$requestedEvent->canView()) {
       ajaxError('Insufficient permissions for event '.$requestedEvent->Id());
       return;
     }

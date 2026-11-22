@@ -13,7 +13,8 @@ namespace ZM {
   function Debug($m) {}
   function Error($m) {}
   class Event {
-    public function __construct($id) { $this->id = $id; }
+    // Like MySQL, a numeric-prefixed string such as '6-1' matches event 6.
+    public function __construct($id) { $this->id = in_array((int)$id, array(5, 6)) ? (int)$id : null; }
     public function Id() { return $this->id; }
     public function canView() { return $this->id == 5; }
   }
@@ -31,6 +32,10 @@ namespace {
       'frames_visible' => null,
       'frame_visible' => null,
       'frames_noid' => 'Event id required',
+      'event_missing' => 'Event not found',
+      'frames_missing' => 'Event not found',
+      'event_mixed' => 'Insufficient permissions',
+      'frames_mixed' => 'Insufficient permissions',
     );
     $failures = 0;
     foreach ($cases as $case => $expect) {
@@ -69,12 +74,17 @@ namespace {
   function ajaxError($m) { $GLOBALS['ajax_error'] = $m; throw new StopRequest($m); }
 
   $case = $argv[2];
-  $entity = preg_replace('/_(hidden|visible|noid)$/', '', $case);
+  $entity = preg_replace('/_(hidden|visible|noid|missing|mixed)$/', '', $case);
   $_REQUEST = array('entity' => $entity);
   if ($case === 'frame_hidden') {
     $_REQUEST['id'] = array('6', '3');
   } else if ($case === 'frame_visible') {
     $_REQUEST['id'] = array('5', '3');
+  } else if (substr($case, -8) === '_missing') {
+    $_REQUEST['id'] = '99';
+  } else if (substr($case, -6) === '_mixed') {
+    // validCardinal reads this as 61, validInt as '6-1' which the query matches to event 6.
+    $_REQUEST['id'] = '6-1';
   } else if ($case !== 'frames_noid') {
     $_REQUEST['id'] = (substr($case, -7) === '_hidden') ? '6' : '5';
   }

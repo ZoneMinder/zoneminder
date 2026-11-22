@@ -36,7 +36,10 @@ if ($action == 'Save') {
   $dbRole = new ZM\User_Role($rid);
 
   # Need to check for uniqueness of Name
-  if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name']) && $_REQUEST['role']['Name']) {
+  if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name'])) {
+    $_REQUEST['role']['Name'] = trim($_REQUEST['role']['Name']);
+  }
+  if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name']) && $_REQUEST['role']['Name'] !== '') {
     $role_with_my_name = ZM\User_Role::find_one(array('Name'=>$_REQUEST['role']['Name']));
     if ($role_with_my_name and
       (($rid and ($role_with_my_name->Id() != $rid)) or !$rid)

@@ -19,6 +19,7 @@
 
 #ifdef WITH_GSOAP
 
+#include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_monitor_onvif.h"
 
@@ -35,12 +36,19 @@ class OptionsONVIF : public ONVIF {
  public:
   explicit OptionsONVIF(Monitor *m) : ONVIF(m) {}
   bool forced_closes_event() const { return closes_event; }
+  const std::string &log_file() const { return soap_log_file; }
 };
 
 bool closes_event_for(const std::string &options) {
   OptionsMonitor monitor(options);
   OptionsONVIF onvif(&monitor);
   return onvif.forced_closes_event();
+}
+
+std::string soap_log_for(const std::string &options) {
+  OptionsMonitor monitor(options);
+  OptionsONVIF onvif(&monitor);
+  return onvif.log_file();
 }
 
 }  // namespace
@@ -63,6 +71,23 @@ TEST_CASE("ONVIF closes_event option", "[onvif]") {
     REQUIRE_FALSE(closes_event_for("closes_event=0"));
     REQUIRE_FALSE(closes_event_for("closes_event=no"));
   }
+}
+
+TEST_CASE("ONVIF soap_log option stays inside the log directory", "[onvif]") {
+  const std::string saved = staticConfig.PATH_LOGS;
+  staticConfig.PATH_LOGS = "/var/log/zm";
+
+  REQUIRE(soap_log_for("") == "");
+  REQUIRE(soap_log_for("soap_log=/var/log/zm/onvif.log") == "/var/log/zm/onvif.log");
+  REQUIRE(soap_log_for("pull_timeout=5,soap_log=/var/log/zm/m1/onvif.log") == "/var/log/zm/m1/onvif.log");
+
+  REQUIRE(soap_log_for("soap_log=/etc/cron.d/zm") == "");
+  REQUIRE(soap_log_for("soap_log=/var/log/zm/../../etc/cron.d/zm") == "");
+  REQUIRE(soap_log_for("soap_log=/var/log/zmother/onvif.log") == "");
+  REQUIRE(soap_log_for("soap_log=/var/log/zm/") == "");
+  REQUIRE(soap_log_for("soap_log=onvif.log") == "");
+
+  staticConfig.PATH_LOGS = saved;
 }
 
 #endif  // WITH_GSOAP

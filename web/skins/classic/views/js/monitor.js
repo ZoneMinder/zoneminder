@@ -194,7 +194,7 @@ function initPage() {
     el.onchange = function() {
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
-      saveMonitorDataPrepare(document.getElementById('contentForm'), false, 'reload');
+      form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {

@@ -1,10 +1,12 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('Object.php');
 require_once('FilterTerm.php');
 require_once('Monitor.php');
 
 class Filter extends ZM_Object {
+  protected static $setters = array('Query_json', 'Query', 'terms', 'sort_field', 'sort_asc', 'skip_locked', 'limit');
   protected static $table = 'Filters';
   protected static $attrTypes = null;
   protected static $opTypes = null;
@@ -16,6 +18,7 @@ class Filter extends ZM_Object {
   protected $Query;
   protected $Terms;
   protected $Query_json;
+  protected $MonitorOptions;
 
 
   protected $defaults = array(
@@ -53,7 +56,6 @@ class Filter extends ZM_Object {
   protected $_hidden_fields;
   public $_pre_sql_conditions;
   public $_post_sql_conditions;
-  protected $_Terms;
   public $availableTags = array();
 
   public function sql() {
@@ -62,9 +64,18 @@ class Filter extends ZM_Object {
     // Debug('$this->_sql: ' . $this->_sql);
     if (!isset($this->_sql)) {
       $this->_sql = '';
+      // Brackets of a skipped invalid term, so the rest of the expression stays balanced
+      $pending_obr = 0;
+      $pending_cnj = null;
       foreach ( $this->FilterTerms() as $term ) {
         // Error($term->valid());
         if ($term->valid()) {
+          if ($pending_obr) {
+            $term->obr = (int)$term->obr + $pending_obr;
+            $term->cnj = $pending_cnj;
+            $pending_obr = 0;
+            $pending_cnj = null;
+          }
           // Debug('$this->_sql: ' . $this->_sql);
           // Error($this-cnj);
           if (!$this->_sql) {
@@ -75,6 +86,16 @@ class Filter extends ZM_Object {
           $this->_sql .= $term->sql();
         } else {
           // Debug('Term is not valid '.$term->to_string());
+          $close = (int)$term->cbr;
+          if ($term->obr) {
+            if (!$pending_obr) $pending_cnj = $term->cnj;
+            $pending_obr += (int)$term->obr;
+          }
+          $cancel = min($pending_obr, $close);
+          $pending_obr -= $cancel;
+          $close -= $cancel;
+          if (!$pending_obr) $pending_cnj = null;
+          if ($close and $this->_sql) $this->_sql = rtrim($this->_sql).str_repeat(')', $close).PHP_EOL;
         }
         // Debug('$term->_sql: ' . $term->_sql);
       } # end foreach term
@@ -116,7 +137,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_pre_sql_conditions) ) {
       $this->_pre_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_pre_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_pre_sql() and $term->valid() )
           $this->_pre_sql_conditions[] = $term;
       } # end foreach term
     }
@@ -128,7 +150,8 @@ class Filter extends ZM_Object {
     if ( ! isset($this->_post_sql_conditions) ) {
       $this->_post_sql_conditions = array();
       foreach ( $this->FilterTerms() as $term ) {
-        if ( $term->is_post_sql() )
+        // Invalid terms add no SQL, so must not count as a condition.
+        if ( $term->is_post_sql() and $term->valid() )
           $this->_post_sql_conditions[] = $term;
       } # end foreach term
     }
@@ -153,8 +176,91 @@ class Filter extends ZM_Object {
 
   public static function parse($new_filter, $querySep='&amp;') {
     $filter = new Filter();
-    $filter->Query($new_filter['Query']);
+    $filter->Query($new_filter['Query'] ?? []);
     return $filter;
+  }
+
+  // Accepts: empty string, a bare identifier, or a comma-separated list of
+  // <Column> [IS [NOT] NULL] [ASC|DESC] expressions. Structural check only —
+  // callers that know which columns are legal should additionally whitelist
+  // them after a successful match.
+
+  // Single source of truth for the sort grammar, shared by validation and
+  // building. Each comma-separated part: <Column> [IS [NOT] NULL] [ASC|DESC].
+  const SORT_PART_RE = '/^\s*([A-Za-z][A-Za-z0-9_]*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?\s*$/i';
+
+  public static function isValidSortExpression($sf) {
+    if ($sf === '' || $sf === null) return true;
+    if (!is_string($sf)) return false;
+    foreach (explode(',', $sf) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part)) return false;
+    }
+    return true;
+  }
+
+  // Build a safe ORDER BY body (without the "ORDER BY" keyword) from a sort
+  // spec. $order is the global default direction ('ASC'|'DESC') used for parts
+  // that omit an explicit ASC/DESC. $resolve_column is callable($col): ?string
+  // returning the column's SQL (e.g. 'E.Id', 'M.Name') or null if not allowed.
+  // Returns '' if the spec is empty or any part is invalid/not allowed.
+  public static function buildSortSql($sort, $order, $resolve_column) {
+    if ($sort === '' || $sort === null) return '';
+    // Defend the "safe" contract: only ASC/DESC may reach the SQL as a default
+    // direction, regardless of what a caller passes.
+    $order = strtoupper(trim($order));
+    if ($order !== 'ASC' && $order !== 'DESC') return '';
+    $out = array();
+    foreach (explode(',', $sort) as $part) {
+      if (!preg_match(self::SORT_PART_RE, $part, $m)) return '';
+      $col_sql = call_user_func($resolve_column, $m[1]);
+      if ($col_sql === null) return '';
+      $null_expr = '';
+      if (isset($m[2]) && trim($m[2]) !== '') {
+        $null_expr = (stripos($m[2], 'NOT') !== false) ? ' IS NOT NULL' : ' IS NULL';
+      }
+      $dir = (isset($m[3]) && trim($m[3]) !== '') ? strtoupper(trim($m[3])) : $order;
+      $out[] = $col_sql.$null_expr.' '.$dir;
+    }
+    return implode(', ', $out);
+  }
+
+  // The SQL for the filterdebug modal, laid out as ZoneMinder::Filter::Sql
+  // builds it for zmfilter: the terms in one parenthesised group, then the
+  // conditions the Auto* actions add, then the lock exclusion.
+  public function debugSql() {
+    $sql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E ON (M.Id = E.MonitorId)';
+    $conditions = array();
+    $terms_sql = trim($this->sql());
+    if ($terms_sql !== '') $conditions[] = '( '.$terms_sql.' )';
+
+    $auto_terms = array();
+    foreach (array(
+      'AutoArchive'   => 'E.Archived = 0',
+      'AutoUnarchive' => 'E.Archived = 1',
+      'AutoVideo'     => 'E.Videoed = 0',
+      'AutoUpload'    => 'E.Uploaded = 0',
+      'AutoEmail'     => 'E.Emailed = 0',
+      'AutoMessage'   => 'E.Messaged = 0',
+      'AutoExecute'   => 'E.Executed = 0',
+    ) as $field => $term) {
+      if ($this->$field()) $auto_terms[] = $term;
+    }
+    if (count($auto_terms)) $conditions[] = '( '.implode(' or ', $auto_terms).' )';
+
+    if ($this->LockRows() and $this->skip_locked())
+      $conditions[] = 'NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+
+    if (count($conditions)) $sql .= "\n    WHERE ".implode("\n    AND ", $conditions);
+
+    // Id and Name are columns of both Events and Monitors, so they have to be qualified.
+    $order = self::buildSortSql($this->sort_field(), $this->sort_asc() ? 'ASC' : 'DESC', function($col) {
+      if ($col == 'MonitorName') return 'M.Name';
+      if ($col == 'Tags') return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+      return 'E.'.$col;
+    });
+    if ($order !== '') $sql .= ' ORDER BY '.$order;
+    if ($this->limit()) $sql .= ' LIMIT '.(int)$this->limit();
+    return $sql;
   }
 
   # If no storage areas are specified in the terms, then return all
@@ -191,7 +297,7 @@ class Filter extends ZM_Object {
       unset($this->_hidden_fields);
       unset($this->_pre_sql_conditions);
       unset($this->_post_sql_conditions);
-      unset($this->_Terms);
+      unset($this->Terms);
     }
     if ( !property_exists($this, 'Query') ) {
       if ( property_exists($this, 'Query_json') and $this->{'Query_json'} ) {
@@ -228,10 +334,27 @@ class Filter extends ZM_Object {
       $Query['terms'] = func_get_arg(0);
       $this->Query($Query);
     }
-    if ( isset( $this->Query()['terms'] ) ) {
-      return $this->Query()['terms'];
+    $terms = $this->Query()['terms'] ?? array();
+    if ( !is_array($terms) ) {
+      return array();
     }
-    return array();
+    return array_values(array_filter($terms, 'is_array'));
+  }
+
+  /**
+   * Id => label map limiting which monitors the Monitor term offers.
+   *
+   * The monitor attribute filters (Name, Capturing, Recording, Status, ...) do
+   * not filter events; they narrow which monitors exist to choose between,
+   * which is to say they decide what the Monitor term should offer. A view that
+   * has applied them sets the survivors here before asking for a widget.
+   * Unset, the term offers every monitor the user can view.
+   */
+  public function monitor_options() {
+    if ( func_num_args() ) {
+      $this->MonitorOptions = func_get_arg(0);
+    }
+    return $this->MonitorOptions;
   }
 
   // The following three fields are actually stored in the Query
@@ -242,7 +365,18 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     if (isset($this->Query()['sort_field'])) {
-      return $this->{'Query'}['sort_field'];
+      $sf = $this->{'Query'}['sort_field'];
+      // Accept either a bare column name or a comma-separated list of
+      // <Column> [IS [NOT] NULL] expressions — the latter lets the NULLs-last
+      // idiom (e.g. "EndDateTime IS NOT NULL, EndDateTime") round-trip cleanly.
+      // The filter UI today only emits a single column; if/when it gains
+      // multi-column sort, the same shape will continue to validate. Anything
+      // outside this grammar is dropped so a stale URL/cookie/DB row can't
+      // leak SQL fragments into data-sort-name.
+      if (self::isValidSortExpression($sf)) {
+        return $sf;
+      }
+      Warning('Ignoring malformed Filter sort_field "'.$sf.'"');
     }
     return ZM_WEB_EVENT_SORT_FIELD;
     #return $this->defaults{'sort_field'};
@@ -279,14 +413,18 @@ class Filter extends ZM_Object {
       $this->Query($Query);
     }
     // Error($this->Query()['limit']);
+    // limit is user-controlled (populated from the request via set()/Query())
+    // and gets concatenated straight into SQL by callers. Coerce to int here
+    // so a payload like "1 AND (SELECT ...)" can never survive to a LIMIT
+    // clause. See GHSA-28mv-hqxw-qw84.
     if ( isset( $this->Query()['limit'] ) )
-      return $this->{'Query'}['limit'];
+      return (int)$this->{'Query'}['limit'];
     return 0;
     #return $this->defaults{'limit'};
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? array_filter([Server::find_one(array('Id'=>$server_id))]) : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case
@@ -309,10 +447,10 @@ class Filter extends ZM_Object {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
             $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url .= '&user='.$_SESSION['username'];
-            $url .= '&pass='.$_SESSION['password'];
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
+            $url .= '&pass='.urlencode($_SESSION['password'] ?? '');
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url .= '&user='.$_SESSION['username'];
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
           }
         }
         $data = array();
@@ -331,7 +469,8 @@ class Filter extends ZM_Object {
           'http' => array(
             'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
             'method'  => 'POST',
-            'content' => http_build_query($data)
+            'content' => http_build_query($data),
+            'timeout' => 10
           ),
           'ssl'=>array(
             'verify_peer'=>false,
@@ -340,9 +479,9 @@ class Filter extends ZM_Object {
         );
         $context  = stream_context_create($options);
         try {
-          $result = file_get_contents($url, false, $context);
+          $result = @file_get_contents($url, false, $context);
           if ( $result === FALSE ) { /* Handle error */
-            Error("Error restarting zmfilter.pl using $url");
+            Error('Error restarting zmfilter.pl using '.urlForLog($url).': '.lastErrorForLog());
           }
         } catch ( Exception $e ) {
           Error("Except $e thrown trying to restart zmfilter");
@@ -455,7 +594,7 @@ class Filter extends ZM_Object {
           $sqlValue .= 'M.ServerId';
           break;
         case 'StorageServerId':
-          $sqlValue .= 'S.ServerId';
+          $sqlValue .= '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
           break;
         case 'FilterServerId':
           $sqlValue .= ZM_SERVER_ID;
@@ -756,6 +895,26 @@ class Filter extends ZM_Object {
     return $this;
   }
 
+  // The sort field names a filter attribute; map it to a column of the Events() query,
+  // as ZoneMinder::Filter does in Perl. MonitorName and Tags are not Events columns.
+  public static function events_sort_sql($sort_field) {
+    if (!$sort_field) return '';
+    $parts = array();
+    foreach (explode(',', $sort_field) as $part) {
+      $parts[] = preg_replace_callback('/^\s*([A-Za-z][A-Za-z0-9_]*)/', function($m) {
+        switch ($m[1]) {
+        case 'MonitorName': return 'M.Name';
+        case 'Tags': return '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+        case 'StartTime': return 'E.StartDateTime';
+        case 'EndTime': return 'E.EndDateTime';
+        case 'Secs': return 'E.Length';
+        default: return 'E.'.$m[1];
+        }
+      }, trim($part));
+    }
+    return implode(', ', $parts);
+  }
+
   function Events() {
     $events = array();
     if (!$this->test_pre_sql_conditions()) {
@@ -765,10 +924,12 @@ class Filter extends ZM_Object {
 
     $where = $this->sql() ? ' WHERE ('.$this->sql().')' : '';
     // $where = ' WHERE ( T.Name = "Bird" )';
-    $sort = $this->sort_field() ? $this->sort_field() .' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
+    $sort_sql = self::events_sort_sql($this->sort_field());
+    $sort = $sort_sql ? $sort_sql.' '.($this->sort_asc() ? 'ASC' : 'DESC') : '';
 
+    // DISTINCT: the tag joins give one row per tag, and LIMIT must count events, not tags.
     $col_str = '
-    E.*, 
+    DISTINCT E.*,
     M.Name 
      AS Monitor';
 
@@ -789,7 +950,7 @@ class Filter extends ZM_Object {
     '.$where.($sort?' ORDER BY '.$sort:'');
     
     if ($this->limit() and !count($this->pre_sql_conditions()) and !count($this->post_sql_conditions())) {
-      $sql .= ' LIMIT '.$this->limit();
+      $sql .= ' LIMIT '.(int)$this->limit();
     }
 
     Debug('Calling the following sql query: ' .$sql);
@@ -803,7 +964,7 @@ class Filter extends ZM_Object {
         continue;
       }
       $events[] = $event;
-      if ($this->limit() and (count($events) > $this->limit())) {
+      if ($this->limit() and (count($events) >= $this->limit())) {
         break;
       }
     } # end foreach row
@@ -1019,13 +1180,13 @@ class Filter extends ZM_Object {
 
         } else if ( $term['attr'] == 'DateTime' || $term['attr'] == 'StartDateTime' || $term['attr'] == 'EndDateTime') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"/></td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'').'"/></td>'.PHP_EOL;
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'"/></td>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/></td>'.PHP_EOL;
+          $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/></td>'.PHP_EOL;
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1081,15 +1242,32 @@ class Filter extends ZM_Object {
             </tr>
 ';
     } # end foreach term
+    $html .= '</tbody></table>';
     // Error($html);
     return $html;
   }  # end function widget()
+
+  // Decode a multi-value term value or cookie into an array of ids/strings.
+  // Cookies are written JSON-encoded by skin.js setCookie(), but legacy cookies
+  // (and pasted values) may be plain comma-separated, so fall back to explode.
+  static function decode_multi($raw) {
+    if ($raw === null or $raw === '')
+      return array();
+    if (is_array($raw))
+      return $raw;
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded))
+      return $decoded;
+    if ($decoded !== null)  # scalar JSON value like a bare number
+      return array($decoded);
+    return explode(',', $raw);
+  }
 
   //
   // This displays filters from the events page.
   //
   public function simple_widget() {
-    $html = '<div id="fieldsTable" class="filterTable">';
+    $html = '<div id="fieldsTable" class="filterTable controlHeader">';
     $terms = $this->terms();
     $attrTypes = $this->attrTypes();
     $opTypes = $this->opTypes();
@@ -1149,14 +1327,12 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          $selected = self::decode_multi($term['val']);
           // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if ((!isset($term['val']) or $term['val']=='') and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = json_decode($_COOKIE[$term['cookie']]);
           }
           // These echo statements print these variables at the top of the view for debugging.
           // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
@@ -1185,10 +1361,9 @@ class Filter extends ZM_Object {
             $html .= ' id="filter[Query][terms]['.$i.'][val]"';
           }
           if (isset($term['cookie'])) {
-            if ((!$term['val']) and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.validHtmlStr($term['cookie']).'"';
           }
-          $html .= ' value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'').'"';
+          $html .= ' value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'').'"';
 
           if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
           $html .= ' placeholder="'.$term['placeholder'].'"/>'.PHP_EOL;
@@ -1197,14 +1372,13 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
-            if (!$term['val'] and isset($_COOKIE[$term['cookie']])) $term['val'] = $_COOKIE[$term['cookie']];
             $html .= ' data-cookie="'.$term['cookie'].'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
           $html .= '/></span>'.PHP_EOL;
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<span class="term-value-wrapper">';
-          $html .= '<input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(str_replace('T', ' ', $term['val'])):'' ).'"/>'.PHP_EOL;
+          $html .= '<input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/>'.PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
           $html .= '<span class="term-value-wrapper">';
@@ -1212,11 +1386,15 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Group') {
+          $selected = self::decode_multi($term['val']);
+          $attrs = ['class'=>'term-value chosen chosen-auto-width',
+            'multiple'=>'multiple',
+            'data-placeholder'=>translate('All Groups')];
+          if (isset($term['cookie'])) {
+            $attrs['data-cookie'] = $term['cookie'];
+          }
           $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'],
-            ['class'=>'term-value chosen chosen-auto-width',
-            'multiple'=>'multiple', 
-            'data-placeholder'=>translate('All Groups')]).PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $selected, $attrs).PHP_EOL;
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'StateId' ) {
@@ -1230,23 +1408,21 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Monitor' ) {
-          $monitors = [];
-          foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
-            if ($m->canView()) {
-              $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+          $monitors = $this->monitor_options();
+          if ($monitors === null) {
+            $monitors = [];
+            foreach (Monitor::find(['Deleted'=>false], ['order'=>'lower(Name)']) as $m) {
+              if ($m->canView()) {
+                $monitors[$m->Id()] = $m->Id().' '.validHtmlStr($m->Name());
+              }
             }
           }
-          $selected = explode(',', $term['val']);
+          $selected = self::decode_multi($term['val']);
           // echo '<pre>Monitor selected: '; print_r($selected); echo '</pre>';
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
           $options = ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Monitors')];
           if (isset($term['cookie'])) {
             $options['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
           }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, $options).PHP_EOL;
@@ -1287,15 +1463,10 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
         } else if ( $term['attr'] == 'Notes' ) {
           $attrs = ['id'=>'filterNotes', 'class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('Event Type')];
-          $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
+          $selected = self::decode_multi($term['val']);
           if (isset($term['cookie'])) {
             $attrs['data-cookie'] = $term['cookie'];
 
-            if (!$selected and isset($_COOKIE[$term['cookie']]) and $_COOKIE[$term['cookie']])
-              $selected = explode(',', $_COOKIE[$term['cookie']]);
           }
           $options = [
             'Motion' => 'Motion',
@@ -1378,24 +1549,49 @@ class Filter extends ZM_Object {
     return false;
   }
 
+  public function canView($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    // System viewers can inspect any filter. Otherwise you must own it. An
+    // unsaved/transient filter (no Id) is built from the requester's own input
+    // (e.g. the filterdebug modal), so treat it as viewable by the requester.
+    if ($u->canView('System') or ($this->UserId() == $u->Id()) or !$this->Id()) return true;
+    return false;
+  }
+
   public function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;
     if ($u->canEdit('System')) return true;
 
-    if ($this->UserId() == $u->Id()) {
-      if ($u->canEdit('Events')) return true;
-      if ($u->canView('Events')) {
-        // If we can only view events, then we can't perform filters that involve changing the event.
-        if (!(
-          $this->AutoExecute() and
-          $this->AutoDelete() and
-          $this->AutoUnarchive() and
-          $this->AutoMove() and
-          $this->AutoCopy()
-        )) {
-          return true;
-        }
+    // Below here the user is not a System editor, so may only act on filters
+    // that they own.
+    if ($this->UserId() != $u->Id()) return false;
+
+    // AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, which is
+    // equivalent to shell access on the server. Restrict it to System editors,
+    // who were already granted access above.
+    if ($this->AutoExecute()) return false;
+
+    // Users who can edit Events may run filters that change events
+    // (move/copy/delete/archive/etc).
+    if ($u->canEdit('Events')) return true;
+
+    // View-only users may only run filters that neither change events nor
+    // trigger side effects. Deny if ANY auto action is enabled.
+    if ($u->canView('Events')) {
+      if (!(
+        $this->AutoDelete() or
+        $this->AutoUnarchive() or
+        $this->AutoArchive() or
+        $this->AutoMove() or
+        $this->AutoCopy() or
+        $this->AutoVideo() or
+        $this->AutoUpload() or
+        $this->AutoEmail() or
+        $this->AutoMessage()
+      )) {
+        return true;
       }
     }
     return false;

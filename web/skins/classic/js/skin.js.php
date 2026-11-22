@@ -27,7 +27,7 @@ global $user;
 ?>
 const ZM_WEB_VIEWING_TIMEOUT=<?php echo (ZM_WEB_VIEWING_TIMEOUT==''?'0':ZM_WEB_VIEWING_TIMEOUT)?>;
 const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+const navBarRefresh = <?php echo 1000*(int)ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';
@@ -97,8 +97,9 @@ var focusWindow = <?php echo !empty($focusWindow)?'true':'false' ?>;
 
 const imagePrefix = '<?php echo '?view=image&eid=' ?>';
 
-var auth_hash = '<?php echo generateAuthHash(ZM_AUTH_HASH_IPS) ?>';
-var auth_relay = '<?php echo get_auth_relay() ?>';
+// The page's one copy of the authentication credential. ZMAuth derives the bare
+// hash from the relay, so the two can never disagree; see web/js/auth-helpers.js.
+var zmAuth = new ZMAuth(<?php echo json_encode(get_auth_relay()) ?>);
 var user = <?php echo $user ? json_encode($user->expose(['Password'])) : '{}'; ?>;
 var running = <?php echo daemonCheck()?'true':'false' ?>;
 
@@ -130,6 +131,7 @@ const CMD_SCALE = <?php echo CMD_SCALE ?>;
 const CMD_PREV = <?php echo CMD_PREV ?>;
 const CMD_NEXT = <?php echo CMD_NEXT ?>;
 const CMD_SEEK = <?php echo CMD_SEEK ?>;
+const CMD_SET_EVENT = <?php echo CMD_SET_EVENT ?>;
 const CMD_QUERY = <?php echo CMD_QUERY ?>;
 const CMD_QUIT = <?php echo CMD_QUIT ?>;
 const CMD_MAXFPS = <?php echo CMD_MAXFPS ?>;
@@ -148,6 +150,9 @@ if ($user) {
   // Only include config if logged in or auth turned off. The login view doesn't require any config.
   global $zm_config;
   foreach ($zm_config as $name=>$c) {
+    // A password option is never exported, whatever its Private flag says: a table made
+    // from an older zm_create.sql has every flag 0 until zmupdate.pl repairs it.
+    if (isset($c['Type']) and ($c['Type'] == 'password')) continue;
     if (empty($c['Private'])) {
       if (empty($c['Value'])) {
         echo 'const '. $name . ' = \'\';'.PHP_EOL;

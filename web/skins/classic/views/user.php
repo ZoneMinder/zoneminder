@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user->Id());
+$selfEdit = ZM_USER_SELF_EDIT && isset($_REQUEST['uid']) && ($_REQUEST['uid'] == $user->Id());
 
 if (!canEdit('System') && !$selfEdit) {
   $view = 'error';
@@ -45,7 +45,7 @@ $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>tran
 $nvec = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create') );
 $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
-$langs = array_merge( array( ''=>'' ), getLanguages() );
+$langs = array_merge( array( ''=>translate('Default') ), getLanguages() );
 
 
 $focusWindow = true;
@@ -57,10 +57,10 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
-          <div class="float-left pl-3 pt-1">
+          <div class="float-left pt-1">
             <button type="button" id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
             <button type="button" id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
           </div>
@@ -72,7 +72,7 @@ echo getNavBarHTML();
         </div><!--header-->
         <div id="content-inner">
           <div class="row">
-            <div class="col-lg-6">
+            <div class="col-lg-6 mt-4">
               <fieldset>
                 <legend><?php echo translate('Account Details') ?></legend>
                 <table class="table table-sm">
@@ -80,14 +80,14 @@ echo getNavBarHTML();
 <?php if (canEdit('System')) { ?>
                     <tr>
                       <th scope="row"><?php echo translate('Username') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" pattern="[A-Za-z0-9 .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
                     </tr>
 <?php } ?>
                     <tr>
                       <th scope="row"><?php echo translate('NewPassword') ?></th>
                       <td>
                         <div class="input-group input-group-sm">
-                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" autocomplete="new-password"/>
+                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" minlength="<?php echo passwordMinLength() ?>" autocomplete="new-password"/>
                           <div class="input-group-append">
                             <span class="input-group-text material-icons md-18" style="cursor: pointer;" data-on-click-this="toggle_password_visibility" data-password-input="user[Password]">visibility</span>
                           </div>
@@ -107,21 +107,21 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>
-                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"/></td>
+                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                   </tbody>
                 </table>
               </fieldset>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 mt-4">
               <fieldset>
                 <legend><?php echo translate('Preferences') ?></legend>
                 <table class="table table-sm">
@@ -135,6 +135,7 @@ echo getNavBarHTML();
                       <td>
 <?php
     $homeview_options = [
+      ''=>translate('Default'),
       'console'=>translate('Console'),
       'events'=> translate('Events'),
       'map'   =>  translate('Map'),
@@ -169,13 +170,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
                       <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
                       <td><?php echo htmlSelect('user[MaxBandwidth]', $bandwidths, $User->MaxBandwidth(), ['class'=>'form-control form-control-sm']) ?></td>
                     </tr>
-<?php   if (ZM_OPT_USE_API) { ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('APIEnabled')?></th>
-                      <td><?php echo htmlSelect('user[APIEnabled]', $yesno, $User->APIEnabled(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
 <?php
-      } // end if ZM_OPT_USE_API
     } // end if canEdit System
 ?>
                   </tbody>
@@ -184,7 +179,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
             </div>
           </div><!--end row-->
 
-<?php if (ZM_OPT_USE_API && $User->Id() && $User->APIEnabled()) {
+<?php if (ZM_OPT_USE_API && $User->Id()) {
   // Determine profile name: ZM_WEB_TITLE if not default, else ZM_HOME_URL if not default, else 'ZoneMinder'
   $profileName = 'ZoneMinder';
   if (defined('ZM_WEB_TITLE') && ZM_WEB_TITLE !== 'ZoneMinder' && ZM_WEB_TITLE !== '') {
@@ -270,59 +265,60 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
 <?php
 if (canEdit('System')) {
 ?>
-        <div class="Permissions mt-4">
-          <fieldset>
-            <legend><?php echo translate('Global Permissions') ?></legend>
-            <div class="row">
-              <div class="col-md-6">
-                <table class="table table-sm">
-                  <tbody>
-                    <tr>
-                      <th scope="row"><?php echo translate('Stream') ?></th>
-                      <td><?php echo htmlSelect('user[Stream]', $nv, $User->Stream(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
-                    <tr>
-                      <th scope="row"><?php echo translate('Events') ?></th>
-                      <td><?php echo htmlSelect('user[Events]', $nve, $User->Events(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
+        <div class="row flex-col-3">
+          <div class="Permissions mt-4 col-lg-6">
+            <fieldset>
+              <legend><?php echo translate('Global Permissions') ?></legend>
+              <div class="row">
+                <div class="col-md-6">
+                  <table class="table table-sm">
+                    <tbody>
+                      <tr>
+                        <th scope="row"><?php echo translate('Stream') ?></th>
+                        <td><?php echo htmlSelect('user[Stream]', $nv, $User->Stream(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><?php echo translate('Events') ?></th>
+                        <td><?php echo htmlSelect('user[Events]', $nve, $User->Events(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
 <?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('Snapshots') ?></th>
-                      <td><?php echo htmlSelect('user[Snapshots]', $nve, $User->Snapshots(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
+                      <tr>
+                        <th scope="row"><?php echo translate('Snapshots') ?></th>
+                        <td><?php echo htmlSelect('user[Snapshots]', $nve, $User->Snapshots(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
 <?php } ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('Control') ?></th>
-                      <td><?php echo htmlSelect('user[Control]', $nve, $User->Control(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
-                  </tbody>
-                </table>
+                      <tr>
+                        <th scope="row"><?php echo translate('Control') ?></th>
+                        <td><?php echo htmlSelect('user[Control]', $nve, $User->Control(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="col-md-6">
+                  <table class="table table-sm">
+                    <tbody>
+                      <tr>
+                        <th scope="row"><?php echo translate('Monitors') ?></th>
+                        <td><?php echo htmlSelect('user[Monitors]', $nvec, $User->Monitors(), ['id'=>'user[Monitors]', 'class'=>'form-control form-control-sm', 'data-on-change'=>'updateEffectivePermissions']) ?></td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><?php echo translate('Groups') ?></th>
+                        <td><?php echo htmlSelect('user[Groups]', $nve, $User->Groups(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><?php echo translate('System') ?></th>
+                        <td><?php echo htmlSelect('user[System]', $nve, $User->System(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
+                      <tr>
+                        <th scope="row"><?php echo translate('Devices') ?></th>
+                        <td><?php echo htmlSelect('user[Devices]', $nve, $User->Devices(), ['class'=>'form-control form-control-sm']) ?></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <div class="col-md-6">
-                <table class="table table-sm">
-                  <tbody>
-                    <tr>
-                      <th scope="row"><?php echo translate('Monitors') ?></th>
-                      <td><?php echo htmlSelect('user[Monitors]', $nvec, $User->Monitors(), ['id'=>'user[Monitors]', 'class'=>'form-control form-control-sm', 'data-on-change'=>'updateEffectivePermissions']) ?></td>
-                    </tr>
-                    <tr>
-                      <th scope="row"><?php echo translate('Groups') ?></th>
-                      <td><?php echo htmlSelect('user[Groups]', $nve, $User->Groups(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
-                    <tr>
-                      <th scope="row"><?php echo translate('System') ?></th>
-                      <td><?php echo htmlSelect('user[System]', $nve, $User->System(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
-                    <tr>
-                      <th scope="row"><?php echo translate('Devices') ?></th>
-                      <td><?php echo htmlSelect('user[Devices]', $nve, $User->Devices(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </fieldset>
-        </div><!--Permissions-->
+            </fieldset>
+          </div><!--Permissions-->
 <?php
 $groups = array();
 if (canEdit('Groups')) {
@@ -341,18 +337,18 @@ if (canEdit('Groups')) {
       $max_depth = $group->depth();
   }
 ?>
-        <div id="GroupPermissions" class="mt-4">
-          <fieldset>
-            <legend><?php echo translate('Groups Permissions') ?></legend>
-            <table class="table table-sm table-striped">
-              <thead class="thead-light">
-                <tr>
-                  <th class="name" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
-                  <th class="monitors"><?php echo translate('Monitors') ?></th>
-                  <th class="permission"><?php echo translate('Permission') ?></th>
-                </tr>
-              </thead>
-              <tbody>
+          <div id="GroupPermissions" class="col-lg-6 mt-4">
+            <fieldset>
+              <legend><?php echo translate('Groups Permissions') ?></legend>
+              <table class="table table-sm table-striped">
+                <thead class="thead-light">
+                  <tr>
+                    <th class="name" colspan="<?php echo $max_depth+1 ?>"><?php echo translate('Name') ?></th>
+                    <th class="monitors"><?php echo translate('Monitors') ?></th>
+                    <th class="permission"><?php echo translate('Permission') ?></th>
+                  </tr>
+                </thead>
+                <tbody>
 <?php
   function group_line($group) {
     global $children;
@@ -382,49 +378,50 @@ if (canEdit('Groups')) {
     }
   }
 ?>
-              </tbody>
-            </table>
-          </fieldset>
-        </div><!--Group Permissions-->
+                </tbody>
+              </table>
+            </fieldset>
+          </div><!--Group Permissions-->
 <?php
   } // end if canEdit(Groups)
 ?>
-        <div id="MonitorPermissions" class="mt-4">
-          <fieldset>
-            <legend><?php echo translate('Monitor Permissions') ?></legend>
-            <table class="table table-sm table-striped">
-              <thead class="thead-light">
-                <tr>
-                  <th class="Id"><?php echo translate('Id') ?></th>
-                  <th class="Name"><?php echo translate('Name') ?></th>
-                  <th class="permission"><?php echo translate('Permission') ?></th>
-                  <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
-                </tr>
-              </thead>
-              <tbody>
+          <div id="MonitorPermissions" class="col-12 mt-4">
+            <fieldset>
+              <legend><?php echo translate('Monitor Permissions') ?></legend>
+              <table class="table table-sm table-striped">
+                <thead class="thead-light">
+                  <tr>
+                    <th class="Id"><?php echo translate('Id') ?></th>
+                    <th class="Name"><?php echo translate('Name') ?></th>
+                    <th class="permission"><?php echo translate('Permission') ?></th>
+                    <th class="effective_permission"><?php echo translate('Effective Permission') ?></th>
+                  </tr>
+                </thead>
+                <tbody>
 <?php
   $monitors = ZM\Monitor::find(['Deleted'=>0], ['order'=>'Sequence ASC']);
   foreach ($monitors as $monitor) {
     if ($monitor->canView()) {
       echo '
-                <tr>
-                  <td class="Id">'.$monitor->Id().'</td>
-                  <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
-                  <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
-                    $User->Monitor_Permission($monitor->Id())->Permission(),
-                    ['default'=>'Inherit'],
-                    ['data-on-change'=>'updateEffectivePermissions']).'</td>
-                  <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
-                </tr>';
+                  <tr>
+                    <td class="Id">'.$monitor->Id().'</td>
+                    <td class="Name">'.validHtmlStr($monitor->Name()).'</td>
+                    <td class="permission">'.html_radio('monitor_permission['.$monitor->Id().']', $inve,
+                      $User->Monitor_Permission($monitor->Id())->Permission(),
+                      ['default'=>'Inherit'],
+                      ['data-on-change'=>'updateEffectivePermissions']).'</td>
+                    <td class="effective_permission" id="effective_permission'.$monitor->Id().'">'.translate($monitor->effectivePermission($User)).'</td>
+                  </tr>';
     } else {
       ZM\Debug("Can't view monitor ".$monitor->Id(). ' ' .$monitor->canView());
     }
   }
 ?>
-              </tbody>
-            </table>
-          </fieldset>
-        </div><!--Monitor Permissions-->
+                </tbody>
+              </table>
+            </fieldset>
+          </div><!--Monitor Permissions-->
+        </div> <!--.row flex-col-->
 <?php
 } // end if canEdit(System)
 ?>

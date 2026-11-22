@@ -65,6 +65,15 @@ automatically, but if you installed from source or the group was not added, run:
 
         sudo adduser www-data video
 
+If you plan to use hardware accelerated decoding (``DecoderHWAccelName`` set to
+``vaapi`` or ``qsv``), the web server user also needs the ``render`` group. The
+render node ``/dev/dri/renderD*`` belongs to ``render`` rather than ``video``,
+and without it ZoneMinder logs ``Failed to create hwaccel device``:
+
+::
+
+        sudo adduser www-data render
+
 You will need to restart ZoneMinder (or reboot) for the group change to take effect.
 
 **Step 7:** Configure Apache correctly:
@@ -89,6 +98,10 @@ Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder 
 
 Ubuntu 18.04 (Bionic)
 ---------------------
+
+.. note::
+   ZoneMinder requires PHP 8.0 or newer. Ubuntu 18.04 ships PHP 7.2, so current ZoneMinder releases do not run on it. These instructions are kept for older ZoneMinder releases only.
+
 These instructions are for a brand new ubuntu 18.04 system which does not have ZM
 installed.
 
@@ -213,6 +226,15 @@ user to the ``video`` group:
 ::
 
         sudo adduser www-data video
+
+If you plan to use hardware accelerated decoding (``DecoderHWAccelName`` set to
+``vaapi`` or ``qsv``), the web server user also needs the ``render`` group. The
+render node ``/dev/dri/renderD*`` belongs to ``render`` rather than ``video``,
+and without it ZoneMinder logs ``Failed to create hwaccel device``:
+
+::
+
+        sudo adduser www-data render
 
 **Step 7:** Configure Apache correctly:
 

@@ -1,7 +1,7 @@
 <?php
   global $event;
 ?>
-var eventId = '<?php echo $event->Id() ?>';
+var eventId = '<?php echo validJsStr($event->Id()) ?>';
 
 var videoGenSuccessString = '<?php echo addslashes(translate('VideoGenSucceeded')) ?>';
 var videoGenFailedString = '<?php echo addslashes(translate('VideoGenFailed')) ?>';

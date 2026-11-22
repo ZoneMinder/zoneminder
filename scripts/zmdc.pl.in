@@ -66,7 +66,6 @@ use constant MAX_CONNECT_DELAY => 40;
 @EXTRA_PERL_LIB@
 use ZoneMinder;
 use ZoneMinder::Server;
-use POSIX;
 use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
@@ -78,7 +77,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmdc'.($Config{ZM_SERVER_ID}?
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 if ( $Config{ZM_LD_PRELOAD} ) {
   Debug("Adding ENV{LD_PRELOAD} = $Config{ZM_LD_PRELOAD}");
@@ -227,16 +226,28 @@ CLIENT->autoflush();
 my $message = join(';', $command, ( $daemon ? $daemon : () ), @args);
 print(CLIENT  $message);
 shutdown(CLIENT, 1);
-# Read response with timeout to avoid hanging indefinitely
+# Read response with timeout to avoid hanging indefinitely. shutdown answers
+# once every daemon has exited or been sent KILL, which happens after KILL_DELAY.
+my $client_timeout = ( $command eq 'shutdown' ) ? ZMServer->KILL_DELAY + 10 : 30;
+# Read unbuffered: select() can't see lines already sitting in a PerlIO buffer.
+binmode(CLIENT, ':pop');
 my $client_rin = '';
 vec($client_rin, fileno(CLIENT), 1) = 1;
-while ( select(my $rout = $client_rin, undef, undef, 30) > 0 ) {
+my $timed_out = 1;
+while ( select(my $rout = $client_rin, undef, undef, $client_timeout) > 0 ) {
   my $line = <CLIENT>;
-  last if !defined($line);
+  if ( !defined($line) ) {
+    $timed_out = 0;
+    last;
+  }
   chomp($line);
   print("$line\n");
 }
 close(CLIENT);
+if ( $timed_out ) {
+  print("Timed out after $client_timeout seconds waiting for zmdc.pl server to answer '$command'\n");
+  exit(-1);
+}
 
 exit;
 
@@ -248,7 +259,7 @@ use bytes;
 
 @EXTRA_PERL_LIB@
 use ZoneMinder;
-use POSIX;
+use POSIX qw(strftime sigprocmask EINTR EPIPE WNOHANG SIGABRT SIGCHLD SIGINT SIGTERM SIG_BLOCK SIG_SETMASK SIG_UNBLOCK);
 use Socket;
 use IO::Handle;
 use Time::HiRes qw(usleep);
@@ -265,6 +276,35 @@ our %pid_hash;
 our %terminating_processes;
 our %pids_to_reap;
 our $zm_terminate = 0;
+
+# Re-assert the pid file so systemd (PIDFile=) keeps tracking us even if it
+# was removed out-of-band (e.g. tmpfiles cleanup of /run, or a partial/aborted
+# stop that unlinked the pid but left us running). Cheap: only writes when the
+# file is missing or its contents don't match our pid. Shutdown-safe: the
+# shutdown unlink runs only after the main loop exits, so this can never
+# recreate the pid file after termination has begun.
+my $pid_reassert_failed = 0;
+sub ensure_pid {
+  my $current;
+  if ( open(my $fh, '<', ZM_PID) ) {
+    $current = <$fh>;
+    close($fh);
+    chomp $current if defined $current;
+  }
+  return if defined($current) and $current eq "$$";
+  if ( open(my $PID, '>', ZM_PID) ) {
+    print($PID $$);
+    close($PID);
+    Warning('Re-asserted pid file '.ZM_PID.' (was missing or stale)');
+    $pid_reassert_failed = 0;
+  } elsif ( !$pid_reassert_failed ) {
+    # Warn only on the first failure while the condition persists, so a
+    # permanently unwritable ZM_PID (e.g. /run/zm removed) does not flood the
+    # log every loop tick. Reset above once a write succeeds again.
+    Warning('Unable to (re)write pid file '.ZM_PID.": $!");
+    $pid_reassert_failed = 1;
+  }
+}
 
 sub run {
 
@@ -295,7 +335,8 @@ sub run {
   setpgrp();
 
   # dbh got closed with the rest of the fd's above, so need to reconnect.
-  my $dbh = zmDbConnect(1);
+  # Assign the file-level $dbh: start() replaces it after it reconnects.
+  $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -411,6 +452,7 @@ sub run {
     restartPending();
     check_for_processes_to_kill() if %terminating_processes;
     reaper() if %pids_to_reap;
+    ensure_pid();
   } # end while
 
   dPrint(ZoneMinder::Logger::INFO, 'Server exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
@@ -431,7 +473,14 @@ sub run {
 sub cPrint {
   # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
-    print CLIENT @_
+    # A client that gave up (zmdc.pl's own reader stops after 30s idle, a web
+    # request can time out) has closed its end, and writing to it would kill
+    # zmdc with SIGPIPE in the middle of e.g. a shutdown.
+    # If the write fails the client is gone: close it here, or the unwritten
+    # reply stays buffered and closing CLIENT later raises SIGPIPE anyway.
+    # CLIENT is not autoflushed, so flush here too or print only buffers.
+    local $SIG{PIPE} = 'IGNORE';
+    close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
 }
 
@@ -472,9 +521,10 @@ sub start {
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{term_sent_at}))
         .", pid = $process->{pid}\n"
       );
+      # Keep it in %terminating_processes: the TERM is still on its way, and a
+      # daemon that ignores it must still be sent KILL so the reaper can restart it.
       $process->{keepalive} = !undef;
       $process->{delay} = 0;
-      delete $terminating_processes{$command};
     } else {
       dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))
@@ -484,9 +534,12 @@ sub start {
     return;
   }
 
-  # We have to block SIGCHLD during fork to prevent races while we setup our records for it
+  # We have to block SIGCHLD during fork to prevent races while we setup our records for it.
+  # TERM, INT and ABRT are blocked too: the child starts with our handlers, which
+  # only set $zm_terminate, so a stop sent to it before it resets them would be
+  # lost and the daemon it execs would keep running until KILL_DELAY.
   my $sigset = POSIX::SigSet->new;
-  my $blockset = POSIX::SigSet->new(SIGCHLD);
+  my $blockset = POSIX::SigSet->new(SIGCHLD, SIGTERM, SIGINT, SIGABRT);
   sigprocmask(SIG_BLOCK, $blockset, $sigset) or Fatal("Can't block SIGCHLD: $!");
   # Apparently the child closing the db connection can affect the parent.
   zmDbDisconnect();
@@ -509,7 +562,16 @@ sub start {
     sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore SIGCHLD: $!");
   } elsif ( defined($child_pid) ) {
     # Child process
-    
+
+    # Take the stop signals back to their defaults first, then unblock them, so
+    # a TERM sent while we are still getting ready to exec (connecting to the
+    # db, closing descriptors) ends this child and zmdc's reaper sees it go.
+    $SIG{INT} = 'DEFAULT';
+    $SIG{TERM} = 'DEFAULT';
+    $SIG{ABRT} = 'DEFAULT';
+    sigprocmask(SIG_UNBLOCK, POSIX::SigSet->new(SIGTERM, SIGINT, SIGABRT))
+      or Fatal("Can't unblock stop signals: $!");
+
     # Force reconnection to the db. $dbh got copied, but isn't really valid anymore.
     $dbh = zmDbConnect(1);
     logReinit();
@@ -538,17 +600,30 @@ sub start {
     logTerm();
     zmDbDisconnect();
 
-    my $fd = 3; # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
-    while ( $fd < POSIX::sysconf(&POSIX::_SC_OPEN_MAX) ) {
-      POSIX::close($fd++);
+    # leave stdin,stdout,stderr open.  Closing them causes problems with libx264
+    # Close only the descriptors that are open where /proc lists them: walking
+    # every number up to _SC_OPEN_MAX takes seconds with a high open-file limit.
+    if ( opendir(my $fd_dir, '/proc/self/fd') ) {
+      my @fds = map { /^(\d+)$/ ? $1 : () } readdir($fd_dir);
+      closedir($fd_dir);
+      foreach my $fd ( @fds ) {
+        POSIX::close($fd) if $fd > 2;
+      }
+    } else {
+      my $fd = 3;
+      my $max = POSIX::sysconf(&POSIX::_SC_OPEN_MAX);
+      while ( $fd < $max ) {
+        POSIX::close($fd++);
+      }
     }
 
     $SIG{CHLD} = 'DEFAULT';
     $SIG{HUP} = 'DEFAULT';
-    $SIG{INT} = 'DEFAULT';
-    $SIG{TERM} = 'DEFAULT';
-    $SIG{ABRT} = 'DEFAULT';
 
+    # SIGCHLD is still blocked from the fork above, and a blocked signal stays
+    # blocked across exec, so the daemon would start with it blocked. Hand it the
+    # mask zmdc had before the fork.
+    sigprocmask(SIG_SETMASK, $sigset) or Fatal("Can't restore the signal mask: $!");
     exec($daemon, @good_args) or Fatal("Can't exec: $!");
   } else {
     Fatal("Can't fork: $!");
@@ -637,7 +712,7 @@ sub stop {
   my $command = join(' ', $daemon, @args);
   my $process = $cmd_hash{$command};
   if ( !$process ) {
-    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'");
+    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'\n");
     return;
   }
 
@@ -663,6 +738,8 @@ sub restart {
     dPrint(ZoneMinder::Logger::DEBUG, "'$command' is already terminating and will restart, ignoring duplicate restart request\n");
     return;
   }
+
+  $process->{delay} = 0;
 
   # Start will be handled by the reaper...
   # unless it was already pending in which case send_stop will return () so we should start it
@@ -690,11 +767,13 @@ sub logrot {
   logReinit();
   foreach my $process ( values %pid_hash ) {
     if ( $process->{pid} ) {
-      Debug("Hupping $$process{command} at $$process{pid}");
-      # && $process->{command} =~ /^zm.*\.pl/ ) {
-      kill('HUP', $process->{pid});
+      Debug("Rotating logs of $$process{command} at $$process{pid}");
+      # WINCH, not HUP: HUP means reload, which makes zmc drop its camera
+      # connection and the perl daemons exit for zmdc to restart. Rotating logs
+      # nightly must not interrupt capture. See issue #5063.
+      kill('WINCH', $process->{pid});
     } else {
-      Debug("Not Hupping $$process{command}");
+      Debug("Not rotating logs of $$process{command}");
     }
   }
 }
@@ -734,9 +813,13 @@ sub reaper {
     delete $process->{pid};
 
     my $exit_status = $status>>8;
-    my $exit_signal = $status&0xfe;
-    my $core_dumped = $status&0x01;
+    # The low 7 bits of a wait status are the signal and 0x80 is the core dump
+    # flag. Masking with 0xfe dropped the signal's low bit, so TERM was logged
+    # as 14 and KILL as 8.
+    my $exit_signal = $status&0x7f;
+    my $core_dumped = $status&0x80;
 
+    my $crashed = 0;
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {
       # 15 == TERM, 14 == ALARM
@@ -744,6 +827,7 @@ sub reaper {
         $out_str .= 'exited';
       } else {
         $out_str .= 'crashed';
+        $crashed = 1;
       }
       $out_str .= ", signal $exit_signal";
     } else {
@@ -757,7 +841,7 @@ sub reaper {
 #print( ", core dumped" ) if ( $core_dumped );
     $out_str .= "\n";
 
-    if ( $exit_status == 0 ) {
+    if ( $exit_status == 0 and !$crashed ) {
       Info($out_str);
     } else {
       Error($out_str);

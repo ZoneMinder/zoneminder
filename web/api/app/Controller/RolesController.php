@@ -35,13 +35,16 @@ class RolesController extends AppController {
     $this->Role->recursive = 0;
 
     global $user;
-    if ($user->System() == 'None') {
+    if ($user and ($user->System() == 'None')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
     $roles = $this->Paginator->paginate('Role');
 
-    $this->set(compact('roles'));
+    $this->set(array(
+      'roles' => $roles,
+      '_serialize' => array('roles')
+    ));
   }
 
 /**
@@ -55,7 +58,7 @@ class RolesController extends AppController {
     $this->Role->recursive = 1;
 
     global $user;
-    if ($user->System() == 'None') {
+    if ($user and ($user->System() == 'None')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -81,11 +84,12 @@ class RolesController extends AppController {
   public function add() {
     if ($this->request->is('post')) {
       global $user;
-      if ($user->System() != 'Edit') {
+      if ($user and ($user->System() != 'Edit')) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
 
+      $this->pinRequestId($this->Role, null);
       $this->Role->create();
       if ($this->Role->save($this->request->data)) {
         $message = 'Saved';
@@ -117,7 +121,7 @@ class RolesController extends AppController {
     $this->Role->id = $id;
 
     global $user;
-    if ($user->System() != 'Edit') {
+    if ($user and ($user->System() != 'Edit')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -126,7 +130,9 @@ class RolesController extends AppController {
       throw new NotFoundException(__('Invalid role'));
     }
 
+    $message = '';
     if ($this->request->is('post') || $this->request->is('put')) {
+      $this->pinRequestId($this->Role, $id);
       if ($this->Role->save($this->request->data)) {
         $message = 'Saved';
       } else {
@@ -156,7 +162,7 @@ class RolesController extends AppController {
     $this->Role->id = $id;
 
     global $user;
-    if ($user->System() != 'Edit') {
+    if ($user and ($user->System() != 'Edit')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }

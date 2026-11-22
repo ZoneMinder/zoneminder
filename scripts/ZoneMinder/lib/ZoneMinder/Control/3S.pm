@@ -105,6 +105,13 @@ sub cameraReset
     $self->sendCmd( $cmd );
 }
 
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+    my $self = shift;
+    $self->cameraReset();
+}
+
 #Custom#
 #Move X or Y Axis
 sub Up
@@ -441,22 +448,6 @@ sub focusRelFar
     $self->sendCmd( $cmd );
 }
 
-sub focusAuto
-{
-    my $self = shift;
-    Debug( "Focus Auto" );
-    my $cmd = "/ptz.cgi?Autofocus=on";
-    $self->sendCmd( $cmd );
-}
-
-sub focusMan
-{
-    my $self = shift;
-    Debug( "Focus Manual" );
-    my $cmd = "/ptz.cgi?Autofocus=off";
-    $self->sendCmd( $cmd );
-}
-
 sub irisRelOpen
 {
     my $self = shift;
@@ -567,9 +558,8 @@ Juan Manuel Castro, E<lt>juanmanuel.castro@gmail.comE<gt>
 
 Copyright (C) 2014 Juan Manuel Castro
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

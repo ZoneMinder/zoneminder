@@ -32,5 +32,12 @@ Recording Tab
 - **Output Container**: Leaving at Auto allows ZoneMinder to use mp4. Other choices are mkv and webm.
 - **Optional Encoding Parameters**: Mostly useful when encoding as each encoder takes different parameters. Consult the `FFmpeg documentation <https://ffmpeg.org/ffmpeg-formats.html>`__ for available parameters for each encoder.
 - **Recording Audio**: Check the box in order to save audio (if available) when events are recorded.
-- **Event Start Command**: When a recording event starts, you can run a system command. The parameters to the command will be the event id and the monitor id.
-- **Event End Command**: When a recording event ends, you can run a system command. The parameters to the command will be the event id and the monitor id.
+- **Event Start Command**: When a recording event starts, you can run a system command.
+- **Event End Command**: When a recording event ends, you can run a system command. It runs after the event has been finalized, so the event's video file is complete and its database records are in place.
+
+    How these commands are executed depends on whether the command string contains a ``%`` character:
+
+    - **Without** ``%``, the whole string is treated as the path of a single executable (no shell is involved), and two arguments are appended to it: the event id and the monitor id. You cannot pass your own arguments this way — a value like ``/usr/local/bin/notify.sh start`` is looked up as one file named ``notify.sh start`` and fails.
+    - **With** ``%``, the string is run through ``/bin/sh -c`` after token substitution, and no arguments are appended automatically. Available tokens are ``%EID%`` (event id), ``%MID%`` (monitor id) and, for the start command only, ``%EC%`` (the shell-escaped event cause). So to combine your own arguments with the event id, write e.g. ``/usr/local/bin/notify.sh start %EID%``.
+
+    The command runs in the background as the same user as the capture process (normally the web user), with all file descriptors closed — anything it prints goes nowhere, so redirect output inside your script if you need to see it. A failure to execute the command is logged by the capture process (zmc).

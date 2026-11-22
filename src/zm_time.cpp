@@ -27,27 +27,29 @@ std::string SystemTimePointToString(SystemTimePoint tp) {
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
                             tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
 
-  std::string timeString;
-  timeString.reserve(64);
-  char *timePtr = &*(timeString.begin());
+  // Format into a real buffer: writing into a string's spare capacity leaves its size at 0.
+  char buffer[96];
   tm tp_tm = {};
-  timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
-  return timeString;
+  size_t len = strftime(buffer, sizeof(buffer), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
+  snprintf(buffer + len, sizeof(buffer) - len, ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
+  return std::string(buffer);
 }
 
 std::string SystemTimePointToMysqlString(SystemTimePoint tp) {
+  // Format to whole-second precision only. The MySQL datetime columns this feeds
+  // (e.g. Events.StartDateTime) have no fractional precision, and MySQL 8 ROUNDS
+  // a fractional string when storing it, so ".999999" before midnight would be
+  // promoted to 00:00:00 of the next day. Event::SetPath() derives the on-disk
+  // day folder from to_time_t() (which truncates), so emitting a roundable
+  // fractional made the DB row and the disk folder diverge by a day for events
+  // starting just before local midnight. Truncate here to match to_time_t and
+  // keep both representations on the same second. refs #4870
   time_t tp_sec = std::chrono::system_clock::to_time_t(tp);
-  Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-                            tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
 
-  std::string timeString;
-  timeString.reserve(64);
-  char *timePtr = &*(timeString.begin());
+  char buffer[32];
   tm tp_tm = {};
-  timePtr += strftime(timePtr, timeString.capacity(), "%Y-%m-%d %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
-  return timeString;
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
+  return std::string(buffer);
 }
 
 std::string TimePointToString(TimePoint tp) {
@@ -58,13 +60,12 @@ std::string TimePointToString(TimePoint tp) {
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
                             tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
 
-  std::string timeString;
-  timeString.reserve(64);
-  char *timePtr = &*(timeString.begin());
+  // Format into a real buffer: writing into a string's spare capacity leaves its size at 0.
+  char buffer[96];
   tm tp_tm = {};
-  timePtr += strftime(timePtr, timeString.capacity(), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
-  snprintf(timePtr, timeString.capacity() - (timePtr - timeString.data()), ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
-  return timeString;
+  size_t len = strftime(buffer, sizeof(buffer), "%x %H:%M:%S", localtime_r(&tp_sec, &tp_tm));
+  snprintf(buffer + len, sizeof(buffer) - len, ".%06" PRIi64, static_cast<int64_t>(now_frac.count()));
+  return std::string(buffer);
 }
 
 std::string format_absolute_time_iso8601(time_t time) {
@@ -80,7 +81,12 @@ std::string format_absolute_time_iso8601(time_t time) {
 
 SystemTimePoint StringToSystemTimePoint(const std::string &timestamp) {
   std::tm t{};
-  strptime(timestamp.c_str(), "%Y-%m-%d %H:%M:%S", &t);
+  if (!strptime(timestamp.c_str(), "%Y-%m-%d %H:%M:%S", &t)) {
+    // Empty (NULL column) or unparseable: callers compare against the epoch to
+    // see whether a time was ever set, not a mktime() of an all zero tm.
+    return SystemTimePoint();
+  }
+  t.tm_isdst = -1;  // let mktime decide, otherwise summer times are read as standard time
   time_t time_t_val = mktime(&t);
   SystemTimePoint stp = std::chrono::system_clock::from_time_t(time_t_val);
   return stp;

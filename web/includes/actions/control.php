@@ -35,7 +35,12 @@ if ( $action == 'control' ) {
   $monitor = new ZM\Monitor($mid);
 
   $ctrlCommand = buildControlCommand($monitor);
-  $monitor->sendControlCommand($ctrlCommand);
-  $redirect = $_SERVER['HTTP_REFERER'];
+  if (!$monitor->sendControlCommand($ctrlCommand)) {
+    // Stay on the control page, which shows the error, rather than going back as if it worked.
+    $error_message .= 'Failed to send the control command to monitor '.$mid.'.<br/>';
+    return;
+  }
+  // Back to the page the command came from, if that is on this server.
+  $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=control&mid='.$mid);
 }
 ?>

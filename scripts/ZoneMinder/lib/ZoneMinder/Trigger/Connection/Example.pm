@@ -45,7 +45,6 @@ use ZoneMinder::Logger qw(:all);
 sub new
 {
     my $class = shift;
-    my $path = shift;
     my $self = ZoneMinder::Trigger::Connection->new( @_ );
     bless( $self, $class );
     return $self;
@@ -70,7 +69,7 @@ sub putMessages
 
     if ( @$messages )
     {
-        my $buffer = join( "\n", grep{ s/\|/-/; 1; } @$messages );
+        my $buffer = join( "\n", map { ( my $m = $_ ) =~ s/\|/-/g; $m } @$messages );
         $buffer .= "\n";
         if ( !$self->{channel}->write( $buffer ) )
         {
@@ -126,9 +125,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

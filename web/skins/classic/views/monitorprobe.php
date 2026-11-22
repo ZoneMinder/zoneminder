@@ -38,14 +38,14 @@ function probeV4L() {
 
   $cameras = array();
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
+  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' AND Deleted = 0 ORDER BY Device, Channel" ) as $monitor )
     $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
   $devices = array();
   $devices_to_probe = array();
   $preferredStandards = array('PAL', 'NTSC');
   $preferredFormats = array('BGR3', 'RGB3', 'YUYV', 'UYVY', 'JPEG', 'MJPG', '422P', 'YU12', 'GREY');
 
-  if ( !empty($_REQUEST['device']) ) {
+  if ( !empty($_REQUEST['device']) and is_string($_REQUEST['device']) ) {
     $devices_to_probe[] = $_REQUEST['device'];
   } else {
     $it = new FilesystemIterator('/dev/');
@@ -59,7 +59,7 @@ function probeV4L() {
   foreach ($devices_to_probe as $d) {
     $command = getZmuCommand(' --query --device');
     $command .= '='.escapeshellarg($d);
-    $result = exec(escapeshellcmd($command), $output, $status);
+    $result = exec($command, $output, $status);
     if ($status) {
       ZM\Warning("Errors while probe local cameras using $command, status is '$status' " . implode("\n", $output));
     }
@@ -191,12 +191,10 @@ function probeActi($ip) {
   $camera = array(
     'model'   => 'Unknown Panasonic Camera',
     'monitor' => array(
-      'Type'     => 'Remote',
-      'Protocol' => 'rtsp',
-      'Method'   => 'rtpUni',
-      'Host'     => 'Admin:123456@'.$ip,
-      'Port'     => 7070,
-      'Path'     => '',
+      // Was Remote/rtsp, which no longer captures now that ZoneMinder's own
+      // rtsp client is gone. Same stream, through ffmpeg.
+      'Type'     => 'Ffmpeg',
+      'Path'     => 'rtsp://Admin:123456@'.$ip.':7070',
       'Colours'  => 3,
       'Width'    => 320,
       'Height'   => 240,
@@ -250,12 +248,10 @@ function probeVivotek($ip) {
   $camera = array(
     'model'   => 'Unknown Vivotek Camera',
     'monitor' => array(
-      'Type'     => 'Remote',
-      'Protocol' => 'rtsp',
-      'Method'   => 'rtpUni',
-      'Host'     => $ip,
-      'Port'     => 554,
-      'Path'     => '',
+      // Was Remote/rtsp, which no longer captures now that ZoneMinder's own
+      // rtsp client is gone. Same stream, through ffmpeg.
+      'Type'     => 'Ffmpeg',
+      'Path'     => 'rtsp://'.$ip.':554',
       'Colours'  => 3,
       'Width'    => 352,
       'Height'   => 240,
@@ -351,7 +347,7 @@ function probeNetwork() {
   $cameras = array();
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' AND `Deleted` = 0 ORDER BY `Host`") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -360,13 +356,13 @@ function probeNetwork() {
       $monitors[gethostbyname($monitor['Host'])] = $monitor;
     }
   }
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' AND `Deleted` = 0 ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
-    if ($url_parts !== false) {
-      ZM\Debug("Ffmpeg monitor ${url_parts['host']} = ${monitor['Id']} ${monitor['Name']}");
+    if (!empty($url_parts['host'])) {
+      ZM\Debug("Ffmpeg monitor {$url_parts['host']} = {$monitor['Id']} {$monitor['Name']}");
       $monitors[gethostbyname($url_parts['host'])] = $monitor;
     } else {
-      ZM\Debug("Unable to parse ${monitor['Path']}");
+      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor['Path']));
     }
   }
 
@@ -465,13 +461,13 @@ $interfaces = array('', 'select');
 
   echo htmlSelect('interface', $interfaces,
     (isset($_REQUEST['interface']) ? $_REQUEST['interface'] : $default_interface),
-    array('data-on-change-this'=>'changeInterface') );
+    array('id'=>'interface', 'data-on-change-this'=>'changeInterface') );
 
 ?>
         </p>
         <p>
           <label for="probe"><?php echo translate('DetectedCameras') ?></label>
-          <?php echo htmlSelect('probe', $cameras, null, array('data-on-change-this'=>'configureButtons')); ?>
+          <?php echo htmlSelect('probe', $cameras, null, array('id'=>'probe', 'data-on-change-this'=>'configureButtons')); ?>
         </p>
         <hr/>
         <p><?php echo translate('OnvifManualOr') ?></p>
@@ -479,7 +475,7 @@ $interfaces = array('', 'select');
           <label for="manual_url"><?php echo translate('OnvifManualLabel') ?></label>
           <input type="text" name="manual_url" id="manual_url"
                  placeholder="<?php echo translate('OnvifManualPlaceholder') ?>"
-                 value="<?php echo isset($_REQUEST['manual_url']) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
+                 value="<?php echo (isset($_REQUEST['manual_url']) and is_string($_REQUEST['manual_url'])) ? htmlspecialchars($_REQUEST['manual_url']) : '' ?>"
                  data-on-change-this="configureButtons"
                  data-on-input-this="configureButtons"
                  size="40"/>

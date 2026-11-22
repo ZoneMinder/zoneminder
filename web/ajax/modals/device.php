@@ -2,9 +2,12 @@
 
 if ( !canEdit( 'Devices' ) ) return;
 
+$newDevice = null;
 if ( !empty($_REQUEST['did']) ) {
     $newDevice = dbFetchOne( 'SELECT * FROM Devices WHERE Id = ?', NULL, array($_REQUEST['did']) );
-} else {
+}
+# A device deleted since the list was drawn is not found, so offer a new one.
+if ( !$newDevice ) {
     $newDevice = array(
         "Id" => "",
         "Name" => "New Device",
@@ -40,7 +43,7 @@ if ( !empty($_REQUEST['did']) ) {
             </tr>
             <tr>
               <th scope="row" class="text-right pr-2"><?php echo translate('KeyString') ?></th>
-              <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>"/></td>
+              <td><input type="text" name="newDevice[KeyString]" value="<?php echo validHtmlStr($newDevice['KeyString']) ?>" maxlength="32"/></td>
             </tr>
           </tbody>
         </table>

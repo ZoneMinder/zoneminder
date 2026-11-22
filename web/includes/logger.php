@@ -1,7 +1,9 @@
 <?php
 
 namespace ZM;
+use PDOException;
 require_once('config.php');
+require_once(__DIR__.'/log_redact.php');
 
 class Logger {
   private static $instance;
@@ -347,10 +349,8 @@ class Logger {
   private function openFile() {
     if ( !$this->useErrorLog ) {
       if ( $this->logFd = fopen($this->logPath.'/'.$this->logFile, 'a+') ) {
-        if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
-          $error = error_get_last();
-          trigger_error("Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
-        }
+        $error = error_get_last();
+        trigger_error("Can't open log file '$logFile': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
         $this->fileLevel = self::NOLOG;
       }
     }
@@ -405,11 +405,9 @@ class Logger {
     if ( $level <= $this->fileLevel ) {
       if ( $this->useErrorLog ) {
         if ( !error_log($message."\n", 3, $this->logPath.'/'.$this->logFile) ) {
-          if ( strnatcmp(phpversion(), '5.2.0') >= 0 ) {
-            $error = error_get_last();
-            $this->fileLevel = self::NOLOG;
-            Error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
-          }
+          $error = error_get_last();
+          $this->fileLevel = self::NOLOG;
+          Error("Can't write to log file '".$this->logFile."': ".$error['message'].' @ '.$error['file'].'/'.$error['line'], E_USER_ERROR);
         }
       } else if ( $this->logFd ) {
         fprintf($this->logFd, $message."\n");
@@ -428,8 +426,12 @@ class Logger {
         $file = substr($file, 0, 255);
 
       try {
-        global $dbConn;
         $sql = 'INSERT INTO `Logs` ( `TimeKey`, `Component`, `ServerId`, `Pid`, `Level`, `Code`, `Message`, `File`, `Line` ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ? )';
+        // Never open a connection just to write a log line, and never let a
+        // logging call end the request. The catch below drops to NOLOG, so this
+        // falls through to the weblog/error_log targets and does not retry.
+        $dbConn = zmDbConnOrNull();
+        if (!$dbConn) throw new PDOException('No database connection');
         $stmt = $dbConn->prepare($sql);
         $result = $stmt->execute(array(sprintf('%d.%06d', $time['sec'], $time['usec']), $this->id,
           (defined('ZM_SERVER_ID') ? ZM_SERVER_ID : null), getmypid(), $level, $code, $string, $file, $line));

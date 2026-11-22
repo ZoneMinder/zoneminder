@@ -26,6 +26,8 @@
 
 #include <list>
 #include <memory>
+#include <string>
+#include <vector>
 
 extern "C" {
 #include <libswresample/swresample.h>
@@ -96,6 +98,7 @@ extern "C" {
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */
 void FFMPEGInit();
+bool zm_load_avdevice();
 void FFMPEGDeInit();
 
 enum _AVPIXELFORMAT GetFFMPEGPixelFormat(unsigned int p_colours, unsigned p_subpixelorder);
@@ -148,6 +151,7 @@ void zm_dump_stream(AVStream *st);
 void zm_dump_stream_format(AVFormatContext *ic, int i, int index, int is_output);
 void zm_dump_codec(const AVCodecContext *codec);
 void zm_dump_codecpar(const AVCodecParameters *par);
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par);
 
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
 #define zm_dump_frame(frame, text) Debug(1, "%s: format %d %s sample_rate %" PRIu32 " nb_samples %d" \
@@ -252,6 +256,13 @@ void zm_dump_codecpar(const AVCodecParameters *par);
 
 int check_sample_fmt(const AVCodec *codec, enum AVSampleFormat sample_fmt);
 enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat );
+bool pix_fmt_is_jpeg_range(enum AVPixelFormat );
+// Correct swscale's default limited-range assumption when either side of the
+// conversion was a full-range JPEG (YUVJ*) format. Call after (re)creating the
+// context, passing the ORIGINAL pre-fix_deprecated_pix_fmt formats.
+void zm_sws_set_ranges(struct SwsContext *ctx,
+                       enum AVPixelFormat original_src_fmt,
+                       enum AVPixelFormat original_dst_fmt);
 
 bool is_video_stream(const AVStream *);
 bool is_audio_stream(const AVStream *);
@@ -327,8 +338,55 @@ struct CodecData {
 };
 std::list<const CodecData*> get_encoder_data(const std::string & wanted_codec, const std::string &wanted_coder) ;
 std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string &wanted_coder) ;
+// When none of the preferred decoders in dec_codecs are usable, fall back to
+// whatever decoder this ffmpeg build actually provides for codecpar->codec_id.
+// Returns an opened AVCodecContext (caller frees with avcodec_free_context) or
+// nullptr. When non-null, *codec_out receives the chosen AVCodec.
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out = nullptr);
+// Like av_dict_parse_string() with "=" between key and value, but an entry with
+// no '=' or no value is skipped with a warning. av_dict_parse_string() would
+// otherwise make it the front of the next entry's key (or take the next entry
+// as its value), silently dropping that option. When separators include '#',
+// a '#' starts a comment that runs to the end of the line.
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators);
+// Reads a non-negative number the way ffmpeg options do, so "2M" and "500k"
+// work. Returns false, leaving out untouched, for anything else.
+bool zm_parse_option_number(const char *text, uint64_t &out);
 int setup_hwaccel(AVCodecContext *codec_ctx, const CodecData *codec_data,AVBufferRef * &hw_device_ctx, const std::string &device, int width, int height);
 int libjpeg_to_ffmpeg_qv(int libjpeg_quality);
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts);
+
+// The hwaccel device types a DecoderHWAccelName asks for, in the order they
+// should be tried.
+//
+// "auto" means every type this libavutil was built with, so the caller probes
+// them and takes the first the decoder supports and whose device opens.
+// Anything else is a comma-separated priority list; a single name is the
+// one-element case. Unknown names are dropped with a warning rather than
+// failing the lot, so one typo in a list does not cost the working entries.
+// An empty name yields nothing, which the caller reads as "no hwaccel asked
+// for".
+std::vector<enum AVHWDeviceType> hwaccel_candidate_types(const std::string &hwaccel_name);
+
+// Open a decoder for a video stream, with hardware acceleration if one was
+// asked for and can be had.
+//
+// hw_pix_fmt is taken by reference because the returned context points at it:
+// get_hw_format reads it back through ctx->opaque every time libavcodec picks
+// a format. Whatever the caller passes must therefore outlive the context, and
+// must not be a temporary or a local that goes out of scope first.
+//
+// hw_device_ctx receives the device the caller must unref once the context is
+// gone. label names the source in error messages. Returns nullptr if no
+// decoder could be opened at all.
+AVCodecContext *open_video_decoder(
+    AVStream *stream,
+    const std::string &decoder_name,
+    const std::string &hwaccel_name,
+    const std::string &hwaccel_device,
+    const std::string &options,
+    const std::string &label,
+    AVPixelFormat &hw_pix_fmt,
+    AVBufferRef *&hw_device_ctx);
 
 #endif // ZM_FFMPEG_H

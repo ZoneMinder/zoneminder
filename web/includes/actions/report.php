@@ -18,23 +18,33 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-// System edit actions
-//if (!canEdit('System') ) {
-  //ZM\Warning('Need System permissions to add servers');
-  //return;
-//}
-
 require_once('includes/Report.php');
 if (!empty($_REQUEST['id'])) {
-  $report = new ZM\Report($_REQUEST['id']);
+  $report = new ZM\Report(validCardinal($_REQUEST['id']));
 } else {
   $report = new ZM\Report();
 }
 global $redirect;
 global $error_message;
 
+if (!empty($_REQUEST['id']) and !$report->Id()) {
+  // Saving a report that failed to load would insert a new row
+  ZM\Warning('Report '.$_REQUEST['id'].' not found');
+  $redirect = '?view=reports';
+  return;
+}
+
+if ($report->Id() and !$report->canEdit()) {
+  ZM\Warning('You do not have permission to edit report '.$report->Id());
+  $redirect = '?view=reports';
+  return;
+}
+
 if ($action == 'save') {
-  $changes = $report->changes($_REQUEST['Report']);
+  $changes = $report->changes(isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array());
+  if (!$report->Id()) {
+    $changes['CreatedBy'] = $user->Id();
+  }
 
   if (count($changes)) {
     if (!$report->save($changes)) {

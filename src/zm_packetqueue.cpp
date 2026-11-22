@@ -25,6 +25,7 @@
 #include "zm_packet.h"
 #include "zm_signal.h"
 
+#include <algorithm>
 #include <climits>
 #include <vector>
 
@@ -41,7 +42,11 @@ PacketQueue::PacketQueue():
   max_keyframe_interval_(0),
   frames_since_last_keyframe_(0),
   clear_packets_pending_(false),
-  next_queue_index_(0)
+  next_queue_index_(0),
+  first_queue_index_(0),
+  released_before_(0),
+  capped_before_(0),
+  keyframe_interval_over_limit_(false)
 {
 }
 
@@ -90,7 +95,8 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     Debug(4, "No iterators so no one needs us to queue packets.");
     return false;
   }
-  if (!packet_counts[video_stream_id] and !add_packet->keyframe) {
+  if (!packet_counts[video_stream_id]
+      and !(add_packet->keyframe and add_packet->packet->stream_index == video_stream_id)) {
     Debug(4, "No video keyframe so no one needs us to queue packets.");
     return false;
   }
@@ -120,7 +126,19 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         frames_since_last_keyframe_ ++;
         if (frames_since_last_keyframe_ > max_keyframe_interval_) {
           max_keyframe_interval_ = frames_since_last_keyframe_;
-          Debug(1, "Have new keyframe interval %d", max_keyframe_interval_);
+          Debug(1, "Have new keyframe interval %d", max_keyframe_interval_.load());
+        }
+        // Passthrough keeps every packet back to a keyframe, so a GOP longer
+        // than MaxImageBufferCount can't be trimmed: the queue holds all of it,
+        // and releaseDecoded() can only bound the decoded copies.
+        if (keep_keyframes and (max_video_packet_count > 0) and !keyframe_interval_over_limit_
+            and (frames_since_last_keyframe_ + 1 > max_video_packet_count)) {
+          keyframe_interval_over_limit_ = true;
+          Error("The camera's keyframe interval is longer than MaxImageBufferCount (%d frames). "
+                "Passthrough recording has to keep a whole keyframe interval of packets, so the packet queue "
+                "can't stay within MaxImageBufferCount. Raise MaxImageBufferCount above the keyframe interval "
+                "or shorten the camera's keyframe interval (GOP).",
+                max_video_packet_count);
         }
       } else {
         frames_since_last_keyframe_ = 0;
@@ -160,7 +178,7 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
         Warning("You have set the max video packets in the queue to %u."
                 " The queue is full %u. Either Analysis is not keeping up or"
                 " your camera's keyframe interval %d is larger than this setting."
-                , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_);
+                , max_video_packet_count, packet_counts[video_stream_id], max_keyframe_interval_.load());
       }
 
       // Going to delete a GOP of packets. So find another keyframe and delete everything before it.
@@ -259,7 +277,8 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
       )
      ) {
     Debug(3, "stream index %d ?= video_stream_id %d, keyframe %d, keep_keyframes %d, pending %d, counts %d > pre_event_count %d at begin %d",
-          add_packet->packet->stream_index, video_stream_id, add_packet->keyframe, keep_keyframes, clear_packets_pending_,
+          add_packet->packet->stream_index, video_stream_id, add_packet->keyframe, keep_keyframes,
+          clear_packets_pending_.load(std::memory_order_relaxed),
           packet_counts[video_stream_id], pre_event_video_packet_count,
           ( *(pktQueue.begin()) != add_packet )
          );
@@ -348,8 +367,12 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   while (*it != add_packet) {
     zm_packet = *it;
 
-    if (zm_packet->queue_index >= min_iterator_queue_index) {
-      Debug(3, "Found iterator Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
+    // Use > (not >=) so we still consider the iterator's own packet as a
+    // next_front candidate. Setting next_front to a packet that an iterator
+    // points at is safe: we delete strictly before next_front, so the
+    // iterator's packet stays in the queue.
+    if (zm_packet->queue_index > min_iterator_queue_index) {
+      Debug(3, "Past iterator. Counted %d video packets. Which would leave %d in packetqueue tail count is %d",
           video_packets_to_delete, packet_counts[video_stream_id]-video_packets_to_delete, tail_count);
       break;
     }
@@ -408,6 +431,102 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
   return !clear_packets_pending_;
 } // end bool PacketQueue::clearPackets(ZMPacket* zm_packet)
 
+// Packets stay queued after every consumer has read them: passthrough needs the
+// compressed data back to a keyframe, and an event may still open with
+// pre-event frames. Their decoded copies (images, decoder frames) are needed
+// far less: only from where an event could still start. That is
+// pre_event_video_packet_count video packets before the analysis iterator,
+// back to a keyframe when passthrough needs one (see get_event_start_packet_it).
+// The earliest iterator is never ahead of the analysis one, so starting from
+// it is conservative. Everything before that point keeps its compressed packet
+// and loses its decoded data, which at high resolutions is several MB a frame
+// (refs #4860). Events only open on the analysis thread, which also calls
+// this, so no event starts behind the boundary while it is being computed. The
+// window itself can change from another thread: a RELOAD action (zmu --reload)
+// runs Monitor::Reload() on zmc's main loop, which can widen
+// pre_event_video_packet_count or set keep_keyframes without clearing the
+// queue. get_event_start_packet_it() therefore never starts an event before
+// released_before_: an event right after such a reload gets fewer pre-event
+// frames rather than frames without their images. A restart, SIGHUP or capture
+// reconnect clears the queue, so only RELOAD gets there.
+void PacketQueue::releaseDecoded() {
+  std::vector<std::shared_ptr<ZMPacket>> to_release;
+  {
+    std::unique_lock<std::mutex> lck(mutex);
+    if (deleting or pktQueue.empty() or iterators.empty()) return;
+
+    uint64_t min_iterator_queue_index = UINT64_MAX;
+    for (const packetqueue_iterator *iterator_it : iterators) {
+      if (*iterator_it != pktQueue.end()) {
+        uint64_t qi = (*(*iterator_it))->queue_index;
+        if (qi < min_iterator_queue_index) min_iterator_queue_index = qi;
+      }
+    }
+
+    // Walk back from the earliest iterator's packet (or the newest packet when
+    // every iterator is at the end) as openEvent would.
+    auto it = pktQueue.end();
+    --it;
+    while (it != pktQueue.begin() and (*it)->queue_index > min_iterator_queue_index) --it;
+    int pre_event = pre_event_video_packet_count;
+    while (pre_event > 0 and it != pktQueue.begin()) {
+      if ((*it)->packet->stream_index == video_stream_id) pre_event--;
+      --it;
+    }
+    if (pre_event > 0) return;  // the whole queue is still within reach of an event
+    // The walk above stepped past the last video packet it counted; if that is
+    // an audio packet, the video packet before it is still in the window.
+    while (it != pktQueue.begin() and (*it)->packet->stream_index != video_stream_id) --it;
+    const uint64_t pre_event_start = (*it)->queue_index;
+    if (keep_keyframes) {
+      while (it != pktQueue.begin() and !((*it)->packet->stream_index == video_stream_id and (*it)->keyframe)) --it;
+    }
+    const uint64_t boundary = (*it)->queue_index;
+    if (boundary > released_before_) {
+      for (auto p = pktQueue.begin(); p != it; ++p) {
+        if ((*p)->queue_index < released_before_ or (*p)->queue_index < capped_before_) continue;
+        to_release.push_back(*p);
+      }
+      released_before_ = boundary;
+    }
+
+    // Passthrough keeps every packet back to a keyframe. When the keyframe
+    // interval is longer than MaxImageBufferCount, queuePacket() finds no later
+    // keyframe to trim to and the queue holds the whole GOP, each packet with a
+    // decoded frame: several MB each at high resolutions, GBs per queue. Bound
+    // the decoded data instead: only the newest max_video_packet_count video
+    // packets keep it, and never less than the pre-event window. The compressed
+    // packets stay, so an event still starts on the keyframe with all its video;
+    // it writes no capture JPEGs for the frames that lost their image, as for
+    // frames before released_before_ (refs #4860).
+    if (keep_keyframes and max_video_packet_count > 0) {
+      auto oldest_kept = pktQueue.end();
+      int video_packets = 0;
+      while (oldest_kept != pktQueue.begin() and video_packets < max_video_packet_count) {
+        --oldest_kept;
+        if ((*oldest_kept)->packet->stream_index == video_stream_id) video_packets++;
+      }
+      if (video_packets == max_video_packet_count) {
+        const uint64_t cap = std::min((*oldest_kept)->queue_index, pre_event_start);
+        if (cap > capped_before_) {
+          for (auto p = pktQueue.begin(); p != pktQueue.end() and (*p)->queue_index < cap; ++p) {
+            if ((*p)->queue_index < released_before_ or (*p)->queue_index < capped_before_) continue;
+            to_release.push_back(*p);
+          }
+          capped_before_ = cap;
+        }
+      }
+    }
+  }
+
+  // Free outside the queue lock, like clearPackets(). Nothing should hold these
+  // packets, but never wait on one that is.
+  for (const auto &packet : to_release) {
+    std::unique_lock<std::mutex> plck(packet->mutex_, std::try_to_lock);
+    if (plck.owns_lock()) packet->release_decoded();
+  }
+}
+
 void PacketQueue::stop() {
   std::lock_guard<std::mutex> lck(mutex);
   deleting = true;
@@ -419,6 +538,12 @@ void PacketQueue::stop() {
 
 void PacketQueue::clear() {
   Debug(1, "Clearing packetqueue");
+  // Move packets out under the lock, then let their destructors run after
+  // the mutex is released. Mirrors queuePacket()/clearPackets() so we don't
+  // stall other threads on expensive ZMPacket teardown (Image, AVPacket).
+  std::vector<std::shared_ptr<ZMPacket>> packets_to_destroy;
+
+  {
   std::lock_guard<std::mutex> lck(mutex);
   deleting = true;
   // Why are we notifying?
@@ -428,8 +553,6 @@ void PacketQueue::clear() {
 
   while (!pktQueue.empty()) {
     std::shared_ptr<ZMPacket> packet = pktQueue.front();
-    // Someone might have this packet, but not for very long and since we have locked the queue they won't be able to get another one
-    // Deleting this packet, doesn't require a lock.  We only need a lock if we are modifying the packet.  
     Debug(1,
           "Deleting a packet with stream index:%d image_index:%d with keyframe:%d, video frames in queue:%d max: %d, queuesize:%zu",
           packet->packet->stream_index,
@@ -440,6 +563,7 @@ void PacketQueue::clear() {
           pktQueue.size());
     packet_counts[packet->packet->stream_index] -= 1;
     pktQueue.pop_front();
+    packets_to_destroy.push_back(std::move(packet));
   }
   Debug(1, "Packetqueue is clear, deleting iterators");
 
@@ -455,9 +579,13 @@ void PacketQueue::clear() {
   packet_counts.reset();
   max_stream_id = -1;
   max_keyframe_interval_ = 0;
+  keyframe_interval_over_limit_ = false;
+  first_queue_index_ = next_queue_index_;
 
   Debug(1, "Packetqueue is clear, notifying");
   condition.notify_all();
+  } // end scope for lock_guard — mutex released here
+  // packets_to_destroy goes out of scope here, destroying packets without holding the mutex
 }  // end void PacketQueue::clear()
 
 unsigned int PacketQueue::size() {
@@ -580,11 +708,6 @@ ZMPacketLock PacketQueue::get_packet_and_increment_it(packetqueue_iterator *it) 
   return ZMPacketLock();
 }  // end ZMPacketLock *PacketQueue::get_packet_and_increment_it(it)
 
-void PacketQueue::unlock(ZMPacketLock *lp) {
-  delete lp;
-  condition.notify_all();
-}
-
 bool PacketQueue::increment_it(packetqueue_iterator *it, bool wait) {
   std::unique_lock<std::mutex> lck(mutex);
   Debug(2, "Incrementing %p, queue size %zu, end? %d, deleting %d", it, pktQueue.size(), ((*it) == pktQueue.end()), deleting);
@@ -646,11 +769,20 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   }
  
   std::shared_ptr<ZMPacket> packet = *(*it);
+  // Packets before released_before_ may have lost their decoded data to
+  // releaseDecoded(), so an event must not start on one: treat the first packet
+  // after them as the front of the queue. With the window unchanged the walk
+  // never gets that far; it only can after a RELOAD widened the window or set
+  // keep_keyframes (refs #4860).
+  auto at_front = [this, &it]() {
+    return (*it) == pktQueue.begin() or (*std::prev(*it))->queue_index < released_before_;
+  };
+  const bool want_pre_event = pre_event_count > 0;
   //ZM_DUMP_PACKET(packet->packet, "snapshot packet");
   // Step one count back pre_event_count frames as the minimum
   // Do not assume that snapshot_it is video
   // snapshot it might already point to the beginning
-  while (pre_event_count and ((*it) != pktQueue.begin())) {
+  while (pre_event_count and !at_front()) {
     
     /*
     Debug(1, "Previous packet pre_event_count %d stream_index %d keyframe %d score %d",
@@ -664,6 +796,16 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     packet = *(*it);
   }
 
+  // The walk counts the snapshot packet and then steps back once more, so with
+  // audio packets in between it can land on an audio packet just short of the
+  // last video packet it should include. Move back onto that video packet.
+  if (want_pre_event and !pre_event_count) {
+    while (!at_front() and packet->packet->stream_index != video_stream_id) {
+      (*it)--;
+      packet = *(*it);
+    }
+  }
+
   // it either points to beginning or we have seen pre_event_count video packets.
   // The loop above doesn't count the begin packet, so check it now.
   if (pre_event_count and (packet->packet->stream_index == video_stream_id)) {
@@ -671,8 +813,13 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   }
 
   if (pre_event_count) {
-    if (packet->image_index < (int)pre_event_count) {
-      // probably just starting up
+    if ((*it) != pktQueue.begin()) {
+      Warning("Hit packets released under a smaller pre-event window before satisfying pre_event_count. "
+              "Needed %d more video frames", pre_event_count);
+      return start_on_keyframe(it, snapshot_it);
+    } else if (packet->queue_index == first_queue_index_) {
+      // Nothing has been trimmed since startup or the last clear() (e.g. a
+      // capture reconnect), so the queue never held enough packets.
       Debug(1, "Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
     } else {
       Warning("Hit end of packetqueue before satisfying pre_event_count. Needed %d more video frames", pre_event_count);
@@ -685,18 +832,39 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
     return it;
   }
 
-  while ((*it) != pktQueue.begin()) {
+  while (!at_front()) {
     //ZM_DUMP_PACKET(packet->packet, "No keyframe");
     if ((packet->packet->stream_index == video_stream_id) and packet->keyframe)
       return it; // Success
     --(*it);
     packet = *(*it);
   }
+  if ((*it) != pktQueue.begin()) return start_on_keyframe(it, snapshot_it);
   if (!packet->keyframe) {
     Warning("Hit beginning of packetqueue and packet is not a keyframe. index is %d", packet->image_index);
   }
   return it;
 }  // end packetqueue_iterator *PacketQueue::get_event_start_packet_it
+
+// The walk back in get_event_start_packet_it() stopped at the oldest packet
+// that still has its decoded data. For passthrough, move forward to a video
+// keyframe if that packet isn't one, so the recording can start on it. It
+// normally is: releaseDecoded() stops on a keyframe when keep_keyframes is set,
+// and only a reload from encode to passthrough leaves a boundary off one. If
+// there is no keyframe before the snapshot, stay put; the event writes video
+// from the next keyframe, as it does when the front of the queue isn't one.
+packetqueue_iterator *PacketQueue::start_on_keyframe(packetqueue_iterator *it, packetqueue_iterator snapshot_it) {
+  if (!keep_keyframes) return it;
+  for (auto k = *it; ; ++k) {
+    if (((*k)->packet->stream_index == video_stream_id) and (*k)->keyframe) {
+      *it = k;
+      return it;
+    }
+    if (k == snapshot_it or std::next(k) == pktQueue.end()) break;
+  }
+  Warning("No keyframe between the oldest packet with decoded data and the event's snapshot");
+  return it;
+}
 
 void PacketQueue::dumpQueue() {
   std::lock_guard<std::mutex> lck(mutex);
@@ -790,6 +958,13 @@ void PacketQueue::setMaxVideoPackets(int p) {
   Debug(1, "Setting max_video_packet_count to %d", p);
   if (max_video_packet_count < 0)
     max_video_packet_count = 0;
+  keyframe_interval_over_limit_ = false;
+}
+
+void PacketQueue::setKeepKeyframes(bool k) {
+  std::lock_guard<std::mutex> lck(mutex);
+  keep_keyframes = k;
+  keyframe_interval_over_limit_ = false;
 }
 
 void PacketQueue::setPreEventVideoPackets(int p) {

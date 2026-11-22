@@ -1,5 +1,6 @@
 <?php
 namespace ZM;
+use Exception;
 require_once('database.php');
 require_once('Object.php');
 
@@ -44,9 +45,23 @@ class Server extends ZM_Object {
     'zmeventnotification'  => 0,
   );
 
+  // Describes what still points at this server ('3 monitors, 1 storage area'), or '' when nothing does.
+  public static function InUseSummary($id) {
+    $row = dbFetchOne('SELECT (SELECT COUNT(*) FROM Monitors WHERE Deleted=0 AND ServerId=?) AS Monitors, (SELECT COUNT(*) FROM Storage WHERE ServerId=?) AS Storage, (SELECT COUNT(*) FROM CronJobs WHERE ServerId=?) AS CronJobs', false, array($id, $id, $id));
+    if (!$row) return '';
+    $parts = array();
+    if ($row['Monitors']) $parts[] = $row['Monitors'].' monitor'.($row['Monitors'] == 1 ? '' : 's');
+    if ($row['Storage']) $parts[] = $row['Storage'].' storage area'.($row['Storage'] == 1 ? '' : 's');
+    if ($row['CronJobs']) $parts[] = $row['CronJobs'].' cron job'.($row['CronJobs'] == 1 ? '' : 's');
+    return implode(', ', $parts);
+  }
+
   public function ReadStats() {
-    #ToDo: Analyze the date of the last entry, because The entry may be out of date and not updated.
-    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id()>1 ? $this->Id() : 0]);
+    # Single-server installs store stats under ServerId=0 (zmstats.pl writes
+    # ZM_SERVER_ID ? ZM_SERVER_ID : 0), and $this->Id() is empty/undef there.
+    # Coerce a falsy id to 0 so the lookup matches; a real id passes through.
+    # Rows older than a few update intervals are stale (zmstats stopped), so the defaults (-1) stay.
+    $dbStats = dbFetchAll('SELECT * FROM Server_Stats WHERE ServerId=? AND TimeStamp > NOW() - INTERVAL ? SECOND ORDER BY TimeStamp DESC LIMIT 1',NULL, [$this->Id() ? $this->Id() : 0, max(60, 4 * (int)ZM_STATS_UPDATE_INTERVAL)]);
     if (count($dbStats)) {
       $this->TimeUpdateStats = $dbStats[0]['TimeStamp'];
       $this->CpuLoad = $dbStats[0]['CpuLoad'];
@@ -70,6 +85,14 @@ class Server extends ZM_Object {
     return ZM_Object::_find_one(self::class, $parameters, $options);
   }
 
+  # Chained proxies append their own value to these headers, so the value is a
+  # comma-separated list. The first element is the client-facing one.
+  private static function firstHeaderValue($header) {
+    if (!isset($_SERVER[$header])) return null;
+    $values = explode(',', $_SERVER[$header]);
+    return trim($values[0]);
+  }
+
   public function Hostname($new = null) {
     if ($new != null)
       $this->{'Hostname'} = $new;
@@ -80,17 +103,16 @@ class Server extends ZM_Object {
       return $this->{'Name'};
     }
 
-    if (isset($_SERVER['HTTP_X_FORWARDED_HOST'])) {
-      return $_SERVER['HTTP_X_FORWARDED_HOST'];
-    } else if (isset($_SERVER['HTTP_X_FORWARDED_SERVER'])) {
-      return $_SERVER['HTTP_X_FORWARDED_SERVER'];
-    } else if (isset($_SERVER['HTTP_HOST'])) {
+    # The host header may carry a port, which Url() adds separately.
+    foreach (array('HTTP_X_FORWARDED_HOST', 'HTTP_X_FORWARDED_SERVER', 'HTTP_HOST') as $header) {
+      $value = self::firstHeaderValue($header);
+      if ($value === null) continue;
       # This theoretically will match ipv6 addresses as well
-      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $_SERVER['HTTP_HOST'], $matches ) ) {
+      if ( preg_match( '/^(\[[[:xdigit:]:]+\]|[^:]+)(:[[:digit:]]+)?$/', $value, $matches ) ) {
         return $matches[1];
       }
 
-      $result = explode(':', $_SERVER['HTTP_HOST']);
+      $result = explode(':', $value);
       return $result[0];
     }
     // Fall back to ZM_BASE_URL for single-server setups
@@ -112,8 +134,9 @@ class Server extends ZM_Object {
     }
 
     // Check $_SERVER variables first
+    $forwarded_proto = self::firstHeaderValue('HTTP_X_FORWARDED_PROTO');
     if ( ( isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' )
-      or ( isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and ( $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https' ) )
+      or ( $forwarded_proto !== null and ( $forwarded_proto == 'https' ) )
       or ( isset($_SERVER['HTTP_FRONT_END_HTTPS']) and ($_SERVER['HTTP_FRONT_END_HTTPS'] == 'On' ) )
     ) {
       return 'https';
@@ -138,8 +161,13 @@ class Server extends ZM_Object {
       return $this->{'Port'};
     }
 
-    if ( isset($_SERVER['HTTP_X_FORWARDED_PORT']) ) {
-      return $_SERVER['HTTP_X_FORWARDED_PORT'];
+    # The request headers and ZM_BASE_URL describe the server handling this
+    # request, not another one in a multi-server setup.
+    if ( $this->Id() and !(defined('ZM_SERVER_ID') and ($this->Id() == ZM_SERVER_ID)) ) return null;
+
+    $forwarded_port = self::firstHeaderValue('HTTP_X_FORWARDED_PORT');
+    if ( $forwarded_port !== null ) {
+      return $forwarded_port;
     }
 
     // Fall back to ZM_BASE_URL for single-server setups
@@ -178,13 +206,18 @@ class Server extends ZM_Object {
     }
 
     $url = $this->Protocol().'://';
-		$url .= $this->Hostname();
+    $hostname = $this->Hostname();
+    # An IPv6 literal must be bracketed to be followed by a port.
+    if ( strpos($hostname, ':') !== false and $hostname[0] != '[' ) {
+      $hostname = '['.$hostname.']';
+    }
+    $url .= $hostname;
     if ( !$port ) {
       $port = $this->Port();
     }
     if ( $this->Protocol() == 'https' and $port == 443 ) {
     } else if ( $this->Protocol() == 'http' and $port == 80 ) {
-    } else {
+    } else if ( $port ) {
       $url .= ':'.$port;
     }
     return $url;
@@ -220,22 +253,25 @@ class Server extends ZM_Object {
     $url = $this->UrlToApi().$path;
     $auth_relay = get_auth_relay();
     if ($auth_relay) $url .= '?'.$auth_relay;
-    Debug('sending command to '.$url);
+    Debug('sending command to '.urlForLog($url));
 
     $context_options=array(
       "ssl"=>array(
         "verify_peer"=>false,
         "verify_peer_name"=>false,
       ),
+      "http"=>array(
+        "timeout"=>10,
+      ),
     );
     $context = stream_context_create($context_options);
     try {
       $result = @file_get_contents($url, false, $context);
       if ($result === FALSE) { /* Handle error */
-        Error("Error using $url");
+        Error('Error using '.urlForLog($url).': '.lastErrorForLog());
       }
     } catch (Exception $e) {
-      Error("Except $e thrown sending to $url");
+      Error("Except $e thrown sending to ".urlForLog($url));
     }
     return $result;
   }

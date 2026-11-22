@@ -77,8 +77,10 @@ if ( $action == 'Save' ) {
     'HasPresets'    =>  0,
     'HasHomePreset' =>  0,
     'CanSetPresets' =>  0,
-    'CanLed' => 0,
+    'CanIndicatorLight' => 0,
     'CanLight' => 0,
+    'CanAudioPlay' => 0,
+    'CanAudioVolume' => 0,
   );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newControl.
@@ -90,7 +92,11 @@ if ( $action == 'Save' ) {
   } # end foreach type
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
-  if (!$Control->save($_REQUEST['Control'])) {
+  # An empty Name is stored as '' and leaves a blank entry in the control list and the monitor Control dropdown.
+  if (!isset($_REQUEST['Control']['Name']) or !is_string($_REQUEST['Control']['Name']) or trim($_REQUEST['Control']['Name']) === '') {
+    global $error_message;
+    $error_message .= 'A Name is required for a control capability.</br>';
+  } else if (!$Control->save($_REQUEST['Control'])) {
     global $error_message;
      $error_message .= "Error saving control: " . $Control->get_last_error().'</br>';
   } else {

@@ -51,7 +51,9 @@ use LWP::UserAgent;
 use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
+use URI::Escape qw(uri_unescape);
 use Data::Dumper;
+use XML::LibXML;
 #use Crypt::Mode::CBC;
 #use Crypt::Cipher::AES;
 
@@ -77,12 +79,14 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
     $uri = URI->new($self->{Monitor}->{ControlAddress});
-    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if ref($uri) eq 'URI::_foreign';
+    $uri = URI->new('http://'.$self->{Monitor}->{ControlAddress}) if !$uri->can('host');
     $$self{host} = $uri->host();
+    $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
-      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+      # userinfo is percent-encoded when the password holds @ or :
+      @$self{'username','password'} = map { uri_unescape($_) } $uri->userinfo() =~ /^(.*):(.*)$/;
     } else {
       $$self{username} = $self->{Monitor}->{User};
       $$self{password} = $self->{Monitor}->{Pass};
@@ -93,12 +97,12 @@ sub open {
       $$self{port} = $2 ? $2 : $$self{port};
     }
   } elsif ($self->{Monitor}{Path}) {
-    Debug("Using Path for credentials: $self->{Monitor}{Path}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
-Debug("Have " . $+{PASSWORD});
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      my ($user, $pass) = ($+{USERNAME}, $+{PASSWORD});
+      $$self{username} = uri_unescape($user) if $user and !$$self{username};
+      $$self{password} = uri_unescape($pass) if $pass and !$$self{password};
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
@@ -123,7 +127,7 @@ Debug("Have " . $+{PASSWORD});
 
   # Save and test the credentials
   if (defined($$self{username})) {
-    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, $$self{username}, $$self{password}");
+    Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, user $$self{username}");
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
   } # end if defined user
 
@@ -206,7 +210,7 @@ sub moveVector {
   my $params = shift;
   my $command;                    # The ISAPI/PTZ command
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
 
   my $momentxml;
   if( $duration ) {
@@ -222,9 +226,15 @@ sub moveVector {
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
   my $xml = '<PTZData>';
-  $xml .= "<pan>$x</pan>" if $x;
-  $xml .= "<tilt>$y</tilt>" if $y;
-  $xml .= "<zoom>$z</zoom>" if $z;
+  if ($x or $y or $z) {
+    $xml .= "<pan>$x</pan>" if $x;
+    $xml .= "<tilt>$y</tilt>" if $y;
+    $xml .= "<zoom>$z</zoom>" if $z;
+  } else {
+    # A stop must say so explicitly. An empty PTZData is ignored by some
+    # cameras, which then keep moving.
+    $xml .= '<pan>0</pan><tilt>0</tilt><zoom>0</zoom>';
+  }
   $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
   $self->PutCmd($command, $xml);
@@ -286,13 +296,13 @@ sub focusConNear {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus(-$speed);
   if ($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -319,13 +329,13 @@ sub focusConFar {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the focus speed
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -363,13 +373,13 @@ sub irisConClose {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris(-$speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -398,13 +408,13 @@ sub irisConOpen {
   my $self = shift;
   my $params = shift;
 
-  my $duration = $self->duration();
+  my $duration = $self->duration($params);
   # Get the iris speed
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
   if($duration) {
-    usleep($duration);
-    $self->moveStop($params);
+    usleep($duration * 1000);
+    $self->Iris(0);
   }
 }
 sub Open {
@@ -430,12 +440,172 @@ sub irisRelOpen {
   $self->Iris($speed);
 }
 #
-# reset (reboot) the device
+# reset and reboot the device
 #
+# ISAPI has no "reset PTZ to defaults" command. The Controls row advertises
+# CanReset, so map it to the reboot endpoint.
+sub reset {
+  my $self = shift;
+
+  Debug('Camera reset (reboot)');
+  $self->reboot();
+}
+
 sub reboot {
   my $self = shift;
 
   $self->PutCmd('ISAPI/System/reboot');
+}
+#
+# Supplement / white light control.
+#
+# Hik/LTS models expose their illuminators via
+# ISAPI/Image/channels/<n>/supplementLight. ColorVu models (e.g. the LTS
+# CMIP1342WE-28MDA) advertise a colorVuWhiteLight mode; IR-only models advertise
+# only irLight/close. The set of modes a given camera supports is read from the
+# .../supplementLight/capabilities document.
+#
+# We GET the current supplementLight document, rewrite only <supplementLightMode>,
+# and PUT the whole document back. Sending the full document (rather than a
+# minimal one-field PUT) preserves the std-cgi namespace and the sibling
+# brightness/EventIntelligence fields the firmware rejects PUTs without.
+#
+# The helpers below take/return plain strings and lists so they are unit-testable
+# without a camera (see t/hikvision_light.t).
+#
+# Pick the mode for "light on": prefer a white light, fall back to IR.
+sub light_on_mode {
+  my %has = map { $_ => 1 } @_;
+  return 'colorVuWhiteLight' if $has{colorVuWhiteLight};
+  return 'whiteLight'        if $has{whiteLight};
+  return 'irLight'           if $has{irLight};
+  return undef;
+}
+# Pick the mode for "light off": restore the camera's smart/auto default where it
+# has one so night IR keeps working, else plain IR, else fully close.
+sub light_off_mode {
+  my %has = map { $_ => 1 } @_;
+  return 'eventIntelligence' if $has{eventIntelligence};
+  return 'irLight'           if $has{irLight};
+  return 'close';
+}
+# Current <supplementLightMode> value from a supplementLight document.
+sub light_mode_from_xml {
+  my ($xml) = @_;
+  return undef if !defined $xml;
+  return $xml =~ m{<supplementLightMode\b[^>]*>\s*([^<\s]+)} ? $1 : undef;
+}
+# The opt="a,b,c" mode list from a supplementLight capabilities document.
+sub light_modes_from_caps {
+  my ($xml) = @_;
+  return () if !defined $xml;
+  return $xml =~ m{<supplementLightMode\b[^>]*\bopt="([^"]*)"} ? split(/,/, $1) : ();
+}
+# Rewrite <supplementLightMode> to $mode, leaving namespace and siblings intact.
+sub light_apply_mode {
+  my ($xml, $mode) = @_;
+  $xml =~ s{(<supplementLightMode\b[^>]*>)\s*[^<]*(</supplementLightMode>)}{$1$mode$2};
+  return $xml;
+}
+# Map the active mode to the toggle button state: "On" iff it is the on-mode.
+sub light_status_from {
+  my ($current, @modes) = @_;
+  return undef if !defined $current;
+  my $on = light_on_mode(@modes);
+  return (defined $on and $current eq $on) ? 'On' : 'Off';
+}
+
+# GET with a one-shot re-auth retry. The control daemon calls open() once at
+# startup and then issues requests much later; by then the camera has often
+# dropped the kept-alive connection and the UserAgent gives up on the stale
+# digest token with a 401. Rebuilding the ua and retrying re-authenticates
+# (same workaround PutCmd/PutXML use for writes).
+sub GetWithRetry {
+  my ($self, $url) = @_;
+  my $r = $self->get($url);
+  if ($r and !$r->is_success and $r->code == 401) {
+    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua}->cookie_jar({});
+    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $r = $self->get($url);
+  }
+  return $r;
+}
+
+sub supplementLightModes {
+  my $self = shift;
+  my $r = $self->GetWithRetry("/ISAPI/Image/channels/$ChannelID/supplementLight/capabilities");
+  return () if !$r or !$r->is_success;
+  return light_modes_from_caps($r->content);
+}
+
+sub supplementLightDoc {
+  my $self = shift;
+  my $r = $self->GetWithRetry("/ISAPI/Image/channels/$ChannelID/supplementLight");
+  if (!$r or !$r->is_success) {
+    Error('HikVision: supplementLight GET failed: '.($r ? $r->status_line : 'no response'));
+    return undef;
+  }
+  return $r->content;
+}
+
+# PUT a complete XML document (one that already carries its own <?xml?> prolog
+# and namespace), retrying once on the 401 the camera throws after dropping a
+# kept-alive connection (same workaround as PutCmd).
+sub PutXML {
+  my ($self, $cmd, $content) = @_;
+  if (!$cmd) {
+    Error('No cmd specified in PutXML');
+    return;
+  }
+  my $req = HTTP::Request->new(PUT => $self->{BaseURL}.'/'.$cmd);
+  $req->content_type('application/xml; charset=UTF-8');
+  $req->content($content);
+  my $res = $self->{ua}->request($req);
+  if (!$res->is_success and $res->code == 401) {
+    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua}->cookie_jar({});
+    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $res = $self->{ua}->request($req);
+  }
+  if (!$res->is_success) {
+    Error('supplementLight PUT failed: '.$res->status_line.' '.$res->content);
+  } else {
+    Debug('supplementLight set: '.$res->content);
+  }
+  return $res;
+}
+
+sub Light {
+  my ($self, $on) = @_;
+  my $doc = $self->supplementLightDoc();
+  if (!defined $doc) {
+    Error('HikVision: supplementLight not available on this model');
+    return;
+  }
+  my @modes = $self->supplementLightModes();
+  # If the capabilities document was unavailable, fall back to whatever the
+  # current document reveals plus close, so we can still toggle.
+  @modes = ((light_mode_from_xml($doc) // ()), 'close') if !@modes;
+  my $mode = $on ? light_on_mode(@modes) : light_off_mode(@modes);
+  if (!defined $mode) {
+    Error('HikVision: no supplementLight mode available for '.($on ? 'on' : 'off'));
+    return;
+  }
+  $self->PutXML("ISAPI/Image/channels/$ChannelID/supplementLight", light_apply_mode($doc, $mode));
+}
+sub lightOn  { $_[0]->Light(1); }
+sub lightOff { $_[0]->Light(0); }
+
+# Status-aware toggle support: returns { WhiteLight => 'On'|'Off'|undef } in the
+# same shape the web UI's updateLightButton() already consumes.
+sub lightStatus {
+  my $self = shift;
+  my $doc = $self->supplementLightDoc();
+  return { WhiteLight => undef } if !defined $doc;
+  my @modes = $self->supplementLightModes();
+  @modes = (light_mode_from_xml($doc) // ()) if !@modes;
+  return { WhiteLight => light_status_from(light_mode_from_xml($doc), @modes) };
 }
 
 my %config_types = (

@@ -83,7 +83,7 @@ sub sendCmd
 
     #print( "http://$address/$cmd\n" );
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
-	  Info( "http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
+	  Info( urlForLog("http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice}) );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -105,6 +105,12 @@ sub cameraReset
 	Debug( "Camera Reset" );
 	my $cmd = "reboot.cgi?";
 	$self->sendCmd( $cmd );
+}
+
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset( @_ );
 }
 
 
@@ -250,7 +256,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=4&onestep=0&";
+	my $cmd = "decoder_control.cgi?command=25&onestep=0&";
 	$self->sendCmd( $cmd );
 }
 
@@ -345,8 +351,7 @@ ZoneMinder::Control::Wanscam
 
 Copyright (C) 2001-2008  
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 =cut

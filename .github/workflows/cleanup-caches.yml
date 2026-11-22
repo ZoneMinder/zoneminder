@@ -1,0 +1,68 @@
+name: Cleanup old caches
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      keep_per_prefix:
+        description: 'Number of newest caches to keep per key prefix'
+        required: false
+        default: '2'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune caches keeping N newest per key prefix
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          KEEP: ${{ inputs.keep_per_prefix || '2' }}
+        run: |
+          set -euo pipefail
+          repo='${{ github.repository }}'
+
+          # Fetch all caches: id, created_at, key (tab-separated)
+          gh api --paginate "/repos/$repo/actions/caches" \
+            -q '.actions_caches[] | [.id, .created_at, .key] | @tsv' > caches.tsv
+
+          total=$(wc -l < caches.tsv)
+          echo "Found $total caches"
+          [ "$total" -eq 0 ] && exit 0
+
+          # Strip trailing SHA-ish/run-id segments to derive the prefix.
+          # CodeQL keys end in either a 40-char SHA or '<sha>-<runid>-<n>'.
+          # Generic strategy: trim the final '-<hex/digits>' segments.
+          awk -F'\t' '{
+            key=$3
+            # remove trailing -<run>-<n> if present (e.g. -25297777667-1)
+            sub(/-[0-9]+-[0-9]+$/, "", key)
+            # remove trailing 40-char hex SHA
+            sub(/-[0-9a-f]{40}$/, "", key)
+            print $1 "\t" $2 "\t" key
+          }' caches.tsv > grouped.tsv
+
+          # Sort by prefix asc, created_at desc
+          sort -t$'\t' -k3,3 -k2,2r grouped.tsv > sorted.tsv
+
+          # Keep first N per prefix, mark rest for deletion
+          awk -F'\t' -v keep="$KEEP" '
+            { if ($3 != prev) { count = 0; prev = $3 }
+              count++
+              if (count > keep) print $1 "\t" $3
+            }' sorted.tsv > to_delete.tsv
+
+          deleted=$(wc -l < to_delete.tsv)
+          echo "Deleting $deleted caches (keeping $KEEP newest per prefix)"
+
+          while IFS=$'\t' read -r id prefix; do
+            if gh api -X DELETE "/repos/$repo/actions/caches/$id" >/dev/null 2>&1; then
+              echo "  deleted $id ($prefix)"
+            else
+              echo "  FAILED $id ($prefix)"
+            fi
+          done < to_delete.tsv

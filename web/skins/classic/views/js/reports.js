@@ -31,6 +31,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
+  if (deferTableRequestWhileHidden(table)) return;
   if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
@@ -38,6 +39,8 @@ function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=reports&task=query', params.data)
       .done(function(data) {
         if (data.result == 'Error') {
+          // Returning without params.success() would leave the table loading.
+          table.bootstrapTable('hideLoading');
           alert(data.message);
           return;
         }
@@ -45,9 +48,10 @@ function ajaxRequest(params) {
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#reportsTable').bootstrapTable('refresh');
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Refreshing here would re-run the failing request without end.
+        table.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
       });
 }
 
@@ -71,37 +75,20 @@ function getIdSelections() {
   });
 }
 
-// Load the Delete Confirmation Modal HTML via Ajax call
-function getDelConfirmModal() {
-  $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
-      .done(function(data) {
-        insertModalHtml('deleteConfirm', data.html);
-        manageDelConfirmModalBtns();
-      })
-      .fail(logAjaxFail);
-}
 
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
-  document.getElementById("delConfirmBtn").addEventListener('click', function onDelConfirmClick(evt) {
-    if ( ! canEdit.Events ) {
-      enoperm();
-      return;
-    }
-    evt.preventDefault();
+  if ( ! canEdit.Events ) {
+    enoperm();
+    return;
+  }
 
-    const selections = getIdSelections();
-    if (!selections.length) {
-      alert('Please select reports to delete.');
-    } else {
-      deleteReports(selections);
-    }
-  });
-
-  // Manage the CANCEL modal button
-  document.getElementById("delCancelBtn").addEventListener('click', function onDelCancelClick(evt) {
-    $j('#deleteConfirm').modal('hide');
-  });
+  const selections = getIdSelections();
+  if (!selections.length) {
+    alert('Please select reports to delete.');
+  } else {
+    deleteReports(selections);
+  }
 }
 
 function deleteReports(ids) {
@@ -111,9 +98,16 @@ function deleteReports(ids) {
 
   $j.getJSON(thisUrl + '?request=reports&task=delete&ids[]='+chunk.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          $j('#reportsTable').bootstrapTable('refresh');
+          return;
+        }
+        if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         if (!ids.length) {
           $j('#reportsTable').bootstrapTable('refresh');
-          $j('#deleteConfirm').modal('hide');
         } else {
           if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
             ticker.innerHTML = '.';
@@ -126,26 +120,25 @@ function deleteReports(ids) {
       .fail( function(jqxhr) {
         logAjaxFail(jqxhr);
         $j('#reportsTable').bootstrapTable('refresh');
-        $j('#deleteConfirm').modal('hide');
       });
 }
 
-function initPage() {
-  // Load the delete confirmation modal into the DOM
-  getDelConfirmModal();
+// Enable or disable buttons based on current selection and user rights
+function updateToolbarButtons() {
+  const selections = table.bootstrapTable('getSelections');
 
+  viewBtn.prop('disabled', !(selections.length && canView.Events));
+  deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+}
+
+function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // enable or disable buttons based on current selection and user rights
+  // The table drops its selection on every reload without any uncheck event, so
+  // the buttons are re-evaluated after each load as well as on selection changes.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    selections = table.bootstrapTable('getSelections');
-
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
-  });
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table', updateToolbarButtons);
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -174,8 +167,7 @@ function initPage() {
       return;
     }
 
-    evt.preventDefault();
-    $j('#deleteConfirm').modal('show');
+    getDelConfirmModal('ConfirmDeleteReport');
   });
 
   table.bootstrapTable('resetSearch');

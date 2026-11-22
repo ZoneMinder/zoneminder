@@ -3,7 +3,10 @@ function newGroup() {
   $j('#groupModal').remove();
   $j.getJSON(thisUrl + '?request=modal&modal=group')
       .done(function(data) {
-        insertModalHtml('groupdModal', data.html);
+        insertModalHtml('groupModal', data.html);
+        // The page's data-on-* handlers were bound before this modal existed.
+        dataOnChange();
+        dataOnInput();
         $j('#groupModal').modal('show');
         $j('#newGroupMonitorIds').chosen({width: "100%"});
       })
@@ -25,6 +28,8 @@ function editGroup( element ) {
     $j.getJSON(thisUrl + '?request=modal&modal=group&gid=' + gid)
         .done(function(data) {
           insertModalHtml('groupModal', data.html);
+          dataOnChange();
+          dataOnInput();
           $j('#groupModal').modal('show');
           $j('#newGroupMonitorIds').chosen({width: "100%"});
         })
@@ -33,17 +38,15 @@ function editGroup( element ) {
 }
 
 function deleteGroup(element) {
-  const form = element.form;
-  form.elements['action'].value = 'delete';
-  form.submit();
+  getDelConfirmModal('ConfirmDeleteGroups', 'Delete', 'groupsForm');
 }
 
 function configureButtons(element) {
   if (canEdit.Groups) {
+    configureDeleteButton(element);
+  } else {
     const form = element.form;
-    if (element.checked) {
-      form.deleteBtn.disabled = (element.value == 0);
-    }
+    if (form) form.deleteBtn.disabled = true;
   }
 }
 
@@ -58,7 +61,6 @@ function configModalBtns() {
     form.elements['action'].disabled = true;
     return;
   }
-  if (form.elements['newGroup[Name]'].value == '') {
-    form.elements['action'].disabled = true;
-  }
+  // Re-enable as well, otherwise clearing the name once leaves Save off for good.
+  form.elements['action'].disabled = (form.elements['newGroup[Name]'].value == '');
 }

@@ -26,6 +26,7 @@ use strict;
 use warnings;
 use Class::Std::Fast::Storable;
 use IO::Socket::Multicast;
+use Socket qw(inet_aton pack_sockaddr_in);
 use SOAP::WSDL::Factory::Transport;
 use Time::HiRes qw( usleep );
 
@@ -69,64 +70,25 @@ sub send_multi() {
   my ($self, $address, $port, $utf8_string) = @_;
 
   my $destination = $address . ':' . $port;
+  # Not connected (no PeerAddr): a connected socket keeps the route it chose
+  # at connect time, so mcast_if set afterwards did not move the probe off the
+  # default route. Pick the interface first, then send to the group. The
+  # destination goes in packed: given as "addr:port", mcast_send in
+  # IO::Socket::Multicast 1.12 ends up with port 0 and send fails (EINVAL).
   my $socket = IO::Socket::Multicast->new(
 			PROTO => 'udp',
       LocalPort=>$port,
-			PeerAddr=>$destination,
 			ReuseAddr=>1
 			) or die 'Cannot open multicast socket to ' . ${address} . ':' . ${port};
-	$_ = $socket->mcast_if($net_interface) if $net_interface;
+	$socket->mcast_if($net_interface) if $net_interface;
 
   my $bytes = $utf8_string;
   utf8::encode($bytes);
       
   $socket->mcast_ttl(1);
-  $socket->send($bytes);
+  $socket->mcast_send($bytes, pack_sockaddr_in($port, inet_aton($address)));
 }
 
-sub receive_multi() {
-  my ($self, $address, $port) = @_;
-  my $data = undef;
-  
-  my $socket = IO::Socket::Multicast->new(
-			PROTO => 'udp',
-      LocalPort=>$port,
-			ReuseAddr=>1);
-	$socket->mcast_add($address, $net_interface);
-  
-  my $readbits = '';
-  vec($readbits, $socket->fileno, 1) = 1;
-  
-  if ( select($readbits, undef, undef, WAIT_TIME/1000) ) {
-     $socket->recv($data, 9999);
-     return $data;
-  }
-  return undef;
-}
-
-sub receive_uni() {
-  my ($self, $address, $port, $localaddr) = @_;
-  my $data = undef;
-  
-  my $socket = IO::Socket::Multicast->new(
-			PROTO => 'udp',
-			LocalAddr => $localaddr,
-			LocalPort=>$port,
-			ReuseAddr=>1
-			);
-      
-	$socket->mcast_add($address, $net_interface);
-  
-  my $readbits = '';
-  vec($readbits, $socket->fileno, 1) = 1;
-  
-  if ( select($readbits, undef, undef, WAIT_TIME/1000) ) {
-     $socket->recv($data, 9999);
-     return $data;
-  }
-  return undef;
-}
- 
 sub send_receive {
 	my ($self, %parameters) = @_;
 	my ($envelope, $soap_action, $endpoint, $encoding, $content_type) =
@@ -142,21 +104,38 @@ sub send_receive {
 	my $localaddr = $self->get_local_addr();
 #warn "localddr $localaddr";
 
-	my ($response, $last_response);
-	my $wait = WAIT_COUNT;
-	while ( $wait >= 0 ) {
-		if ( $localaddr ) {
-			if ( $response = $self->receive_uni($address, $port, $localaddr) ) {
-				$last_response = $response;
-				$self->_notify_response($response);
-			}
-			$wait --;
-		}
-		if ( $response = $self->receive_multi($address, $port) ) {
+	# keep the sockets open for the whole wait so no answer is dropped between reads
+	my @sockets;
+	push @sockets, IO::Socket::Multicast->new(
+			PROTO => 'udp',
+			LocalAddr => $localaddr,
+			LocalPort => $port,
+			ReuseAddr => 1
+			) if $localaddr;
+	push @sockets, IO::Socket::Multicast->new(
+			PROTO => 'udp',
+			LocalPort => $port,
+			ReuseAddr => 1
+			);
+	$_->mcast_add($address, $net_interface) foreach @sockets;
+
+	my $readbits = '';
+	vec($readbits, $_->fileno, 1) = 1 foreach @sockets;
+
+	my $last_response;
+	my $deadline = Time::HiRes::time() + WAIT_TIME * WAIT_COUNT / 1000;
+	while ( (my $left = $deadline - Time::HiRes::time()) > 0 ) {
+		my $ready = $readbits;
+		my $n = select($ready, undef, undef, $left);
+		last if !$n;
+		next if $n < 0;
+		foreach my $socket ( grep { vec($ready, $_->fileno, 1) } @sockets ) {
+			my $response;
+			$socket->recv($response, 9999);
+			next if !$response;
 			$last_response = $response;
 			$self->_notify_response($response);
 		}
-		$wait --;
 	}
 
 	if ( $last_response ) {

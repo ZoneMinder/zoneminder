@@ -1,6 +1,7 @@
 #include "zm_libvnc_camera.h"
 
 #include "zm_packet.h"
+#include "zm_signal.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVNC
@@ -21,9 +22,9 @@ void bind_libvnc_symbols() {
   if (libvnc_lib != nullptr) // Safe-check
     return;
 
-  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  libvnc_lib = zm_libvnc_open([](const char *name) { return dlopen(name, RTLD_LAZY | RTLD_GLOBAL); });
   if (!libvnc_lib) {
-    Error("Error loading libvncclient.so: %s", dlerror());
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 
@@ -73,11 +74,15 @@ static rfbBool resize(rfbClient* client) {
     av_free(client->frameBuffer);
   }
 
-  int bufferSize = 4*client->width*client->height;
+  size_t bufferSize = static_cast<size_t>(client->width) * client->height * 4;
   // libVNC doesn't do alignment or padding in each line
   //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
   client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
-  Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
+  if (!client->frameBuffer) {
+    Error("Failed to allocate %zu byte frame buffer for %dx%d", bufferSize, client->width, client->height);
+    return FALSE;
+  }
+  Debug(1, "Allocing new frame buffer %dx%d = %zu", client->width, client->height, bufferSize);
 
   return TRUE;
 }
@@ -117,17 +122,21 @@ VncCamera::VncCamera(
          mPort(port),
          mUser(user),
 mPass(pass) {
-  if (colours == ZM_COLOUR_RGB32) {
+  if (zm_is_rgb32(pixelFormat)) {
     subpixelorder = ZM_SUBPIX_ORDER_RGBA;
     mImgPixFmt = AV_PIX_FMT_RGBA;
-  } else if (colours == ZM_COLOUR_RGB24) {
+    pixelFormat = AV_PIX_FMT_RGBA;
+  } else if (zm_is_rgb24(pixelFormat)) {
     subpixelorder = ZM_SUBPIX_ORDER_RGB;
     mImgPixFmt = AV_PIX_FMT_RGB24;
-  } else if (colours == ZM_COLOUR_GRAY8) {
+    pixelFormat = AV_PIX_FMT_RGB24;
+  } else if (pixelFormat == AV_PIX_FMT_GRAY8) {
     subpixelorder = ZM_SUBPIX_ORDER_NONE;
     mImgPixFmt = AV_PIX_FMT_GRAY8;
+    pixelFormat = AV_PIX_FMT_GRAY8;
   } else {
-    Panic("Unexpected colours: %d", colours);
+    Panic("Unexpected pixel format %d (%s); legacy colours=%d subpixelorder=%d",
+          pixelFormat, zm_get_pix_fmt_name(pixelFormat), colours, subpixelorder);
   }
 
   if (capture) {
@@ -195,9 +204,13 @@ int VncCamera::PrimeCapture() {
 }
 
 int VncCamera::PreCapture() {
-  int rc = (*WaitForMessage_f)(mRfb, 500);
+  // The timeout is in microseconds: wait up to half a second for an update.
+  int rc = (*WaitForMessage_f)(mRfb, 500000);
+  // Any handled signal (stop, reload, or the logger's WINCH/USR1/USR2) interrupts
+  // the wait; poll once more so only a real socket error is a failure.
+  if (rc < 0 and !zm_terminate and !zm_reload) rc = (*WaitForMessage_f)(mRfb, 0);
   if (rc < 0) {
-    return -1;
+    return (zm_terminate or zm_reload) ? 0 : -1;
   } else if (!rc) {
     return rc;
   }
@@ -221,28 +234,30 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-  Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
-        mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+  Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
+        static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
         directbuffer,
-        width * height * colours,
+        static_cast<size_t>(zm_packet->image->Size()),
         mImgPixFmt,
         mRfb->si.framebufferWidth,
         mRfb->si.framebufferHeight,
         width,
         height);
 
+  // The VNC framebuffer is packed rows (alignment 1); directbuffer is an
+  // Image buffer (WriteBuffer), which is always align-32.
   int rc = scale.Convert(
              mVncData.buffer,
-             mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
-             //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, mRfb->si.framebufferWidth, mRfb->si.framebufferHeight),
+             static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
              directbuffer,
-             width * height * colours,
+             zm_packet->image->Size(),
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
              mRfb->si.framebufferWidth,
              mRfb->si.framebufferHeight,
              width,
-             height);
+             height,
+             1, 32);
   return rc == 0 ? 1 : rc;
 }
 

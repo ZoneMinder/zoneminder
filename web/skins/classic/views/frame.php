@@ -30,41 +30,71 @@ if (!$Event->canView()) {
 }
 $Monitor = $Event->Monitor();
 
+// The object detection images are not frames; show them through the image view.
+if (isset($_REQUEST['fid']) && in_array($_REQUEST['fid'], array('objdetect', 'objdetect_gif'), true)) {
+  header('Location: ?view=image&eid='.$Event->Id().'&fid='.$_REQUEST['fid']);
+  return;
+}
+
 # This is kinda weird.. so if we pass fid=0 or some other non-integer, then it loads max score
 # perhaps we should consider being explicit, like fid = maxscore
 if (!empty($fid)) {
   $sql = 'SELECT * FROM Frames WHERE EventId=? AND FrameId=?';
-  if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid))))
+  if (!($frame = dbFetchOne($sql, NULL, array($eid, $fid)))) {
     $frame = array('EventId'=>$eid, 'FrameId'=>$fid, 'Type'=>'Normal', 'Score'=>0);
+    $virtualFrame = $Event->find_virtual_frame($fid);
+    if ($virtualFrame) $frame['Delta'] = $virtualFrame->Delta();
+  }
 } else {
   $frame = dbFetchOne('SELECT * FROM Frames WHERE EventId=? AND Score=?', NULL, array($eid, $Event->MaxScore()));
+  if (!$frame) {
+    $frame = array('EventId'=>$eid, 'FrameId'=>1, 'Type'=>'Normal', 'Score'=>0, 'Delta'=>0);
+  }
 }
 $Frame = new ZM\Frame($frame);
-$maxFid = $Event->Frames();
+if (!$fid) $fid = (int)$Frame->FrameId(); // fid=0 loaded the max score frame, navigate and fetch stats from its real id
 
-$firstFid = 1;
-$prevFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $fid));
-$nextFid = dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $fid));
-$lastFid = dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid));
-if ($maxFid > $lastFid) $maxFid = $lastFid;
+// Links only to frames that exist, so a sparse or short Frames table leaves a link disabled rather than empty.
+function frameNavigation($eid, $current) {
+  $nav = array(
+    'prev' => dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId < ?', 'FrameId', array($eid, $current)),
+    'next' => dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=? AND FrameId > ?', 'FrameId', array($eid, $current)),
+  );
+  $nav['first'] = $nav['prev'] ? dbFetchOne('SELECT MIN(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid)) : null;
+  $nav['last'] = $nav['next'] ? dbFetchOne('SELECT MAX(FrameId) AS FrameId FROM Frames WHERE EventId=?', 'FrameId', array($eid)) : null;
+  return $nav;
+}
+$nav = frameNavigation($eid, (int)$Frame->FrameId());
 
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
 if (isset($_REQUEST['scale'])) {
-  $scale = validNum($_REQUEST['scale']);
+  $scaleSelected = $_REQUEST['scale'];
 } else if (isset($_COOKIE['zmWatchScale'.$Monitor->Id()])) {
-  $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
+  $scaleSelected = $_COOKIE['zmWatchScale'.$Monitor->Id()];
 } else if (isset($_COOKIE['zmWatchScale'])) {
-  $scale = validNum($_COOKIE['zmWatchScale']);
+  $scaleSelected = $_COOKIE['zmWatchScale'];
 } else {
-  $scale = validNum($Monitor->DefaultScale());
+  $scaleSelected = $Monitor->DefaultScale();
+}
+// $scales also offers fit_to_width and NNNpx, so keep those keys for the select and the links.
+if (!is_scalar($scaleSelected) || !array_key_exists((string)$scaleSelected, $scales)) {
+  $scaleSelected = validNum($scaleSelected);
+}
+$scaleSelected = (string)$scaleSelected;
+$scale = $scaleSelected;
+if ($scaleSelected === 'fit_to_width') {
+  $scale = 0; // frame.js fits the image to the page width
+} else if (preg_match('/^(\d+)px$/', $scaleSelected, $m)) {
+  // Max width: the percentage that gives that width, never above actual size.
+  $scale = $Event->Width() ? min(SCALE_BASE, (int)floor($m[1]*SCALE_BASE/$Event->Width())) : 0;
 }
 $scale = $scale ? $scale : 0;
 
 $imageData = $Event->getImageSrc($frame, $scale, 0);
 if (!$imageData) {
   ZM\Error("No data found for Event $eid frame $fid");
-  $imageData = array('hasAnalysisImage'=>0, 'thumbPath' => '', 'eventPath'=>'');
+  $imageData = array('hasAnalysisImage'=>0, 'thumbPath' => '', 'eventPath'=>'', 'imageClass'=>'normal');
 }
 
 $show = 'capture';
@@ -101,7 +131,7 @@ echo getNavBarHTML();
       <form>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
         <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
         <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
@@ -116,8 +146,8 @@ echo getNavBarHTML();
         <p id="image">
 <?php
 if ($imageData['hasAnalysisImage']) {
-  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s" title="Click to display frame %s analysis">',
-    $Event->Id(), $Frame->FrameId(), $scale,
+  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%s&amp;show=%s" title="Click to display frame %s analysis">',
+    $Event->Id(), $Frame->FrameId(), urlencode($scaleSelected),
     ($show=='analysis'?'capture':'analysis'),
     ($show=='analysis'?'without':'with')
   );
@@ -125,8 +155,8 @@ if ($imageData['hasAnalysisImage']) {
 ?>
 <img id="frameImg"
   src="<?php echo validHtmlStr($Frame->getImageSrc($show=='analysis'?'analyse':'capture')) ?>"
-  width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-  height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+  width="<?php echo reScale($Event->Width(), $scale) ?>"
+  height="<?php echo reScale($Event->Height(), $scale) ?>"
   alt="<?php echo $Frame->EventId().'-'.$Frame->FrameId() ?>"
   class="<?php echo $imageData['imageClass'] ?>"
   loading="lazy"
@@ -135,13 +165,13 @@ if ($imageData['hasAnalysisImage']) {
 if ($imageData['hasAnalysisImage']) { ?></a><?php } ?>
         </p>
 <?php
-  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&amp;fid=';
+  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.urlencode($scaleSelected).'&amp;show='.$show.'&amp;fid=';
 ?>
         <p id="controls">
-          <a id="firstLink" <?php echo (( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$firstFid.'" class="btn-primary"' : 'class="btn-primary disabled"') ?>><?php echo translate('First') ?></a>
-          <a id="prevLink" <?php echo ( $Frame->FrameId() > 1 ) ? 'href="'.$frame_url_base.$prevFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
-          <a id="nextLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$nextFid.'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
-          <a id="lastLink" <?php echo ( $Frame->FrameId() < $maxFid ) ? 'href="'.$frame_url_base.$lastFid .'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
+          <a id="firstLink" <?php echo $nav['first'] ? 'href="'.$frame_url_base.$nav['first'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('First') ?></a>
+          <a id="prevLink" <?php echo $nav['prev'] ? 'href="'.$frame_url_base.$nav['prev'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Prev') ?></a>
+          <a id="nextLink" <?php echo $nav['next'] ? 'href="'.$frame_url_base.$nav['next'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Next') ?></a>
+          <a id="lastLink" <?php echo $nav['last'] ? 'href="'.$frame_url_base.$nav['last'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('Last') ?></a>
         </p>
 <?php
 if (file_exists($dImagePath)) {
@@ -150,8 +180,8 @@ if (file_exists($dImagePath)) {
         <p id="diagImage">
           <img
             src="<?php echo viewImagePath($dImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>
@@ -163,8 +193,8 @@ if (file_exists($rImagePath)) {
         <p id="refImage">
           <img
             src="<?php echo viewImagePath($rImagePath) ?>"
-            width="<?php echo reScale($Event->Width(), $Monitor->DefaultScale(), $scale) ?>"
-            height="<?php echo reScale($Event->Height(), $Monitor->DefaultScale(), $scale) ?>"
+            width="<?php echo reScale($Event->Width(), $scale) ?>"
+            height="<?php echo reScale($Event->Height(), $scale) ?>"
             class="<?php echo $imageData['imageClass'] ?>"
           />
         </p>

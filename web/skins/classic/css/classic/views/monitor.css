@@ -3,3 +3,10 @@
     margin-left: 3px;
     padding: 0px;
 }
+
+/* Encoder preset diagnostics — advisory text under the EncoderParameters textarea */
+.encoderParameterDiagnostics {
+  font-size: 0.9em;
+  color: #b58900;
+  margin-top: 4px;
+}

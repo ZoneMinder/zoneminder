@@ -4,8 +4,8 @@ if (empty($_REQUEST['mid'])) {
   ZM\Warning('Settings requires a monitor id');
   return;
 }
-if (!canView('Control', $_REQUEST['mid'])) {
-  ZM\Warning('Settings requires the Control permission');
+if (!canView('Control', $_REQUEST['mid']) or !canEdit('Control')) {
+  ZM\Warning('Settings requires the Control edit permission');
   return;
 }
 
@@ -14,22 +14,22 @@ $mid = validInt($_REQUEST['mid']);
 $args = ' -m ' . escapeshellarg($mid);
 $data = ['controls'=>[]];
 if (isset($_REQUEST['newBrightness'])) {
-  $zmuCommand = getZmuCommand($args . ' -B' . escapeshellarg($_REQUEST['newBrightness']));
+  $zmuCommand = getZmuCommand($args . ' -B' . escapeshellarg(validInt($_REQUEST['newBrightness'])));
   $zmuOutput = exec($zmuCommand);
   $data['controls'][]=['control'=>'Brightness', 'value'=>$zmuOutput];
 }
 if (isset($_REQUEST['newContrast'])) {
-  $zmuCommand = getZmuCommand($args . ' -C' . escapeshellarg($_REQUEST['newContrast']));
+  $zmuCommand = getZmuCommand($args . ' -C' . escapeshellarg(validInt($_REQUEST['newContrast'])));
   $zmuOutput = exec($zmuCommand);
   $data['controls'][]=['control'=>'Contrast', 'value'=>$zmuOutput];
 }
 if (isset($_REQUEST['newHue'])) {
-  $zmuCommand = getZmuCommand($args . ' -H' . escapeshellarg($_REQUEST['newHue']));
+  $zmuCommand = getZmuCommand($args . ' -H' . escapeshellarg(validInt($_REQUEST['newHue'])));
   $zmuOutput = exec($zmuCommand);
   $data['controls'][]=['control'=>'Hue', 'value'=>$zmuOutput];
   }
 if (isset($_REQUEST['newColour'])) {
-  $zmuCommand = getZmuCommand($args . ' -O' . escapeshellarg($_REQUEST['newColour']));
+  $zmuCommand = getZmuCommand($args . ' -O' . escapeshellarg(validInt($_REQUEST['newColour'])));
   $zmuOutput = exec($zmuCommand);
   $data['controls'][]=['control'=>'Colour', 'value'=>$zmuOutput];
 }

@@ -29,6 +29,8 @@ void DecoderThread::Join() {
 }
 
 void DecoderThread::Run() {
+  // Report a stack overflow on this thread like one in main.
+  zmSetThreadAltStack();
   Debug(2, "DecoderThread::Run() for %d", monitor_->Id());
 
   while (!(terminate_ or zm_terminate)) {
@@ -42,4 +44,10 @@ void DecoderThread::Run() {
       }
     }
   }
+
+  // Release any packets we sent to the codec but never received frames for.
+  // The codec context is about to be (or has been) torn down for Pause /
+  // reconnect; leaving stale entries would create a permanent latency
+  // offset against the next codec context on resume.
+  monitor_->flushDecoderQueue();
 }

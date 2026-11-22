@@ -463,12 +463,12 @@ sub focusConNear
     Debug( "Focus Near" );
     $self->_setFocusSpeed( $speed );
     usleep( COMMAND_GAP );
-    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x01, 0x00, 0x00, 0x00, ETX );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x02, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -481,12 +481,12 @@ sub focusConFar
     Debug( "Focus Far" );
     $self->_setFocusSpeed( $speed );
     usleep( COMMAND_GAP );
-    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x00, 0x80, 0x00, 0x00, ETX );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x01, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -529,12 +529,12 @@ sub irisConClose
     my $params = shift;
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Iris Close" );
-    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x04, 0x00, 0x00, 0x00, ETX );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x08, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 
@@ -544,12 +544,12 @@ sub irisConOpen
     my $params = shift;
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Iris Open" );
-    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x02, 0x80, 0x00, 0x00, ETX );
+    my @msg = ( STX, $self->{Monitor}->{ControlAddress}, 0x04, 0x00, 0x00, 0x00, ETX );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 
@@ -707,9 +707,8 @@ Philip Coombes, E<lt>philip.coombes@zoneminder.comE<gt>
 
 Copyright (C) 2001-2008  Philip Coombes
 
-This library is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself, either Perl version 5.8.3 or,
-at your option, any later version of Perl 5 you may have available.
+Licensed under the GNU General Public License v2 or later; see the COPYING
+file distributed with ZoneMinder for the full text.
 
 
 =cut

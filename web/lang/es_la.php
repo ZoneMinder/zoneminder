@@ -106,7 +106,6 @@ $SLANG = array(
     'BadDevice'            => 'Dispositivo debe ser un valor valido',
     'BadFPSReportInterval' => 'Intervalo de reporte del conteo de FPS del buffer debe ser un entero 0 o mayor',
     'BadFormat'            => 'Formato debe ser un entero 0 o mayor', 
-    'BadFrameSkip'         => 'Cuenta de Cuadros saltados debe ser un entero 0 o mayor',
     'BadHeight'            => 'Altura debe ser un valor valido',
     'BadHost'              => 'Host debe ser un nombre o una IP válida, no incluya el http://',
     'BadImageBufferCount'  => 'Tamaño del buffer de imagen debe ser un entero 2 o mayor',
@@ -328,7 +327,6 @@ $SLANG = array(
     'Frame'                => 'Cuadro',
     'FrameId'              => 'Id Cuadro',
     'FrameRate'            => 'Velocidad del video',
-    'FrameSkip'            => 'Saltar Cuadro',
     'Frames'               => 'Cuadros',
     'Func'                 => 'Func.',
     'Function'             => 'Función',
@@ -374,7 +372,6 @@ $SLANG = array(
     'Last'                 => 'Ultimo',
     'Layout'               => 'Diseño',                 // Added - 2009-02-08
     'Level'                => 'Nivel',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'Resultados;', // This is used at the end of the phrase 'Limit to first N results only'
     'LimitResultsPre'      => 'Solo los primeros', // This is used at the beginning of the phrase 'Limit to first N results only'
     'Line'                 => 'Linea',                   // Added - 2011-06-16
@@ -563,7 +560,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'La siguiente lista muestra los perfiles de transmisión existentes de la cámara seleccionada.<br/><br/>Seleccione la entrada deseada de la lista siguiente.<br/><br/>Tenga en cuenta que ZoneMinder no puede configurar perfiles adicionales y que elegir un cámara aquí puede sobrescribir cualquier valor que ya haya configurado para el monitor existente.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progreso',               // Added - 2015-04-18
     'Protocol'             => 'Protocolo',
-    'RTSPDescribe'         => 'Use el URL de RTSP', // Added - 2018-08-30
     'RTSPTransport'        => 'Protocolo Transp. RTSP', // Added - 2018-08-30
     'Rate'                 => 'Tasa',
     'Real'                 => 'Real',
@@ -794,7 +790,6 @@ $SLANG = array(
     'Actions'              => 'Acciones',
     '8 Hour'               => '8 Horas',
     '1 Hour'               => '1 Hora',
-    'Scale'                => 'Escala', // Montage Review -> type button
     'All Events'           => 'Todos Eventos',
 //    'HISTORY'              => 'Historial', // Montage Review -> type button -> js
     'Archive Status'       => 'Estatus Archivado', // Montage Review -> type label
@@ -869,7 +864,6 @@ $SLANG = array(
     'On Demand'            => 'Bajo Demanda',
     'Fit'                  => 'Ajustar',
     'Live'                 => 'En vivo',
-    'Scale'                => 'Ajustar',
     'minute'               => 'minuto',
     'minutes'              => 'minutos',
     'on demand'            => 'bajo demanda',
@@ -975,12 +969,6 @@ $OLANG = array(
 		          "\"reorder_queue_size=nnn\" Establezca el número de paquetes en el búfer para el manejo de paquetes reordenados~~~~".
 		          "\"loglevel=debug\" Establecer nivel info. de FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
 	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Los parámetros en este campo se pasan a libVLC. Múltiples parámetros pueden ser separados por ,~~ ".
-		          "Ejemplos (no ingrese comillas)~~~~".
-		          "\"--rtp-client-port=nnn\" Establecer puerto local para usar para datos rtp~~~~". 
-		          "\"--verbose=2\" Establecer nivel info. de libVLC"
-	),
 	
 //   ****************Prompts *************************
 
@@ -1078,7 +1066,6 @@ $OLANG = array(
 	'OPT_ADAPTIVE_SKIP' => array ( 'Prompt'=>'Debería el análisis de cuadros tratar de ser eficiente en saltar cuadros'),
 	'OPT_CONTROL' => array ( 'Prompt'=>'Soportar cámaras controlables (por ejemplo PTZ)'),
 	'OPT_EMAIL' => array ( 'Prompt'=>'Debe ZoneMinder envíar por correo electrónico los detalles de los eventos que coinciden con los filtros correspondientes'),
-	'OPT_FAST_DELETE' => array ( 'Prompt'=>'Eliminar solo registros de la base de datos de eventos para aumentar la velocidad'),
 	'OPT_FFMPEG' => array ( 'Prompt'=>'Está instalado el codificador/descodificador de video ffmpeg'),
 	'OPT_GEOLOCATION_ACCESS_TOKEN' => array ( 'Prompt'=>'Token de acceso para el proveedor de tiles de los mapas.'),
 	'OPT_GEOLOCATION_TILE_PROVIDER' => array ( 'Prompt'=>'Proveedor de tiles para los mapas.'),

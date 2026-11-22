@@ -8,6 +8,7 @@ require_once('User.php');
 require_once('Monitor.php');
 
 class Monitor_Permission extends ZM_Object {
+  protected static $setters = array('Monitor', 'User');
   protected static $table = 'Monitors_Permissions';
   protected $defaults = array(
       'Id'          =>  null,

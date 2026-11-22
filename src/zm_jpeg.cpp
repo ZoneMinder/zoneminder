@@ -264,8 +264,9 @@ extern "C" {
     mem_src_ptr src = (mem_src_ptr) cinfo->src;
     size_t nbytes;
 
-    memcpy(src->buffer, src->inbuffer, (size_t) src->inbuffer_size);
-    nbytes = src->inbuffer_size;
+    // The whole image is handed over on the first call; later calls are past its end.
+    nbytes = src->start_of_data ? src->inbuffer_size : 0;
+    memcpy(src->buffer, src->inbuffer, nbytes);
 
     if ( nbytes == 0 ) {
       if ( src->start_of_data )  /* Treat empty input file as fatal error */

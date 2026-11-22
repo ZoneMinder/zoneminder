@@ -112,7 +112,7 @@ namespace {
 
   $test_rows = array();
   for ($i = 1; $i <= 25; $i++) {
-    $test_rows[] = array('Id' => $i, 'MonitorId' => 1, 'StorageId' => 0, 'Name' => 'e'.$i, 'Cause' => '', 'Tags' => '',
+    $test_rows[] = array('Id' => $i, 'MonitorId' => 1, 'StorageId' => 0, 'Name' => 'e'.$i, 'Monitor' => 'Front', 'Cause' => '', 'Tags' => '',
       'Archived' => 0, 'Emailed' => 0, 'Notes' => '', 'Length' => 1, 'DiskSpace' => 0);
   }
 

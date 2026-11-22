@@ -73,11 +73,13 @@ function saveMonitorSequence($monitor_ids) {
 
 // The legacy Function column is skipped: nothing maintains it any more.
 function monitorMatchesSearch($monitor, $search) {
-  foreach (array('Name', 'Path', 'Device', 'Host', 'Id', 'Status') as $field) {
+  foreach (array('Name', 'Device', 'Id', 'Status') as $field) {
     if (isset($monitor[$field]) && stripos($monitor[$field], $search) !== false)
       return true;
   }
-  return false;
+  // The raw Host and Path hold credentials: match what the Source column shows, as the Source filter does.
+  $Monitor = new ZM\Monitor($monitor);
+  return stripos($Monitor->Source(), $search) !== false || stripos($Monitor->Path(), $search) !== false;
 }
 
 // The Source filter matches what the Source column shows, or the Path, as the

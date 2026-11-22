@@ -189,9 +189,11 @@ function downloadEvents(
       }
 
       if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
-      $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
+      # The monitor name is user-editable and must not carry a path into the output file name.
+      $monitorName = str_replace(['/', '\\', "\0"], '_', $monitor->Name());
+      $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.'.mp4';
       for ($n = 2; in_array($mergedFileName, $exportFileList); $n++) {
-        $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
+        $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
       }
       if (($fp = fopen('event_files.txt', 'w'))) {
         fwrite($fp, $eventFileList);

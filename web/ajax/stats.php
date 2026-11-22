@@ -5,7 +5,8 @@ if (empty($_REQUEST['fid'])) ajaxError('Frame Id Not Provided');
 
 $eid = $_REQUEST['eid'];
 $fid = $_REQUEST['fid'];
-$row = ( isset($_REQUEST['row']) ) ? $_REQUEST['row'] : '';
+# The row goes into an element id, so keep only characters an id can hold.
+$row = (isset($_REQUEST['row']) and is_scalar($_REQUEST['row'])) ? preg_replace('/[^\w\-]/', '', $_REQUEST['row']) : '';
 $raw = isset($_REQUEST['raw']);
 $data = array();
 

@@ -18,6 +18,8 @@ namespace ZM {
   // test is about EndDateTime, so the stub only has to answer the two calls.
   class Event {
     public function __construct($idOrRow = null) {}
+    public function Id() { return 7; }
+    public function canView() { return true; }
     public function DefaultVideo() { return ''; }
     public function getStreamSrc($args = array(), $querySep = '&') { return ''; }
   }
@@ -56,6 +58,7 @@ namespace {
   function canView($area) { return true; }
   function validJsStr($v) { return (is_null($v) or is_array($v)) ? '' : strip_tags(addslashes($v)); }
   function validInt($v) { return preg_replace('/[^\-\d]/', '', $v); }
+  function validCardinal($v) { return is_scalar($v) ? preg_replace('/\D/', '', $v) : ''; }
   function dbFetchOne($sql, $col = null, $params = array()) {
     return array('Id' => 7, 'MonitorId' => 1, 'StartDateTime' => '2026-11-16 10:00:00', 'EndDateTime' => null);
   }

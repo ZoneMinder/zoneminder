@@ -81,3 +81,19 @@ TEST_CASE("MonitorLinkExpression ignores empty comma separated terms", "[Monitor
   REQUIRE(expression.parse());
   REQUIRE(expression.result().success);
 }
+
+// Spaces typed around operators and brackets are not part of a link. Before,
+// the space between ")" and "|" was read as a link token and the leftover
+// token discarded the whole tree, so the expression never triggered.
+TEST_CASE("MonitorLinkExpression ignores spaces around operators and brackets", "[MonitorLink]") {
+  const std::string linked = GENERATE(
+      std::string("(a) | (b)"),
+      std::string("(a | b) & c"),
+      std::string(" a , b "),
+      std::string("a & (b)\t"),
+      std::string("( a )"));
+  CAPTURE(linked);
+  MonitorLinkExpression expression(linked);
+  REQUIRE(expression.parse());
+  REQUIRE(expression.result().success);
+}

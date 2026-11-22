@@ -20,9 +20,15 @@ bool MonitorLinkExpression::parse() {
                              std::distance(std::begin(expression_), first),
                              std::distance(first, second)
                            );
-      Debug(1, "Have a token %s", std::string(t).c_str());
-
-      tokens.emplace_back(t);
+      // Spaces around an operator or bracket ("(2) | (3)") are not part of a
+      // link; a token of only spaces would otherwise be read as a link.
+      const char *blanks = " \t\r\n";
+      t.remove_prefix(std::min(t.find_first_not_of(blanks), t.size()));
+      if (!t.empty()) t.remove_suffix(t.size() - 1 - t.find_last_not_of(blanks));
+      if (!t.empty()) {
+        Debug(1, "Have a token %s", std::string(t).c_str());
+        tokens.emplace_back(t);
+      }
     }
 
     if (std::end(expression_) == second) {

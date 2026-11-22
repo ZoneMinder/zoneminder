@@ -413,21 +413,26 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!$opts.length) return;
   const $depRows = $opts.find('[data-requires]');
 
-  function getVal(name) {
+  // An option greyed out because its own requirement is unmet counts as off for the options that depend on it.
+  function getVal(name, seen) {
     const $el = $opts.find('[name="newConfig[' + name + ']"]');
     if (!$el.length) return '';
+    const $row = $el.closest('[data-requires]');
+    if ($row.length && !seen.includes(name) && !evalRequires($row.attr('data-requires'), seen.concat(name))) {
+      return $el.is(':checkbox') ? '0' : '';
+    }
     if ($el.is(':checkbox')) return $el.is(':checked') ? '1' : '0';
     if ($el.is(':radio')) return $el.filter(':checked').val() || '';
     return $el.val();
   }
 
-  function evalRequires(req) {
+  function evalRequires(req, seen) {
     for (const chunk of req.split(';')) {
       const part = chunk.trim();
       if (!part) continue;
       const m = part.match(/^(ZM_\w+)=(.+)$/);
       if (!m) return false;
-      if (getVal(m[1]) !== m[2]) return false;
+      if (getVal(m[1], seen) !== m[2]) return false;
     }
     return true;
   }
@@ -435,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function refresh() {
     $depRows.each(function() {
       const $row = $j(this);
-      const met = evalRequires($row.attr('data-requires'));
+      const met = evalRequires($row.attr('data-requires'), []);
       $row.find('input, select, textarea').each(function() {
         const $input = $j(this);
         $input.prop('disabled', !met);

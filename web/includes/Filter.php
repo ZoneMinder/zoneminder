@@ -888,6 +888,20 @@ class Filter extends ZM_Object {
     return $this;
   } # end function addTerm
 
+  // Add a term that must hold whatever the filter's own terms say, such as the
+  // monitors the user may view. The existing terms are bracketed first: with an
+  // OR among them, "A or B and X" would still match every A.
+  function addRequiredTerm($term) {
+    $terms = $this->terms();
+    if (count($terms)) {
+      $last = count($terms) - 1;
+      $terms[0]['obr'] = (int)($terms[0]['obr'] ?? 0) + 1;
+      $terms[$last]['cbr'] = (int)($terms[$last]['cbr'] ?? 0) + 1;
+      $this->terms($terms);
+    }
+    return $this->addTerm($term);
+  }
+
   function addTerms($terms, $options=null) {
     foreach ( $terms as $term ) {
       $this->addTerm($term);

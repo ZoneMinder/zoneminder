@@ -1136,7 +1136,7 @@ function currentSortField($field) {
   return isset($legacy[$field]) ? $legacy[$field] : $field;
 }
 
-function sortHeader($field, $querySep='&amp;') {
+function sortHeader($field, $querySep='&amp;', $extra='') {
   global $view;
   $field = currentSortField($field);
   return implode($querySep, array(
@@ -1146,6 +1146,7 @@ function sortHeader($field, $querySep='&amp;') {
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
     (isset($_REQUEST['eid']) ? 'eid='.validCardinal($_REQUEST['eid']) : '' ),
+    $extra,
   ));
 }
 

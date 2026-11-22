@@ -103,6 +103,7 @@ function initPage() {
     $j('#downloadProgress').addClass('warnText');
     $j('#downloadProgressText').text(downloadProgressString);
 
+    clearInterval(downloadTimer); // a second click would orphan the first ticker
     downloadTimer = setInterval(downloadProgress, 500);
   });
 

@@ -66,6 +66,9 @@ function exportEvents( ) {
     error: exportFail
   });
 
+  // A second click while the first export runs would otherwise orphan its
+  // ticker, which then overwrites the result with dots for good.
+  clearInterval(exportTimer);
   exportTimer = setInterval(exportProgress, 500);
 }
 

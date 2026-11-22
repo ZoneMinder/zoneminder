@@ -40,6 +40,14 @@ if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
       if ( !empty($_REQUEST['markIds']) ) {
+        // Monitors, storage areas and cron jobs hold a ServerId with no foreign key: refuse rather than orphan them.
+        foreach ( $_REQUEST['markIds'] as $key => $Id ) {
+          $summary = ZM\Server::InUseSummary(validCardinal($Id));
+          if ( $summary ) {
+            $error_message .= 'Server '.validHtmlStr($Id).' is still used by '.$summary.' and cannot be deleted.<br/>';
+            unset($_REQUEST['markIds'][$key]);
+          }
+        }
         foreach ( $_REQUEST['markIds'] as $Id ) {
           if ( dbQuery('DELETE FROM Servers WHERE Id=?', array($Id)) === null ) {
             $error_message .= 'Error deleting server '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';

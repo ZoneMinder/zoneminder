@@ -29,6 +29,7 @@ function load() {
   };
   jq.ajax = function() {};
   const ctx = {
+    escapeHTML: (text) => (text ? text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : text),
     $j: jq,
     console: console,
     thisUrl: 'index.php',

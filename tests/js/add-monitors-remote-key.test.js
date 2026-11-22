@@ -31,6 +31,7 @@ function load() {
   const ctx = {
     $j: jq,
     console: console,
+    escapeHTML: (text) => (text ? text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : text),
     thisUrl: 'index.php',
     zmAuth: {},
     user: {Monitors: 'Create'},
@@ -60,7 +61,8 @@ function remote(host, name) {
 }
 
 function click(page, row) {
-  const url = /data-url="([^"]*)"/.exec(row.buttons)[1];
+  const url = /data-url="([^"]*)"/.exec(row.buttons)[1]
+      .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   page.api.addMonitor({getAttribute: () => url});
 }
 

@@ -275,7 +275,7 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
         ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
-  return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+  return '<object id="'.validHtmlStr($id).'" data="'.validHtmlStr($src).'" alt="'.validHtmlStr($title).'" width="'.validHtmlStr($width).'" height="'.validHtmlStr($height).'"></object>';
 }
 
 function outputControlStill($src, $width, $height, $monitor, $scale, $target) {

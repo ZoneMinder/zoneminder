@@ -1316,10 +1316,10 @@ class Filter extends ZM_Object {
         if (($term['attr'] == 'Tags') and (count($availableTags)<=1)) {
           continue;
         }
-        $html .= '<span class="term '.$term['attr'].'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
+        $html .= '<span class="term '.validHtmlStr($term['attr']).'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
-        $html .= '<span>'. $term['op'].'</span></span>'.PHP_EOL;
+        $html .= '<span>'.validHtmlStr($term['op']).'</span></span>'.PHP_EOL;
         #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
 
         if ( $term['attr'] == 'Archived' ) {

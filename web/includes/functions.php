@@ -2315,7 +2315,7 @@ function html_input($name, $type='text', $value='', $options=array()) {
   $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
 
   foreach (array_keys($options) as $k) {
-    $attributes[] = $k.'="'.$options[$k].'"';
+    $attributes[] = $k.'="'.validHtmlStr($options[$k]).'"';
   }
   $html .= join(' ', $attributes);
   $html .= '/>';

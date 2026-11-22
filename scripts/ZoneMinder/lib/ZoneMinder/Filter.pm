@@ -639,7 +639,7 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
         # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
         $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
-      } elsif ( $filter_expr->{sort_field} ne '' ) {
+      } elsif ( $filter_expr->{sort_field} =~ /^\w+$/ ) {
         $sort_column = 'E.'.$filter_expr->{sort_field};
       }
     }
@@ -647,7 +647,7 @@ sub Sql {
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }
-    if ($filter_expr->{limit}) {
+    if ($filter_expr->{limit} and $filter_expr->{limit} =~ /^\d+$/) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole

@@ -661,3 +661,11 @@ TEST_CASE("QueryString names", "[utils]") {
     REQUIRE(qs.get("a[]")->firstValue() == "1");
   }
 }
+
+TEST_CASE("UrlHost") {
+  REQUIRE(UrlHost("fd00::5") == "[fd00::5]");
+  REQUIRE(UrlHost("[fd00::5]") == "[fd00::5]");
+  REQUIRE(UrlHost("192.168.1.5") == "192.168.1.5");
+  REQUIRE(UrlHost("zm.example.com") == "zm.example.com");
+  REQUIRE(UrlHost("") == "");
+}

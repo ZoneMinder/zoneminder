@@ -121,6 +121,12 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string UrlHost(const std::string &host) {
+  if (host.find(':') != std::string::npos && host[0] != '[')
+    return "[" + host + "]";
+  return host;
+}
+
 std::string ClientAddress(const std::string &remote_addr,
                           const std::string &forwarded_for,
                           const std::string &trusted_proxies) {

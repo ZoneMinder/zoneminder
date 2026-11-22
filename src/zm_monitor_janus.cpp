@@ -75,7 +75,7 @@ void Monitor::JanusManager::load_from_monitor() {
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_path = "rtsp://"+server.Hostname();
+      rtsp_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_path = "rtsp://127.0.0.1";
     }

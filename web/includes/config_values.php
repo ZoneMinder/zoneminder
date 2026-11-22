@@ -21,3 +21,9 @@ function configValueIsValid($value, $type, $default='') {
   }
   return true;
 }
+
+function configSelectChoices($choices, $current) {
+  // Keep a saved value that is not among the choices selectable so a save leaves it as is.
+  if ($current !== null && $current !== '' && !array_key_exists($current, $choices)) $choices[$current] = $current;
+  return $choices;
+}

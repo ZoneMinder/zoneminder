@@ -18,16 +18,33 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+# Parse what 'ffmpeg -i' prints about a file into ['signature' => 'codec
+# WIDTHxHEIGHT' of the first video stream or '', 'duration' => seconds from the
+# container's Duration line, or 0 when it is missing or N/A].
+function parseVideoProbe($text) {
+  $probe = ['signature' => '', 'duration' => 0.0];
+  if (preg_match('/Stream #\S+: Video: (\w+)[^\n]*?, (\d+)x(\d+)/', $text, $m)) {
+    $probe['signature'] = $m[1].' '.$m[2].'x'.$m[3];
+  }
+  if (preg_match('/Duration: (\d+):(\d{2}):(\d{2}(?:\.\d+)?)/', $text, $m)) {
+    $probe['duration'] = $m[1] * 3600 + $m[2] * 60 + (float)$m[3];
+  }
+  return $probe;
+}
+
+# Probe $path with ffmpeg; see parseVideoProbe(). A missing or empty file gives
+# an empty signature without running ffmpeg.
+function videoProbe($path) {
+  if (!is_file($path) or !filesize($path)) return parseVideoProbe('');
+  $output = [];
+  exec(ZM_PATH_FFMPEG.' -hide_banner -i '.escapeshellarg($path).' 2>&1', $output);
+  return parseVideoProbe(implode("\n", $output));
+}
+
 # Return 'codec WIDTHxHEIGHT' of the first video stream of $path, or '' if the
 # file is missing, empty or has no readable video stream.
 function videoStreamSignature($path) {
-  if (!is_file($path) or !filesize($path)) return '';
-  $output = [];
-  exec(ZM_PATH_FFMPEG.' -hide_banner -i '.escapeshellarg($path).' 2>&1', $output);
-  if (preg_match('/Stream #\S+: Video: (\w+)[^\n]*?, (\d+)x(\d+)/', implode("\n", $output), $m)) {
-    return $m[1].' '.$m[2].'x'.$m[3];
-  }
-  return '';
+  return videoProbe($path)['signature'];
 }
 
 # Remove what a failed downloadEvents() call created: its export directory and
@@ -132,6 +149,8 @@ function downloadEvents(
     @unlink($archive_path);
   }
 
+  $useTimestampTrack = (defined('ZM_OPT_EXPORT_TIMESTAMP_TRACK') and ZM_OPT_EXPORT_TIMESTAMP_TRACK);
+
   foreach (array_keys($events_by_monitor_id) as $mid) {
     $monitor = ZM\Monitor::find_one(['Id'=>$mid]);
     if (!$monitor) {
@@ -152,12 +171,13 @@ function downloadEvents(
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;
       }
-      $signature = videoStreamSignature(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.basename($filePath));
+      $probe = videoProbe(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.basename($filePath));
+      $signature = $probe['signature'];
       if ($signature === '') {
         ZM\Warning('The video file '.$filePath.' of event '.$event->Id().' is empty or unreadable, not exporting it.');
         continue;
       }
-      $groups[$signature][] = [$event, $filePath];
+      $groups[$signature][] = [$event, $filePath, $probe['duration']];
     }
 
     foreach ($groups as $group) {
@@ -166,7 +186,12 @@ function downloadEvents(
       $minTime = '';
       $maxTimeSecs = -1;
       $maxTime = '';
-      foreach ($group as list($event, $filePath)) {
+      # The concat demuxer starts each file where the previous one's container
+      # duration ends, so the cues of each event are offset by the probed
+      # durations of the files before it in this group.
+      $vttCues = '';
+      $concatOffset = 0.0;
+      foreach ($group as list($event, $filePath, $fileDuration)) {
         if ($minTimeSecs == -1 or $minTimeSecs > $event->StartDateTimeSecs()) {
           $minTimeSecs = $event->StartDateTimeSecs();
           $minTime = $event->StartDateTime();
@@ -181,6 +206,22 @@ function downloadEvents(
         $fileName = basename($filePath);
         if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
         $eventFileList .= 'file \''.(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.$fileName).'\''.PHP_EOL;
+
+        if ($useTimestampTrack) {
+          $duration = $fileDuration;
+          if ($duration <= 0) {
+            # No Duration in the container; fall back to what the database says.
+            $duration = (float)$event->Length();
+            if ($duration <= 0 and $endSecs) $duration = $endSecs - $event->StartDateTimeSecs();
+            ZM\Debug('No container duration for event '.$event->Id().', using '.$duration.'s for its timestamp cues');
+          }
+          if ($duration > 0) {
+            $vttCues .= vttCuesForEvent($event->StartDateTimeSecs(), $duration, $concatOffset);
+            $concatOffset += $duration;
+          } else {
+            ZM\Debug('Event '.$event->Id().' has no usable duration; skipping its timestamp cues');
+          }
+        }
       }
 
       if ($eventFileList === '') {
@@ -199,11 +240,23 @@ function downloadEvents(
       } else {
         ZM\Error("Can't open event images export file 'event_files.txt'");
       }
-      $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt -c copy '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
+      $vttPath = '';
+      if ($useTimestampTrack and $vttCues !== '') {
+        $vttPath = 'timestamps.vtt';
+        if (!writeVttFile($vttPath, $vttCues)) {
+          ZM\Warning("Can't write timestamp track '$vttPath'; exporting monitor $mid without it");
+          @unlink($vttPath);
+          $vttPath = '';
+        }
+      }
+      $cmd = ZM_PATH_FFMPEG.' -f concat -safe 0 -i event_files.txt'
+        .exportTimestampTrackOptions($vttPath, $minTimeSecs)
+        .' '.escapeshellarg($export_dir.'/'.$mergedFileName). ' 2>&1';
       $output = array();
       exec($cmd, $output, $return);
       ZM\Debug($cmd.' return code: '.$return.' output: '.print_r($output,true));
       @unlink('event_files.txt');
+      if ($vttPath) @unlink($vttPath);
       if ($return != 0) {
         ZM\Error('Failed to merge the events of monitor '.$mid.' (status '.$return.'): '.implode('; ', array_slice($output, -3)));
         return removeFailedDownload($export_dir, $archive_path);
@@ -396,6 +449,7 @@ function pathWithinExportDir($path, $base) {
   return $realPath;
 }
 
+# Format $seconds as a WebVTT cue timestamp, HH:MM:SS.mmm.
 function formatVttTimestamp($seconds) {
   $totalMs = max(0, (int)round($seconds * 1000));
   $h = (int)floor($totalMs / 3600000);
@@ -407,17 +461,40 @@ function formatVttTimestamp($seconds) {
   return sprintf('%02d:%02d:%02d.%03d', $h, $m, $s, $ms);
 }
 
-function buildVttContent($cues) {
-  $out = "WEBVTT\n\n";
-  foreach ($cues as $cue) {
-    if ($cue['end'] <= $cue['start']) continue;
-    $out .= formatVttTimestamp($cue['start']).' --> '.formatVttTimestamp($cue['end'])."\n";
-    $out .= $cue['text']."\n\n";
+# Return the WebVTT cues for one event of a merged export: one cue per second
+# of its $duration (the last one shorter when $duration is fractional), placed
+# $offset seconds into the merged file and labelled with the wall-clock time of
+# that second. The label carries the UTC offset, since the time is shown in the
+# server's zone while the file's creation_time is UTC.
+function vttCuesForEvent($startSecs, $duration, $offset) {
+  $out = '';
+  for ($s = 0; $s < $duration - 0.001; $s++) {
+    $end = min($s + 1, $duration);
+    $out .= formatVttTimestamp($offset + $s).' --> '.formatVttTimestamp($offset + $end)."\n";
+    $out .= date('Y-m-d H:i:sP', $startSecs + $s)."\n\n";
   }
   return $out;
 }
 
+# Write a WebVTT file holding $cues. Returns false on failure.
 function writeVttFile($path, $cues) {
-  $content = buildVttContent($cues);
-  return @file_put_contents($path, $content);
+  $content = "WEBVTT\n\n".$cues;
+  $written = file_put_contents($path, $content);
+  return $written === strlen($content);
+}
+
+# Return the ffmpeg output options for a merge: a plain stream copy without a
+# timestamp track, or, with the WebVTT file $vttPath, a copy of the video and
+# audio plus that file as a mov_text subtitle stream and creation_time set to
+# $minTimeSecs in UTC.
+function exportTimestampTrackOptions($vttPath, $minTimeSecs) {
+  if ($vttPath === '') return ' -c copy';
+  $options = ' -i '.escapeshellarg($vttPath)
+    .' -map 0:v -map 0:a? -map 1'
+    .' -c:v copy -c:a copy -c:s mov_text'
+    .' -metadata:s:s:0 language=eng -metadata:s:s:0 title=timestamp';
+  if ($minTimeSecs > 0) {
+    $options .= ' -metadata creation_time='.escapeshellarg(gmdate('Y-m-d\TH:i:s\Z', $minTimeSecs));
+  }
+  return $options;
 }

@@ -103,6 +103,7 @@ class ManufacturersController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error',
       'id' => null,
@@ -136,6 +137,7 @@ class ManufacturersController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Manufacturer->validationErrors ? $this->Manufacturer->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

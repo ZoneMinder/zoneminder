@@ -86,6 +86,7 @@ public function add() {
     $id = $this->State->id;
   } else {
     $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
+    $this->response->statusCode(400);
   }
   $this->set(array(
     'message' => $message,
@@ -120,6 +121,7 @@ public function edit($id = null) {
     $message = 'Saved';
   } else {
     $message = $this->State->validationErrors ? $this->State->validationErrors : 'Error';
+    $this->response->statusCode(400);
   }
   $this->set(array(
     'message' => $message,

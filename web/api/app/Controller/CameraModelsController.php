@@ -108,6 +108,7 @@ class CameraModelsController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error',
       'id' => null,
@@ -141,6 +142,7 @@ class CameraModelsController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

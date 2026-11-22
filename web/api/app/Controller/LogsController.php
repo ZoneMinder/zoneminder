@@ -93,6 +93,7 @@ class LogsController extends AppController {
 				));
 				return;
 			}
+			$this->response->statusCode(400);
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
 				'id' => null,
@@ -128,6 +129,7 @@ class LogsController extends AppController {
 				));
 				return;
 			}
+			$this->response->statusCode(400);
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
 				'_serialize' => array('message')

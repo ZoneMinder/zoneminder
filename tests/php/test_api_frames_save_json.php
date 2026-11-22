@@ -26,6 +26,7 @@ if (!class_exists('UnauthorizedException')) { class UnauthorizedException extend
 if (!class_exists('NotFoundException')) { class NotFoundException extends Exception {} }
 if (!function_exists('__')) { function __($s) { return $s; } }
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -78,7 +79,7 @@ if ($add === null or $edit === null) {
   exit(1);
 }
 
-eval('class FramesHarness { public $request, $Frame, $vars = array(), $flashed = array(), $columns = array();
+eval('class FramesHarness { public $request, $response, $Frame, $vars = array(), $flashed = array(), $columns = array();
   function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
   function flash($message, $url = null) { $this->flashed[] = $message; return "FLASH"; }
   function requireRequestEventEdit() {}
@@ -91,7 +92,7 @@ function run($action, $method, $save_result, $columns = array('EventId' => 5, 'F
   global $user;
   $user = null;
   $h = new FramesHarness();
-  $h->request = new FakeRequest($method, array('Frame' => $columns));
+  $h->request = new FakeRequest($method, array('Frame' => $columns)); $h->response = new FakeResponse;
   $h->Frame = new FakeFrame();
   $h->Frame->saveResult = $save_result;
   $h->columns = $columns;

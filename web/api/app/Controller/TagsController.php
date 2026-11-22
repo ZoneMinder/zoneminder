@@ -154,6 +154,7 @@ class TagsController extends AppController {
         return;
       } else {
         ZM\Error("Failed to save Tag");
+        $this->response->statusCode(400);
         $this->set(array(
           'message' => $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error',
           'id' => null,
@@ -195,6 +196,7 @@ class TagsController extends AppController {
         $message = 'Saved';
       } else {
         $message = $this->Tag->validationErrors ? $this->Tag->validationErrors : 'Error';
+        $this->response->statusCode(400);
 			}
 		} # end if post/put
 

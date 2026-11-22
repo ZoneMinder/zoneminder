@@ -109,6 +109,7 @@ class StorageController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
       'id' => null,
@@ -142,6 +143,7 @@ class StorageController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

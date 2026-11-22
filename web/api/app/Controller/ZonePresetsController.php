@@ -81,6 +81,7 @@ class ZonePresetsController extends AppController {
         ));
         return;
       }
+      $this->response->statusCode(400);
       $this->set(array(
         'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
         'id' => null,
@@ -109,6 +110,7 @@ class ZonePresetsController extends AppController {
         ));
         return;
       }
+      $this->response->statusCode(400);
       $this->set(array(
         'message' => $this->ZonePreset->validationErrors ? $this->ZonePreset->validationErrors : 'Error',
         '_serialize' => array('message')

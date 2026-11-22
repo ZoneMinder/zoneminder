@@ -42,6 +42,7 @@ if (!class_exists('NotFoundException')) { class NotFoundException extends Except
 if (!function_exists('__')) { function __($s) { return $s; } }
 if (!function_exists('ZM\Error')) { eval('namespace ZM; function Error($s) {}'); }
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -70,7 +71,7 @@ class FakeGroup {
   }
 }
 
-eval('class GroupsHarness { public $Group, $request, $vars = array(), $flashed = array();
+eval('class GroupsHarness { public $Group, $request, $response, $vars = array(), $flashed = array();
   function set($v) { $this->vars = array_merge($this->vars, (array)$v); }
   function flash($message, $url = null) { $this->flashed[] = array($message, $url); return "FLASH"; }
   private function requestField($alias, $field) { return null; }
@@ -83,7 +84,7 @@ function run_add($method, $save_result, $data = array()) {
   global $user;
   $user = null;
   $h = new GroupsHarness();
-  $h->request = new FakeRequest($method, $data);
+  $h->request = new FakeRequest($method, $data); $h->response = new FakeResponse;
   $h->Group = new FakeGroup();
   $h->Group->saveResult = $save_result;
   try {

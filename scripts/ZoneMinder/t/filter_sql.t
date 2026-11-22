@@ -7,6 +7,13 @@ plan tests => 37;
 
 {
   no warnings 'redefine', 'once';
+  # sql_quote asks the database handle to quote; there is none here.
+  *ZoneMinder::Filter::sql_quote = sub {
+    my $v = shift;
+    return q(NULL) if !defined $v;
+    $v =~ s/'/''/g;
+    return "'$v'";
+  };
   *ZoneMinder::Filter::Debug = sub { };
   *ZoneMinder::Filter::Warning = sub { };
   *ZoneMinder::Filter::Error = sub { };

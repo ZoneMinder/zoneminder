@@ -210,6 +210,10 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
     el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
+  // The maximum is only checked against the pre event count once it is entered
+  document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]').forEach(function(el) {
+    el.addEventListener('change', window['buffer_setting_oninput'].bind(el));
+  });
   update_estimated_ram_use();
 
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
@@ -809,7 +813,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value)
+  // Typing a new maximum passes through smaller numbers, don't cut the pre event count down to them
+  const typing_max = (this.id == 'newMonitor[MaxImageBufferCount]') && e && (e.type == 'input');
+  if (!typing_max
+    &&
+    parseInt(max_image_buffer_count.value)
     &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {

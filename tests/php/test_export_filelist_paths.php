@@ -38,7 +38,7 @@ namespace {
   mkdir($evdir, 0700);
   file_put_contents("$evdir/note.txt", 'x');
   // zip stub: keep a copy of the list file the real archive would contain
-  file_put_contents("$root/bin/zip", "#!/bin/sh\ncp \"\$ZM_TEST_ROOT\"/exports/zmExport_*/zmFileList.txt \"\$ZM_TEST_ROOT/list.txt\"\n");
+  file_put_contents("$root/bin/zip", "#!/bin/sh\ncp \"\$ZM_TEST_ROOT\"/exports/u0_zmExport_*/zmFileList.txt \"\$ZM_TEST_ROOT/list.txt\"\n");
   chmod("$root/bin/zip", 0755);
   putenv("PATH=$root/bin:/usr/bin:/bin");
   putenv("ZM_TEST_ROOT=$root");
@@ -60,7 +60,7 @@ namespace {
   check('export succeeds ('.var_export($r, true).')', is_string($r));
   $lines = file("$root/list.txt", FILE_IGNORE_NEW_LINES);
   check('list file was captured', is_array($lines));
-  check('entry is under the archived directory ('.var_export($lines[0] ?? null, true).')', ($lines[0] ?? '') === 'zmExport_123/5/note.txt');
+  check('entry is under the archived directory ('.var_export($lines[0] ?? null, true).')', ($lines[0] ?? '') === 'u0_zmExport_123/5/note.txt');
 
   deletePath($root);
   echo "\n$tests tests, $failures failures\n";

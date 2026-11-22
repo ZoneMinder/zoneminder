@@ -1988,6 +1988,12 @@ bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t sect
   return (cur_sec / section_length_sec) != (prev_sec / section_length_sec);
 }
 
+bool Monitor::TimeSectionEnded(SystemTimePoint now) const {
+  return TimeSectionCrossed(event_section_sec_,
+                            std::chrono::duration_cast<Seconds>(now.time_since_epoch()).count(),
+                            Seconds(section_length).count());
+}
+
 void Monitor::ClearAlarmTracking() {
   EmptyPreAlarmFrames();
   alert_to_alarm_frame_count = alarm_frame_count;
@@ -2610,12 +2616,6 @@ bool Monitor::Analyse() {
           } // end if packet->score meaning did motion detection
         } // end if score or not
 
-        // Whole seconds of the previous and this packet, to see a CLOSE_TIME
-        // boundary pass even when no frame lands on the exact second.
-        const int64_t this_section_sec = std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count();
-        const bool time_section_crossed = TimeSectionCrossed(last_section_sec_, this_section_sec, Seconds(section_length).count());
-        last_section_sec_ = this_section_sec;
-
         if (event) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
@@ -2684,7 +2684,7 @@ bool Monitor::Analyse() {
                 }
               } else if (event_close_mode == CLOSE_TIME) {
                 Debug(1, "CLOSE_MODE Time");
-                if (time_section_crossed) {
+                if (TimeSectionEnded(packet->timestamp)) {
                   Info("%s: %03d - Closing event %" PRIu64 ", section end forced %" PRIi64 " %% %" PRIi64 " = 0",
                        name.c_str(),
                        packet->image_index,
@@ -4193,6 +4193,9 @@ Event * Monitor::openEvent(
   const Event::StringSetMap &noteSetMap,
   SystemTimePoint counting_boundary) {
 
+  // The packet opening the event, not the event's start: passthrough starts
+  // the event on an earlier keyframe, which can lie in the previous section.
+  event_section_sec_ = std::chrono::duration_cast<Seconds>(packet_lock->packet_->timestamp.time_since_epoch()).count();
   // FIXME this iterator is not protected from invalidation
   packetqueue_iterator *start_it = packetqueue.get_event_start_packet_it(
       *analysis_it,

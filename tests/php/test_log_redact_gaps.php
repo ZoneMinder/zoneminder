@@ -57,5 +57,13 @@ check('URL userinfo not logged', strpos($u, 'u:p@'), false);
 check('URL token not logged', strpos($u, 'abc'), false);
 check('URL other params kept', strpos($u, 'b=2') !== false, true);
 
+echo "\nsemicolon and JSON ordering\n";
+check('raw ; in a password value is fully redacted', ZM\redactQueryString('password=pw12;tail99'), 'password=[redacted]');
+check('; before a name= still ends the value', ZM\redactQueryString('password=pw12;b=2'), 'password=[redacted];b=2');
+check('encoded ; in a redirect', ZM\redactQueryString(urldecode('pass=pw12%3Btail99')), 'pass=[redacted]');
+$t = ZM\redactForLog('{"token":"c2VjcmV0dG9rZW4="}');
+check('JSON token with = fully fingerprinted', preg_match('/^\{"token":"fp:[0-9a-f]{8}"\}$/', $t), 1);
+check('JSON password with = fully redacted', ZM\redactForLog('{"password":"left55=right66"}'), '{"password":"[redacted]"}');
+
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

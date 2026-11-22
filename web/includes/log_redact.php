@@ -80,7 +80,7 @@ function logKeyKind($key) {
 // A query string (a=1&b=2) with the values of credential parameters replaced,
 // for a string that carries one: postLoginQuery, a redirect target.
 function redactQueryString($query) {
-  return preg_replace_callback('/(^|[?&;])([^=&?#;]+)=([^&?#;]*)/', function ($m) {
+  return preg_replace_callback('/(^|[?&;])([^=&?#;]+)=((?:[^&?#;]|;(?![^=&?#;]+=))*)/', function ($m) {
     $kind = logKeyKind(urldecode($m[2]));
     if ($kind === null) return $m[0];
     $value = ($kind === 'secret') ? '[redacted]' : logFingerprint(urldecode($m[3]));
@@ -115,10 +115,11 @@ function redactForLog($data, $key = null) {
   }
   if (is_string($data)) {
     $data = removeUserinfo($data);
-    // A value that is itself a query string, such as postLoginQuery.
-    if (strpos($data, '=') !== false) $data = redactQueryString($data);
+    // JSON first: a value holding '=' would otherwise be cut by the query pass.
     // A JSON text with credentials in it, such as a logged request body.
     if (strpos($data, '":') !== false) $data = redactJsonPairs($data);
+    // A value that is itself a query string, such as postLoginQuery.
+    if (strpos($data, '=') !== false) $data = redactQueryString($data);
   }
   return $data;
 }

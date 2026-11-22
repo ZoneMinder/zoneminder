@@ -791,6 +791,8 @@ function controlSetClicked() {
   $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
+        // The page's labels are those of the monitor it was loaded for; use this monitor's.
+        labels = JSON.parse($j('#ctrlPresetForm').attr('data-labels') || '{}');
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);

@@ -65,6 +65,7 @@ class NotificationsController extends AppController {
       $data = $data['Notification'];
     }
 
+    $userIdGiven = $this->_isAdmin() && isset($data['UserId']);
     if (!$this->_isAdmin() || !isset($data['UserId'])) {
       $data['UserId'] = $this->_userId();
     }
@@ -84,6 +85,10 @@ class NotificationsController extends AppController {
         }
         $this->Notification->id = $existing['Notification']['Id'];
         unset($data['CreatedOn']);
+        // Re-registering a token keeps its owner unless an admin names one.
+        if (!$userIdGiven) {
+          unset($data['UserId']);
+        }
       } else {
         $this->Notification->create();
       }

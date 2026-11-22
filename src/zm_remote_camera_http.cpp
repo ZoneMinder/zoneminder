@@ -1067,6 +1067,7 @@ int RemoteCameraHttp::GetResponse() {
           Debug(3, "Got end of image by length, content-length = %d", content_length);
         } else {
           // Read until we find the end of image or the stream closes.
+          const TimePoint empty_start = std::chrono::steady_clock::now();
           while (!content_length && !zm_terminate) {
             Debug(4, "!content_length, ReadData");
             int buffer_len = ReadData(buffer);
@@ -1104,6 +1105,15 @@ int RemoteCameraHttp::GetResponse() {
                   Debug(2, "Trimmed end of image, new content-length = %d", content_length);
                 }
               } // end if SINGLE_IMAGE
+
+              if (!content_length) {
+                // Empty body: wait for data, but give up like GetData() does instead of spinning forever.
+                if (zm_terminate or std::chrono::steady_clock::now() - empty_start > FPSeconds(config.watch_max_delay)) {
+                  Error("Empty image body, no data received");
+                  return -1;
+                }
+                std::this_thread::sleep_for(Milliseconds(100));
+              }
             } // end if read some data
           } // end while ! content_length
         } // end if content_length

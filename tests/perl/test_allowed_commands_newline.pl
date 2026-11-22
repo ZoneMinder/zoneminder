@@ -31,6 +31,8 @@ check('the listed program is allowed', commandIsAllowed('/bin/true /tmp/event', 
 check('a semicolon is refused', commandIsAllowed('/bin/true; touch /tmp/x', $list), 0);
 check('a newline is refused', commandIsAllowed("/bin/true\ntouch /tmp/x", $list), 0);
 check('a carriage return and newline is refused', commandIsAllowed("/bin/true\r\ntouch /tmp/x", $list), 0);
+check('process substitution is refused', commandIsAllowed("/bin/true <(touch /tmp/x)", $list), 0);
+check('output process substitution is refused', commandIsAllowed("/bin/true >(touch /tmp/x)", $list), 0);
 check('a quoted program followed by a newline is refused', commandIsAllowed("\"/bin/true\"\ntouch /tmp/x", $list), 0);
 check('no list allows a newline', commandIsAllowed("/bin/true\ntouch /tmp/x", ''), 1);
 

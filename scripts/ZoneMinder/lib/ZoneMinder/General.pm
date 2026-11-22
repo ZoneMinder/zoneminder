@@ -765,7 +765,7 @@ sub systemStatus {
 # list is in force: a program being on the list says nothing about what else
 # runs alongside it if the command can chain. Redirection is deliberately not
 # here; it starts no program.
-our @COMMAND_CHAINING = (';', '|', '&', '`', '$(');
+our @COMMAND_CHAINING = (';', '|', '&', '`', '$(', '<(', '>(');
 
 # The program a command invokes: its first word, with any surrounding quotes
 # removed. undef when there is not one. Only the program is matched, so

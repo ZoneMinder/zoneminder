@@ -6,6 +6,11 @@ class HostController extends AppController {
   public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
+    # Same rule as daemonControl() for check and status: System View or Edit.
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+    }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;

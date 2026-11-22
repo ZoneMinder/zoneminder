@@ -12,6 +12,10 @@
 -- ClassTypes Human) and are untested. Add the words other cameras use in
 -- Options, AI Classes.
 --
+-- zm_update-1.39.55.sql also runs this file, so it must keep working on a
+-- 1.39.55 database: a change that needs a later column goes in a later
+-- zm_update file, not here.
+--
 
 INSERT IGNORE INTO AI_Datasets (Name, Description, Version, NumClasses) VALUES
 ('Camera', 'Objects cameras detect themselves, where COCO has no class for them', '1', 5);

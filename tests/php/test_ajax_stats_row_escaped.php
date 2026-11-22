@@ -10,12 +10,13 @@ function ajaxError($m) { $GLOBALS['out'] = "error: $m"; throw new Done(); }
 function ajaxResponse($r) { $GLOBALS['out'] = $r; throw new Done(); }
 function validHtmlStr($s) { return htmlspecialchars((string)$s); }
 function translate($s) { return $s; }
-function getStatsTableHTML($eid, $fid, $row) { return 'table'.$row; }
+function getStatsTableHTML($eid, $fid, $row) { $GLOBALS['ids'] = array($eid, $fid); return 'table'.$row; }
+function validCardinal($v) { return preg_replace('/\D/', '', $v); }
 function dbFetchAll($sql, $col = null, $args = array()) { return array(); }
 
 $root = isset($argv[1]) ? rtrim($argv[1], '/') : __DIR__.'/../..';
 
-$cases = array('3', '5"><script>alert(1)</script>', array('x'));
+$cases = array('3', '5"><script>alert(1)</script>', array('x'), 'ids');
 
 $failures = 0;
 function check($n, $got, $want) {
@@ -26,6 +27,7 @@ function check($n, $got, $want) {
 function run($row) {
   global $root;
   $_REQUEST = array('eid' => '5', 'fid' => '7', 'row' => $row);
+  if ($row === 'ids') $_REQUEST = array('eid' => '5"><b>e</b>', 'fid' => '7<i>f</i>', 'row' => '1');
   try {
     include $root.'/web/ajax/stats.php';
   } catch (Done $e) {
@@ -42,6 +44,8 @@ if (isset($argv[2])) {
     check('safe row is kept in the returned table id', $id, '#contentStatsTable3');
   } else if ($index === 1) {
     check('unsafe row leaves no <, > or " in the returned table id', preg_match('/[<>"]/', (string)$id), 0);
+  } else if ($index === 3) {
+    check('eid and fid reach the stats table as digits only', $GLOBALS['ids'] ?? null, array('5', '7'));
   } else {
     check('non-scalar row is not put into the returned table id', $id, '#contentStatsTable');
   }

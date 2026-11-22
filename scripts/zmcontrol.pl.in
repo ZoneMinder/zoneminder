@@ -46,7 +46,8 @@ sub control_method {
   my $code = $control->can($command);
   return undef if !$code;
   my $stash = B::svref_2object($code)->GV->STASH->NAME;
-  return undef if $stash eq 'ZoneMinder::Control' or !$control->isa($stash);
+  # ZoneMinder::Control and the classes above it (Object, Base) hold internals, not commands.
+  return undef if ZoneMinder::Control->isa($stash) or !$control->isa($stash);
   return $code;
 }
 

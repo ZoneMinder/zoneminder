@@ -38,7 +38,18 @@ if ($@) {
   exit 1;
 }
 
+package ZoneMinder::Base {
+  sub find { 1 }
+}
+
+package ZoneMinder::Object {
+  our @ISA = ('ZoneMinder::Base');
+  sub save { 1 }
+  sub set { 1 }
+}
+
 package ZoneMinder::Control {
+  our @ISA = ('ZoneMinder::Object');
   sub new { bless {}, shift }
   sub open { 1 }
   sub get { 1 }
@@ -76,6 +87,9 @@ check("control_method finds reboot", main::control_method($c, 'reboot'), 1);
 check("control_method rejects base class method open", main::control_method($c, 'open'), 0);
 check("control_method rejects base class method get", main::control_method($c, 'get'), 0);
 check("control_method rejects imported function Fatal", main::control_method($c, 'Fatal'), 0);
+check("control_method rejects Object method save", main::control_method($c, 'save'), 0);
+check("control_method rejects Object method set", main::control_method($c, 'set'), 0);
+check("control_method rejects Base method find", main::control_method($c, 'find'), 0);
 check("control_method rejects unknown method nothing", main::control_method($c, 'nothing'), 0);
 
 exit($fail ? 1 : 0);

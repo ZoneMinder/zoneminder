@@ -13,6 +13,7 @@ set_include_path($stub.PATH_SEPARATOR.get_include_path());
 $warnings = array();
 set_error_handler(function($no, $str) use (&$warnings) { $warnings[] = $str; return true; });
 
+function canEdit($r) { return true; }
 $action = 'save';
 $_REQUEST = array();
 $user = new class { function Id() { return 1; } };

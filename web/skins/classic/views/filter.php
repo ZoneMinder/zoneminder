@@ -188,7 +188,7 @@ if (ZM_OPT_USE_AUTH) {
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user->Id(),
-  ['Id'=>'filter[UserId]', 'class'=>'chosen']
+  ['Id'=>'filter[UserId]', 'class'=>'chosen', 'data-on-change-this'=>'updateButtons']
   );
   echo '</p>'.PHP_EOL;
 }

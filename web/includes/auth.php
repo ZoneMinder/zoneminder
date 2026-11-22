@@ -912,10 +912,9 @@ function zm_authenticate_request() {
 
   if (ZM_OPT_USE_AUTH) {
     if (!empty($_REQUEST['token'])) {
-      // we only need to get the username here
-      // don't know the token type. That will
-      // be checked later 
-      $ret = validateToken($_REQUEST['token'], 'any');
+      // Only an access token logs in to the web UI; a refresh token is for
+      // minting access tokens at host/login.
+      $ret = validateToken($_REQUEST['token'], 'access');
       if (!$ret[0]) {
         // validateToken returns array(false, $errorMessage) on failure.
         // Assigning false to $user would leave isset($user) true, bypassing

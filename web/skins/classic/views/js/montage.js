@@ -741,32 +741,7 @@ function initPage() {
     inactivityTime();
   }
 
-  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
-    if (changedMonitors.length > 0) {
-      changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        if (item) {
-          const img = getStream(item);
-          const _imageFeed = document.getElementById('imageFeed'+item);
-          const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
-          if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
-            setRatioForMonitor(img, item);
-            if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
-            changedMonitors.splice(object.length - 1 - index, 1);
-          }
-          monitorsSetScale(item);
-          if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
-            // Experimental setting only if audio visualization is used. Blank spaces will be filled.
-            //objGridStack.column(1, 'compact');
-            //objGridStack.column(layoutColumns, 'compact');
-            objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
-            objGridStack.column(layoutColumns, 'list');
-          }
-        } else {
-          changedMonitors.splice(object.length - 1 - index, 1);
-        }
-      });
-    }
-  }, 200);
+  resizeInterval = setInterval(processChangedMonitors, 200);
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');
@@ -810,6 +785,38 @@ function initPage() {
   controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage
+
+// Updating GridStack resizeToContent, Scale & Ratio
+function processChangedMonitors() {
+  if (changedMonitors.length > 0) {
+    const pending = changedMonitors.length;
+    changedMonitors.slice().reverse().forEach(function(item, index, object) {
+      if (item) {
+        const img = getStream(item);
+        const _imageFeed = document.getElementById('imageFeed'+item);
+        const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
+        if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
+          setRatioForMonitor(img, item);
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+          changedMonitors.splice(object.length - 1 - index, 1);
+        }
+        monitorsSetScale(item);
+        if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+          // Experimental setting only if audio visualization is used. Blank spaces will be filled.
+          //objGridStack.column(1, 'compact');
+          //objGridStack.column(layoutColumns, 'compact');
+          objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
+          objGridStack.column(layoutColumns, 'list');
+        }
+      } else {
+        changedMonitors.splice(object.length - 1 - index, 1);
+      }
+    });
+    // Resized monitors may have moved into or out of the viewport without a scroll,
+    // so start the ones now visible and stop the ones that left.
+    if (changedMonitors.length < pending) setTimeout(on_scroll, 100);
+  }
+}
 
 function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);

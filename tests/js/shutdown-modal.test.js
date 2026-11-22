@@ -6,7 +6,7 @@ const path = require('path');
 const vm = require('vm');
 
 const src = fs.readFileSync(
-    path.join(__dirname, '../../web/skins/classic/js/skin.js'), 'utf8');
+    process.argv[2] || path.join(__dirname, '../../web/skins/classic/js/skin.js'), 'utf8');
 const start = src.indexOf('function manageShutdownBtns');
 const end = src.indexOf('\n}\n', start) + 3;
 
@@ -65,3 +65,11 @@ console.log('  ok refused request is shown as an error');
 els = run('cancel', {result: 'Ok', rc: 0, output: []});
 assert.strictEqual(els['#cancelBtn'].disabled, true, 'Cancel stays enabled after a successful cancel');
 console.log('  ok cancel button disabled after cancelling');
+
+// A failed command returns its output as an array of lines
+els = run('shutdown', {result: 'Ok', rc: 1, output: ['sudo: a password is required', 'try <b>again</b>']});
+const failHtml = els['#respText'].html;
+assert.strictEqual(typeof failHtml, 'string', 'output lines passed to html() as ' + typeof failHtml);
+assert.ok(/required<br\/>try/.test(failHtml), 'output lines not separated: ' + failHtml);
+assert.ok(!/<b>/.test(failHtml), 'command output inserted as raw HTML: ' + failHtml);
+console.log('  ok failed command output is shown as escaped lines');

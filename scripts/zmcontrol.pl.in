@@ -251,7 +251,10 @@ if ($options{command}) {
       $control->keepAlive();
     }
 
-    my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+    # Not the whole $timeout: a command that arrives just before a keepAlive is
+    # due would otherwise push the next one a full interval further out.
+    my $wait = $control->can('keepAlive') ? $control->keepAliveWait($timeout) : $timeout;
+    my $nfound = select(my $rout = $rin, undef, undef, $wait);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);

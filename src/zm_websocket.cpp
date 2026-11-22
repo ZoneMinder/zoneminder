@@ -1113,7 +1113,8 @@ bool MonitorWebSocketServer::handleFrame(Client *client, const websocket::Frame 
     }
 
     if (command == "status") {
-      if (!queueFrame(client, websocket::Opcode::TEXT, monitor->GetWebSocketStatusJson())) {
+      if (!queueFrame(client, websocket::Opcode::TEXT,
+                      websocket::StatusReplyJson(monitor->GetWebSocketStatusJson(), request_id))) {
         return false;
       }
       return true;

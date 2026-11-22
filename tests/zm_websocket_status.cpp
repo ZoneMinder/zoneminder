@@ -131,3 +131,18 @@ TEST_CASE("A short image request does not cut another client's retention deadlin
   REQUIRE(zm::websocket::ExtendDeadline(&wanted_until, 70000) == 65000);
   REQUIRE(wanted_until == 70000);
 }
+
+// A one-shot status request carries a request_id, as image and stream requests
+// do, so a client with a status subscription can tell the reply from a push.
+TEST_CASE("Status reply: the request_id is added to the status JSON") {
+  using zm::websocket::StatusReplyJson;
+  REQUIRE(StatusReplyJson("{\"type\":\"status\",\"monitor_id\":1}", "p1") ==
+          "{\"request_id\":\"p1\",\"type\":\"status\",\"monitor_id\":1}");
+  REQUIRE(StatusReplyJson("{\"type\":\"status\",\"monitor_id\":1}", "") ==
+          "{\"request_id\":\"\",\"type\":\"status\",\"monitor_id\":1}");
+  REQUIRE(StatusReplyJson("{\"type\":\"status\"}", "a\"b") ==
+          "{\"request_id\":\"a\\\"b\",\"type\":\"status\"}");
+  REQUIRE(StatusReplyJson("{}", "p1") == "{\"request_id\":\"p1\"}");
+  // Not an object: nothing to add the field to.
+  REQUIRE(StatusReplyJson("", "p1") == "");
+}

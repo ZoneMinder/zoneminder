@@ -20,6 +20,7 @@
 #define ZM_WEBSOCKET_STATUS_H
 
 #include "zm_time.h"
+#include "zm_utils.h"
 
 #include <atomic>
 #include <cstdint>
@@ -101,6 +102,17 @@ inline int64_t ExtendDeadline(std::atomic<int64_t> *deadline, int64_t until) {
   while (previous < until && !deadline->compare_exchange_weak(previous, until, std::memory_order_relaxed)) {
   }
   return previous;
+}
+
+// The reply to a one-shot status request: the status JSON with the request's
+// request_id, as image and stream metadata carry it, so a client with a status
+// subscription can tell the reply from a push.
+inline std::string StatusReplyJson(const std::string &status_json, const std::string &request_id) {
+  if (status_json.empty() || status_json[0] != '{') return status_json;
+  std::string reply = "{\"request_id\":\"" + escape_json_string(request_id) + "\"";
+  if (status_json.size() > 1 && status_json[1] != '}') reply += ',';
+  reply.append(status_json, 1, std::string::npos);
+  return reply;
 }
 
 }  // namespace websocket

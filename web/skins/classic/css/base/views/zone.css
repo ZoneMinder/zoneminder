@@ -544,6 +544,7 @@ svg circle {
 .zone-type-inactive   { color: #7f8c8d !important; font-weight: bold; }
 .zone-type-privacy    { color: #222222 !important; font-weight: bold; }
 
+#zoneTestBtn {margin-top: 5px;}
 /* Allow text wrapping within the selected Chosen element */
 #zoneTestEvent_chosen .chosen-single {
   height: auto !important;

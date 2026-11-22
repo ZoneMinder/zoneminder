@@ -121,7 +121,8 @@ if ( $action == 'delete' ) {
     }
 
     if (isset($newValue)) $effective[$config['Name']] = $newValue;
-    if (isset($newValue) && ($newValue != $config['Value'])) {
+    # Compare as strings: loosely, "1e3" equals "1000" and "007" equals "7", so such an edit was dropped.
+    if (isset($newValue) && ((string)$newValue !== (string)$config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {
         # Verify that the language file exists in the lang directory.

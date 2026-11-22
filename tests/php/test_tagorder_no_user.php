@@ -28,6 +28,12 @@ check('recordUsage without a user writes nothing', $queries, array());
 check('load without a user returns no tags', \ZM\TagOrder::load(null), array());
 check('load without a user queries nothing', $queries, array());
 
+// With authentication off the user is the built-in default user, Id 0
+$queries = array();
+\ZM\TagOrder::recordUsage(0, 5);
+check('recordUsage for the Id 0 default user writes nothing', $queries, array());
+check('load for the Id 0 default user returns no tags', \ZM\TagOrder::load(0), array());
+
 $queries = array();
 \ZM\TagOrder::recordUsage(3, 5);
 check('recordUsage with a user still writes', count($queries), 2);

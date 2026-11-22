@@ -149,7 +149,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
     } else if ( $search != '' ) {
-      $search = '%' .$search. '%';
+      // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+      $search = '%' .str_replace(',', '_', $search). '%';
       $terms = array();
       foreach ( $columns as $col ) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search, 'tablename'=>'Snapshots');

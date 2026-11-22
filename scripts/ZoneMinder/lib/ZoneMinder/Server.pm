@@ -290,7 +290,7 @@ sub UrlToZMS {
 
 sub Url {
   my $this = shift;
-  my $port = shift if @_;
+  my $port = shift;
 
   if (!$this->Id()) {
     return '';
@@ -303,7 +303,7 @@ sub Url {
   }
   if ( $this->Protocol() eq 'https' and $port == 443 ) {
   } elsif ( $this->Protocol() eq 'http' and $port == 80 ) {
-  } else {
+  } elsif ( $port ) {
     $url .= ':'.$port;
   }
   return $url;

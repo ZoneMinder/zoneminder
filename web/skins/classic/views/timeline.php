@@ -275,10 +275,19 @@ $majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], 
 
 // Adjust the range etc for scale
 // Align on local wall clock boundaries: epoch seconds are only a multiple of a day or an hour in UTC.
-$scaleStep = $majXScale['factor']*$majXScale['align'];
-$minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+if ( $majXScale['name'] == 'month' ) {
+  // Months and years are not a fixed number of seconds, so round to calendar boundaries.
+  $minTimeT = mktime(0, 0, 0, date('n', $minTimeT), 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, date('n', $maxTimeT)+1, 0, date('Y', $maxTimeT));
+} else if ( $majXScale['name'] == 'year' ) {
+  $minTimeT = mktime(0, 0, 0, 1, 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, 12, 31, date('Y', $maxTimeT));
+} else {
+  $scaleStep = $majXScale['factor']*$majXScale['align'];
+  $minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+  $maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
+}
 $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
-$maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
 $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);

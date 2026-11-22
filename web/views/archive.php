@@ -58,7 +58,7 @@ $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
 # Must be a single path component, not a path. Stripping only '/' left '..'
 # intact (GHSA-fvx4-86xp-9v22).
 $filename = isset($_REQUEST['file']) ? safeExportComponent($_REQUEST['file']) : '';
-if ($filename === '') $filename = "zmExport_$connkey.$file_ext";
+if ($filename === '') $filename = exportOwnerPrefix()."zmExport_$connkey.$file_ext";
 
 if (!exportNameBelongsToUser($filename)) {
   ZM\Warning('Refusing an archive that does not belong to the requesting user.');

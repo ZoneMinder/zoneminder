@@ -231,7 +231,7 @@ class UsersController extends AppController {
     $fields = array_intersect_key($in, array('Password'=>'', 'Language'=>'', 'HomeView'=>''));
     if (empty($fields['Password'])) unset($fields['Password']);
     if (!empty($fields['Language']) and
-      (!is_string($fields['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$fields['Language'].'.php'))) {
+      (!is_string($fields['Language']) or !preg_match('/^[\w\-]+$/', $fields['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$fields['Language'].'.php'))) {
       throw new BadRequestException(__('Invalid Language'));
     }
     return array('User' => $fields);

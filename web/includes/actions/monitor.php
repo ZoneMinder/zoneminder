@@ -100,6 +100,14 @@ if ($action == 'save') {
 
   $monitor = new ZM\Monitor($mid);
 
+  # A new monitor may reuse the Id of a deleted one. A live monitor with that Id
+  # would be overwritten by a user who may only create monitors.
+  if (empty($_REQUEST['mid']) and $mid and $monitor->Id() and !$monitor->Deleted()) {
+    $error_message .= 'A monitor with Id '.validInt($mid).' already exists.<br/>';
+    ZM\Warning('Refused to create monitor '.$mid.': a monitor with that Id exists');
+    return;
+  }
+
   // Define a field type for anything that's not simple text equivalent
   $types = monitorFormUncheckedDefaults();
 

@@ -423,7 +423,10 @@ bool zmDbQueue::stop(std::chrono::milliseconds wait) {
 
 bool zmDbQueue::drain(std::chrono::milliseconds wait) {
   std::unique_lock<std::mutex> lock(mMutex);
-  return mIdleCondition.wait_for(lock, wait, [this]{ return mQueue.empty() && !mBusy; });
+  // Only wait for what is queued now: rows pushed while waiting (logs, status,
+  // the next event) don't hold the caller up.
+  const uint64_t target = mPushed;
+  return mIdleCondition.wait_for(lock, wait, [this, target]{ return mFinished >= target; });
 }
 
 void zmDbQueue::process() {
@@ -448,17 +451,13 @@ void zmDbQueue::process() {
         mQueue.pop();
         if (log_row) --mLogRows;
       }
-      mBusy = true;
+      const bool took_row = !sql.empty();
       if (dropped) {
         lock.unlock();
         write_dropped_summary(dropped);
         lock.lock();
       }
-      if (sql.empty()) {
-        mBusy = false;
-        mIdleCondition.notify_all();
-        continue;
-      }
+      if (!took_row) continue;
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
@@ -480,10 +479,9 @@ void zmDbQueue::process() {
         zmDbDo(sql);
       }
       lock.lock();
-      mBusy = false;
+      ++mFinished;
       mIdleCondition.notify_all();
     }
-    mIdleCondition.notify_all();
   }
   mDone = true;
   mDoneCondition.notify_all();
@@ -501,6 +499,7 @@ void zmDbQueue::push(std::string &&sql, bool log_row, bool keep) {
       ++mLogRows;
     }
     mQueue.emplace(std::move(sql), log_row);
+    ++mPushed;
   }
   mCondition.notify_all();
 }

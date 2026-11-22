@@ -60,7 +60,10 @@ class zmDbQueue {
   bool                    mTerminate;
   std::condition_variable mDoneCondition;
   bool                    mDone;
-  bool                    mBusy = false;
+  // Rows queued and rows written (or failed), so drain() can wait for the rows
+  // queued before it was called.
+  uint64_t                mPushed = 0;
+  uint64_t                mFinished = 0;
   std::condition_variable mIdleCondition;
  public:
   // Log rows past this many waiting are dropped; other writes never are.

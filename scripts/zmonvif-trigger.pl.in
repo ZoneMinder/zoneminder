@@ -392,9 +392,9 @@ sub handle_notification {
     Warning("Notification for unknown monitor $id");
     return;
   }
-  if ( lc($state) eq 'true' ) {
+  if ( lc($state) eq 'true' or $state eq '1' ) {
     $zm->eventOn($id, 100, $cause, $time);
-  } elsif ( lc($state) eq 'false' ) {
+  } elsif ( lc($state) eq 'false' or $state eq '0' ) {
     $zm->eventOff($id, 100, $cause, $time);
   }
 }

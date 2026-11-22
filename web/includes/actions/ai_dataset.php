@@ -54,11 +54,14 @@ if ($action == 'save') {
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {
-      dbQuery('DELETE FROM AI_Datasets WHERE Id=?', array($Id));
+      if (!dbQuery('DELETE FROM AI_Datasets WHERE Id=?', array($Id))) {
+        $error_message .= 'Error deleting dataset: '.validHtmlStr(dbLastError()).'<br/>';
+      }
     }
-    $refreshParent = true;
+    if (!$error_message) $refreshParent = true;
   }
-  $redirect = '?view=options&tab=ai_datasets';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_datasets';
 } else {
   ZM\Error("Unknown action $action in saving AI Dataset");
 }

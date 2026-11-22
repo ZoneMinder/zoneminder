@@ -1,11 +1,11 @@
 <?php
-  global $scale;
+  global $scaleSelected;
   global $eid;
   global $fid;
   global $alarmFrame;
 ?>
 
-var scale = '<?php echo validJsStr($scale); ?>';
+var scale = '<?php echo validJsStr($scaleSelected); ?>';
 
 var eid = <?php echo $eid ?>;
 var fid = <?php echo $fid ?>;

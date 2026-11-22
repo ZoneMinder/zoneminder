@@ -44,6 +44,7 @@ switch ( $_REQUEST['action'] ) {
     }
     $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
     if ($tagName === '') ajaxError('createtag requires a tag name');
+    if (mb_strlen($tagName, 'UTF-8') > 64) ajaxError('Tag names are limited to 64 characters');
 
     // Tag names differing only in case would look the same in the tag list, so reuse the existing tag.
     $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE LOWER(Name) = LOWER(?) ORDER BY Name = ? DESC LIMIT 1', NULL, array($tagName, $tagName));

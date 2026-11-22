@@ -2235,6 +2235,7 @@ function createTag(tagName, buttonPressed = null) {
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);
+          alert(data.message);
           return;
         }
         if (data.response.length > 0) {

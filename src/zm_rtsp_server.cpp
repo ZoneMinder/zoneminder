@@ -479,6 +479,16 @@ int main(int argc, char *argv[]) {
       monitors.erase(it->first);
     }
 
+    {
+      // Tell the authenticator which stream name belongs to which monitor
+      std::map<std::string, unsigned int> stream_monitors;
+      for (const auto &entry : monitors) {
+        if (!entry.second->GetRTSPStreamName().empty())
+          stream_monitors[entry.second->GetRTSPStreamName()] = entry.second->Id();
+      }
+      authenticator->SetStreams(stream_monitors);
+    }
+
     for (auto it = monitors.begin(); it != monitors.end(); ++it) {
       auto &monitor = it->second;
 

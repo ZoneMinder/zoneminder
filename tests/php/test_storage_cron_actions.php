@@ -45,7 +45,7 @@ function cronCommandIsValid($c) { return $c !== ''; }
 function commandAllowedByConfig($c) { return true; }
 function commandRefusedMessage() { return 'refused'; }
 function cronRebuild() { return true; }
-function dbQuery($sql, $args = array()) { $GLOBALS['deleted'][] = $args[0]; }
+function dbQuery($sql, $args = array()) { $GLOBALS['deleted'][] = $args[0]; return true; }
 
 // Runs an action file; returns the list of PHP warnings/exceptions it raised.
 function run_action($file, $action, $request) {

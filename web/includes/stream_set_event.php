@@ -50,7 +50,14 @@ function packSetEventMessage($msg_cmd, $command, $prev, $event_id, $source_event
 // truncated: 2.3 - 2 is 0.29999999999999982, which truncated to 299999us and
 // seeked to the frame before the one at 2.3s.
 function packSecondsMessage($msg_cmd, $command, $seconds) {
-  $us = (int)round(floatval($seconds) * 1000000);
-  return pack('lcNN', $msg_cmd, $command, intdiv($us, 1000000), $us % 1000000);
+  // Round only the fraction, so whole seconds past 2147 still fit a 32-bit PHP int.
+  $s = floatval($seconds);
+  $sec = (int)floor($s);
+  $us = (int)round(($s - $sec) * 1000000);
+  if ($us >= 1000000) {
+    $sec += 1;
+    $us = 0;
+  }
+  return pack('lcNN', $msg_cmd, $command, $sec, $us);
 }
 ?>

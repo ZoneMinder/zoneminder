@@ -40,6 +40,9 @@ $cases = array(
   '0' => array(0, 0),
   '5' => array(5, 0),
   '3.35' => array(3, 350000),
+  '2147.5' => array(2147, 500000),
+  '0.9999999' => array(1, 0),
+  '4000.25' => array(4000, 250000),
 );
 foreach ($cases as $seconds => $want) {
   $packed = unpack('lmsg_type/ccommand/Nsec/Nusec', packSecondsMessage(1, 14, $seconds));

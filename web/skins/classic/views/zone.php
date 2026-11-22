@@ -358,7 +358,7 @@ if ( count($other_zones) ) {
               <div>
                 <?php # No name: it sits in the zone form, and a named field is a zone
                 # change to Reset and gets posted on Save. ?>
-                <?php echo htmlSelect('', $test_options, '', array('id'=>'zoneTestEvent',
+                <?php echo htmlSelect('', $test_options, '', array('id'=>'zoneTestEvent', 'class'=>'chosen chosen-auto-width',
                   'aria-label'=>translate('Event')) + ($test_disabled ? array('disabled'=>'disabled') : array())) ?>
                 <input type="number" id="zoneTestEventId" min="1" step="1" placeholder="<?php echo translate('ZoneTestEventId') ?>" title="<?php echo translate('ZoneTestEventIdHelp') ?>"<?php echo $test_disabled ? ' disabled' : '' ?>/>
                 <!-- A disabled button gets no hover, so the reason sits on a wrapper. -->

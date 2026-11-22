@@ -137,6 +137,8 @@ class NotificationsController extends AppController {
     if (!$this->_isAdmin()) {
       unset($data['UserId']);
     }
+    // The row is the one in the URL, whatever Id the body names.
+    $data['Id'] = $id;
     if ($this->Notification->save(array('Notification' => $data))) {
       $notification = $this->Notification->find('first', array(
         'conditions' => array('Notification.Id' => $id),

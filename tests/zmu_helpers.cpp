@@ -32,6 +32,22 @@ static std::vector<std::string> Columns(const std::string &line) {
   return cols;
 }
 
+TEST_CASE("zmu: integer option arguments", "[zmu]") {
+  int v = 99;
+  REQUIRE(zmu_parse_int("50", &v));
+  REQUIRE(v == 50);
+  REQUIRE(zmu_parse_int("-5", &v));
+  REQUIRE(v == -5);
+  v = 99;
+  // atoi() turned these into 0 and 12, which would set brightness 0
+  REQUIRE_FALSE(zmu_parse_int("abc", &v));
+  REQUIRE_FALSE(zmu_parse_int("12x", &v));
+  REQUIRE_FALSE(zmu_parse_int("", &v));
+  REQUIRE_FALSE(zmu_parse_int(nullptr, &v));
+  REQUIRE_FALSE(zmu_parse_int("99999999999", &v));
+  REQUIRE(v == 99);
+}
+
 TEST_CASE("zmu: monitor id argument", "[zmu]") {
   REQUIRE(zmu_parse_monitor_id("3") == 3);
   REQUIRE(zmu_parse_monitor_id("abc") == -1);

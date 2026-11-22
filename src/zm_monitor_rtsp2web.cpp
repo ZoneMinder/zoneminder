@@ -24,9 +24,22 @@
 #include "zm_utils.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <regex>
 
 #if HAVE_LIBCURL
+
+namespace {
+int rtsp2web_reply_status(const std::string &response) {
+  const std::string key = "\"status\":";
+  size_t pos = response.find(key);
+  if (pos == std::string::npos) return -1;
+  pos += key.size();
+  while (pos < response.size() && (response[pos] == ' ' || response[pos] == '\t')) pos++;
+  if (pos >= response.size() || response[pos] < '0' || response[pos] > '9') return -1;
+  return std::atoi(response.substr(pos, 1).c_str());
+}
+}  // namespace
 
 Monitor::RTSP2WebManager::RTSP2WebManager(Monitor *parent_) :
   parent(parent_),
@@ -110,17 +123,19 @@ int Monitor::RTSP2WebManager::check_RTSP2Web() {
 
   response = remove_newlines(response);
   Debug(1, "Queried for stream status: %s", response.c_str());
-  if (response.find("\"status\": 0") != std::string::npos) {
+  int status = rtsp2web_reply_status(response);
+  if (status == 1) return 1;
+  if (status == 0) {
     if (response.find("stream not found") != std::string::npos) {
       Debug(1, "Mountpoint Missing");
-      return 0;
     } else {
       Warning("unknown RTSP2Web error");
-      return 0;
     }
+    return 0;
   }
 
-  return 1;
+  Warning("RTSP2Web: reply to %s has no status: %zu bytes", endpoint.c_str(), response.size());
+  return -1;
 }
 
 int Monitor::RTSP2WebManager::add_to_RTSP2Web() {

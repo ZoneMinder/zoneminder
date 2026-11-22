@@ -131,6 +131,7 @@ set(TEST_SOURCES
   zm_integration_urls.cpp
   zm_janus_ids.cpp
   zm_janus_refresh.cpp
+  zm_rtsp2web_check.cpp
   zm_local_camera.cpp
   zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp

@@ -154,7 +154,11 @@ Supported authentication inputs mirror the existing ZoneMinder streaming paths:
 * ``Authorization: Bearer <jwt>`` in the HTTP upgrade request
 * ``?auth=<hash>&username=<name>`` when auth-hash relay is in use
 * ``?username=<name>&password=<password>`` when direct credentials are allowed
-* ``?username=<name>`` when ``AUTH_RELAY`` is ``none``
+
+Unlike ``zms``, the listener does not accept a bare ``?username=<name>`` when
+``AUTH_RELAY`` is ``none``: it is reached directly rather than through the web
+server, so nothing has authenticated the request before it arrives. Such a
+request is refused with ``401``.
 
 Examples:
 
@@ -256,6 +260,8 @@ Status messages
 
 Status replies are JSON text frames with fields such as:
 
+* ``request_id`` (only in the reply to a one-shot ``status`` command, so it can
+  be told apart from a subscription push)
 * ``monitor_id``
 * ``monitor_name``
 * ``connected``

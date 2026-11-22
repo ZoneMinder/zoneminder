@@ -23,6 +23,7 @@
 #include "zm_monitor.h"
 #include "zm_zone.h"
 
+#include <climits>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -245,4 +246,25 @@ TEST_CASE("MonitorStream starts a new zoom from the whole frame after stored JPE
   CHECK(used.crop().Lo().y_ == fresh.crop().Lo().y_);
   CHECK(used.crop().Hi().x_ == fresh.crop().Hi().x_);
   CHECK(used.crop().Hi().y_ == fresh.crop().Hi().y_);
+}
+
+TEST_CASE("MonitorStreamClampBuffer") {
+  SECTION("a request above the monitor's replay buffer is cut to it") {
+    REQUIRE(MonitorStreamClampBuffer(20000000, 100) == 100);
+    REQUIRE(MonitorStreamClampBuffer(2000000000, 25) == 25);
+  }
+
+  SECTION("a request within the replay buffer is kept") {
+    REQUIRE(MonitorStreamClampBuffer(50, 100) == 50);
+    REQUIRE(MonitorStreamClampBuffer(100, 100) == 100);
+  }
+
+  SECTION("no buffer when either value is not positive") {
+    REQUIRE(MonitorStreamClampBuffer(0, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(-5, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(INT_MIN, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(50, 0) == 0);
+    REQUIRE(MonitorStreamClampBuffer(50, -1) == 0);
+    REQUIRE(MonitorStreamClampBuffer(2000000000, 0) == 0);
+  }
 }

@@ -37,6 +37,15 @@ inline int MonitorStreamBufferLevel(int write_index, int read_index, int buffer_
   return (((write_index - read_index + buffer_count) % buffer_count) * 100) / buffer_count;
 }
 
+// The buffer= value in the zms URL sizes an allocation, so a client may not ask
+// for more than the monitor's own StreamReplayBuffer (a negative request, such
+// as an unsigned value that wrapped, gets none).
+inline int MonitorStreamClampBuffer(int requested, int allowed) {
+  if (requested <= 0 || allowed <= 0)
+    return 0;
+  return requested > allowed ? allowed : requested;
+}
+
 class MonitorStream : public StreamBase {
  protected:
   struct SwapImage {

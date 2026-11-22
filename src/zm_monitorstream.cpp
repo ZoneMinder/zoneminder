@@ -561,6 +561,7 @@ void MonitorStream::runStream() {
   TimePoint last_mem_report = stream_start_time;
   const Seconds mem_report_interval = Seconds(30);
 
+  playback_buffer = MonitorStreamClampBuffer(playback_buffer, monitor->GetStreamReplayBuffer());
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count.load();
   temp_write_index = temp_image_buffer_count.load();

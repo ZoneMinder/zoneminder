@@ -46,6 +46,7 @@ if ($datasets_result) {
                 <th data-sortable="true" class="colClassName"><?php echo translate('Class Name') ?></th>
                 <th data-sortable="true" class="colClassIndex"><?php echo translate('Class Index') ?></th>
                 <th data-sortable="true" class="colDescription"><?php echo translate('Description') ?></th>
+                <th data-sortable="true" class="colAliases"><?php echo translate('Aliases') ?></th>
               </tr>
             </thead>
             <tbody>
@@ -62,6 +63,7 @@ if ($result) {
                 <td class="colClassName"><?php echo makeLink('#', validHtmlStr($row['ClassName']), $canEdit, $class_opt) ?></td>
                 <td class="colClassIndex"><?php echo makeLink('#', validHtmlStr($row['ClassIndex']), $canEdit, $class_opt) ?></td>
                 <td class="colDescription"><?php echo makeLink('#', validHtmlStr($row['Description']), $canEdit, $class_opt) ?></td>
+                <td class="colAliases"><?php echo makeLink('#', validHtmlStr($row['Aliases']), $canEdit, $class_opt) ?></td>
               </tr>
 <?php
   }

@@ -23,3 +23,52 @@ SET @s = (SELECT IF(
 PREPARE stmt FROM @s;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+--
+-- Add Aliases to AI_Object_Classes: what cameras call an object class, so the
+-- ONVIF event tags above use the class names object detection does.
+--
+
+SELECT 'Checking for Aliases in AI_Object_Classes';
+SET @s = (SELECT IF(
+  (SELECT COUNT(*)
+  FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE table_name = 'AI_Object_Classes'
+  AND table_schema = DATABASE()
+  AND column_name = 'Aliases'
+  ) > 0,
+"SELECT 'Column Aliases already exists in AI_Object_Classes'",
+"ALTER TABLE `AI_Object_Classes` ADD COLUMN `Aliases` TEXT AFTER `Description`"
+));
+
+PREPARE stmt FROM @s;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+--
+-- Seed the object classes cameras report themselves (as db/camera_classes.sql).
+--
+
+INSERT IGNORE INTO AI_Datasets (Name, Description, Version, NumClasses) VALUES
+('Camera', 'Objects cameras detect themselves, where COCO has no class for them', '1', 5);
+SET @camera = (SELECT Id FROM AI_Datasets WHERE Name = 'Camera');
+
+INSERT IGNORE INTO AI_Object_Classes (DatasetId, ClassName, ClassIndex, Description) VALUES
+(@camera, 'vehicle', 0, 'Vehicle of any kind'),
+(@camera, 'animal', 1, 'Animal of any kind'),
+(@camera, 'package', 2, 'Package delivered or picked up'),
+(@camera, 'face', 3, 'Face'),
+(@camera, 'doorbell', 4, 'Doorbell pressed');
+
+UPDATE AI_Object_Classes c JOIN AI_Datasets d ON c.DatasetId = d.Id
+SET c.Aliases = CASE c.ClassName
+  WHEN 'person' THEN 'People,PeopleDetect,Human,HumanShapeDetect'
+  WHEN 'vehicle' THEN 'VehicleDetect'
+  WHEN 'animal' THEN 'Pet,DogCat,DogCatDetect'
+  WHEN 'package' THEN 'PackageDeliver,PackagePickup'
+  WHEN 'face' THEN 'FaceDetect'
+  WHEN 'doorbell' THEN 'Visitor'
+END
+WHERE c.Aliases IS NULL
+AND ((d.Name = 'COCO' AND c.ClassName = 'person')
+  OR (d.Name = 'Camera' AND c.ClassName IN ('vehicle', 'animal', 'package', 'face', 'doorbell')));

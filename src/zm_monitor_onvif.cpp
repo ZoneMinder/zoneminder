@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor_onvif.h"
+#include "zm_db.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -175,9 +176,10 @@ static const char* get_local_name(const char* name) {
   return colon ? colon + 1 : name;
 }
 
-// The vocabulary that alarm state, event notes and event tags are decided from,
-// all lower case. A camera with other words is handled by adding them here, not
-// by a per-vendor code path.
+// The vocabulary that alarm state and event notes are decided from, all lower
+// case. A camera with other words is handled by adding them here, not by a
+// per-vendor code path. The object names event tags come from are in the
+// database instead (see ONVIFAddTagNames).
 namespace {
   // Values that say an alarm or item is inactive. "0", "00", ... also do.
   const char *const ONVIF_INACTIVE_VALUES[] = {"false", "inactive", "off", "no", "idle", "normal", "closed"};
@@ -192,19 +194,6 @@ namespace {
   // Topic roots left off the front of the note: the root of every analytics
   // topic, which leaves at least the detector and event names after it.
   const char *const ONVIF_NOTE_DROPPED_ROOTS[] = {"ruleengine"};
-  // What cameras call an object, from the topic (Reolink PeopleDetect), an
-  // active item name without its "Is" (Tapo IsPeople) or a class in an item
-  // value (Ajax ClassTypes="Human Vehicle"), and the tag it becomes, so a tag
-  // means the same thing whichever camera, or zm_detect, set it.
-  const std::pair<const char *, const char *> ONVIF_TAG_NAMES[] = {
-    {"person", "person"}, {"people", "person"}, {"peopledetect", "person"},
-    {"human", "person"}, {"humanshapedetect", "person"},
-    {"vehicle", "vehicle"}, {"vehicledetect", "vehicle"}, {"car", "vehicle"},
-    {"animal", "animal"}, {"pet", "animal"}, {"dogcat", "animal"}, {"dogcatdetect", "animal"},
-    {"package", "package"}, {"packagedeliver", "package"}, {"packagepickup", "package"},
-    {"face", "face"}, {"facedetect", "face"},
-    {"visitor", "doorbell"},
-  };
   const char *const ONVIF_WHITESPACE = " \t\r\n";
 
   template <size_t N>
@@ -239,12 +228,6 @@ namespace {
     return !(list_has(ONVIF_STATE_NAMES, lower_name) && (active || lower_value == "1"));
   }
 
-  const char *tag_for(const std::string &word) {
-    const std::string lower = StringToLower(word);
-    for (const auto &[camera_name, tag] : ONVIF_TAG_NAMES)
-      if (lower == camera_name) return tag;
-    return nullptr;
-  }
 }  // namespace
 
 std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
@@ -269,7 +252,17 @@ std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEven
   return note;
 }
 
-std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items) {
+void ONVIFAddTagNames(ONVIFTagNames &names, const std::string &class_name, const std::string &aliases) {
+  if (class_name.empty()) return;
+  names.emplace(StringToLower(class_name), class_name);
+  for (const std::string &alias : Split(aliases, ',')) {
+    const std::string lower = StringToLower(Trim(alias, ONVIF_WHITESPACE));
+    if (!lower.empty()) names[lower] = class_name;
+  }
+}
+
+std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items,
+                                        const ONVIFTagNames &names) {
   const StringVector segments = topic_segments(topic);
   StringVector words;
   for (const ONVIFEventItem &item : items) {
@@ -287,8 +280,9 @@ std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vec
 
   std::vector<std::string> tags;
   for (const std::string &word : words) {
-    const char *tag = tag_for(word);
-    if (tag && std::find(tags.begin(), tags.end(), tag) == tags.end()) tags.push_back(tag);
+    const auto name = names.find(StringToLower(word));
+    if (name != names.end() && std::find(tags.begin(), tags.end(), name->second) == tags.end())
+      tags.push_back(name->second);
   }
   if (tags.empty() && !segments.empty()) tags.push_back(segments.back());  // no object named
   return tags;
@@ -320,6 +314,7 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,terminate_(false)
 {
   parse_onvif_options();
+  if (parent->onvif_event_tags) load_tag_names();
 
   // Clamp pull_timeout_seconds. It must stay below the renewal advance time (so
   // we renew before the subscription lapses) and below the SOAP socket timeout
@@ -400,6 +395,21 @@ ONVIF::~ONVIF() {
     soap_free(soap);
     soap = nullptr;
   }  // end if soap
+}
+
+// The object class names, and what cameras call them, that ONVIF alarms are
+// tagged with. Without them (a database from before the Aliases column) alarms
+// are tagged with their topic.
+void ONVIF::load_tag_names() {
+  MYSQL_RES *result = zmDbFetch("SELECT `ClassName`, `Aliases` FROM `AI_Object_Classes` ORDER BY `Id`");
+  if (!result) {
+    Error("ONVIF: Unable to load object classes for event tags: %s", mysql_error(&dbconn));
+    return;
+  }
+  while (MYSQL_ROW row = mysql_fetch_row(result))
+    ONVIFAddTagNames(tag_names_, row[0] ? row[0] : "", row[1] ? row[1] : "");
+  mysql_free_result(result);
+  Debug(1, "ONVIF: %zu object names to tag events with", tag_names_.size());
 }
 
 void ONVIF::start() {
@@ -889,7 +899,7 @@ void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesRes
                                          [&](const ONVIFEventItem &item) { return item.value == value; }))
         items.push_back({"", value});
       const std::string note = ONVIFEventNote(topic, items, rule);
-      const std::vector<std::string> tags = ONVIFEventTags(topic, items);
+      const std::vector<std::string> tags = ONVIFEventTags(topic, items, tag_names_);
 
       Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
            msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),

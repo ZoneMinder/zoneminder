@@ -122,12 +122,23 @@ struct ONVIFEventItem {
 std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
                            const std::string &rule);
 
+// What cameras call an object, lower case, to the object class it is:
+// "peopledetect" -> "person".
+using ONVIFTagNames = std::unordered_map<std::string, std::string>;
+
+// Adds an object class (AI_Object_Classes.ClassName) and its comma separated
+// aliases (AI_Object_Classes.Aliases) to names, any case. An alias wins over a
+// class name, so an alias can move a word to another class.
+void ONVIFAddTagNames(ONVIFTagNames &names, const std::string &class_name, const std::string &aliases);
+
 // The event tags for an ONVIF alarm: the objects it names, wherever the camera
-// put them (see ONVIFEventNote), as common names -- PeopleDetect, IsPeople and
-// Human all give "person" -- so they match the tags object detection sets.
-// An alarm that names no known object (motion, tamper, an unknown detector) is
-// tagged with the last topic segment instead. The names are at its definition.
-std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items);
+// put them (the topic as Reolink PeopleDetect, an active item name without its
+// "Is" as Tapo IsPeople, or a class in an item value as Ajax
+// ClassTypes="Human Vehicle"), as the object classes names gives them, so they
+// match the tags object detection sets. An alarm that names no known object
+// (motion, tamper, an unknown detector) is tagged with the last topic segment.
+std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items,
+                                        const ONVIFTagNames &names);
 #endif
 
 // Forward declaration
@@ -247,6 +258,7 @@ class ONVIF {
   // by the time the analysis thread samples it (refs #5301).
   std::string last_alarm_note_;
   std::vector<std::string> last_alarm_tags_;
+  ONVIFTagNames tag_names_;  // set before the polling thread starts, read only after
   bool expire_alarms_enabled;
   int max_alarm_duration_seconds;  // 0 = no limit
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
@@ -273,6 +285,7 @@ class ONVIF {
                                   std::string &operation, std::vector<ONVIFEventItem> &items, std::string &rule);
   static bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
+  void load_tag_names();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);
   void assume_renewal_times(const SystemTimePoint &request_time, const SystemTimePoint &requested_termination);

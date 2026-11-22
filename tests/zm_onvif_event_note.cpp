@@ -102,55 +102,105 @@ TEST_CASE("ONVIFEventNote", "[onvif]") {
   }
 }
 
+namespace {
+// Object classes as the database seeds them (db/camera_classes.sql), plus a
+// COCO class with no aliases.
+ONVIFTagNames SeedTagNames() {
+  ONVIFTagNames names;
+  ONVIFAddTagNames(names, "person", "People,PeopleDetect,Human,HumanShapeDetect");
+  ONVIFAddTagNames(names, "car", "");
+  ONVIFAddTagNames(names, "vehicle", "VehicleDetect");
+  ONVIFAddTagNames(names, "animal", "Pet,DogCat,DogCatDetect");
+  ONVIFAddTagNames(names, "package", "PackageDeliver,PackagePickup");
+  ONVIFAddTagNames(names, "face", "FaceDetect");
+  ONVIFAddTagNames(names, "doorbell", "Visitor");
+  return names;
+}
+}  // namespace
+
+TEST_CASE("ONVIFAddTagNames", "[onvif]") {
+  ONVIFTagNames names;
+
+  SECTION("A class is named by itself and its aliases, in any case") {
+    ONVIFAddTagNames(names, "person", " People ,,PeopleDetect, ");
+    REQUIRE(names == ONVIFTagNames{{"person", "person"}, {"people", "person"}, {"peopledetect", "person"}});
+  }
+
+  SECTION("An alias wins over a class name, whichever comes first") {
+    ONVIFAddTagNames(names, "car", "");
+    ONVIFAddTagNames(names, "vehicle", "Car");
+    ONVIFAddTagNames(names, "truck", "");
+    ONVIFAddTagNames(names, "lorry", "truck");
+    ONVIFAddTagNames(names, "TRUCK", "");
+    REQUIRE(names.at("car") == "vehicle");
+    REQUIRE(names.at("truck") == "lorry");
+  }
+
+  SECTION("A class without a name adds nothing") {
+    ONVIFAddTagNames(names, "", "Human");
+    REQUIRE(names.empty());
+  }
+}
+
 TEST_CASE("ONVIFEventTags", "[onvif]") {
   using Tags = std::vector<std::string>;
+  const ONVIFTagNames names = SeedTagNames();
 
   SECTION("Object in the topic") {
     // Reolink
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"State", "true"}}) == Tags{"person"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/VehicleDetect", {{"State", "true"}}) == Tags{"vehicle"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/DogCatDetect", {{"State", "true"}}) == Tags{"animal"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/FaceDetect", {{"State", "true"}}) == Tags{"face"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Package", {{"State", "true"}}) == Tags{"package"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Visitor", {{"State", "true"}}) == Tags{"doorbell"});
-    REQUIRE(ONVIFEventTags("tns1:UserAlarm/IVA/HumanShapeDetect", {{"State", "true"}}) == Tags{"person"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"State", "true"}}, names) == Tags{"person"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/VehicleDetect", {{"State", "true"}}, names) == Tags{"vehicle"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/DogCatDetect", {{"State", "true"}}, names) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/FaceDetect", {{"State", "true"}}, names) == Tags{"face"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Package", {{"State", "true"}}, names) == Tags{"package"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/Visitor", {{"State", "true"}}, names) == Tags{"doorbell"});
+    REQUIRE(ONVIFEventTags("tns1:UserAlarm/IVA/HumanShapeDetect", {{"State", "true"}}, names) == Tags{"person"});
   }
 
   SECTION("Object in an active item name, without its Is") {
     // Tapo
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPeople", "true"}})
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPeople", "true"}}, names)
             == Tags{"person"});
     REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent",
-                           {{"IsVehicle", "false"}, {"IsPet", "true"}}) == Tags{"animal"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPackageDeliver", "true"}})
+                           {{"IsVehicle", "false"}, {"IsPet", "true"}}, names) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsPackageDeliver", "true"}}, names)
             == Tags{"package"});
   }
 
   SECTION("Objects in an item value, any case") {
     // Ajax / Profile M
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Human Vehicle"}})
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Human Vehicle"}}, names)
             == Tags{"person", "vehicle"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "ANIMAL"}}) == Tags{"animal"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "ANIMAL"}}, names) == Tags{"animal"});
   }
 
   SECTION("Each tag once") {
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"ClassTypes", "Human"}})
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"ClassTypes", "Human"}}, names)
             == Tags{"person"});
   }
 
+  SECTION("A COCO class the camera names itself") {
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/ObjectDetection/Object", {{"ClassTypes", "Car"}}, names) == Tags{"car"});
+  }
+
   SECTION("No object named: the last topic segment") {
-    REQUIRE(ONVIFEventTags("tns1:VideoSource/MotionAlarm", {{"State", "true"}}) == Tags{"MotionAlarm"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/CellMotionDetector/Motion", {{"IsMotion", "true"}}) == Tags{"Motion"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsLineCross", "true"}})
+    REQUIRE(ONVIFEventTags("tns1:VideoSource/MotionAlarm", {{"State", "true"}}, names) == Tags{"MotionAlarm"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/CellMotionDetector/Motion", {{"IsMotion", "true"}}, names) == Tags{"Motion"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent", {{"IsLineCross", "true"}}, names)
             == Tags{"TPSmartEvent"});
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/LineDetector/Crossed", {{"ObjectId", "4"}}) == Tags{"Crossed"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/LineDetector/Crossed", {{"ObjectId", "4"}}, names) == Tags{"Crossed"});
     // "Is" is only a prefix before a capital
-    REQUIRE(ONVIFEventTags("tns1:RuleEngine/Foo/Bar", {{"Island", "true"}}) == Tags{"Bar"});
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/Foo/Bar", {{"Island", "true"}}, names) == Tags{"Bar"});
+  }
+
+  SECTION("No object classes: the last topic segment") {
+    REQUIRE(ONVIFEventTags("tns1:RuleEngine/MyRuleDetector/PeopleDetect", {{"State", "true"}}, {})
+            == Tags{"PeopleDetect"});
   }
 
   SECTION("Nothing to tag") {
-    REQUIRE(ONVIFEventTags("", {}).empty());
-    REQUIRE(ONVIFEventTags("///", {{"State", "true"}}).empty());
+    REQUIRE(ONVIFEventTags("", {}, names).empty());
+    REQUIRE(ONVIFEventTags("///", {{"State", "true"}}, names).empty());
   }
 }
 
@@ -213,7 +263,7 @@ TEST_CASE("ONVIF parse_event_message keeps every Data item and the Rule", "[onvi
     REQUIRE(rule == "MyTPSmartEventDetectorRule");
     REQUIRE(ONVIFEventNote(topic, items, rule)
             == "TPSmartEventDetector/TPSmartEvent IsPeople (MyTPSmartEventDetectorRule)");
-    REQUIRE(ONVIFEventTags(topic, items) == std::vector<std::string>{"person"});
+    REQUIRE(ONVIFEventTags(topic, items, SeedTagNames()) == std::vector<std::string>{"person"});
   }
 
   SECTION("The alarm value is still the first state item, all items reach the note") {

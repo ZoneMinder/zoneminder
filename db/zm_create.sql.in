@@ -1479,9 +1479,11 @@ source @PKGDATADIR@/db/triggers.sql
 source @PKGDATADIR@/db/manufacturers.sql
 source @PKGDATADIR@/db/models.sql
 
--- AI object-detection data model: tables then the COCO 2017 seed.
+-- AI object-detection data model: tables then the COCO 2017 seed, then the
+-- classes cameras report themselves.
 source @PKGDATADIR@/db/AI_Models.sql
 source @PKGDATADIR@/db/coco_dataset.sql
+source @PKGDATADIR@/db/camera_classes.sql
 --
 -- Apply the initial configuration
 --

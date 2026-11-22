@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS `AI_Object_Classes` (
   `ClassName` varchar(64) NOT NULL,
   `ClassIndex` int(10) unsigned NOT NULL,
   `Description` TEXT,
+  `Aliases` TEXT,
   PRIMARY KEY (`Id`),
   KEY `AI_Object_Classes_DatasetId_idx` (`DatasetId`),
   UNIQUE KEY `AI_Object_Classes_Dataset_Class_idx` (`DatasetId`, `ClassName`),

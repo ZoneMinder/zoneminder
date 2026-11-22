@@ -21,7 +21,8 @@ if ( $cid ) {
     'DatasetId' => null,
     'ClassName' => '',
     'ClassIndex' => 0,
-    'Description' => ''
+    'Description' => '',
+    'Aliases' => ''
   );
 }
 
@@ -69,6 +70,10 @@ if ($result) {
               <tr class="Description">
                 <th scope="row"><?php echo translate('Description') ?></th>
                 <td><textarea name="newClass[Description]" rows="3"><?php echo validHtmlStr($class['Description']) ?></textarea></td>
+              </tr>
+              <tr class="Aliases">
+                <th scope="row"><?php echo translate('Aliases') ?></th>
+                <td><input type="text" name="newClass[Aliases]" value="<?php echo validHtmlStr($class['Aliases']) ?>" placeholder="PeopleDetect,Human"/></td>
               </tr>
             </tbody>
           </table>

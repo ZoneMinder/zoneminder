@@ -150,6 +150,10 @@ class Server extends ZM_Object {
       return $this->{'Port'};
     }
 
+    # The request headers and ZM_BASE_URL describe the server handling this
+    # request, not another one in a multi-server setup.
+    if ( $this->Id() and !(defined('ZM_SERVER_ID') and ($this->Id() == ZM_SERVER_ID)) ) return null;
+
     $forwarded_port = self::firstHeaderValue('HTTP_X_FORWARDED_PORT');
     if ( $forwarded_port !== null ) {
       return $forwarded_port;

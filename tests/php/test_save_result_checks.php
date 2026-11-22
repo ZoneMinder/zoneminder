@@ -75,7 +75,7 @@ namespace {
 
   $stubDir = sys_get_temp_dir().'/zm_save_result_stubs_'.getmypid();
   @mkdir($stubDir.'/includes', 0700, true);
-  foreach (array('Snapshot', 'Monitor', 'Zone') as $f) {
+  foreach (array('Snapshot', 'Monitor', 'Zone', 'ZonePreset') as $f) {
     file_put_contents($stubDir."/includes/$f.php", "<?php\n");
   }
   set_include_path($stubDir.PATH_SEPARATOR.get_include_path());
@@ -194,7 +194,7 @@ namespace {
   check('successful query audits', ZM\Rec::$audits, array('save state 0'));
   check('successful query redirects', $redirect, '?view=console');
 
-  foreach (array('Snapshot', 'Monitor', 'Zone') as $f) {
+  foreach (array('Snapshot', 'Monitor', 'Zone', 'ZonePreset') as $f) {
     @unlink($stubDir."/includes/$f.php");
   }
   @rmdir($stubDir.'/includes');

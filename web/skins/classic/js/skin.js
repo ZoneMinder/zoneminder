@@ -2850,6 +2850,7 @@ function handleKeydownGeneral(evt) {
   // Handle Left/Right arrow navigation for visible replay controls in zone view
   if (currentView == 'zone') {
     if (evt.code === "ArrowRight" || evt.code === "ArrowLeft") {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
       const controls = document.getElementById('replayControls');
       if (controls && isElementReallyVisible(controls)) {
         zoneObjectSize_stepReplay(evt.code === "ArrowRight" ? 1 : -1);

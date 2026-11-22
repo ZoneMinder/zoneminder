@@ -16,7 +16,8 @@ if ($raw) {
     WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
   $stats = dbFetchAll($sql, NULL, array($eid, $fid));
   foreach ($stats as $stat) {
-    $stat['ZoneName'] = validHtmlStr($stat['ZoneName']);
+    // A zone deleted since the event has no name, label it by its id instead of leaving a blank cell
+    $stat['ZoneName'] = validHtmlStr(isset($stat['ZoneName']) ? $stat['ZoneName'] : translate('Zone').' '.$stat['ZoneId']);
     $stat['PixelDiff'] = validHtmlStr($stat['PixelDiff']);
     // Zone Area is in the 0-10000 percentage coordinate space, the pixel counts are not.
     $area = floatval($stat['Area']) / 10000.0 * floatval($stat['Width']) * floatval($stat['Height']);

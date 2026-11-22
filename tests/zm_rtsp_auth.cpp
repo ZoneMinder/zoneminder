@@ -156,4 +156,24 @@ TEST_CASE("Authenticator falls back to the first Digest challenge without MD5", 
 
   CHECK(auth.auth_method() == zm::AUTH_DIGEST);
   CHECK(auth.nonce() == "sha");
+TEST_CASE("Authenticator Digest drops qop when a later challenge has none", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.authHandleHeader("Digest realm=\"Cam\", nonce=\"n1\", qop=\"auth\"");
+  CHECK(auth.getAuthHeader("GET", "/x").find("qop=auth") != std::string::npos);
+
+  auth.authHandleHeader("Digest realm=\"Cam\", nonce=\"n2\"");
+  std::string header = auth.getAuthHeader("GET", "/x");
+  CHECK(header.find("nonce=\"n2\"") != std::string::npos);
+  CHECK(header.find("qop=") == std::string::npos);
+  CHECK(header.find("nc=") == std::string::npos);
+  CHECK(header.find("cnonce=") == std::string::npos);
+}
+
+TEST_CASE("Authenticator Digest drops qop when a later challenge offers only auth-int", "[rtsp_auth]") {
+  zm::Authenticator auth("user1", "pass1");
+  auth.authHandleHeader("Digest realm=\"Cam\", nonce=\"n1\", qop=\"auth\"");
+  auth.authHandleHeader("Digest realm=\"Cam\", nonce=\"n2\", qop=\"auth-int\"");
+  std::string header = auth.getAuthHeader("GET", "/x");
+  CHECK(header.find("qop=") == std::string::npos);
+  CHECK(header.find("cnonce=") == std::string::npos);
 }

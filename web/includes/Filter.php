@@ -424,7 +424,7 @@ class Filter extends ZM_Object {
   }
 
   public function control($command, $server_id=null) {
-    $Servers = $server_id ? [Server::find_one(array('Id'=>$server_id))] : Server::find(array('Status'=>'Running'));
+    $Servers = $server_id ? array_filter([Server::find_one(array('Id'=>$server_id))]) : Server::find(array('Status'=>'Running'));
     if ( !count($Servers) ) {
       if ( !$server_id ) {
         # This will be the non-multi-server case
@@ -447,10 +447,10 @@ class Filter extends ZM_Object {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
             $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url .= '&user='.urlencode($_SESSION['username']);
-            $url .= '&pass='.urlencode($_SESSION['password']);
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
+            $url .= '&pass='.urlencode($_SESSION['password'] ?? '');
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url .= '&user='.urlencode($_SESSION['username']);
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
           }
         }
         $data = array();
@@ -1327,7 +1327,7 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          $selected = self::decode_multi($term['val']);
           // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {

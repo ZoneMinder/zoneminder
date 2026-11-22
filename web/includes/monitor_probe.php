@@ -237,9 +237,9 @@ function probeAmcrest($ip, $username='', $password='') {
   if (!$username) $username='admin';
   if (!$password) $password='admin';
   $cameras = [];
-  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
+  $url = 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/snapshot.cgi',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/cgi-bin/snapshot.cgi',
     'ip'      => $ip,
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
@@ -425,7 +425,7 @@ function probeGrandstreamNetworksInc($ip, $username, $password) {
   $url = 'rtsp://'.$ip.':554/0';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/jpg/image.jpg',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/jpg/image.jpg',
     'Manufacturer'  => 'Grandstream',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -508,10 +508,10 @@ function probeUniview($ip, $username, $password) {
   if (!$password) $password = '123456';
   $cameras = [];
   $port_open = port_open($ip, 554);
-  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/media/video1';
+  $url = 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/media/video1';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
     'Manufacturer'  => 'Uniview',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -676,7 +676,7 @@ function probeHanwhaTechwinSecurityVietnam($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Hanwha Camera',
     'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
     'monitor' => array(
       'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
       'Type'     => 'Ffmpeg',
@@ -703,7 +703,7 @@ function probeVivotek($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Vivotek Camera',
     'Manufacturer'  => 'Vivotek',
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
     'monitor' => array(
       'Manufacturer'  => 'Vivotek',
       'Type'     => 'Ffmpeg',

@@ -4088,52 +4088,93 @@ bool Monitor::Decode() {
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";
 
-  std::string text;
-  text.reserve(1024);
+  // Expand our own codes (%N, %Q, %f) before strftime. strftime copies unknown
+  // conversions through on glibc but drops the % on BSD/macOS, so they have to
+  // be gone before it runs. When the code character is %, a literal % in an
+  // inserted value is doubled so strftime prints it as is.
+  const char code_char = config.timestamp_code_char[0];
+  const bool escape = (code_char == '%');
+  auto append_value = [&](std::string &out, const std::string &value) {
+    for (char c : value) {
+      if (escape && c == '%') out.push_back('%');
+      out.push_back(c);
+    }
+  };
 
-  // Expand the strftime macros first
-  char label_time_text[256];
-  tm ts_tm = {};
-  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
-  strftime(label_time_text, sizeof(label_time_text), format.c_str(), localtime_r(&ts_time_t, &ts_tm));
-
-  const char *s_ptr = label_time_text;
-  char *d_ptr = text.data();
-
-  while (*s_ptr && ((unsigned int)(d_ptr - text.data()) < text.capacity())) {
-    if (*s_ptr == config.timestamp_code_char[0]) {
-      const auto max_len = text.capacity() - (d_ptr - text.data());
-      bool found_macro = false;
-      int rc = 0;
-      switch ( *(s_ptr+1) ) {
-      case 'N' :
-        rc = snprintf(d_ptr, max_len, "%s", name.c_str());
-        found_macro = true;
-        break;
-      case 'Q' :
-        rc = snprintf(d_ptr, max_len, "%s", trigger_data->trigger_showtext);
-        found_macro = true;
-        break;
-      case 'f' :
+  std::string pre;
+  pre.reserve(format.size() + 64);
+  for (size_t i = 0; i < format.size(); i++) {
+    if (format[i] == code_char) {
+      if (i + 1 >= format.size()) {
+        // A trailing code character is kept as a literal.
+        pre.push_back(code_char);
+        if (escape) pre.push_back('%');
+        continue;
+      }
+      const char next = format[i+1];
+      if (next == 'N') {
+        append_value(pre, name);
+        i++;
+        continue;
+      } else if (next == 'Q') {
+        if (trigger_data) append_value(pre, trigger_data->trigger_showtext);
+        i++;
+        continue;
+      } else if (next == 'f') {
         typedef std::chrono::duration<int64, std::centi> Centiseconds;
         Centiseconds centi_sec = std::chrono::duration_cast<Centiseconds>(
                                    ts_time.time_since_epoch() - std::chrono::duration_cast<Seconds>(ts_time.time_since_epoch()));
-        rc = snprintf(d_ptr, max_len, "%02lld", static_cast<long long int>(centi_sec.count()));
-        found_macro = true;
-        break;
-      }
-      if (rc < 0 || static_cast<size_t>(rc) > max_len) {
-        break;
-      }
-      d_ptr += rc;
-      if (found_macro) {
-        s_ptr += 2;
+        char centi_buf[16];
+        snprintf(centi_buf, sizeof(centi_buf), "%02lld", static_cast<long long int>(centi_sec.count()));
+        pre.append(centi_buf);
+        i++;
+        continue;
+      } else if (escape && next == '%') {
+        // %% stays %% for strftime, so %%N is a literal %N.
+        pre.append("%%");
+        i++;
         continue;
       }
     }
-    *d_ptr++ = *s_ptr++;
-  } // end while
-  *d_ptr = '\0';
+    pre.push_back(format[i]);
+  }
+
+  // Expand the strftime macros. strftime returns 0 when the result does not
+  // fit, so grow the buffer and retry before giving up.
+  std::vector<char> time_buf(256);
+  tm ts_tm = {};
+  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
+  bool time_expanded = false;
+  while (true) {
+    time_buf[0] = 0;
+    if (strftime(time_buf.data(), time_buf.size(), pre.c_str(), localtime_r(&ts_time_t, &ts_tm))) {
+      time_expanded = true;
+      break;
+    }
+    if (time_buf.size() >= 8192) {
+      break;
+    }
+    time_buf.resize(std::min<size_t>(time_buf.size() * 2, 8192));
+  }
+
+  // If even the largest buffer was too small, fall back to the substituted
+  // format rather than returning an empty label.
+  std::string text = time_expanded ? std::string(time_buf.data()) : pre;
+
+  if (text.size() > 1024) {
+    text.resize(1024);
+    // Don't leave a UTF-8 character cut in half at the end.
+    size_t s = text.size();
+    while (s > 0 && (static_cast<unsigned char>(text[s-1]) & 0xC0) == 0x80) s--;
+    if (s > 0) {
+      const unsigned char lead = static_cast<unsigned char>(text[s-1]);
+      size_t len = 1;
+      if ((lead & 0xE0) == 0xC0) len = 2;
+      else if ((lead & 0xF0) == 0xE0) len = 3;
+      else if ((lead & 0xF8) == 0xF0) len = 4;
+      if (text.size() - (s-1) < len) text.resize(s-1);
+    }
+  }
   return text;
 }
 

@@ -741,9 +741,9 @@ sub systemStatus {
   my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
   my $output = qx($command);
   my $status = $? >> 8;
+  $output = '' if !defined($output);
+  chomp($output);
   if ( $status || logDebugging() ) {
-    $output = '' if !defined($output);
-    chomp($output);
     Debug("Command: $command Output: $output");
   }
   return $output;

@@ -400,7 +400,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
         $terms[count($terms)-1]['cbr'] = 1;
         $search_filter->addTerms($terms);
       } else if ($search != '') {
-        $search = '%' .$search. '%';
+        // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+        $search = '%' .str_replace(',', '_', $search). '%';
         $terms = array();
         // MonitorName is M.Name, which the Monitor column shows.
         foreach (array_merge($columns, array('MonitorName')) as $col) {

@@ -206,6 +206,7 @@ class MonitorsController extends AppController {
       ))['Monitor']);
       if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
         $saved->zmcControl('start');
+        $saved->zmtrackControl('start');
       }
       //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
       $message = 'Saved';
@@ -257,6 +258,11 @@ class MonitorsController extends AppController {
       if ($this->Monitor->save($this->request->data)) {
         $message = 'Saved';
 
+        $savedRow = $this->Monitor->find('first', array(
+          'conditions' => array('Id' => $id)
+        ))['Monitor'];
+        $this->resizeZones($id, $monitor, $savedRow);
+
         // Restart the daemons the way the console's save does
         // (includes/actions/monitor.php): zmc, and the control server of a
         // controllable monitor, which otherwise keeps the ControlAddress,
@@ -269,14 +275,13 @@ class MonitorsController extends AppController {
             $zm_monitor->sendControlCommand('stop');
           }
         }
-        $saved = new ZM\Monitor($this->Monitor->find('first', array(
-          'conditions' => array('Id' => $id)
-        ))['Monitor']);
+        $saved = new ZM\Monitor($savedRow);
         if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
           $saved->zmcControl('start');
           if ($saved->Controllable()) {
             $saved->sendControlCommand('start');
           }
+          $saved->zmtrackControl('start');
         }
       } else {
         $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
@@ -291,6 +296,60 @@ class MonitorsController extends AppController {
     ));
 
   } // end function edit
+
+  // Keep a monitor's zones on the same part of the picture when its Width or Height change,
+  // as the console's save does (includes/actions/monitor.php): swap x and y when the size is
+  // rotated, rescale the pixel thresholds of a zone that is not in percent, and turn a legacy
+  // pixel zone (integer coordinates, which zmc reads as pixels of the old size) into percent.
+  private function resizeZones($id, $old, $new) {
+    $oldW = intval($old['Width']);
+    $oldH = intval($old['Height']);
+    $newW = intval($new['Width']);
+    $newH = intval($new['Height']);
+    if (($oldW == $newW and $oldH == $newH) or $oldW <= 0 or $oldH <= 0 or $newW <= 0 or $newH <= 0) return;
+    require_once __DIR__ .'/../../../includes/functions.php';
+    require_once __DIR__ .'/../../../includes/Zone.php';
+
+    $fields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
+    $rotated = ($newW == $oldH and $newH == $oldW);
+    $oldA = $oldW * $oldH;
+    $newA = $newW * $newH;
+    foreach (ZM\Zone::find(array('MonitorId' => $id)) as $zone) {
+      $row = array('Coords' => $zone->Coords(), 'Units' => $zone->Units());
+      foreach ($fields as $field) $row[$field] = $zone->$field();
+      $current = array_merge($row, array('Area' => $zone->Area()));
+      $points = coordsToPoints($row['Coords']);
+      if (!$points or count($points) < 3) continue;
+
+      $changes = array();
+      $legacyPixels = strpos($row['Coords'], '.') === false;
+      if ($legacyPixels) {
+        convertPixelPointsToPercent($points, $oldW, $oldH, true);
+        convertZoneThresholdsToPercent($row, getPolyArea($points) / 10000.0 * $oldA, true);
+        foreach ($fields as $field) $changes[$field] = $row[$field];
+        $changes['Units'] = 'Percent';
+      } else if (!$rotated and $row['Units'] != 'Percent') {
+        foreach ($fields as $field) {
+          if ($row[$field] === null) continue;
+          $changes[$field] = intval(round(($row[$field]*$newA)/$oldA));
+        }
+      }
+      if ($rotated) {
+        foreach ($points as &$point) {
+          $x = $point['x'];
+          $point['x'] = $point['y'];
+          $point['y'] = $x;
+        }
+        unset($point);
+      }
+      if ($legacyPixels or $rotated) {
+        $changes['Coords'] = pointsToCoords($points);
+        $changes['Area'] = getPolyArea($points);
+      }
+      $changes = array_diff_assoc($changes, $current);
+      if (count($changes)) $zone->save($changes);
+    } # end foreach zone
+  } # end function resizeZones
 
 /**
  * delete method

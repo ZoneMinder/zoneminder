@@ -35,7 +35,7 @@ for ($i = 1; $i <= $monitor['NumPresets']; $i++) {
         </button>
       </div>
       <div class="modal-body">
-        <form name="contentForm" id="ctrlPresetForm" method="post" action="?">
+        <form name="contentForm" id="ctrlPresetForm" method="post" action="?" data-labels="<?php echo validHtmlStr(json_encode($labels)) ?>">
         <?php
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();

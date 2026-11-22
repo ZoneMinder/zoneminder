@@ -41,7 +41,8 @@ if ($filter) {
         $exportFileName .= ' '.$group->Name();
       }
     }
-    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids), 'cnj' => 'and'));
+    # An empty value drops the term, which would export every event. Monitor 0 matches nothing.
+    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => count($monitor_ids) ? implode(',', array_unique($monitor_ids)) : '0', 'cnj' => 'and'));
   }
 }
 $total_size = 0;

@@ -338,19 +338,14 @@ function processRows(rows) {
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = document.forms['monitorFiltersForm'];
-
-  if (selections && selections.length > 0) {
-    form.editBtn.disabled = false;
-    form.deleteBtn.disabled = false;
-    form.selectBtn.disabled = false;
-    form.cloneBtn.disabled = false;
-  } else {
-    form.editBtn.disabled = true;
-    form.deleteBtn.disabled = true;
-    form.selectBtn.disabled = true;
-    form.cloneBtn.disabled = true;
-  }
+  const form = document.forms['monitorForm'];
+  if (!form) return;
+  const any = selections && selections.length > 0;
+  form.editBtn.disabled = !any;
+  form.deleteBtn.disabled = !any;
+  form.selectBtn.disabled = !any;
+  // Clone copies a single monitor, so it needs exactly one selected row.
+  form.cloneBtn.disabled = !(selections && selections.length == 1);
 }
 
 function scanNetwork(element) {
@@ -489,23 +484,7 @@ function initPage() {
   }
 
   // Enable or disable buttons based on current selection and user rights
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
-      function() {
-        const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorForm'];
-        if (selections.length > 0) {
-          form.editBtn.disabled = false;
-          form.deleteBtn.disabled = false;
-          form.selectBtn.disabled = false;
-          form.cloneBtn.disabled = false;
-        } else {
-          form.editBtn.disabled = true;
-          form.deleteBtn.disabled = true;
-          form.selectBtn.disabled = true;
-          form.cloneBtn.disabled = true;
-        }
-      }
-  );
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table check-some.bs.table uncheck-some.bs.table load-success.bs.table', setButtonStates);
 
   // Setup automatic refresh with table refresh instead of page reload
   if (consoleRefreshTimeout > 0) {

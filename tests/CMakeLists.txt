@@ -46,6 +46,7 @@ set(TEST_SOURCES
   zmu_helpers.cpp
   zm_monitor_ondemand.cpp
   zm_monitor_privacy.cpp
+  zm_monitor_substitute.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp
@@ -63,6 +64,7 @@ set(TEST_SOURCES
   zm_onvif_alarm_termination.cpp
   zm_onvif_auth_error.cpp
   zm_onvif_max_alarm.cpp
+  zm_onvif_options.cpp
   zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
   zm_onvif_resubscribe.cpp
@@ -131,6 +133,7 @@ set(TEST_SOURCES
   zm_integration_urls.cpp
   zm_janus_ids.cpp
   zm_janus_refresh.cpp
+  zm_rtsp2web_check.cpp
   zm_local_camera.cpp
   zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp

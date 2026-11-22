@@ -342,21 +342,23 @@ Return a list of all events
   http://server/zm/api/events.json
 
 
-Note that events list can be quite large. Without ``page`` or ``limit`` this API
+Note that the events list can be quite large. Without ``page`` or ``limit`` this API
 returns every matching event in one response. Add ``?limit=N`` and/or ``?page=N`` to
-paginate; each page then returns a specific set of entries, 20 by default.
+paginate; supplying either enables pagination and each page then returns a specific
+set of entries, 20 by default. The WEB_EVENTS_PER_PAGE option only affects the web
+event list, not the API.
 
 So the logic to iterate through all events should be something like this (pseudocode):
 (unfortunately there is no way to get pageCount without getting the first page)
 
 ::
 
-  data = http://server/zm/api/events.json?page=1 # this returns the first page
+  data = http://server/zm/api/events.json?limit=100&page=1 # this returns the first page
   # The json object returned now has a property called data.pagination.pageCount
   count = data.pagination.pageCount;
   for (i=1; i<=count; i++)
   {
-    data = http://server/zm/api/events.json?page=i;
+    data = http://server/zm/api/events.json?limit=100&page=i;
      doStuff(data);
   }
 
@@ -435,7 +437,7 @@ This returns number of events per monitor that were recorded in the last day whe
 
 ::
 
-  curl "http://server/zm/api/events/consoleEvents/1%20day.json/AlarmFrames%20>=:%2010.json"
+  curl "http://server/zm/api/events/consoleEvents/1%20day/AlarmFrames%20>=:%2010.json"
 
 
 

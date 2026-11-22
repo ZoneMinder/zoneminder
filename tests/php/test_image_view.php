@@ -7,6 +7,9 @@
 // Run: php tests/php/test_image_view.php   (from the repo root)
 
 $root = realpath(__DIR__.'/../..');
+// Optional: php test_image_view.php <dir containing web/> to test another tree.
+if (PHP_SAPI !== 'cli-server' && isset($argv[1])) putenv('ZM_TEST_ROOT='.realpath($argv[1]));
+if (getenv('ZM_TEST_ROOT')) $root = getenv('ZM_TEST_ROOT');
 
 if (PHP_SAPI === 'cli-server') {
   // ---- router: run one request against one view ----
@@ -220,6 +223,19 @@ check('cache file name uses whole pixels', count(glob($r['dir'].'/00003-capture-
 echo "image.php with no fid and no Events permission\n";
 $r = run_view('image', array(), array(), array(), array('canView' => array()));
 check('no undefined index warning', $r['errors'] === array(), json_encode($r['errors']));
+
+echo "image.php Cache-Control for snapshot and alarm images\n";
+// snapshot.jpg and alarm.jpg are rewritten while the event is recording.
+foreach (array('snapshot', 'alarm') as $fid) {
+  $r = run_view('image', array('eid' => 5, 'fid' => $fid), array('EndDateTime' => null), array($fid.'.jpg' => true));
+  $cc = (string)header_of($r, 'Cache-Control');
+  check("$fid of an open event is served", $r['status'] === 200, 'status='.$r['status']);
+  check("$fid of an open event is not cached for a day", strpos($cc, 'max-age=86400') === false && $cc !== '', $cc);
+  $r = run_view('image', array('eid' => 5, 'fid' => $fid), array(), array($fid.'.jpg' => true));
+  check("$fid of a finished event keeps the day long max-age", header_of($r, 'Cache-Control') === 'max-age=86400', (string)header_of($r, 'Cache-Control'));
+  $exp = strtotime((string)header_of($r, 'Expires'));
+  check("$fid of a finished event: Expires matches max-age", $exp !== false && abs($exp - (time() + 86400)) < 120, (string)header_of($r, 'Expires'));
+}
 
 echo "\n$passed passed, $failed failed\n";
 proc_terminate($server);

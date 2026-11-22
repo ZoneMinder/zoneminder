@@ -54,11 +54,14 @@ if ($action == 'save') {
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {
-      dbQuery('DELETE FROM AI_Object_Classes WHERE Id=?', array($Id));
+      if (!dbQuery('DELETE FROM AI_Object_Classes WHERE Id=?', array($Id))) {
+        $error_message .= 'Error deleting object class: '.validHtmlStr(dbLastError()).'<br/>';
+      }
     }
-    $refreshParent = true;
+    if (!$error_message) $refreshParent = true;
   }
-  $redirect = '?view=options&tab=ai_classes';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_classes';
 } else {
   ZM\Error("Unknown action $action in saving AI Object Class");
 }

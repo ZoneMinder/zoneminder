@@ -84,31 +84,42 @@ $sortColumn = '';
 $sortOrder = '';
 $limitQuery = '';
 
+$eventsWhere = array();
+$selectionQuery = '';
+$eventsLimit = '';
 if (count($user->unviewableMonitorIds())) {
-  $user_monitor_ids = ' M.Id in ('.implode(',',$user->viewableMonitorIds()).')';
-  $eventsSql .= $user_monitor_ids;
-} else if ( !isset($_REQUEST['filter']) ) {
-  $eventsSql .= ' 1';
+  // IN () is a syntax error, so a user who can view no monitor matches nothing
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  $eventsWhere[] = 'M.Id IN ('.(count($viewableMonitorIds) ? implode(',', $viewableMonitorIds) : '0').')';
 }
 
+parseSort();
 if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
-  $eventsSql .= ' AND E.Id=?';
+  $eventsWhere[] = 'E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
 } else if ( isset($_REQUEST['eids']) and is_array($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  $eventsSql .= ' AND E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
-  $eventsValues += $_REQUEST['eids'];
+  $eventsWhere[] = 'E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
+  $eventsValues = array_merge($eventsValues, array_values($_REQUEST['eids']));
+  // Keep the selection when a column header is clicked
+  $selectionQuery = implode('&amp;', array_map(function($id) {
+    return 'eids%5B%5D='.urlencode($id);
+  }, array_values($_REQUEST['eids'])));
 } else if ( isset($_REQUEST['filter']) ) {
-  parseSort();
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   $filterQuery = $filter->querystring();
+  // The header links carry their own sort, which the filter's sort would override
+  $selectionQuery = preg_replace('/^&amp;|&amp;filter%5BQuery%5D%5Bsort_(?:field|asc)%5D=[^&]*/', '', $filterQuery);
 
   if ( $filter->sql() ) {
-    $eventsSql .= $filter->sql();
+    $eventsWhere[] = '('.$filter->sql().')';
   }
-  $eventsSql .= " ORDER BY $sortColumn $sortOrder";
   if ( isset($_REQUEST['filter']['Query']['limit']) and validInt($_REQUEST['filter']['Query']['limit']))
-    $eventsSql .= ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
+    $eventsLimit = ' LIMIT '.validInt($_REQUEST['filter']['Query']['limit']);
 } # end if filter
+
+$eventsSql .= ' '.(count($eventsWhere) ? implode(' AND ', $eventsWhere) : '1');
+$eventsSql .= " ORDER BY $sortColumn $sortOrder";
+$eventsSql .= $eventsLimit;
 
 $results = dbQuery($eventsSql, $eventsValues);
 if (!$results) {
@@ -123,21 +134,21 @@ $disk_space_total = 0;
         <table id="contentTable" class="major">
           <thead>
             <tr>
-              <th class="colId"><a href="<?php echo sortHeader('Id') ?>"><?php echo translate('Id') ?><?php echo sortTag('Id') ?></a></th>
-              <th class="colName"><a href="<?php echo sortHeader('Name') ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
-              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName') ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
-              <th class="colCause"><a href="<?php echo sortHeader('Cause') ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
-              <th class="colTime"><a href="<?php echo sortHeader('StartTime') ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
-              <th class="colDuration"><a href="<?php echo sortHeader('Length') ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
-              <th class="colFrames"><a href="<?php echo sortHeader('Frames') ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
-              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames') ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
-              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore') ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
-              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore') ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
-              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore') ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
+              <th class="colId"><a href="<?php echo sortHeader('Id', '&amp;', $selectionQuery) ?>"><?php echo translate('Id') ?><?php echo sortTag('Id') ?></a></th>
+              <th class="colName"><a href="<?php echo sortHeader('Name', '&amp;', $selectionQuery) ?>"><?php echo translate('Name') ?><?php echo sortTag('Name') ?></a></th>
+              <th class="colMonitor"><a href="<?php echo sortHeader('MonitorName', '&amp;', $selectionQuery) ?>"><?php echo translate('Monitor') ?><?php echo sortTag('MonitorName') ?></a></th>
+              <th class="colCause"><a href="<?php echo sortHeader('Cause', '&amp;', $selectionQuery) ?>"><?php echo translate('Cause') ?><?php echo sortTag('Cause') ?></a></th>
+              <th class="colTime"><a href="<?php echo sortHeader('StartTime', '&amp;', $selectionQuery) ?>"><?php echo translate('Time') ?><?php echo sortTag('StartTime') ?></a></th>
+              <th class="colDuration"><a href="<?php echo sortHeader('Length', '&amp;', $selectionQuery) ?>"><?php echo translate('Duration') ?><?php echo sortTag('Length') ?></a></th>
+              <th class="colFrames"><a href="<?php echo sortHeader('Frames', '&amp;', $selectionQuery) ?>"><?php echo translate('Frames') ?><?php echo sortTag('Frames') ?></a></th>
+              <th class="colAlarmFrames"><a href="<?php echo sortHeader('AlarmFrames', '&amp;', $selectionQuery) ?>"><?php echo translate('AlarmBrFrames') ?><?php echo sortTag('AlarmFrames') ?></a></th>
+              <th class="colTotScore"><a href="<?php echo sortHeader('TotScore', '&amp;', $selectionQuery) ?>"><?php echo translate('TotalBrScore') ?><?php echo sortTag('TotScore') ?></a></th>
+              <th class="colAvgScore"><a href="<?php echo sortHeader('AvgScore', '&amp;', $selectionQuery) ?>"><?php echo translate('AvgBrScore') ?><?php echo sortTag('AvgScore') ?></a></th>
+              <th class="colMaxScore"><a href="<?php echo sortHeader('MaxScore', '&amp;', $selectionQuery) ?>"><?php echo translate('MaxBrScore') ?><?php echo sortTag('MaxScore') ?></a></th>
 <?php
     if ( ZM_WEB_EVENT_DISK_SPACE ) {
 ?>
-              <th class="colDiskSpace"><a href="<?php echo sortHeader('DiskSpace') ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag('DiskSpace') ?></a></th>
+              <th class="colDiskSpace"><a href="<?php echo sortHeader('DiskSpace', '&amp;', $selectionQuery) ?>"><?php echo translate('DiskSpace') ?><?php echo sortTag('DiskSpace') ?></a></th>
 <?php
     }
 ?>
@@ -148,7 +159,6 @@ $disk_space_total = 0;
 $event_count = 0;
 while ( $event_row = dbFetchNext($results) ) {
   $event = new ZM\Event($event_row);
-  $scale = max(reScale(SCALE_BASE, $event->Monitor()->DefaultScale(), ZM_WEB_DEFAULT_SCALE), SCALE_BASE);
   $event_link = '?view=event&amp;eid='.$event->Id().$filterQuery.$sortQuery.'&amp;page=1';
   global $dateTimeFormatter;
 ?>

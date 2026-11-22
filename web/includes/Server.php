@@ -45,6 +45,17 @@ class Server extends ZM_Object {
     'zmeventnotification'  => 0,
   );
 
+  // Describes what still points at this server ('3 monitors, 1 storage area'), or '' when nothing does.
+  public static function InUseSummary($id) {
+    $row = dbFetchOne('SELECT (SELECT COUNT(*) FROM Monitors WHERE Deleted=0 AND ServerId=?) AS Monitors, (SELECT COUNT(*) FROM Storage WHERE ServerId=?) AS Storage, (SELECT COUNT(*) FROM CronJobs WHERE ServerId=?) AS CronJobs', false, array($id, $id, $id));
+    if (!$row) return '';
+    $parts = array();
+    if ($row['Monitors']) $parts[] = $row['Monitors'].' monitor'.($row['Monitors'] == 1 ? '' : 's');
+    if ($row['Storage']) $parts[] = $row['Storage'].' storage area'.($row['Storage'] == 1 ? '' : 's');
+    if ($row['CronJobs']) $parts[] = $row['CronJobs'].' cron job'.($row['CronJobs'] == 1 ? '' : 's');
+    return implode(', ', $parts);
+  }
+
   public function ReadStats() {
     # Single-server installs store stats under ServerId=0 (zmstats.pl writes
     # ZM_SERVER_ID ? ZM_SERVER_ID : 0), and $this->Id() is empty/undef there.
@@ -149,6 +160,10 @@ class Server extends ZM_Object {
     if ( isset($this->{'Port'}) and $this->{'Port'} ) {
       return $this->{'Port'};
     }
+
+    # The request headers and ZM_BASE_URL describe the server handling this
+    # request, not another one in a multi-server setup.
+    if ( $this->Id() and !(defined('ZM_SERVER_ID') and ($this->Id() == ZM_SERVER_ID)) ) return null;
 
     $forwarded_port = self::firstHeaderValue('HTTP_X_FORWARDED_PORT');
     if ( $forwarded_port !== null ) {

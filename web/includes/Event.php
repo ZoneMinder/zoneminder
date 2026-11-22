@@ -394,10 +394,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 
@@ -518,10 +518,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 
@@ -874,7 +874,7 @@ class Event extends ZM_Object {
     // Where the video and its log are written; the events' own storage unless a directory is given.
     $out_path = $output_dir !== '' ? $output_dir : $event_path;
     // Name is user editable; keep the output file inside the event directory.
-    $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
+    $video_name = preg_replace('/^[-.]/', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
     $file_parts = [$video_name];
     if ( $rate ) {

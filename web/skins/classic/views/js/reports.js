@@ -123,19 +123,22 @@ function deleteReports(ids) {
       });
 }
 
+// Enable or disable buttons based on current selection and user rights
+function updateToolbarButtons() {
+  const selections = table.bootstrapTable('getSelections');
+
+  viewBtn.prop('disabled', !(selections.length && canView.Events));
+  deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+}
+
 function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // enable or disable buttons based on current selection and user rights
+  // The table drops its selection on every reload without any uncheck event, so
+  // the buttons are re-evaluated after each load as well as on selection changes.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    selections = table.bootstrapTable('getSelections');
-
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
-  });
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table', updateToolbarButtons);
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);

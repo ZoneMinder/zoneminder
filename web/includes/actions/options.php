@@ -40,12 +40,25 @@ if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
       if ( !empty($_REQUEST['markIds']) ) {
+        // Monitors, storage areas and cron jobs hold a ServerId with no foreign key: refuse rather than orphan them.
+        foreach ( $_REQUEST['markIds'] as $key => $Id ) {
+          $Id = validCardinal($Id);
+          $_REQUEST['markIds'][$key] = $Id;
+          $summary = ZM\Server::InUseSummary($Id);
+          if ( $summary ) {
+            $error_message .= 'Server '.validHtmlStr($Id).' is still used by '.$summary.' and cannot be deleted.<br/>';
+            unset($_REQUEST['markIds'][$key]);
+          }
+        }
         foreach ( $_REQUEST['markIds'] as $Id ) {
-          dbQuery('DELETE FROM Servers WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM Servers WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting server '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'server', $Id, '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'storage' ) {
       if ( !empty($_REQUEST['markIds']) ) {
         foreach ( $_REQUEST['markIds'] as $Id ) {
@@ -55,33 +68,47 @@ if ( $action == 'delete' ) {
             $error_message .= 'Storage area '.validHtmlStr($Storage->Name()).' is in use by events or monitors and cannot be deleted.<br/>';
             continue;
           }
-          dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id()));
+          if ( dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id())) === null ) {
+            $error_message .= 'Error deleting storage area '.validHtmlStr($Storage->Name()).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'storage', $Storage->Id(), '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'role' ) {
       if ( !empty($_REQUEST['markRids']) ) {
         foreach ( $_REQUEST['markRids'] as $Id ) {
-          dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting role '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'role', $Id, '');
         }
       }
-      $redirect = '?view=options&tab=roles';
+      if ( !$error_message ) $redirect = '?view=options&tab=roles';
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
     foreach ($_REQUEST['markUids'] as $markUid) {
       # User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
-      dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid));
-      dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
+      if (dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
+      if (dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'user', $markUid, '');
     }
-    if (in_array($user->Id(), $_REQUEST['markUids'])) {
-      userLogout();
-      $redirect = '?view=login';
-    } else {
-      $redirect = '?view=options&tab=users';
+    if ($error_message == '') {
+      if (in_array($user->Id(), $_REQUEST['markUids'])) {
+        userLogout();
+        $redirect = '?view=login';
+      } else {
+        $redirect = '?view=options&tab=users';
+      }
     }
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
@@ -121,7 +148,8 @@ if ( $action == 'delete' ) {
     }
 
     if (isset($newValue)) $effective[$config['Name']] = $newValue;
-    if (isset($newValue) && ($newValue != $config['Value'])) {
+    # Compare as strings: loosely, "1e3" equals "1000" and "007" equals "7", so such an edit was dropped.
+    if (isset($newValue) && ((string)$newValue !== (string)$config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {
         # Verify that the language file exists in the lang directory.
@@ -343,8 +371,9 @@ if ( $action == 'delete' ) {
   if (!canEdit('System')) {
     ZM\Warning('Need System permission to reset menu items');
   } else {
-    dbQuery('DELETE FROM Menu_Items');
-    dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+    if ( dbQuery('DELETE FROM Menu_Items') === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    } else if ( dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
       ('Console', 1, 10),
       ('Watch', 1, 15),
       ('Montage', 1, 20),
@@ -359,8 +388,12 @@ if ( $action == 'delete' ) {
       ('Snapshots', 1, 110),
       ('Reports', 1, 120),
       ('ReportEventAudit', 1, 130),
-      ('Map', 1, 140)");
+      ('Map', 1, 140)") === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    }
   }
-  $redirect = '?view=options&tab=menu';
+  if (!$error_message) {
+    $redirect = '?view=options&tab=menu';
+  }
 } // end if object vs action
 ?>

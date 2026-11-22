@@ -85,9 +85,7 @@ test('one shift+wheel zooms once after several enable cycles', () => {
     zm.action('disable', {id: 5});
   }
   zm.action('enable', {obj});
-  zm.shifted = true;
-  zm.alted = false;
-  for (const fn of parent.listeners.wheel) fn({preventDefault() {}});
+  for (const fn of parent.listeners.wheel) fn({shiftKey: true, altKey: false, preventDefault() {}});
   assert.strictEqual(state.wheelZooms, 1);
 });
 

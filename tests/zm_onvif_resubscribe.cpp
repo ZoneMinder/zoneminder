@@ -69,7 +69,7 @@ class FakeCamera {
 
   int port() const { return port_; }
   int count(const std::string &kind) const {
-    return kind == "create" ? creates_ : kind == "pull" ? pulls_ : unsubscribes_;
+    return kind == "create" ? creates_ : kind == "pull" ? pulls_ : kind == "renew" ? renews_ : unsubscribes_;
   }
 
   static std::string envelope(const std::string &body) {
@@ -88,6 +88,7 @@ class FakeCamera {
                           "</tev:SubscriptionReference></tev:CreatePullPointSubscriptionResponse>")};
   }
   static Reply unsubscribe_ok() { return {200, envelope("<wsnt:UnsubscribeResponse/>")}; }
+  static Reply renew_ok() { return {200, envelope("<wsnt:RenewResponse/>")}; }
   static Reply pull_empty() { return {200, envelope("<tev:PullMessagesResponse/>")}; }
   static Reply fault() {
     return {500, envelope("<SOAP-ENV:Fault><SOAP-ENV:Code><SOAP-ENV:Value>SOAP-ENV:Receiver</SOAP-ENV:Value>"
@@ -134,8 +135,10 @@ class FakeCamera {
         if (header_end != std::string::npos && req.size() >= want) break;
       }
       std::string kind = req.find("Unsubscribe") != std::string::npos ? "unsubscribe"
-                       : req.find("PullMessages") != std::string::npos ? "pull" : "create";
-      int n = kind == "create" ? ++creates_ : kind == "pull" ? ++pulls_ : ++unsubscribes_;
+                       : req.find("PullMessages") != std::string::npos ? "pull"
+                       : req.find("Renew") != std::string::npos ? "renew" : "create";
+      int n = kind == "create" ? ++creates_ : kind == "pull" ? ++pulls_
+            : kind == "renew" ? ++renews_ : ++unsubscribes_;
       Reply r = handler_(kind, n);
       std::string out = "HTTP/1.1 " + std::to_string(r.status) + " X\r\n"
                         "Content-Type: application/soap+xml; charset=utf-8\r\n"
@@ -156,7 +159,7 @@ class FakeCamera {
   int port_;
   std::thread thread_;
   std::atomic<bool> stop_{false};
-  std::atomic<int> creates_{0}, pulls_{0}, unsubscribes_{0};
+  std::atomic<int> creates_{0}, pulls_{0}, renews_{0}, unsubscribes_{0};
 };
 
 // Drives the poll thread's steps by hand, against a FakeCamera.
@@ -178,10 +181,12 @@ class TestONVIF : public ONVIF {
 // Answers create/unsubscribe like a healthy camera and leaves pulls to `pull`,
 // which is given the 1-based pull count.
 static FakeCamera::Handler camera_script(FakeCamera **self,
-                                         std::function<FakeCamera::Reply(int)> pull) {
-  return [self, pull](const std::string &kind, int n) -> FakeCamera::Reply {
+                                         std::function<FakeCamera::Reply(int)> pull,
+                                         bool renew_fails = false) {
+  return [self, pull, renew_fails](const std::string &kind, int n) -> FakeCamera::Reply {
     if (kind == "create") return (*self)->create_ok();
     if (kind == "unsubscribe") return FakeCamera::unsubscribe_ok();
+    if (kind == "renew") return renew_fails ? FakeCamera::fault() : FakeCamera::renew_ok();
     return pull(n);
   };
 }
@@ -213,6 +218,28 @@ TEST_CASE("ONVIF does not keep an alarm across a lost subscription", "[onvif]") 
 
   onvif.subscribe();  // the camera is back and is not in alarm
   REQUIRE(onvif.isHealthy());
+  onvif.observeAlarm();
+  REQUIRE_FALSE(onvif.isAlarmed());
+}
+
+TEST_CASE("ONVIF does not keep an alarm when the renewal fails", "[onvif]") {
+  // The camera reports motion and then refuses the Renew that follows the pull,
+  // so the subscription is dropped. Until a new one is created nothing can say
+  // the motion ended, and a camera that stays unreachable left the alarm up.
+  FakeCamera *cp = nullptr;
+  FakeCamera cam(camera_script(&cp, [](int n) -> FakeCamera::Reply {
+    if (n == 2) return FakeCamera::pull_motion("Changed", "true");
+    return FakeCamera::pull_empty();
+  }, true));
+  cp = &cam;
+  Monitor monitor;
+  TestONVIF onvif(&monitor, cam.port());
+
+  onvif.subscribe();
+  REQUIRE(onvif.isHealthy());
+  onvif.wait();  // the motion arrives, then the renewal is refused
+  REQUIRE(cam.count("renew") >= 1);
+  REQUIRE_FALSE(onvif.isHealthy());
   onvif.observeAlarm();
   REQUIRE_FALSE(onvif.isAlarmed());
 }
@@ -269,6 +296,40 @@ TEST_CASE("ONVIF with max_retries 0 still makes the first attempt", "[onvif]") {
   for (int i = 0; i < 30 and cam.count("create") == 0; i++)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   REQUIRE(cam.count("create") >= 1);
+}
+
+namespace {
+
+class OptionsMonitor : public Monitor {
+ public:
+  explicit OptionsMonitor(const std::string &options) { onvif_options = options; }
+};
+
+class OptionsONVIF : public ONVIF {
+ public:
+  explicit OptionsONVIF(Monitor *m) : ONVIF(m) {}
+  int pull_timeout() const { return pull_timeout_seconds; }
+  int subscription_timeout() const { return subscription_timeout_seconds; }
+  int retries() const { return max_retries; }
+};
+
+}  // namespace
+
+TEST_CASE("ONVIF options separated by a comma and a space are all applied", "[onvif]") {
+  OptionsMonitor monitor("pull_timeout=5, subscription_timeout=120, max_retries=5");
+  OptionsONVIF onvif(&monitor);
+
+  REQUIRE(onvif.pull_timeout() == 5);
+  REQUIRE(onvif.subscription_timeout() == 120);
+  REQUIRE(onvif.retries() == 5);
+}
+
+TEST_CASE("ONVIF option names may have spaces around them", "[onvif]") {
+  OptionsMonitor monitor("pull_timeout = 5 ,subscription_timeout =120");
+  OptionsONVIF onvif(&monitor);
+
+  REQUIRE(onvif.pull_timeout() == 5);
+  REQUIRE(onvif.subscription_timeout() == 120);
 }
 
 #endif  // WITH_GSOAP

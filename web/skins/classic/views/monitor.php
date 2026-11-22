@@ -82,6 +82,8 @@ if (isset($_REQUEST['dupId'])) {
     $monitor->Name(mb_substr('Clone of '.$monitor->Name(), 0, 64));
   }
   $monitor->Id($mid);
+  // Like a new monitor, the copy gets its own colour so the two can be told apart in graphs
+  $monitor->WebColour(random_colour());
 }
 
 if (ZM_OPT_X10 && empty($x10Monitor)) {
@@ -119,7 +121,7 @@ if ($monitor->AlarmMaxFPS() == '0.00')
 
 if (!empty($_REQUEST['preset'])) {
   $preset = dbFetchOne('SELECT Type, Device, Channel, Format, Protocol, Method, Host, Port, Path, Width, Height, Palette, MaxFPS, Controllable, ControlId, ControlDevice, ControlAddress, DefaultRate, DefaultScale FROM MonitorPresets WHERE Id = ?', NULL, array($_REQUEST['preset']));
-  foreach ($preset as $name=>$value) {
+  foreach ($preset ?: array() as $name=>$value) {
     # Does isset handle NULL's?  I don't think this code is correct.
     # Icon: It does, but this means we can't set a null value.
     if (isset($value)) {
@@ -194,6 +196,15 @@ if (!ZM_PCRE)
   unset($httpMethods['regexp']);
   // Currently unsupported
 unset($httpMethods['jpegTags']);
+
+// A saved Method that is not offered (jpegTags, regexp without PCRE, an unknown
+// value) would show the first option and be replaced on the next save, so keep
+// it listed and selected.
+function methodsWithSaved($methods, $saved) {
+  if ($saved !== null && $saved !== '' && !isset($methods[$saved]))
+    $methods[$saved] = $saved;
+  return $methods;
+}
 
 if (ZM_HAS_V4L2) {
   $v4l2DeviceFormats = array(
@@ -754,9 +765,7 @@ if (count($localMethods)>1) {
             <input type="radio" name="newMonitor[V4LMultiBuffer]" id="newMonitor[V4LMultiBuffer]" value="" <?php echo ( $monitor->V4LMultiBuffer() == '' ? 'checked="checked"' : '' ) ?>/>
             <label for="newMonitor[V4LMultiBuffer]">Use Config Value
           </li>
-          <li class="V4LCapturesPerFrame"api:
-  origin: "*"
->
+          <li class="V4LCapturesPerFrame">
             <label><?php echo translate('V4LCapturesPerFrame') ?></label>
             <input type="number" name="newMonitor[V4LCapturesPerFrame]" value="<?php echo validHtmlStr($monitor->V4LCapturesPerFrame()); ?>" min="1"/>
           </li>
@@ -807,9 +816,9 @@ if (count($localMethods)>1) {
             <label><?php echo translate('RemoteMethod') ?></label>
 <?php
         if ( !$monitor->Protocol() || $monitor->Protocol() == 'http' ) {
-          echo htmlSelect('newMonitor[Method]', $httpMethods, $monitor->Method());
+          echo htmlSelect('newMonitor[Method]', methodsWithSaved($httpMethods, $monitor->Method()), $monitor->Method());
         } else {
-          echo htmlSelect('newMonitor[Method]', $rtspMethods, $monitor->Method());
+          echo htmlSelect('newMonitor[Method]', methodsWithSaved($rtspMethods, $monitor->Method()), $monitor->Method());
         }
 ?>
           </li>
@@ -866,7 +875,7 @@ if (count($localMethods)>1) {
           </li>
           <li class="Method">
             <label><?php echo translate('RemoteMethod'); echo makeHelpLink('OPTIONS_RTSPTrans') ?></label>
-            <?php echo htmlSelect('newMonitor[Method]', $rtspFFMpegMethods, $monitor->Method()) ?>
+            <?php echo htmlSelect('newMonitor[Method]', methodsWithSaved($rtspFFMpegMethods, $monitor->Method()), $monitor->Method()) ?>
           <li>
           <li class="SourceOptions">
             <label><?php echo translate('Options'); echo makeHelpLink('OPTIONS_'.strtoupper($monitor->Type())) ?></label>

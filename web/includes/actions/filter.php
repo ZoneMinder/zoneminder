@@ -63,10 +63,30 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
       $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
-      $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
-      $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
-      $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;
-      $_REQUEST['filter']['AutoMessage'] = empty($_REQUEST['filter']['AutoMessage']) ? 0 : 1;
+      // The view only renders this checkbox when ZM_OPT_FFMPEG is on, so leave the stored value alone otherwise
+      if (ZM_OPT_FFMPEG) {
+        $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoVideo']);
+      }
+      // The view only renders this checkbox when ZM_OPT_UPLOAD is on, so leave the stored value alone otherwise
+      if (ZM_OPT_UPLOAD) {
+        $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoUpload']);
+      }
+      // The view only renders this checkbox when ZM_OPT_EMAIL is on, so leave the stored value alone otherwise
+      if (ZM_OPT_EMAIL) {
+        $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoEmail']);
+      }
+      // The view only renders this checkbox when ZM_OPT_MESSAGE is on, so leave the stored value alone otherwise
+      if (ZM_OPT_MESSAGE) {
+        $_REQUEST['filter']['AutoMessage'] = empty($_REQUEST['filter']['AutoMessage']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoMessage']);
+      }
       $_REQUEST['filter']['AutoExecute'] = empty($_REQUEST['filter']['AutoExecute']) ? 0 : 1;
       $_REQUEST['filter']['AutoDelete'] = empty($_REQUEST['filter']['AutoDelete']) ? 0 : 1;
       $_REQUEST['filter']['UpdateDiskSpace'] = empty($_REQUEST['filter']['UpdateDiskSpace']) ? 0 : 1;

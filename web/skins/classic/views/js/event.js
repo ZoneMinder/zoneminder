@@ -36,6 +36,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
+var addingTagIds = {}; // tags with an addtag request in flight, so a second Enter or click can't add one twice
 var realEventWidth = 0;
 // The monitor the page's elements (stream, zoom buttons, zones, PanZoom) were
 // built for. On the zms path eventData can move on to another monitor's event
@@ -649,7 +650,7 @@ function streamFastFwd(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
-    if (revSpeed != .5) stopFastRev();
+    if (intervalRewind) stopFastRev();
     const next = stepRate(rates, vid.playbackRate()*100, 1);
     if (next === null) {
       // Already at the fastest rate. streamPlay() re-enables this button
@@ -812,6 +813,15 @@ function streamNext(action) {
     streamPlay();
   }
 } // end function streamNext(action)
+
+// The event is gone: show the next one, or the previous one when it was the last.
+function eventDeleted() {
+  if (nextEventId == 0 && prevEventId != 0) {
+    streamPrev(true);
+    return;
+  }
+  streamNext(true);
+}
 
 function tagAndNext(action) {
   addTag(availableTags[0]);
@@ -1001,7 +1011,6 @@ function getEventResponse(respObj, respText) {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
-    $j('#zoomValue').html('1');
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
@@ -1487,7 +1496,7 @@ function manageDelConfirmModalBtns() {
             if (!vid) restartZmsStream();
             return;
           }
-          streamNext(true);
+          eventDeleted();
         })
         .fail(logAjaxFail);
   });
@@ -1911,7 +1920,7 @@ function initPage() {
     if (window.event.shiftKey) {
       $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
           .done(function(data) {
-            if (deleteAnswered(data)) streamNext(true);
+            if (deleteAnswered(data)) eventDeleted();
           })
           .fail(logAjaxFail);
     } else {
@@ -2175,7 +2184,8 @@ function formatTag(tag) {
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name) && !addingTagIds[tag.Id]) {
+    addingTagIds[tag.Id] = true;
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           if (data.result != 'Ok') {
@@ -2190,7 +2200,10 @@ function addTag(tag, buttonPressed = null) {
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
           if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
-        .fail(logAjaxFail);
+        .fail(logAjaxFail)
+        .always(function() {
+          delete addingTagIds[tag.Id];
+        });
   } else {
     $j('.tag-dropdown-content').hide();
   }
@@ -2222,6 +2235,7 @@ function createTag(tagName, buttonPressed = null) {
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);
+          alert(data.message);
           return;
         }
         if (data.response.length > 0) {
@@ -2305,6 +2319,12 @@ function fullscreenClicked() {
     console.log(content);
     openFullscreen(content);
   }
+}
+
+// Keeps the Zoom readout on the PanZoom scale, including for video.js events
+// where no zms status arrives to refresh it.
+function panZoomEventPanzoomchange(event) {
+  $j('#zoomValue').html(event.detail.scale.toFixed(1));
 }
 
 function panZoomIn(el) {

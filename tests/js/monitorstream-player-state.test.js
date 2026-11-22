@@ -82,6 +82,7 @@ function load() {
     generateUUID: () => 'uuid',
     ZM_GO2RTC_PATH: '',
     Object, Array, JSON, Math, parseInt, Number,
+    setTimeout, clearTimeout, setInterval, clearInterval,
   };
   const sandbox = new Proxy(globals, {
     has: () => true,
@@ -114,11 +115,11 @@ test('volumechange is registered again when play follows pause', () => {
   monitor.getElement = () => video;
   monitor.handlerEventListenerStream(video);
 
-  globals.manageEventListener.fire('play');
+  globals.manageEventListener.fire('playing');
   assert.strictEqual(globals.manageEventListener.count('volumechange'), 1);
   globals.manageEventListener.fire('pause');
   assert.strictEqual(globals.manageEventListener.count('volumechange'), 0);
-  globals.manageEventListener.fire('play');
+  globals.manageEventListener.fire('playing');
   assert.strictEqual(globals.manageEventListener.count('volumechange'), 1,
       'volume and mute changes are no longer followed after pause/play');
 });

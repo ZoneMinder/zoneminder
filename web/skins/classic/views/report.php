@@ -127,7 +127,8 @@ for (event_index=0; event_index < events.length; event_index++) {
   // with a T it is ISO 8601 local time everywhere.
   const event_start = new Date(String(event.StartDateTime).replace(' ', 'T'));
   const day = event_start.getDate();
-  const date_key = months[event_start.getMonth()] + ' ' + day;
+  // The year is part of the key: with no date term in the filter, Nov 21 of two years is two lines.
+  const date_key = months[event_start.getMonth()] + ' ' + day + ' ' + event_start.getFullYear();
   if (! (date_key in dataset_indexes)) {
     dataset_indexes[date_key] = datasets.length;
   }

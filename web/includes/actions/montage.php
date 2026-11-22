@@ -47,6 +47,11 @@ if ( isset($_REQUEST['object']) ) {
         }
       } else {
         $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
+        # The selected layout is gone (deleted from another tab); don't create an unnamed one
+        if ( !$Layout->Id() ) {
+          ZM\Warning('Layout Id=' . validCardinal($_REQUEST['zmMontageLayout']) . ' not found for save');
+          return;
+        }
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
         $Layout->UserId($user->Id());

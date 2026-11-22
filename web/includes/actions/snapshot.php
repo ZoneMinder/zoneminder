@@ -99,6 +99,9 @@ if ( isset($_REQUEST['id']) ) {
         ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';
+    } else {
+      global $error_message;
+      $error_message .= 'You do not have permission to edit this snapshot.<br/>';
     }
   } else if ( $action == 'delete' ) {
     if ( canEdit('Events') ) {

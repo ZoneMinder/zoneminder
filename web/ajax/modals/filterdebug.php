@@ -52,7 +52,7 @@
   $explain_sql = $sql;
 
 
-  echo preg_replace('/\n/', '<br/>', $sql);
+  echo preg_replace('/\n/', '<br/>', validHtmlStr($sql));
 ?></p>
 <p><label>MySQL Explanation</label>
 <?php

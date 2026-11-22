@@ -78,8 +78,10 @@ Event_Tag::Event_Tag(uint64_t p_tag_id, uint64_t p_event_id, SystemTimePoint p_a
 Event_Tag::~Event_Tag() {
 }
 
+// Linking a tag the event already has (object detection may have linked it
+// first) is not an error, so the row is left as it is.
 uint64_t Event_Tag::save() {
-  std::string sql = stringtf("INSERT INTO `Events_Tags` (`TagId`, `EventId`, `AssignedDate`, `AssignedBy`)"
+  std::string sql = stringtf("INSERT IGNORE INTO `Events_Tags` (`TagId`, `EventId`, `AssignedDate`, `AssignedBy`)"
       " VALUES (%" PRIu64 ", %" PRIu64 ", from_unixtime(%" PRId64 "), %d)",
       tag_id,
       event_id,

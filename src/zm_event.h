@@ -180,7 +180,10 @@ class Event {
   std::atomic<SystemTimePoint> drain_until{};
   std::thread thread_;
 
+  // Tags linked to this event, by name. AddTag is called from the event thread
+  // (object detections) and the analysis thread (ONVIF), so tags_mutex_ guards it.
   std::map<const std::string,Tag> tags;
+  std::mutex tags_mutex_;
  public:
   static std::string BuildNotes(const StringSetMap &note_set_map);
   static bool OpenFrameSocket(int);
@@ -210,6 +213,7 @@ class Event {
   bool WriteFrameImage(Image *image, SystemTimePoint timestamp, const char *event_file, bool alarm_frame = false) const;
 
   void updateNotes(const StringSetMap &stringSetMap);
+  void AddTag(const std::string &name, SystemTimePoint assigned_on);
 
   void AddFrame(const std::shared_ptr<ZMPacket>&packet);
 

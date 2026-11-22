@@ -473,6 +473,29 @@ void Event::updateNotes(const StringSetMap &newNoteSetMap) {
   }  // end if update
 }  // void Event::updateNotes(const StringSetMap &newNoteSetMap)
 
+// Link the tag called name to this event, creating the tag when it is new. Each
+// name is linked once per event.
+void Event::AddTag(const std::string &name, SystemTimePoint assigned_on) {
+  if (name.empty()) return;
+  std::lock_guard<std::mutex> lck(tags_mutex_);
+  if (tags.count(name)) return;
+
+  std::unique_ptr<Tag> tag(Tag::find(name));
+  if (!tag) {
+    tag = std::make_unique<Tag>();
+    tag->Name(name);
+    if (!tag->save()) {
+      Error("Unable to create tag %s for event %" PRIu64, name.c_str(), id);
+      return;
+    }
+    Debug(1, "Created new Tag %s", name.c_str());
+  }
+  Event_Tag event_tag(tag->Id(), id, assigned_on);
+  event_tag.save();
+  Debug(1, "Tagged event %" PRIu64 " with %s", id, name.c_str());
+  tags.emplace(name, *tag);
+}
+
 void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   // Ask the videostore rather than the monitor: when the monitor wanted ENCODE
   // but no encoder would open, it has fallen back to copying packets, and those
@@ -514,35 +537,7 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
     for (auto it = packet->detections.begin(); it != packet->detections.end(); ++it) {
       auto detection = *it;
       Debug(1, "detection %s", detection.dump().c_str());
-      std::string cls = detection["class"];
-      Tag *tag = nullptr;
-      auto tag_it = tags.find(cls);
-      if (tag_it == tags.end()) {
-        Debug(1, "Tag not found %s", cls.c_str());
-        tag = Tag::find(cls);
-        if (!tag) {
-          tag = new Tag();
-          tag->Name(cls);
-          tag->save();
-          Debug(1, "Created new Tag %s", cls.c_str());
-          tags.emplace(std::make_pair(cls, *tag));
-          uint64_t tag_id = tag->Id();
-          delete tag;  // Delete after copying into map
-          tag = nullptr;
-
-          if (tag_id) {
-            // Store
-            Event_Tag event_tag(tag_id, id, packet->timestamp);
-            event_tag.save();
-          }
-        } else {
-          Debug(1, "Found tag for %s", cls.c_str());
-        }
-
-      } else {
-        Debug(1, "Already have tag %s", cls.c_str());
-        tag = &(tag_it->second);
-      }
+      AddTag(detection["class"].get<std::string>(), packet->timestamp);
     }  // end foreach detection
   } else {
     Debug(3, "Detections is empty.");

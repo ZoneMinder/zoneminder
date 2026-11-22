@@ -34,7 +34,12 @@ namespace {
   class Stop extends Exception {}
   $GLOBALS['system'] = false;
   function canView($r) { return $r == 'System' ? $GLOBALS['system'] : true; }
-  function detaintPathAllowAbsolute($p) { return $p; }
+  function detaintPathAllowAbsolute($path) {
+    if (!is_scalar($path)) return '';
+    do { $path = str_replace('://', '', $path, $count); } while($count);
+    do { $path = str_replace('../', '', $path, $count); } while($count);
+    return $path;
+  }
   function array_to_hash_by_key($k, $a) { return array(); }
   function output_file($p) { $GLOBALS['served'][] = $p; return true; }
   function translate($s) { return $s; }
@@ -71,6 +76,11 @@ namespace {
   check('Storage root listing is refused', run($root, $store), 'denied');
   check('a denied monitor folder listing is refused', run($root, "$store/2/e"), 'denied');
   check('folder of a viewable monitor lists', run($root, "$store/1/e"), 'page');
+  check('a final dot segment inside a viewable monitor folder lists', run($root, "$store/1/."), 'page');
+  check('a final dot dot after a viewable monitor folder (the Storage root) is refused', run($root, "$store/1/.."), 'denied');
+  check('dot then dot dot after a viewable monitor folder is refused', run($root, "$store/1/./.."), 'denied');
+  check('a dot segment before a denied monitor folder is refused', run($root, "$store/./2/e/b.jpg"), 'denied');
+  check('a trailing slash and dot on the Storage root is refused', run($root, "$store/."), 'denied');
   check('System view may read other monitors', run($root, "$store/2/e/b.jpg", true), 'served');
 
   shell_exec('rm -rf '.escapeshellarg($store));

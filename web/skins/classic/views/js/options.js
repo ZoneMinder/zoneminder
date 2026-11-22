@@ -273,7 +273,8 @@ function initPage() {
         if (type === 'image') {
           nameInput.attr('placeholder', 'graphics/menu/icon.png').css('width', '200px');
         } else {
-          nameInput.attr('placeholder', '').css('width', '140px');
+          // An empty material icon saves as the entry's default, so hint and preview that
+          nameInput.attr('placeholder', type === 'material' ? (nameInput.data('default-icon') || '') : '').css('width', '140px');
         }
       }
       updateMenuIconPreview($j(this).closest('tr'));

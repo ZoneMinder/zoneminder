@@ -281,6 +281,25 @@ TEST_CASE("ONVIF backs off when the first pull of a subscription fails", "[onvif
   REQUIRE(onvif.retry_delay() == 4);
 }
 
+TEST_CASE("ONVIF backs off when the subscription response has no address", "[onvif]") {
+  // A CreatePullPointSubscription answer with an empty SubscriptionReference
+  // left the address null, and copying it into a std::string crashed zmc.
+  FakeCamera cam([](const std::string &kind, int) -> FakeCamera::Reply {
+    if (kind == "create") {
+      return {200, FakeCamera::envelope("<tev:CreatePullPointSubscriptionResponse>"
+                                        "<tev:SubscriptionReference/>"
+                                        "</tev:CreatePullPointSubscriptionResponse>")};
+    }
+    return FakeCamera::pull_empty();
+  });
+  Monitor monitor;
+  TestONVIF onvif(&monitor, cam.port());
+
+  onvif.subscribe();
+  REQUIRE_FALSE(onvif.isHealthy());
+  REQUIRE(onvif.retries() == 1);
+}
+
 TEST_CASE("ONVIF with max_retries 0 still makes the first attempt", "[onvif]") {
   // max_retries=0 means no retries. The poll thread compared the retry count to
   // it before the first attempt, so it sat out the 5 minute cool-down first and

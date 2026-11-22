@@ -102,6 +102,28 @@ static bool InterruptibleSleep(std::chrono::milliseconds total, const std::funct
   return false;
 }
 
+// Per-monitor capture pacing. The sleep carried from the previous frame has to
+// belong to the same monitor, or one monitor's sleep skews another's delay.
+struct CapturePacer {
+  SystemTimePoint last_capture;
+  Microseconds sleep_time = Microseconds(0);
+
+  // Returns how long to sleep after a frame captured at now; negative or zero means don't.
+  Microseconds Next(SystemTimePoint now, Microseconds delay) {
+    if (delay == Microseconds(0)) return Microseconds(0);
+    if (last_capture.time_since_epoch() != Seconds(0)) {
+      Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture);
+      // You have to add back in the previous sleep time
+      sleep_time = delay - (delta_time - sleep_time);
+      // Limit negative since feedback - if an error occurred can loose seconds and then run too fast for a while so rather accept the frame loss
+      // Or if the camera exposure is longer than intended FPS (eg at night) don't build up a huge negative that will disable the FPS limit later and OOM (eg at dawn)
+      if (sleep_time < (delay * -1)) sleep_time = delay * -1;
+    }
+    last_capture = now;
+    return sleep_time;
+  }
+};
+
 int main(int argc, char *argv[]) {
   self = argv[0];
 
@@ -361,8 +383,7 @@ int main(int argc, char *argv[]) {
 
     TimePoint connect_time = std::chrono::steady_clock::now();
     int failed_monitor_id = monitors[0]->Id();
-    std::vector<SystemTimePoint> last_capture_times = std::vector<SystemTimePoint>(monitors.size());
-    Microseconds sleep_time = Microseconds(0);
+    std::vector<CapturePacer> pacers(monitors.size());
 
     while (!zm_terminate) {
       for (size_t i = 0; i < monitors.size(); i++) {
@@ -438,35 +459,8 @@ int main(int argc, char *argv[]) {
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
                              : monitors[i]->GetCaptureDelay();
-        if (delay != Microseconds(0)) {
-          if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
-            Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
-
-            // You have to add back in the previous sleep time
-            sleep_time = delay - (delta_time - sleep_time);
-
-            // Limit negative since feedback - if an error occurred can loose seconds and then run too fast for a while so rather accept the frame loss
-            // Or if the camera exposure is longer than intended FPS (eg at night) don't build up a huge negative that will disable the FPS limit later and OOM (eg at dawn)
-            if (sleep_time < (delay * -1)) {
-              sleep_time = delay * -1;
-            }
-
-            Debug(4,
-                  "Sleep time is %" PRIi64 " us from now: %.3f s last: %.3f s delta % " PRIi64 " us delay: %" PRIi64 " us",
-                  static_cast<int64>(Microseconds(sleep_time).count()),
-                  FPSeconds(now.time_since_epoch()).count(),
-                  FPSeconds(last_capture_times[i].time_since_epoch()).count(),
-                  static_cast<int64>(delta_time.count()),
-                  static_cast<int64>(Microseconds(delay).count()));
-
-            // When negative the capture took more than the configured FPS time and no need to sleep
-            if (sleep_time > Microseconds(0)) {
-              std::this_thread::sleep_for(sleep_time);
-            }
-          }  // end if has a last_capture time
-
-          last_capture_times[i] = now;
-        }  // end if delay
+        const Microseconds pace_sleep = pacers[i].Next(now, delay);
+        if (pace_sleep > Microseconds(0)) std::this_thread::sleep_for(pace_sleep);
       }  // end foreach n_monitors
 
       if ((result < 0) or zm_reload) {

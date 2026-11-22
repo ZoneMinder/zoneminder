@@ -117,3 +117,18 @@ TEST_CASE("zmc keeps the -r/--protocol value for the remote monitor filter", "[z
   const std::string src = ReadZmcSource();
   REQUIRE(src.find("case 'r':\n      protocol = optarg;") != std::string::npos);
 }
+
+// With several monitors in one zmc the sleep carried over must be the monitor's own.
+TEST_CASE("zmc capture pacing keeps the previous sleep per monitor", "[zmcmain]") {
+  const Microseconds delay = Milliseconds(100);
+  const SystemTimePoint t0 = SystemTimePoint(Seconds(1000));
+  CapturePacer a;
+  CapturePacer b;
+  // First frames only record the time.
+  REQUIRE(a.Next(t0, delay) == Microseconds(0));
+  REQUIRE(b.Next(t0, delay) == Microseconds(0));
+  // Both second frames come 10ms after the first, so each sleeps 90ms. A shared
+  // sleep value would make B sleep 180ms after A's 90ms.
+  REQUIRE(a.Next(t0 + Milliseconds(10), delay) == Milliseconds(90));
+  REQUIRE(b.Next(t0 + Milliseconds(10), delay) == Milliseconds(90));
+}

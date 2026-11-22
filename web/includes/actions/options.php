@@ -92,15 +92,23 @@ if ( $action == 'delete' ) {
     // deletes users
     foreach ($_REQUEST['markUids'] as $markUid) {
       # User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
-      dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid));
-      dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
+      if (dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
+      if (dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'user', $markUid, '');
     }
-    if (in_array($user->Id(), $_REQUEST['markUids'])) {
-      userLogout();
-      $redirect = '?view=login';
-    } else {
-      $redirect = '?view=options&tab=users';
+    if ($error_message == '') {
+      if (in_array($user->Id(), $_REQUEST['markUids'])) {
+        userLogout();
+        $redirect = '?view=login';
+      } else {
+        $redirect = '?view=options&tab=users';
+      }
     }
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {

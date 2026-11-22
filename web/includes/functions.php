@@ -2404,10 +2404,17 @@ function zm_random_bytes($length = 32) {
 }
 
 function i18n() {
-  $string = explode('_', ZM_LANG_DEFAULT, 2);
-  $string[1] = strtoupper($string[1]);
+  global $user;
+  $lang = ZM_LANG_DEFAULT;
+  # Follow the language the page was translated into, see loadLanguage()
+  if ($user and $user->Language()) {
+    $userLang = preg_replace('/[^[:alnum:]_]+/', '', $user->Language());
+    if (file_exists('lang/'.$userLang.'.php')) $lang = $userLang;
+  }
+  $string = explode('_', $lang, 2);
+  $string[1] = isset($string[1]) ? strtoupper($string[1]) : '';
 
-  return implode('-', $string);
+  return implode('-', array_filter($string));
 }
 
 function get_networks() {

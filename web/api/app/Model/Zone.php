@@ -94,7 +94,7 @@ class Zone extends AppModel {
   // Units says, so percentages are written with decimals.
   public function beforeSave($options = array()) {
     $data =& $this->data[$this->alias];
-    $units = isset($data['Units']) ? $data['Units'] : ($this->id ? null : 'Percent');
+    $units = isset($data['Units']) ? $data['Units'] : ($this->id ? $this->field('Units') : 'Percent');
     if (isset($data['Coords']) and $units == 'Percent'
         and is_string($data['Coords']) and strpos($data['Coords'], '.') === false and $this->validCoords(array($data['Coords']))) {
       $data['Coords'] = preg_replace_callback('/-?\d+/', function($m) { return $m[0].'.00'; }, $data['Coords']);

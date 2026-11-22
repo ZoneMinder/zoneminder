@@ -1788,7 +1788,7 @@ function getStatsTableHTML($eid, $fid, $row='') {
         };
 
         $result .= '<tr>'.PHP_EOL;
-          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr(isset($stat['ZoneName']) ? $stat['ZoneName'] : translate('Zone').' '.$stat['ZoneId']). '</td>'.PHP_EOL;
           $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
           $result .= '<td class="colAlarmPx">' .$pct($stat['AlarmPixels']). '</td>'.PHP_EOL;
           $result .= '<td class="colFilterPx">' .$pct($stat['FilterPixels']).'</td>'.PHP_EOL;

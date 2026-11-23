@@ -61,7 +61,10 @@ if ($action == 'delete') {
   foreach ($_REQUEST['files'] as $file) {
     $full_path = $path.'/'.detaintPath($file);
     if (is_file($full_path)) {
-      unlink($full_path);
+      if (!@unlink($full_path)) {
+        ZM\Warning("Unable to delete $full_path");
+        $error_message .= 'Unable to delete '.htmlspecialchars($file).'<br/>';
+      }
     } else {
       ZM\Debug("$full_path is not a file");
       $error_message .= 'We do not support deleting directories at this time.<br/>';

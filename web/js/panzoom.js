@@ -104,6 +104,8 @@ var zmPanZoom = {
           _this.panZoom[objPanZoom].zoomToPoint(scale, {clientX: x, clientY: y});
         } else if (event.shiftKey && !event.altKey) {
           if (!_this.panZoom[id]) return;
+          // Watch also listens on the .imageFeed parent; zoomWithWheel() below already ran for this event
+          if (event.defaultPrevented) return;
           _this.panZoom[id].zoomWithWheel(event);
         } else {
           return;

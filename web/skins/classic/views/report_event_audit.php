@@ -47,8 +47,9 @@ if ( isset($_REQUEST['maxTime']) ) {
 $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
 
 $filter = new ZM\Filter();
-$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'));
-$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'));
+$filter->addTerm(array('attr'=>'EndDateTime', 'op'=>'IS', 'val'=>'NULL', 'obr'=>'1'));
+$filter->addTerm(array('attr'=>'EndDateTime', 'op'=>'>', 'val'=>$minTime, 'cnj'=>'or', 'cbr'=>'1'));
+$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<', 'val'=>$maxTime, 'cnj'=>'and'));
 if ( count($selected_monitor_ids) ) {
   $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=[]', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
 } else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {

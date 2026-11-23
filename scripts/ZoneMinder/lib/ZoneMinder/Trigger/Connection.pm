@@ -45,6 +45,9 @@ use Time::HiRes;
 
 our $AUTOLOAD;
 
+# Longest unfinished message kept while waiting for its newline
+use constant MAX_PARTIAL => 4096;
+
 sub new
 {
     my $class = shift;
@@ -152,6 +155,11 @@ sub getMessages
         # Message not finished yet, keep it for the next read
         $self->{partial} = pop( @messages );
         $self->{partial_time} = Time::HiRes::time();
+        if ( length($self->{partial}) > MAX_PARTIAL )
+        {
+            Warning( "Dropping ".length($self->{partial})." bytes without a newline from connection ".$self->{name} );
+            delete( $self->{partial} );
+        }
     }
     return( \@messages );
 }

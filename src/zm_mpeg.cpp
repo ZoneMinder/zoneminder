@@ -503,7 +503,13 @@ bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int
           fit_width, fit_height, av_get_pix_fmt_name(pf));
     return false;
   }
-  sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data, dst_linesize);
+  if (sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data,
+                dst_linesize) < 0) {
+    Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
+          fit_width, fit_height, av_get_pix_fmt_name(pf));
+    return false;
+  }
   return true;
 }
 
@@ -545,7 +551,10 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       if ( !img_convert_ctx )
         Panic( "Unable to initialise image scaling context" );
     }
-    sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize );
+    if ( sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize ) < 0 ) {
+      Error( "Error converting frame for the video stream" );
+      return 0;
+    }
   } else {
     memcpy( opicture->data[0], buffer, buffer_size );
   }

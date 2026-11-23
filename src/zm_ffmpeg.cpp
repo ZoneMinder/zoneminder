@@ -24,6 +24,7 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cerrno>
 #include <climits>
@@ -492,6 +493,52 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
+// Encoder options can name files the encoder then creates or overwrites as the
+// zmc user (two-pass stats, csv logs, reconstructed frames). The options come
+// from the monitor's EncoderParameters, so an account that can edit monitors
+// must not be able to point them at arbitrary paths. Returns the value to use,
+// empty when the whole option has to go.
+static std::string zm_filter_file_option(const std::string &key, const std::string &value) {
+  static const char *const file_keys[] = {"passlogfile", "stats", "dump-yuv", "recon", nullptr};
+  for (const char *const *k = file_keys; *k; k++) {
+    if (key == *k) return "";
+  }
+  if ((key == "flags" or key == "flags2") and (value.find("pass1") != std::string::npos or value.find("pass2") != std::string::npos)) {
+    return "";
+  }
+  if (key == "x264-params" or key == "x265-params" or key == "x264opts") {
+    static const char *const param_keys[] = {
+      "stats", "pass", "csv", "csv-log-level", "analysis-load", "analysis-save", "analysis-reuse-file",
+      "scaling-list", "recon", "recon-y4m-exec", "dump-yuv", "qpfile", "lambda-file", "zonefile",
+      "multi-pass-opt-analysis", "multi-pass-opt-distortion", nullptr};
+    std::string out;
+    size_t pos = 0;
+    while (pos <= value.size()) {
+      size_t end = value.find(':', pos);
+      if (end == std::string::npos) end = value.size();
+      const std::string item = value.substr(pos, end - pos);
+      // libx264 and libx265 read '_' as '-' and x265 also drops a leading "--",
+      // so compare the name in the form the library will use.
+      std::string name = item.substr(0, item.find('='));
+      if (name.compare(0, 2, "--") == 0) name.erase(0, 2);
+      std::replace(name.begin(), name.end(), '_', '-');
+      bool deny = false;
+      for (const char *const *k = param_keys; *k; k++) {
+        if (name == *k) deny = true;
+      }
+      if (deny) {
+        Warning("Ignoring file option '%s' in encoder option %s", name.c_str(), key.c_str());
+      } else if (!item.empty()) {
+        if (!out.empty()) out += ':';
+        out += item;
+      }
+      pos = end + 1;
+    }
+    return out;
+  }
+  return value;
+}
+
 int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
   const std::string key_terminators = std::string("=") + separators;
   const bool hash_comments = strchr(separators, '#') != nullptr;
@@ -523,9 +570,12 @@ int zm_parse_options(AVDictionary **pm, const std::string &options, const char *
         }
       }
     }
-    if (*key) {
+    const std::string safe = (*key and value and *value) ? zm_filter_file_option(key, value) : std::string();
+    if (*key and value and *value and safe.empty()) {
+      Warning("Ignoring option '%s' as it would write a file", key);
+    } else if (*key) {
       if (value and *value) {
-        int ret = av_dict_set(pm, key, value, 0);
+        int ret = av_dict_set(pm, key, safe.c_str(), 0);
         if (ret < 0) result = ret;
       } else {
         Warning("Ignoring option '%s' as it has no value", key);

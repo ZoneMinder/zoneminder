@@ -33,6 +33,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # HiKVision ISAPI Control Protocol
@@ -69,7 +73,7 @@ sub open {
   $$self{port} = 80;
 
   # Create a UserAgent for the requests
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
 
   # Extract the username/password host/port from ControlAddress
@@ -172,7 +176,7 @@ sub PutCmd {
     # Apparently it is necessary to create a new ua
     
     if ( $res->code == 401 ) {
-      $self->{ua} = LWP::UserAgent->new();
+      $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
       $self->{ua}->cookie_jar( {} );
       $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
 
@@ -524,7 +528,7 @@ sub GetWithRetry {
   my ($self, $url) = @_;
   my $r = $self->get($url);
   if ($r and !$r->is_success and $r->code == 401) {
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
     $r = $self->get($url);
@@ -563,7 +567,7 @@ sub PutXML {
   $req->content($content);
   my $res = $self->{ua}->request($req);
   if (!$res->is_success and $res->code == 401) {
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
     $res = $self->{ua}->request($req);
@@ -778,7 +782,7 @@ sub probe {
   my $self = new ZoneMinder::Control::HikVision();
   $self->set_credentials($username, $password);
   # Create a UserAgent for the requests
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
 
   foreach ( '80','443' ) {

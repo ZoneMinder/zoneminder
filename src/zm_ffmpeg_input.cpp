@@ -92,6 +92,7 @@ int FFmpeg_Input::Open(const char *filepath) {
     }
 
     streams[i].frame_count = 0;
+    streams[i].drained = false;
 
     streams[i].context = nullptr;
     std::list<const CodecData *>codec_data = get_decoder_data(input_format_context->streams[i]->codecpar->codec_id, "auto");
@@ -202,12 +203,15 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
     Debug(1, "Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
     if (ret == AVERROR(EAGAIN)) {
       // Perfectly normal
+    } else if (ret == AVERROR_EOF) {
+      Debug(1, "Decoder drained for stream %d", stream_id);
+      return nullptr;
     } else if (ret < 0) {
       Error("Ret from receive_frame ret: %d %s", ret, av_make_error_string(ret).c_str());
       return nullptr;
     } else {
       frameComplete = true;
-      if (is_video_stream(input_format_context->streams[packet->stream_index])) {
+      if (is_video_stream(input_format_context->streams[stream_id])) {
         zm_dump_video_frame(frame.get(), "resulting video frame");
       } else {
         zm_dump_frame(frame.get(), "resulting frame");
@@ -215,11 +219,23 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
       break;
     }
 
+    if (streams[stream_id].drained) {
+      // Already sent the flush packet; nothing more to read.
+      return nullptr;
+    }
+
     ret = av_read_frame(input_format_context, packet.get());
     if (ret < 0) {
+      if (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) {
+        Info("av_read_frame returned %s, draining decoder.", av_make_error_string(ret).c_str());
+        streams[stream_id].drained = true;
+        ret = avcodec_send_packet(context, nullptr);
+        if (ret < 0 && ret != AVERROR_EOF) {
+          Debug(1, "Unable to send flush packet %d %s", ret, av_make_error_string(ret).c_str());
+        }
+        continue;
+      }
       if (
-        // Check if EOF.
-        (ret == AVERROR_EOF || (input_format_context->pb && input_format_context->pb->eof_reached)) ||
         // Check for Connection failure.
         (ret == -110)
       ) {
@@ -255,6 +271,12 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id) {
 /* at is FPSeconds */
 AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   Debug(1, "Getting frame from stream %d at %f", stream_id, at);
+  // Open() leaves the context null when no decoder opened for the stream; the
+  // seeks below flush it, so stop here as the sequential get_frame() does.
+  if (stream_id < 0 or !streams or !streams[stream_id].context) {
+    Error("No context for stream %d", stream_id);
+    return nullptr;
+  }
 
   int64_t seek_target = (int64_t)(at * AV_TIME_BASE);
   Debug(1, "Getting frame from stream %d at seektarget: %" PRId64, stream_id, seek_target);
@@ -267,9 +289,15 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
     // Don't have a frame yet, so get a keyframe before the timestamp
     ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME);
     if (ret < 0) {
+      // No keyframe at or after the target (it is in the last GOP), so use the one before it.
+      ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME | AVSEEK_FLAG_BACKWARD);
+    }
+    if (ret < 0) {
       Error("Unable to seek in stream");
       return nullptr;
     }
+    avcodec_flush_buffers(streams[stream_id].context);
+    streams[stream_id].drained = false;
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
 
@@ -286,6 +314,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
       ret = av_seek_frame(input_format_context, stream_id, seek_target,
                           AVSEEK_FLAG_BACKWARD);
       if (ret >= 0) {
+        avcodec_flush_buffers(streams[stream_id].context);
+        streams[stream_id].drained = false;
         get_frame(stream_id);
       }
     }
@@ -306,6 +336,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
       Error("Unable to seek in stream %d", ret);
       return nullptr;
     }
+    avcodec_flush_buffers(streams[stream_id].context);
+    streams[stream_id].drained = false;
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
     if ( is_video_stream(input_format_context->streams[stream_id]) ) {
@@ -329,10 +361,16 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
   if (frame->pts + seek_threshold < seek_target)
   {
     Debug(1, "Jumping ahead to %" PRId64, seek_target);
-    if (( ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME) ) < 0) {
+    ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME);
+    if (ret < 0) {
+      ret = av_seek_frame(input_format_context, stream_id, seek_target, AVSEEK_FLAG_FRAME | AVSEEK_FLAG_BACKWARD);
+    }
+    if (ret < 0) {
       Error("Unable to seek in stream %d", ret);
       return nullptr;
     }
+    avcodec_flush_buffers(streams[stream_id].context);
+    streams[stream_id].drained = false;
     // Have to grab a frame to update our current frame to know where we are
     get_frame(stream_id);
     zm_dump_frame(frame, "got");
@@ -343,6 +381,8 @@ AVFrame *FFmpeg_Input::get_frame(int stream_id, double at) {
         Error("Unable to seek in stream %d", ret);
         return nullptr;
       }
+      avcodec_flush_buffers(streams[stream_id].context);
+      streams[stream_id].drained = false;
       get_frame(stream_id);
       zm_dump_frame(frame, "Had to seek backwards");
     }

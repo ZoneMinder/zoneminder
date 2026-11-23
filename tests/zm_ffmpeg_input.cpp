@@ -113,3 +113,49 @@ TEST_CASE("FFmpeg_Input: seeking back returns the frame at the new time", "[ffmp
   REQUIRE(f->pts == 4334);
   input.Close();
 }
+
+// bframes.mp4: 30 frames, H.264 with B-frames, keyframes every 10 frames,
+// time base 1/10240, pts 0, 1024, ... 29696.
+TEST_CASE("FFmpeg_Input: seeking to the last frame of a B-frame file returns it", "[ffmpeg]") {
+  std::filesystem::path mp4 = fixture_path("bframes.mp4");
+  if (!std::filesystem::exists(mp4)) {
+    WARN("bframes.mp4 fixture missing, skipping");
+    return;
+  }
+
+  FFmpeg_Input input;
+  REQUIRE(input.Open(mp4.c_str()) > 0);
+  int video_stream_id = input.get_video_stream_id();
+  REQUIRE(video_stream_id >= 0);
+
+  AVFrame *f = input.get_frame(video_stream_id, 2.9);
+  REQUIRE(f != nullptr);
+  REQUIRE(f->pts == 29696);
+  input.Close();
+}
+
+TEST_CASE("FFmpeg_Input: sequential decode returns every frame before EOF", "[ffmpeg]") {
+  std::filesystem::path mp4 = fixture_path("bframes.mp4");
+  if (!std::filesystem::exists(mp4)) {
+    WARN("bframes.mp4 fixture missing, skipping");
+    return;
+  }
+
+  FFmpeg_Input input;
+  REQUIRE(input.Open(mp4.c_str()) > 0);
+  int video_stream_id = input.get_video_stream_id();
+  REQUIRE(video_stream_id >= 0);
+
+  int count = 0;
+  int64_t max_pts = -1;
+  for (int i = 0; i < 100; i++) {
+    AVFrame *f = input.get_frame(video_stream_id);
+    if (!f) break;
+    count++;
+    if (f->pts > max_pts) max_pts = f->pts;
+  }
+  REQUIRE(count == 30);
+  REQUIRE(max_pts == 29696);
+  REQUIRE(input.get_frame(video_stream_id) == nullptr);
+  input.Close();
+}

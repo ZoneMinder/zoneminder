@@ -254,11 +254,12 @@ if ( canEdit('Events') ) {
 
     $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
+    $response = array();
 
     $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
     $values = array($tagId);
-    dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
 
     // Record this tag against the user's personal recency order so it
     // sorts to the top of THEIR dropdown next time, on any device.

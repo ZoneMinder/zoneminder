@@ -67,6 +67,20 @@ namespace {
   check('listed entry saved', $a->saved['Enabled'], 1);
   check('entry missing from the form is not rewritten', $b->saved, null);
 
+  $c = new ZM\MenuItem(array('Id' => 3, 'MenuKey' => 'KeepKey', 'Link' => 'keep-link', 'Icon' => 'keep-icon', 'Enabled' => 1));
+  ZM\MenuItem::$items = array($c);
+  $_REQUEST = array('items' => array(3 => array('Label' => array('x'), 'Link' => array('y'), 'Icon' => array('z'), 'MenuKey' => array('k'))));
+  $thrown = null;
+  try {
+    run_action('menuitems');
+  } catch (Throwable $e) {
+    $thrown = $e;
+  }
+  check('array-valued menu item does not throw TypeError', $thrown ? get_class($thrown).': '.$thrown->getMessage() : null, null);
+  check('array-valued menu item keeps its Link', $c->saved['Link'] ?? null, 'keep-link');
+  check('array-valued menu item keeps its Icon', $c->saved['Icon'] ?? null, 'keep-icon');
+  check('array-valued menu item keeps its MenuKey', $c->saved['MenuKey'] ?? null, 'KeepKey');
+
   echo "\n$passes passed, $failures failed\n";
   exit($failures ? 1 : 0);
 }

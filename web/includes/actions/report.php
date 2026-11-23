@@ -34,6 +34,12 @@ if (!empty($_REQUEST['id']) and !$report->Id()) {
   return;
 }
 
+if (!$report->Id() and !canEdit('Events')) {
+  ZM\Warning('You do not have permission to create a report');
+  $redirect = '?view=reports';
+  return;
+}
+
 if ($report->Id() and !$report->canEdit()) {
   ZM\Warning('You do not have permission to edit report '.$report->Id());
   $redirect = '?view=reports';

@@ -185,6 +185,12 @@ class GroupsController extends AppController {
       $this->pinRequestId($this->Group, $id);
       $group = new ZM\Group($id);
       $moved = array();
+      $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( (is_array($monitorIds) or (is_string($monitorIds) and $monitorIds !== '')) and !isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = is_array($monitorIds) ? $monitorIds : explode(',', $monitorIds);
+        unset($this->request->data['MonitorIds']);
+        if ( isset($this->request->data['Group']) and is_array($this->request->data['Group']) ) unset($this->request->data['Group']['MonitorIds']);
+      }
       $newIds = $this->requestAssociatedIds('Group', 'Monitor');
       if ($newIds !== null) {
         $oldIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($id));

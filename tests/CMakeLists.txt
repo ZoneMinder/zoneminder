@@ -95,6 +95,7 @@ set(TEST_SOURCES
   zm_tag_row.cpp
   zm_eventstream_commands.cpp
   zm_time.cpp
+  zm_tls.cpp
   zm_user_default_password.cpp
   zm_user_group.cpp
   zm_remote_camera.cpp
@@ -102,6 +103,11 @@ set(TEST_SOURCES
   zm_utils.cpp
   zm_mem_utils.cpp
   zm_videostore_m3u8.cpp
+  zm_websocket.cpp
+  zm_websocket_image.cpp
+  zm_websocket_peer_addr.cpp
+  zm_websocket_status.cpp
+  zm_websocket_stream_info.cpp
   zm_videostore_write.cpp
   zm_vector2.cpp
   zm_zone.cpp

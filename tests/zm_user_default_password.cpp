@@ -31,3 +31,13 @@ TEST_CASE("isDefaultPassword") {
   REQUIRE_FALSE(isDefaultPassword("admin1"));
   REQUIRE_FALSE(isDefaultPassword(std::string("admin\0x", 7)));
 }
+
+// A WebSocket handshake URL-decodes the password, so "admin%00x" arrives as
+// "admin\0x": verifyPassword() saw "admin" while isDefaultPassword() saw the
+// whole string and let it through. zmLoadUser() refuses it first.
+TEST_CASE("hasEmbeddedNul") {
+  REQUIRE(hasEmbeddedNul(std::string("admin\0x", 7)));
+  REQUIRE(hasEmbeddedNul(std::string("\0", 1)));
+  REQUIRE_FALSE(hasEmbeddedNul("admin"));
+  REQUIRE_FALSE(hasEmbeddedNul(""));
+}

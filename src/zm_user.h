@@ -92,11 +92,20 @@ class User {
 
 User *zmLoadUser(const std::string&username, const std::string &password="");
 User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_remote_addr);
+// As above, but the client address is resolved from explicit values - the
+// socket peer and any X-Forwarded-For - rather than the CGI environment, for
+// listeners that are not reached through a web server (refs #2875).
+User *zmLoadAuthUser(const std::string &auth, const std::string &user, bool use_remote_addr,
+                     const std::string &direct_addr, const std::string &forwarded_for);
 User *zmLoadTokenUser(const std::string &jwt, bool use_remote_addr);
 bool checkUser(const std::string &username);
 bool checkPass(const std::string &password);
 // True for the password db/zm_create.sql gives the admin account ("admin").
 // zmLoadUser() refuses it: the web login asks for a new one first.
 bool isDefaultPassword(const std::string &password);
+// True when s contains a NUL byte. The password checks see a credential as a C
+// string, which ends there, so zmLoadUser() refuses such a username or password
+// rather than verify one string and check another.
+bool hasEmbeddedNul(const std::string &s);
 
 #endif // ZM_USER_H

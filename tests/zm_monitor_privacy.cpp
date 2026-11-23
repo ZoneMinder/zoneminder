@@ -37,6 +37,7 @@ class PrivacyMonitor : public Monitor {
   }
   void ClearZones() { zones.clear(); }
   const unsigned char *Mask() const { return privacy_bitmask; }
+  uint32_t ImageMaskGeneration() const { return websocket_latest_image.MaskGeneration(); }
 };
 
 }  // namespace
@@ -53,5 +54,40 @@ TEST_CASE("Monitor::AddPrivacyBitmask: repeated calls rebuild the mask", "[Monit
     REQUIRE(mask[12 * 32 + 12] == 0);
   }
   // The zone holds the monitor; drop it so neither leaks.
+  monitor->ClearZones();
+}
+
+// Zones are reloaded on every connect(). A reload that leaves the mask as it
+// was must not hold back WebSocket images until the decoder publishes one
+// (refs #2875).
+TEST_CASE("Monitor::AddPrivacyBitmask: WebSocket images wait only when the mask changes", "[Monitor]") {
+  auto monitor = std::make_shared<PrivacyMonitor>();
+
+  SECTION("no privacy zones, reloaded") {
+    monitor->AddPrivacyBitmask();
+    monitor->AddPrivacyBitmask();
+    REQUIRE(monitor->ImageMaskGeneration() == 0);
+  }
+
+  SECTION("the same privacy zone, reloaded") {
+    monitor->AddPrivacyZone(monitor);
+    monitor->AddPrivacyBitmask();
+    const uint32_t generation = monitor->ImageMaskGeneration();
+    REQUIRE(generation == 1);
+    monitor->AddPrivacyBitmask();
+    REQUIRE(monitor->ImageMaskGeneration() == generation);
+  }
+
+  SECTION("a privacy zone added, then removed") {
+    monitor->AddPrivacyBitmask();
+    monitor->AddPrivacyZone(monitor);
+    monitor->AddPrivacyBitmask();
+    REQUIRE(monitor->ImageMaskGeneration() == 1);
+    monitor->ClearZones();
+    monitor->AddPrivacyBitmask();
+    REQUIRE(monitor->ImageMaskGeneration() == 2);
+    REQUIRE(monitor->Mask() == nullptr);
+  }
+
   monitor->ClearZones();
 }

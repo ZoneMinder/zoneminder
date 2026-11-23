@@ -68,6 +68,11 @@ function count_terms(tokens) {
   return term_count;
 }
 
+// Monitor and zone names are user text, so the option text is set as text, not HTML.
+function add_option(select, value, text) {
+  select.append($j('<option></option>').val(value).text(text));
+}
+
 function expr_to_ui(expr, container) {
   container.html('');
   const tokens = tokenize(expr);
@@ -118,11 +123,11 @@ function expr_to_ui(expr, container) {
       for ( monitor_id in monitors ) {
         const monitor = monitors[monitor_id];
         if (mid && (monitor.Id == mid)) continue;
-        select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+        add_option(select, monitor.Id, monitor.Name + ' : All Zones');
         for ( zone_id in zones ) {
           const zone = zones[zone_id];
           if ( monitor.Id == zone.MonitorId ) {
-            select.append('<option value="' + monitor.Id+':'+zone.Id + '">' + monitor.Name + ' : ' +zone.Name + '</option>');
+            add_option(select, monitor.Id+':'+zone.Id, monitor.Name + ' : ' + zone.Name);
           }
         } // end foreach zone
       } // end foreach monitor
@@ -168,12 +173,12 @@ function expr_to_ui(expr, container) {
     const monitor = monitors[monitor_id];
     if (mid && (monitor.Id == mid)) continue;
     //if (!array_search(monitor.Id, used_monitorlinks))
-    select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+    add_option(select, monitor.Id, monitor.Name + ' : All Zones');
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
       if ( monitor.Id == zone.MonitorId ) {
         if (!array_search(monitor.Id+':'+zone.Id, used_monitorlinks)) {
-          select.append('<option value="' + monitor.Id+':'+zone.Id + '">' + monitor.Name + ' : ' +zone.Name + '</option>');
+          add_option(select, monitor.Id+':'+zone.Id, monitor.Name + ' : ' + zone.Name);
         }
       }
     } // end foreach zone

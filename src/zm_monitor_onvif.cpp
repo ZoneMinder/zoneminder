@@ -532,13 +532,13 @@ void ONVIF::Subscribe() {
   if ((pull_rc != SOAP_OK) &&
       (soap->error != SOAP_EOF)
      ) { //SOAP_EOF could indicate no messages to pull.
-    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
     // Count it so the retry delay backs off instead of recreating the
     // subscription every second.
     retry_count++;
     setHealthy(false);
   } else {
-    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
     retry_count = 0;
     setHealthy(true);
     // A camera already in alarm reports it here as Initialized
@@ -1309,7 +1309,7 @@ bool ONVIF::Renew() {
   }
 
   if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
-    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
     if (ONVIFIsActionNotSupported(soap->error, soap_fault_subcode(soap), soap_fault_string(soap))) {
       // Renewal is checked after every PullMessages, so keep asking and every
       // poll would carry a doomed Renew.
@@ -1404,7 +1404,7 @@ bool ONVIF::do_wsa_request(const char* address, const char* action) {
   const char* RequestMessageID = soap_wsa_rand_uuid(soap);
   if (soap_wsa_request(soap, RequestMessageID, address, action) != SOAP_OK) {
     Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=%s. Error %i %s, %s",
-        RequestMessageID, address, action, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+        RequestMessageID, address, action, soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
     return false;
   }
 

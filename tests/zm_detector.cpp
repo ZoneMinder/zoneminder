@@ -178,3 +178,152 @@ TEST_CASE("MakeDetector knows the compiled-in backends", "[detector]") {
     CHECK(name == detector->Name());
   }
 }
+
+#if HAVE_LIBCURL && ZM_HAS_NLOHMANN_JSON
+#include "zm_detector_http.h"
+#include "zm_packet.h"
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+
+#include <algorithm>
+#include <thread>
+
+namespace {
+
+// Answers one HTTP request on 127.0.0.1 with a fixed status and body, and
+// keeps the request it received.
+class StubServer {
+ public:
+  StubServer(int status, std::string body) : status_(status), body_(std::move(body)) {
+    fd_ = socket(AF_INET, SOCK_STREAM, 0);
+    sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = 0;
+    REQUIRE(bind(fd_, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0);
+    REQUIRE(listen(fd_, 1) == 0);
+    socklen_t len = sizeof(addr);
+    REQUIRE(getsockname(fd_, reinterpret_cast<sockaddr *>(&addr), &len) == 0);
+    port_ = ntohs(addr.sin_port);
+    thread_ = std::thread([this] { Serve(); });
+  }
+  ~StubServer() {
+    if (thread_.joinable()) thread_.join();
+    if (fd_ >= 0) close(fd_);
+  }
+  std::string Url(const std::string &path = "/detect") const {
+    return stringtf("http://127.0.0.1:%d%s", port_, path.c_str());
+  }
+  const std::string &Request() {
+    if (thread_.joinable()) thread_.join();
+    return request_;
+  }
+
+ private:
+  void Serve() {
+    int client = accept(fd_, nullptr, nullptr);
+    if (client < 0) return;
+    char buf[65536];
+    size_t content_length = 0;
+    size_t header_end = std::string::npos;
+    while (true) {
+      ssize_t n = read(client, buf, sizeof(buf));
+      if (n <= 0) break;
+      request_.append(buf, n);
+      if (header_end == std::string::npos) {
+        header_end = request_.find("\r\n\r\n");
+        if (header_end != std::string::npos) {
+          std::string lower = request_.substr(0, header_end);
+          std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+          size_t at = lower.find("content-length:");
+          if (at != std::string::npos) content_length = std::stoul(lower.substr(at + 15));
+        }
+      }
+      if (header_end != std::string::npos and request_.size() >= header_end + 4 + content_length) break;
+    }
+    std::string response = stringtf("HTTP/1.1 %d X\r\nContent-Type: application/json\r\nContent-Length: %zu\r\n"
+                                     "Connection: close\r\n\r\n", status_, body_.size()) + body_;
+    ssize_t written = write(client, response.data(), response.size());
+    (void)written;
+    close(client);
+  }
+
+  int fd_ = -1;
+  int port_ = 0;
+  int status_;
+  std::string body_;
+  std::string request_;
+  std::thread thread_;
+};
+
+zm::ai::DetectorConfig HttpConfig(const std::string &url) {
+  zm::ai::DetectorConfig config;
+  config.monitor_id = 7;
+  config.model = url;
+  config.width = 64;
+  config.height = 48;
+  return config;
+}
+
+std::shared_ptr<ZMPacket> PacketWithImage() {
+  auto packet = std::make_shared<ZMPacket>();
+  packet->image = new Image(64, 48, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  packet->image->Clear();
+  return packet;
+}
+
+}  // namespace
+
+TEST_CASE("The http backend posts a JPEG and reads detections back", "[detector][http]") {
+  StubServer server(200, R"({"detections":[{"label":"person","confidence":0.88,"bbox":[4,5,20,30],"class_id":0}]})");
+  zm::ai::HttpDetector detector;
+  REQUIRE(detector.Setup(HttpConfig(server.Url())));
+
+  auto packet = PacketWithImage();
+  std::vector<zm::ai::Detection> found;
+  REQUIRE(detector.Detect(*packet, found) == zm::ai::DetectStatus::Done);
+  REQUIRE(found.size() == 1);
+  CHECK(found[0].label == "person");
+  CHECK(found[0].w == 20);
+
+  const std::string &request = server.Request();
+  CHECK(request.rfind("POST /detect", 0) == 0);
+  CHECK(request.find("Content-Type: image/jpeg") != std::string::npos);
+  CHECK(request.find("name=\"monitor_id\"") != std::string::npos);
+  CHECK(request.find("\xff\xd8\xff") != std::string::npos);  // JPEG start of image
+}
+
+TEST_CASE("The http backend reports an unusable server", "[detector][http]") {
+  SECTION("an error status") {
+    StubServer server(500, "{}");
+    zm::ai::HttpDetector detector;
+    REQUIRE(detector.Setup(HttpConfig(server.Url())));
+    auto packet = PacketWithImage();
+    std::vector<zm::ai::Detection> found;
+    CHECK(detector.Detect(*packet, found) == zm::ai::DetectStatus::Failed);
+  }
+  SECTION("a response that isn't JSON") {
+    StubServer server(200, "not json");
+    zm::ai::HttpDetector detector;
+    REQUIRE(detector.Setup(HttpConfig(server.Url())));
+    auto packet = PacketWithImage();
+    std::vector<zm::ai::Detection> found;
+    CHECK(detector.Detect(*packet, found) == zm::ai::DetectStatus::Failed);
+  }
+}
+
+TEST_CASE("The http backend needs an http URL and a decoded image", "[detector][http]") {
+  zm::ai::HttpDetector detector;
+  CHECK_FALSE(detector.Setup(HttpConfig("")));
+  CHECK_FALSE(detector.Setup(HttpConfig("/usr/share/models/yolo.onnx")));
+  CHECK_FALSE(detector.Setup(HttpConfig("file:///etc/passwd")));
+  REQUIRE(detector.Setup(HttpConfig("http://127.0.0.1:9/detect")));
+
+  ZMPacket packet;  // no image: nothing to infer on, so no new result
+  std::vector<zm::ai::Detection> found;
+  CHECK(detector.Detect(packet, found) == zm::ai::DetectStatus::Pending);
+}
+#endif

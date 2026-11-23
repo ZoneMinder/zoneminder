@@ -72,7 +72,8 @@ struct DetectorConfig {
 
 enum class DetectStatus {
   Done,     // out holds the result of the latest completed inference, possibly empty
-  Pending,  // submitted; the result comes back on a later call (queued hardware)
+  Pending,  // no new result this call: submitted to queued hardware whose result
+            // comes back later, or the packet had nothing to run on
   Failed    // the backend is unusable; the monitor drops it and sets up a new one later
 };
 

@@ -17,6 +17,8 @@
 
 #include "zm_detector.h"
 
+#include "zm_detector_http.h"
+
 #include "zm_image.h"
 #include "zm_utils.h"
 #include "zm_vector2.h"
@@ -29,11 +31,18 @@ namespace zm {
 namespace ai {
 
 std::unique_ptr<Detector> MakeDetector(const std::string &name) {
+#if HAVE_LIBCURL && ZM_HAS_NLOHMANN_JSON
+  if (name == "http") return std::make_unique<HttpDetector>();
+#endif
   return nullptr;
 }
 
 std::vector<std::string> DetectorNames() {
-  return {};
+  std::vector<std::string> names;
+#if HAVE_LIBCURL && ZM_HAS_NLOHMANN_JSON
+  names.push_back("http");
+#endif
+  return names;
 }
 
 Rgb ParseBoxColor(const std::string &hex) {

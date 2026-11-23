@@ -135,6 +135,14 @@ TEST_CASE("DetectionsToJson writes zm-next's detection event", "[detector]") {
   CHECK(j["class_id"] == 0);
 }
 
+TEST_CASE("DetectionLabels gives each class in a stored document once", "[detector]") {
+  const nlohmann::json doc = zm::ai::DetectionsToJson(
+      {Det("person", 0.9f), Det("dog", 0.5f), Det("person", 0.6f), Det("", 0.6f)}, 0);
+  CHECK(zm::ai::DetectionLabels(doc) == std::vector<std::string>{"person", "dog"});
+  CHECK(zm::ai::DetectionLabels(nlohmann::json::object()).empty());
+  CHECK(zm::ai::DetectionLabels(nlohmann::json::parse(R"({"detections":[{"label":5},"x"]})")).empty());
+}
+
 TEST_CASE("DetectionsFromJson reads a backend's response", "[detector]") {
   SECTION("zm-next's own shape, scaled back to the frame") {
     const auto doc = nlohmann::json::parse(

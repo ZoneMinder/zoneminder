@@ -140,6 +140,9 @@ void DrawDetections(Image &image, const std::vector<Detection> &detections,
 #if ZM_HAS_NLOHMANN_JSON
 // zm-next's detection event for detections found on the frame at pts_usec.
 nlohmann::json DetectionsToJson(const std::vector<Detection> &detections, int64_t pts_usec);
+// The class of each detection in a document from DetectionsToJson(), once
+// each, in the order first seen. Used to tag the event.
+std::vector<std::string> DetectionLabels(const nlohmann::json &doc);
 // Detections from a backend's response, scaled by scale_x and scale_y back to
 // the frame. Reads {"detections":[{label, confidence, bbox:[x,y,w,h], class_id}]}
 // and the {"predictions":[{class, score, box:[x1,y1,x2,y2]}]} that ai_server's

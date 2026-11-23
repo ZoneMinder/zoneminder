@@ -170,6 +170,21 @@ bool FourNumbers(const nlohmann::json *value, float out[4]) {
 
 }  // namespace
 
+std::vector<std::string> DetectionLabels(const nlohmann::json &doc) {
+  std::vector<std::string> labels;
+  if (!doc.is_object()) return labels;
+  const nlohmann::json *list = Field(doc, {"detections"});
+  if (!list or !list->is_array()) return labels;
+  for (const nlohmann::json &entry : *list) {
+    if (!entry.is_object()) continue;
+    const nlohmann::json *label = Field(entry, {"label"});
+    if (!label or !label->is_string() or label->get_ref<const std::string &>().empty()) continue;
+    const std::string &name = label->get_ref<const std::string &>();
+    if (std::find(labels.begin(), labels.end(), name) == labels.end()) labels.push_back(name);
+  }
+  return labels;
+}
+
 std::vector<Detection> DetectionsFromJson(const nlohmann::json &doc, float scale_x, float scale_y) {
   std::vector<Detection> found;
   if (!doc.is_object()) return found;

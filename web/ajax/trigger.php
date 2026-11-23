@@ -10,6 +10,10 @@ if (canEdit('Monitors')) {
     ajaxError("No monitor found for id $mid.");
     return;
   }
+  if (!$monitor->canEdit()) {
+    ajaxError('Insufficient permissions');
+    return;
+  }
 
   $action = empty($_REQUEST['action']) ? '' : $_REQUEST['action'];
   $score = empty($_REQUEST['score']) ? 0 : validCardinal($_REQUEST['score']);

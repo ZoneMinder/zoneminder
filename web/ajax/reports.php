@@ -20,7 +20,7 @@ if (empty($_REQUEST['ids'])) {
   if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
     $message = 'No id(s) supplied<br/>';
 } else {
-  $ids = $_REQUEST['ids'];
+  $ids = (array)$_REQUEST['ids'];
 }
 
 if ($message) {
@@ -105,6 +105,10 @@ ajaxResponse($data);
 
 function deleteRequest($id) {
   $message = array();
+  $id = validCardinal($id);
+  if ($id === '') {
+    return array('Report not found.');
+  }
   $report = new ZM\Report($id);
   if ( !$report->Id() ) {
     $message[] = 'Report not found.';

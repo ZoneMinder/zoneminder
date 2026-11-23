@@ -26,7 +26,7 @@ if ( !canEdit('Control') ) {
 
 if ( $action == 'Save' ) {
   require_once('includes/Control.php');
-  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
+  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? (validCardinal($_REQUEST['cid']) ?: null) : null );
 
   $field_defaults = array(
     'CanWake' =>  0,

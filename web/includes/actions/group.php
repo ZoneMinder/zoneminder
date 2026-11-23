@@ -29,8 +29,10 @@ if ( !canEdit('Groups') ) {
 
 if ( $action == 'save' ) {
   $group_id = null;
-  if ( !empty($_REQUEST['gid']) )
-    $group_id = $_REQUEST['gid'];
+  if ( !empty($_REQUEST['gid']) ) {
+    $gid = validCardinal($_REQUEST['gid']);
+    if ($gid !== '') $group_id = $gid;
+  }
   $group = new ZM\Group($group_id);
 
   $new_ids = isset($_REQUEST['newGroup']['MonitorIds']) ? array_map('intval', (array)$_REQUEST['newGroup']['MonitorIds']) : array();

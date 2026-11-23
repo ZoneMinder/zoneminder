@@ -423,7 +423,8 @@ function queryRequest() {
     $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
     $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
-    $row['Server'] = $Server ? $Server->Name() : '';
+    $row['Server'] = $Server ? htmlspecialchars($Server->Name(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
+    $row['Component'] = htmlspecialchars((string)($row['Component'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     $row['Message'] = htmlspecialchars($row['Message'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));

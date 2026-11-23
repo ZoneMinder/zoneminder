@@ -31,7 +31,12 @@ eval('class FakeZone {
   function MonitorId() { return 1; }
   function Id() { return 2; }
   function Name() { return "z"; }
+  function Monitor() { return new FakeMonitor(); }
   '.$m[0].'}');
+class FakeMonitor {
+  function ViewWidth() { return 640; }
+  function ViewHeight() { return 480; }
+}
 
 function pts($svg) { preg_match('/points="([^"]*)"/', $svg, $m); return $m[1]; }
 
@@ -41,5 +46,8 @@ $z = new FakeZone('0.00,0.00 80.00,0.00 80.00,60.00 0.00,60.00');
 check('percent zone is left alone', pts($z->svg_polygon(640, 480)), '0.00,0.00,80.00,0.00,80.00,60.00,0.00,60.00');
 $z = new FakeZone('0,0 640,0 640,480 0,480');
 check('large pixel zone is converted', pts($z->svg_polygon(640, 480)), '0.00,0.00,100.00,0.00,100.00,100.00,0.00,100.00');
+// The event view calls svg_polygon() without a size.
+$z = new FakeZone('0,0 80,0 80,60 0,60');
+check('pixel zone without a size uses the monitor size', pts($z->svg_polygon()), '0.00,0.00,12.50,0.00,12.50,12.50,0.00,12.50');
 echo $failures ? "$failures failure(s)\n" : "all passed\n";
 exit($failures ? 1 : 0);

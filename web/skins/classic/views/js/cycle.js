@@ -6,12 +6,33 @@ const pauseBtn = $j('#pauseBtn');
 const playBtn = $j('#playBtn');
 var monitor;
 
+function cycleIsPaused() {
+  try {
+    return sessionStorage.getItem('zmCyclePaused') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function cycleSetPaused(paused) {
+  try {
+    if (paused) {
+      sessionStorage.setItem('zmCyclePaused', '1');
+    } else {
+      sessionStorage.removeItem('zmCyclePaused');
+    }
+  } catch {
+    // sessionStorage unavailable; the pause just does not persist.
+  }
+}
+
 function nextCycleView() {
   window.location.replace(zmAuth.appendTo('?view=cycle&mid='+nextMid+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePause() {
   clearInterval(intervalId);
+  cycleSetPaused(true);
   pauseBtn.prop('disabled', true);
   playBtn.prop('disabled', false);
 }
@@ -20,6 +41,7 @@ function cycleStart() {
   // The play button can be reached without a pause in between, and the old id
   // is unrecoverable once overwritten. refs #5135
   clearInterval(intervalId);
+  cycleSetPaused(false);
   intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
@@ -54,7 +76,12 @@ function cyclePrev() {
 
 function initCycle() {
   if (!monitorData.length) return;
-  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  if (cycleIsPaused()) {
+    pauseBtn.prop('disabled', true);
+    playBtn.prop('disabled', false);
+  } else {
+    intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  }
   monitor = new MonitorStream(monitorData[monIdx]);
   monitor.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   monitor.start();

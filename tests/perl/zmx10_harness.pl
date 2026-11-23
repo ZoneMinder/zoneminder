@@ -150,7 +150,7 @@ sub zmx10_start {
   write_file("$Dir/lib/ZoneMinder.pm", $STUB_ZM);
   write_file("$Dir/lib/DBI.pm", $STUB_DBI);
   write_file("$Dir/lib/X10/ActiveHome.pm", $STUB_X10);
-  my $src = read_file("$root/scripts/zmx10.pl.in");
+  my $src = read_file($ENV{ZMX10_IN} || "$root/scripts/zmx10.pl.in");
   $src =~ s/\@PERL_EXECUTABLE\@/$^X/g;
   $src =~ s/\@EXTRA_PERL_LIB\@//g;
   $src =~ s/\@ZM_SCRIPT_PATH\@/\/usr\/bin:\/bin/g;

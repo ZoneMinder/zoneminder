@@ -30,7 +30,7 @@ if ( $action == 'version' && isset($_REQUEST['option']) ) {
     // Ignore this, the caller will open the page itself
     break;
   case 'ignore' :
-    dbQuery("UPDATE Config SET Value = '".ZM_DYN_LAST_VERSION."' WHERE Name = 'ZM_DYN_CURR_VERSION'");
+    dbQuery('UPDATE Config SET Value = ? WHERE Name = \'ZM_DYN_CURR_VERSION\'', array(ZM_DYN_LAST_VERSION));
     break;
   case 'hour' :
   case 'day' :

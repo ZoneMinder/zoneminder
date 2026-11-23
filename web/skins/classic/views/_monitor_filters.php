@@ -359,6 +359,9 @@ function buildMonitorsFilters() {
   $displayMonitors = array();
   $monitors_dropdown = array();
 
+  $monitorNameFilter = getFilterText('MonitorName');
+  $sourceFilter = getFilterText('Source');
+
   # Check to see if the selected monitor_id is in the results.
   if ( count($selected_monitor_ids) ) {
     $found_selected_monitor = false;
@@ -367,6 +370,24 @@ function buildMonitorsFilters() {
       if ( !visibleMonitor($monitors[$i]['Id']) ) {
         continue;
       }
+
+      if ( $monitorNameFilter ) {
+        $Monitor = new ZM\Monitor($monitors[$i]);
+        if ( !preg_match(monitorNameRegexp($monitorNameFilter), $Monitor->Name()) ) {
+          continue;
+        }
+      }
+
+      if ( $sourceFilter ) {
+        $Monitor = new ZM\Monitor($monitors[$i]);
+        $regexp = monitorNameRegexp($sourceFilter);
+        if ( !preg_match($regexp, $Monitor->Source()) ) {
+          if ( !preg_match($regexp, $Monitor->Path()) ) {
+            continue;
+          }
+        }
+      }
+
       if ( in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
         $found_selected_monitor = true;
       }
@@ -382,7 +403,6 @@ function buildMonitorsFilters() {
       continue;
     }
 
-    $monitorNameFilter = getFilterText('MonitorName');
     if ( $monitorNameFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       if ( !preg_match(monitorNameRegexp($monitorNameFilter), $Monitor->Name()) ) {
@@ -390,7 +410,6 @@ function buildMonitorsFilters() {
       }
     }
 
-    $sourceFilter = getFilterText('Source');
     if ( $sourceFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
       $regexp = monitorNameRegexp($sourceFilter);

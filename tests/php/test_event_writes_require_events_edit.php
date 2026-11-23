@@ -50,6 +50,8 @@ namespace ZM {
     }
     public function MonitorId() { return ($this->row !== null) ? ($this->row['MonitorId'] ?? null) : 1; }
     public function Monitor() { return new Monitor(); }
+    // The video view refuses an event it cannot view. This test's events exist.
+    public function canView($u = null) { return true; }
     public function Path() { return $GLOBALS['event_path']; }
     public function DefaultVideo() { return $GLOBALS['default_video'] ?? ''; }
     public function delete() { $GLOBALS['queries'][] = 'Event::delete'; return true; }

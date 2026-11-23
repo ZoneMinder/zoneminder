@@ -96,12 +96,20 @@ if ( !$monitor ) {
 
 zm_session_start();
 
+$sanitizeScale = function($scale) {
+  if ( is_array($scale) ) {
+    return '0';
+  }
+  $scale = (string)$scale;
+  return preg_match('/^\d+$/', $scale) ? $scale : '0';
+};
+
 if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
+  $options['scale'] = $sanitizeScale($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = validInt($_COOKIE['zmCycleScale']);
+  $options['scale'] = $sanitizeScale($_COOKIE['zmCycleScale']);
 } else if ( $monitor ) {
-  $options['scale'] = validInt($monitor->DefaultScale());
+  $options['scale'] = $sanitizeScale($monitor->DefaultScale());
 }
 
 if ( !isset($options['scale']) )

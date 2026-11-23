@@ -313,6 +313,14 @@ bool Zone::CheckAlarms(const Image *delta_image) {
     return false;
   }
 
+  // The zone's row ranges and mask cover the monitor size; a larger delta image (a camera
+  // that came back at a bigger resolution) would index past them.
+  if (delta_image->Width() > pg_image->Width() || delta_image->Height() > pg_image->Height()) {
+    Warning("Zone %s: delta image %dx%d is larger than the zone mask %dx%d, skipping",
+            label.c_str(), delta_image->Width(), delta_image->Height(), pg_image->Width(), pg_image->Height());
+    return false;
+  }
+
   // Allocate a persistent grayscale mask buffer (same dimensions as delta).
   // Unlike the old code that copied the entire delta_image, we only zero the
   // bounding-box rows and let alarmedpixels_row read from delta_image directly.
@@ -596,8 +604,8 @@ bool Zone::CheckAlarms(const Image *delta_image) {
                       bsm->tag, bsm->count, bsm->lo_x, bsm->hi_x, bsm->lo_y, bsm->hi_y,
                       bss->tag, bss->count, bss->lo_x, bss->hi_x, bss->lo_y, bss->hi_y
                     );
-                    Error("No pixels changed, exiting");
-                    exit(-1);
+                    Error("No pixels changed, skipping the frame");
+                    return false;
                   }
 
                   // Merge the slave blob into the master

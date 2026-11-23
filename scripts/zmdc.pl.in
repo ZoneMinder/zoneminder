@@ -398,9 +398,12 @@ sub run {
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = readClientCommand(\*CLIENT, 5);
 
-        next if !$message;
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my ( $command, $daemon, @args ) = split(';', $message);
 
@@ -482,6 +485,20 @@ sub cPrint {
     local $SIG{PIPE} = 'IGNORE';
     close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
+}
+
+# Reads one command line from a client. A client that connects and sends nothing must not
+# block the control loop, so give up after $timeout seconds.
+sub readClientCommand {
+  my ($fh, $timeout) = @_;
+  my $message = '';
+  my $deadline = time() + $timeout;
+  while ( $message !~ /\n/ and (my $wait = $deadline - time()) > 0 ) {
+    vec(my $in = '', fileno($fh), 1) = 1;
+    last if select(my $out = $in, undef, undef, $wait) <= 0;
+    last if !sysread($fh, $message, 4096, length($message));
+  }
+  return $message;
 }
 
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 

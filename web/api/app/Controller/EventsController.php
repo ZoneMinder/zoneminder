@@ -332,6 +332,7 @@ class EventsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     $EventObj = new ZM\Event($event['Event']);
+    if (isset($event['Storage'])) $event['Storage'] = $this->hideStorageSecrets($event['Storage']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;

@@ -48,6 +48,7 @@ class StorageController extends AppController {
       $storage = new ZM\Storage($s['Storage']);
       $s['Storage']['DiskTotalSpace'] = $storage->disk_total_space();
       $s['Storage']['DiskUsedSpace'] = $storage->disk_used_space();
+      $s['Storage'] = $this->hideStorageSecrets($s['Storage']);
     }
 
 		$this->set(array(
@@ -76,6 +77,7 @@ class StorageController extends AppController {
           )
         );
     $storage = $this->Storage->find('first', $options);
+    if ($storage and isset($storage['Storage'])) $storage['Storage'] = $this->hideStorageSecrets($storage['Storage']);
     $this->set(array(
       'storage' => $storage,
       '_serialize' => array('storage')

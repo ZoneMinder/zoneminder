@@ -346,14 +346,16 @@ Event::~Event() {
       video_file.c_str(), // defaults to ""
       video_size,
       id);
-  zmDbDo(sql);
+  bool closed_in_db = zmDbDoUpdate(sql) > 0;
 
-  if (video_file_linked) {
+  if (video_file_linked && closed_in_db) {
     // Now that DefaultVideo=final is committed, remove the incomplete.* hard
     // link. A reader of the row before this point resolved the file under
     // either name; after it, only the final name remains.
     if (unlink(video_incomplete_path.c_str()) != 0)
       Warning("Failed unlinking %s: %s", video_incomplete_path.c_str(), strerror(errno));
+  } else if (video_file_linked) {
+    Error("Event %" PRIu64 " row was not updated, keeping %s", id, video_incomplete_path.c_str());
   }
 
   if (storage_id) {

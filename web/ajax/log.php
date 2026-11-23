@@ -115,8 +115,9 @@ function createRequest() {
   }
 
   $levels = array_flip(ZM\Logger::$codes);
-  // OFF has no priority to log under.
-  unset($levels['OFF']);
+  // OFF has no priority to log under, and AUD is for the server's own audit
+  // records, so a request can't forge one.
+  unset($levels['OFF'], $levels['AUD']);
   if (!isset($levels[$level])) {
     ZM\Error('Unexpected logger level '.$level); // already sanitized above
     $level = 'ERR';

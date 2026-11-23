@@ -4,6 +4,7 @@ namespace ZM {
   function Debug($s) {}
   class Monitor {
     public static function find_one($a) { return new Monitor(); }
+    public function canView() { return true; }
     public function Device() { return '/dev/video0'; }
     public function Name() { return 'cam'; }
     public function Brightness($v = null) {}

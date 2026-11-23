@@ -214,7 +214,8 @@ sub xs_duration {
 
     my %new_monitors = ();
 
-    my $sql = "SELECT * FROM Monitors WHERE Capturing != 'None' AND ONVIF_URL != ''";
+    # A deleted monitor keeps Capturing and ONVIF_URL, so it must be excluded explicitly. Same as zmtrigger.pl.in loadMonitors.
+    my $sql = "SELECT * FROM Monitors WHERE Deleted=0 AND Capturing != 'None' AND ONVIF_URL != ''";
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
     while ( my $monitor = $sth->fetchrow_hashref() ) {

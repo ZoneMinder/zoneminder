@@ -47,7 +47,15 @@ if ($report->Id() and !$report->canEdit()) {
 }
 
 if ($action == 'save') {
-  $changes = $report->changes(isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array());
+  $posted = isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array();
+  if (isset($posted['Name'])) {
+    $posted['Name'] = is_string($posted['Name']) ? trim($posted['Name']) : '';
+    if ($posted['Name'] === '') {
+      $error_message .= 'Report Name is required<br/>';
+      return;
+    }
+  }
+  $changes = $report->changes($posted);
   if (!$report->Id()) {
     $changes['CreatedBy'] = $user->Id();
   }

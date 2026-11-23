@@ -41,7 +41,11 @@ class Snapshot extends ZM_Object {
   }
   public function Events() {
     if ( ! property_exists($this, 'Events') ) {
-      $this->{'Events'} = Event::find(array('Id'=>$this->EventIds()));
+      # Only the events of monitors the user can view, as everywhere else events are listed.
+      $this->{'Events'} = array_values(array_filter(
+        Event::find(array('Id'=>$this->EventIds())),
+        function($event) { return $event->canView(); }
+      ));
     }
     return $this->{'Events'};
   }

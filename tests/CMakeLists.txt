@@ -58,6 +58,7 @@ set(TEST_SOURCES
   zm_packet.cpp
   zm_packet_lock.cpp
   zm_packet_y_image.cpp
+  zm_monitor.cpp
   zm_monitor_action.cpp
   zm_monitor_type_label.cpp
   zm_monitor_nozones_warn.cpp

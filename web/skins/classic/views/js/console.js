@@ -593,6 +593,9 @@ function sortMonitors(button) {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
+  // The server assigns ascending Sequence in posted order, so reverse when sorted desc.
+  var options = table.bootstrapTable('getOptions');
+  if (options.sortName == 'Sequence' && options.sortOrder == 'desc') monitor_ids.reverse();
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
   $j.post(thisUrl + '?request=console', data)

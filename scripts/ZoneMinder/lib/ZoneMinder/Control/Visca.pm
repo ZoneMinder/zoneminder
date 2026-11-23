@@ -140,7 +140,7 @@ sub sendCmd
                 my @resp = unpack( "C*", $rx_msg );
                 $self->printMsg( \@resp, "Rx" );
 
-                if ( $resp[0] = 0x80 + ($id<<4) )
+                if ( $resp[0] == 0x80 + ($id<<4) )
                 {
                     if ( ($resp[1] & 0xf0) == 0x40 )
                     {
@@ -182,7 +182,7 @@ sub sendCmd
                 my @resp = unpack( "C*", $rx_msg );
                 $self->printMsg( \@resp, "Rx" );
 
-                if ( $resp[0] = 0x80 + ($id<<4) )
+                if ( $resp[0] == 0x80 + ($id<<4) )
                 {
                     if ( ($resp[1] & 0xf0) == 0x50 )
                     {

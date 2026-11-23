@@ -1200,11 +1200,12 @@ int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
       Error("Unable to decode jpeg");
       return -1;
     }
-    // The camera serves whatever size it likes. Everything downstream is sized for the monitor,
-    // so refuse a frame that does not match rather than pass a different size on.
+    // The camera serves whatever size it likes, and the monitor size may differ on
+    // purpose. Everything downstream is sized for the monitor, so scale the frame to
+    // it, as decoded frames are scaled to the camera size.
     if (image->Width() != Width() || image->Height() != Height()) {
-      Error("Image is %ux%u but the monitor is %ux%u", image->Width(), image->Height(), Width(), Height());
-      return -1;
+      Debug(2, "Scaling %ux%u image to the monitor's %ux%u", image->Width(), image->Height(), Width(), Height());
+      image->Scale(Width(), Height());
     }
     break;
   case X_RGB :

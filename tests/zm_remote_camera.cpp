@@ -193,8 +193,8 @@ std::string JpegReply(unsigned int w, unsigned int h) {
   return reply;
 }
 
-// Capture() result for a 4x4 monitor served the reply.
-int HttpCaptureFor(const std::string &reply) {
+// Capture() result for a 4x4 monitor served the reply; the captured image's size goes to *w, *h.
+int HttpCaptureFor(const std::string &reply, unsigned int *w = nullptr, unsigned int *h = nullptr) {
   config.http_timeout = 300;
   config.watch_max_delay = 1;
   config.http_version = "1.0";
@@ -207,21 +207,30 @@ int HttpCaptureFor(const std::string &reply) {
   REQUIRE(camera.SendRequest() == 0);
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   int result = camera.Capture(packet);
+  if (w) *w = packet->image ? packet->image->Width() : 0;
+  if (h) *h = packet->image ? packet->image->Height() : 0;
   camera.Disconnect();
   return result;
 }
 
 }  // namespace
 
-TEST_CASE("HTTP camera: a JPEG of a different size than the monitor is refused", "[RemoteCamera]") {
-  SECTION("same size is accepted") {
-    REQUIRE(HttpCaptureFor(JpegReply(4, 4)) == 1);
+TEST_CASE("HTTP camera: a JPEG of a different size than the monitor is scaled to it", "[RemoteCamera]") {
+  unsigned int w = 0, h = 0;
+  SECTION("same size is kept") {
+    REQUIRE(HttpCaptureFor(JpegReply(4, 4), &w, &h) == 1);
+    REQUIRE(w == 4);
+    REQUIRE(h == 4);
   }
   SECTION("larger than the monitor") {
-    REQUIRE(HttpCaptureFor(JpegReply(8, 8)) < 0);
+    REQUIRE(HttpCaptureFor(JpegReply(8, 8), &w, &h) == 1);
+    REQUIRE(w == 4);
+    REQUIRE(h == 4);
   }
   SECTION("smaller than the monitor") {
-    REQUIRE(HttpCaptureFor(JpegReply(2, 2)) < 0);
+    REQUIRE(HttpCaptureFor(JpegReply(2, 2), &w, &h) == 1);
+    REQUIRE(w == 4);
+    REQUIRE(h == 4);
   }
 }
 

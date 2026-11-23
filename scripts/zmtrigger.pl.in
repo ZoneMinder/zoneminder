@@ -97,6 +97,8 @@ sub TermHandler {
 }
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
+# A client that disconnects before a reply is written must not kill the daemon
+$SIG{PIPE} = 'IGNORE';
 
 Info('Trigger daemon starting');
 

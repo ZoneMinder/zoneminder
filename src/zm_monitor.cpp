@@ -2299,14 +2299,16 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
             closeEvent();
           }
-        } else if (shared_data->recording == RECORDING_ALWAYS) {
-          if (!event) {
-            if (!cause.empty()) cause += ", ";
-            cause += SIGNAL_CAUSE + std::string(": Reacquired");
-          } else {
-            event->addNote(SIGNAL_CAUSE, "Reacquired");
+        } else {
+          if (shared_data->recording == RECORDING_ALWAYS) {
+            if (!event) {
+              if (!cause.empty()) cause += ", ";
+              cause += SIGNAL_CAUSE + std::string(": Reacquired");
+            } else {
+              event->addNote(SIGNAL_CAUSE, "Reacquired");
+            }
           }
-          if (shared_data->analysing != ANALYSING_NONE) {
+          if (ReacquireNeedsRefReset(shared_data->analysing)) {
             if  (analysis_image == ANALYSISIMAGE_YCHANNEL) {
               Image *y_image = packet->get_y_image();
               if (y_image) {

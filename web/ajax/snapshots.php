@@ -98,6 +98,11 @@ ajaxResponse($data);
 
 function deleteRequest($id) {
   $message = array();
+  $id = validCardinal($id);
+  if ($id === '') {
+    $message[] = 'Invalid snapshot id.';
+    return $message;
+  }
   $snapshot = new ZM\Snapshot($id);
   if ( !$snapshot->Id() ) {
     $message[] = 'Snapshot '.$id.' not found.';

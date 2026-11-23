@@ -192,7 +192,7 @@ sub moveRelUpRight {
   my $panstep = $self->getParam( $params, 'panstep' );
   my $tiltstep = $self->getParam( $params, 'tiltstep' );
   Debug("Step Up/Right $tiltstep/$panstep");
-  my $cmd = "/command/ptzf.cgi?relative=0905";
+  my $cmd = "/command/ptzf.cgi?relative=09$panstep";
   $self->sendCmd($cmd);
 }
 
@@ -202,7 +202,7 @@ sub moveRelUpLeft {
   my $panstep = $self->getParam($params, 'panstep');
   my $tiltstep = $self->getParam($params, 'tiltstep');
   Debug("Step Up/Left $tiltstep/$panstep");
-  my $cmd = '/command/ptzf.cgi?relative=0705';
+  my $cmd = "/command/ptzf.cgi?relative=07$panstep";
   $self->sendCmd($cmd);
 }
 
@@ -212,7 +212,7 @@ sub moveRelDownRight {
   my $panstep = $self->getParam($params, 'panstep');
   my $tiltstep = $self->getParam($params, 'tiltstep');
   Debug("Step Down/Right $tiltstep/$panstep");
-  my $cmd = '/command/ptzf.cgi?relative=0305';
+  my $cmd = "/command/ptzf.cgi?relative=03$panstep";
   $self->sendCmd($cmd);
 }
 
@@ -222,7 +222,7 @@ sub moveRelDownLeft {
   my $panstep = $self->getParam( $params, 'panstep');
   my $tiltstep = $self->getParam( $params, 'tiltstep');
   Debug("Step Down/Left $tiltstep/$panstep");
-  my $cmd = '/command/ptzf.cgi?relative=0105';
+  my $cmd = "/command/ptzf.cgi?relative=01$panstep";
   $self->sendCmd($cmd);
 }
 

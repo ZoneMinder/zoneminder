@@ -91,5 +91,55 @@ sub sony_control {
   }
 }
 
+# 3. relative moves send panstep/tiltstep (panstep=12 tiltstep=34)
+{
+  my ($c, $ua) = sony_control();
+  my $params = {panstep => '12', tiltstep => '34'};
+  my @cases = (
+    ['moveRelUpRight', '0912'],
+    ['moveRelUpLeft', '0712'],
+    ['moveRelDownRight', '0312'],
+    ['moveRelDownLeft', '0112'],
+    ['moveRelUp', '0834'],
+    ['moveRelDown', '0234'],
+    ['moveRelLeft', '0412'],
+    ['moveRelRight', '0612'],
+  );
+  for my $case (@cases) {
+    my ($meth, $rel) = @$case;
+    if ($c->can($meth)) {
+      $c->$meth($params);
+      my $url = @{$ua->{reqs}} ? $ua->{reqs}[-1]->uri . '' : '';
+      check("$meth sends /command/ptzf.cgi?relative=$rel (panstep=12 tiltstep=34)",
+        $url, "http://192.168.1.50/command/ptzf.cgi?relative=$rel");
+    } else {
+      check("Sony implements $meth", 0, 1);
+    }
+  }
+}
+
+# 4. relative diagonal moves send panstep (second set panstep=07)
+{
+  my ($c, $ua) = sony_control();
+  my $params = {panstep => '07', tiltstep => '21'};
+  my @cases = (
+    ['moveRelUpRight', '0907'],
+    ['moveRelUpLeft', '0707'],
+    ['moveRelDownRight', '0307'],
+    ['moveRelDownLeft', '0107'],
+  );
+  for my $case (@cases) {
+    my ($meth, $rel) = @$case;
+    if ($c->can($meth)) {
+      $c->$meth($params);
+      my $url = @{$ua->{reqs}} ? $ua->{reqs}[-1]->uri . '' : '';
+      check("$meth sends /command/ptzf.cgi?relative=$rel (panstep=07)",
+        $url, "http://192.168.1.50/command/ptzf.cgi?relative=$rel");
+    } else {
+      check("Sony implements $meth", 0, 1);
+    }
+  }
+}
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

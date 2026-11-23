@@ -33,6 +33,22 @@ class TestUser : public User {
   using User::group_permissions_loaded;
   using User::role_monitor_permissions_loaded;
   using User::role_group_permissions_loaded;
+  using User::group_permissions;
+  using User::monitor_permissions;
+  using User::role_id;
+  using User::role_group_permissions;
+};
+
+class TestGroupPermission : public Group_Permission {
+ public:
+  TestGroupPermission(Group_Permission::Permission p, int monitor_id) {
+    id = 0;
+    group_id = 1;
+    user_id = 1;
+    permission = p;
+    monitor_ids = {monitor_id};
+    monitor_ids_loaded = true;
+  }
 };
 
 }  // namespace
@@ -113,4 +129,63 @@ TEST_CASE("checkUser accepts every name the Username column holds") {
 
   REQUIRE_FALSE(checkUser(""));
   REQUIRE_FALSE(checkUser(euro + "a"));
+}
+
+TEST_CASE("User canAccess denies when any group says None, whatever the order") {
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 6));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 1;
+    user.role_monitor_permissions_loaded = true;
+    user.role_group_permissions_loaded = true;
+    user.group_permissions.clear();
+    user.role_group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+    user.role_group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
 }

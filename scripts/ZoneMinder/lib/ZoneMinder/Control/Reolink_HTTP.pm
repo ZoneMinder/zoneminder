@@ -278,6 +278,7 @@ sub sendApiCmd {
           # rspCode -6 is 'please login first': the camera dropped our token
           # (reboot, session limit, lease cut short), whatever our own expiry says.
           $token_rejected = 1 if defined($response->[0]->{error}) and ($response->[0]->{error}->{rspCode} // 0) == -6;
+          $result = undef;
         }
       }
     };

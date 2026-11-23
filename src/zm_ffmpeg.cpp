@@ -526,6 +526,14 @@ static std::string zm_filter_file_option(const std::string &key, const std::stri
       for (const char *const *k = param_keys; *k; k++) {
         if (name == *k) deny = true;
       }
+      // scaling-list also accepts built-in presets, which do not name a file
+      if (deny and name == "scaling-list") {
+        const size_t eq = item.find('=');
+        if (eq != std::string::npos) {
+          const std::string preset = item.substr(eq + 1);
+          if (preset == "off" or preset == "none" or preset == "flat" or preset == "jvt" or preset == "default") deny = false;
+        }
+      }
       if (deny) {
         Warning("Ignoring file option '%s' in encoder option %s", name.c_str(), key.c_str());
       } else if (!item.empty()) {

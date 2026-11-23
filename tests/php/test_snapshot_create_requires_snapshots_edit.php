@@ -31,6 +31,7 @@ namespace ZM {
       return in_array((int)$w['Id'], $GLOBALS['monitors_exist'], true) ? new Monitor((int)$w['Id']) : null;
     }
     public function Id() { return $this->id; }
+    public function canEdit() { return true; }
     public function TriggerOn() { $GLOBALS['done'][] = 'TriggerOn '.$this->id; return 100 + $this->id; }
     public function TriggerOff() { $GLOBALS['done'][] = 'TriggerOff '.$this->id; }
   }

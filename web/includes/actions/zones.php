@@ -28,12 +28,12 @@ if ($action == 'delete') {
       if (!is_scalar($markZid)) continue;
       $zone = new ZM\Zone(validCardinal($markZid));
       if (!$zone->Id()) {
-        $error_message .= 'Zone not found for id ' . $markZid.'<br/>';
+        $error_message .= 'Zone not found for id ' . validHtmlStr($markZid).'<br/>';
         continue;
       }
       $monitor = $zone->Monitor();
       if (!$monitor->canEdit()) {
-        $error_message .= 'You do not have permission to edit zones for monitor ' . $monitor->Name().'.<br/>';
+        $error_message .= 'You do not have permission to edit zones for monitor ' . validHtmlStr($monitor->Name()).'.<br/>';
         continue;
       }
       if (!$zone->delete()) {

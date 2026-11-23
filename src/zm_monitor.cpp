@@ -4231,6 +4231,13 @@ Event * Monitor::openEvent(
     SetVideoWriterStartTime(packet_lock->packet_->timestamp);
   }
 
+  if (!event->Id()) {
+    Error("Event row was not created, discarding the event");
+    delete event;
+    event = nullptr;
+    return nullptr;
+  }
+
   shared_data->last_event_id = event->Id();
   strncpy(shared_data->alarm_cause, cause.c_str(), sizeof(shared_data->alarm_cause)-1);
 

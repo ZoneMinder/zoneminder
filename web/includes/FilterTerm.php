@@ -638,20 +638,7 @@ class FilterTerm {
         # The logic on this when there are multiple storage areas breaks.  We will just use the first.
         foreach ( $storage_areas as $storage ) {
           Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
-          switch ($this->op) {
-          case '=':
-            return ($storage->disk_usage_percent() == $this->val);
-          case '>':
-            return ($storage->disk_usage_percent() > $this->val);
-          case '<':
-            return ($storage->disk_usage_percent() < $this->val);
-          case '<=':
-            return ($storage->disk_usage_percent() <= $this->val);
-          case '>=':
-            return ($storage->disk_usage_percent() >= $this->val);
-          default:
-            Warning('Invalid op '.$this->op .' for DiskPercent.');
-          }
+          return $this->compare($storage->disk_usage_percent(), $this->op, $this->val);
         } # end foreach Storage Area
       } else if ( $this->attr == 'DiskBlocks' ) {
         # As with DiskPercent, we will just use the first storage area.

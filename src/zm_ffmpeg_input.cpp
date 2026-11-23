@@ -102,7 +102,17 @@ int FFmpeg_Input::Open(const char *filepath) {
       streams[i].codec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
 
       streams[i].context = avcodec_alloc_context3(streams[i].codec);
-      avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+      if (!streams[i].context) {
+        Error("Could not allocate codec context for stream %d", i);
+        continue;
+      }
+      int ret = avcodec_parameters_to_context(streams[i].context, input_format_context->streams[i]->codecpar);
+      if (ret < 0) {
+        Error("Could not copy codec parameters for stream %d (error '%s')",
+            i, av_make_error_string(ret).c_str());
+        avcodec_free_context(&(streams[i].context));
+        continue;
+      }
 
       if (setup_hwaccel(streams[i].context,
             chosen_codec_data, hw_device_ctx, "",

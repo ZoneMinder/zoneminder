@@ -307,7 +307,7 @@ class ZM_Object {
           if ( count($diff) ) {
             $changes[$field] = $value;
           }
-        } else if ( $this->$field() != $value ) {
+        } else if ( scalar_values_differ($this->$field(), $value) ) {
           //Debug("$field != $value");
           $changes[$field] = $value;
         }
@@ -332,7 +332,7 @@ class ZM_Object {
               $value = preg_replace($this->defaults[$field]['filter_regexp'], '', trim($value));
             }
           }
-          if ($this->{$field} != $value) $changes[$field] = $value;
+          if (scalar_values_differ($this->{$field}, $value)) $changes[$field] = $value;
         }
       } else if (array_key_exists($field, $this->defaults)) {
         if (is_array($this->defaults[$field]) and isset($this->defaults[$field]['default'])) {
@@ -341,7 +341,7 @@ class ZM_Object {
           $default = $this->defaults[$field];
         }
 
-        if ($default != $value) $changes[$field] = $value;
+        if (scalar_values_differ($default, $value)) $changes[$field] = $value;
       }
     } # end foreach newvalue
 

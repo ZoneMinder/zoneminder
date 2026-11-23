@@ -49,6 +49,15 @@ class User extends AppModel {
         foreach (array_keys($schema) as $field) {
           $query['fields'][] = $this->alias . '.' . $field;
         }
+        # A field list leaves out joined models unless they are named, so the Role went missing.
+        $recursive = isset($query['recursive']) ? $query['recursive'] : $this->recursive;
+        if ($recursive >= 0) {
+          foreach (array_keys($this->belongsTo) as $assoc) {
+            foreach (array_keys($this->{$assoc}->schema()) as $field) {
+              $query['fields'][] = $assoc . '.' . $field;
+            }
+          }
+        }
         return $query;
       }
       return parent::beforeFind($query);

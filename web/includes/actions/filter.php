@@ -50,6 +50,13 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         ZM\Error('No filter id passed when deleting');
       }
     } else if (( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' )) {
+      if (isset($_REQUEST['filter']['Name'])) {
+        $_REQUEST['filter']['Name'] = trim($_REQUEST['filter']['Name']);
+        if ((($action == 'Save') or ($action == 'SaveAs')) and ($_REQUEST['filter']['Name'] === '')) {
+          $error_message .= 'Filter name is required.<br/>';
+          return;
+        }
+      }
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $limit = validInt($_REQUEST['filter']['Query']['limit']);

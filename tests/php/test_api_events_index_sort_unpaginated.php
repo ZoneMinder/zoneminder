@@ -22,6 +22,18 @@ for ($i = $open; $i < strlen($source); $i++) {
 }
 $method = substr($source, $start, $i - $start + 1);
 $method = preg_replace('/require_once [^;]*;/', '', $method, 1);
+// index() calls these helpers, so take them from the controller too when it has them.
+foreach (array('renameLegacyTimeParams', 'datetimeConditions') as $helper) {
+  $hstart = strpos($source, 'private function '.$helper.'(');
+  if ($hstart === false) continue;
+  $hopen = strpos($source, '{', $hstart);
+  $depth = 0;
+  for ($j = $hopen; $j < strlen($source); $j++) {
+    if ($source[$j] == '{') $depth++;
+    else if ($source[$j] == '}' && --$depth == 0) break;
+  }
+  $method .= "\n".substr($source, $hstart, $j - $hstart + 1);
+}
 
 class BadRequestException extends Exception {}
 eval('namespace ZM; class Event {

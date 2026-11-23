@@ -178,6 +178,13 @@ if ( isset($range) and validInt($range) ) {
     if ( !($range%1) ) {
       $maxTimeT--;
     }
+    // The window cannot extend into the future: slide it back so a pan or zoom keeps its length.
+    if ( $maxTimeT > time() ) {
+      $shiftT = $maxTimeT - time();
+      $minTimeT -= $shiftT;
+      $maxTimeT -= $shiftT;
+      $midTimeT -= $shiftT;
+    }
     $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
     $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);
   } elseif ( isset($minTime) ) {

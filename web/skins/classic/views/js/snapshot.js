@@ -16,6 +16,12 @@ function manageDelConfirmModalBtns() {
             console.error('snapshot delete refused', data.message);
             return;
           }
+          if (Array.isArray(data.message) && data.message.length) {
+            // The server answers Ok and lists the snapshots it could not delete in message.
+            $j('#deleteConfirm').modal('hide');
+            alert(data.message.join('\n'));
+            return;
+          }
           window.location.assign('?view=snapshots');
         })
         .fail(logAjaxFail);

@@ -1337,6 +1337,15 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  // These pointed into the mapping that is gone.
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+  video_store_data = nullptr;
+  shared_timestamps = nullptr;
+  shared_images = nullptr;
+  image_pixelformats = nullptr;
+  analysis_image_pixelformats = nullptr;
+
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];

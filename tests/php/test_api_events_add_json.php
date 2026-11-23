@@ -50,11 +50,12 @@ class FakeEventModel {
   function save($data) { $this->saveCalls++; return $this->saveResult; }
   function validates() { return $this->validatesResult; }
 }
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data = array('Event' => array('MonitorId' => 1));
   function is($type) { return $type === 'post'; }
 }
-eval('class FakeController { public $Event; public $request; public $out; public $flashCalls = 0;
+eval('class FakeController { public $Event; public $request; public $response; public $out; public $flashCalls = 0;
   function requestField($model, $field) { return 1; }
   function requireMonitorView($monitorId) {}
   function pinRequestId($model, $id) {}
@@ -80,12 +81,14 @@ check('flash is not called', $c->flashCalls, 0);
 $c = new FakeController();
 $c->Event = new FakeEventModel();
 $c->request = new FakeRequest();
+$c->response = new FakeResponse();
 $c->Event->saveResult = false;
 $c->Event->validatesResult = false;
 $c->Event->validationErrors = array('Name' => array('bad'));
 $c->add();
 check('a failed save returns the validation errors', field($c->out, 'message'), array('Name' => array('bad')));
 check('a failed save returns a null id', field($c->out, 'id'), null);
+check('a failed save answers 400', $c->response->status, 400);
 
 echo $failures ? "\n$failures failed\n" : "\nall passed\n";
 exit($failures ? 1 : 0);

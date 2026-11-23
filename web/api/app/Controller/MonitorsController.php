@@ -213,6 +213,7 @@ class MonitorsController extends AppController {
       $id = $this->Monitor->id;
     } else {
       $message = 'Error';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if (!$this->Monitor->validates()) {
         $message = $this->Monitor->validationErrors;
@@ -284,6 +285,7 @@ class MonitorsController extends AppController {
           $saved->zmtrackControl('start');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
       }
     } else {

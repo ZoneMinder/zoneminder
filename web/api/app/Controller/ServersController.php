@@ -105,6 +105,7 @@ class ServersController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->Server->validationErrors ? $this->Server->validationErrors : 'Error',
       'id' => null,
@@ -138,6 +139,7 @@ class ServersController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Server->validationErrors ? $this->Server->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

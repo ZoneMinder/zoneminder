@@ -149,6 +149,7 @@ class ZonesController extends AppController {
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
       $message = 'Error: ';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if ( !$this->Zone->validates() ) {
         $message = $this->Zone->validationErrors;
@@ -197,6 +198,7 @@ class ZonesController extends AppController {
           if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
     }

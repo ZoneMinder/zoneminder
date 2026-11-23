@@ -2853,6 +2853,7 @@ function handleKeydownGeneral(evt) {
       if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
       const controls = document.getElementById('replayControls');
       if (controls && isElementReallyVisible(controls)) {
+        evt.preventDefault();
         zoneObjectSize_stepReplay(evt.code === "ArrowRight" ? 1 : -1);
       }
     }

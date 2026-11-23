@@ -86,13 +86,13 @@ if (!$liveMode) {
 echo "\nvar Storage = [];\n";
 $have_storage_zero = 0;
 foreach ( ZM\Storage::find() as $Storage ) {
-  echo 'Storage[' . $Storage->Id() . '] = ' . $Storage->to_json(). ";\n";
+  echo 'Storage[' . $Storage->Id() . '] = ' . json_encode(array('Id' => $Storage->Id(), 'Name' => $Storage->Name(), 'ServerId' => $Storage->ServerId())). ";\n";
   if ( $Storage->Id() == 0 )
     $have_storage_zero = true;
 }
 if ( !$have_storage_zero ) {
   $Storage = new ZM\Storage();
-  echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
+  echo 'Storage[0] = ' . json_encode(array('Id' => $Storage->Id(), 'Name' => $Storage->Name(), 'ServerId' => $Storage->ServerId())). ";\n";
 }
 echo "\nconst monitorData = [];\n";
 foreach ( $monitors as $monitor ) {

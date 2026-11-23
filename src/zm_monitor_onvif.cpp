@@ -211,7 +211,7 @@ ONVIF::ONVIF(Monitor *parent_) :
     url = Url(parent->path);
     url.scheme("http");
     url.path("/onvif/device_service");
-    Debug(1, "ONVIF defaulting url to %s", url.str().c_str());
+    Debug(1, "ONVIF defaulting url to %s", url_for_log(url.str()).c_str());
   }
   event_endpoint_url_ = url.str() + parent->onvif_events_path;
 
@@ -401,7 +401,8 @@ void ONVIF::Subscribe() {
     return;
   }
 
-  Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s", proxyEvent.soap_endpoint);
+  Debug(1, "ONVIF: Creating PullPoint subscription at endpoint: %s",
+        proxyEvent.soap_endpoint ? url_for_log(std::string(proxyEvent.soap_endpoint)).c_str() : "(null)");
   rc = proxyEvent.CreatePullPointSubscription(&request, response);
 
   if (rc != SOAP_OK) {

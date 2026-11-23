@@ -151,7 +151,7 @@ int Monitor::AmcrestAPI::start() {
   // path() would percent-encode a ? into the path, so the query is set on its own.
   full_url.path("/cgi-bin/eventManager.cgi");
   full_url.set_query({{"action", "attach"}, {"heartbeat", "5"}, {"codes", "[All]"}});
-  Debug(1, "AMCREST url is %s", full_url.str().c_str());
+  Debug(1, "AMCREST url is %s", url_for_log(full_url.str()).c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {
     Warning("Handle is null!");
@@ -198,7 +198,7 @@ int Monitor::AmcrestAPI::start() {
     healthy = false;
     Warning("AMCREST Response: %s", response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
-            running_handles, curl_error, full_url.str().c_str());
+            running_handles, curl_error, url_for_log(full_url.str()).c_str());
     long response_code;
     curl_easy_getinfo(Amcrest_handle, CURLINFO_OS_ERRNO, &response_code);
     Warning("AMCREST Response code: %lu", response_code);

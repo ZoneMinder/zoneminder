@@ -214,7 +214,9 @@ sub parseControlAddress {
     }
   }
   if (defined $addressport) {
-    ($address, $port) = split /:/, $addressport, 2;
+    my $p;
+    ($address, $p) = split /:/, $addressport, 2;
+    $port = $p if defined $p && length $p;
   }
 }
 

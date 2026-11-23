@@ -235,8 +235,10 @@ if ($action == 'save') {
             convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
             $zoneChanges = getFormChanges($zone, $newZone, $types);
             if ( count($zoneChanges) ) {
-              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                array($mid, $zone['Id']));
+              if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id'])) ) {
+                $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+              }
             }
             $zone = $newZone;
           }
@@ -256,8 +258,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } # end foreach zone
           } else if ($oldA > 0 && $newA != $oldA) {
@@ -278,8 +282,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } // end foreach zone
           } // end if rotation or just size change
@@ -340,9 +346,14 @@ if ($action == 'save') {
     }
 
     if ( isset($changes['GroupIds']) ) {
-      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
-      foreach ( $changes['GroupIds'] as $group_id ) {
-        dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
+      if ( !dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid)) ) {
+        $error_message .= 'Error clearing groups: '.dbLastError().'<br/>';
+      } else {
+        foreach ( $changes['GroupIds'] as $group_id ) {
+          if ( !dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid)) ) {
+            $error_message .= 'Error adding monitor to group '.validInt($group_id).': '.dbLastError().'<br/>';
+          }
+        }
       }
     } // end if there has been a change of groups
 
@@ -361,12 +372,18 @@ if ($action == 'save') {
 
     if ( count($x10Changes) ) {
       if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
-        dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid));
+        if ( !dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid)) ) {
+          $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+        }
       } else if ( !$user->unviewableMonitorIds() ) {
         if ( !$x10Monitor ) {
-          dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid));
+          if ( !dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         } else {
-          dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid));
+          if ( !dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         }
       }
       $restart = true;

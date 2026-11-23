@@ -64,7 +64,8 @@ class Zone extends ZM_Object {
     $areaCoords = $this->AreaCoords();
     if ($width && $height) {
       $points = coordsToPoints($this->Coords());
-      $isPixel = false;
+      // Percent coordinates are always written with decimals; without any they are pixels
+      $isPixel = strpos($this->Coords(), '.') === false;
       foreach ($points as $point) {
         if ($point['x'] > 100 || $point['y'] > 100) {
           $isPixel = true;

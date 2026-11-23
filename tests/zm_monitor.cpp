@@ -92,12 +92,10 @@ std::shared_ptr<ZMPacket> TestFrame(double age_seconds = 0) {
 TEST_CASE("Monitor::DetectObjects scores, records and draws reported detections", "[Monitor][detector]") {
   config.font_file_location = "data/fonts/04_valid.zmfnt";
   DetectingMonitor monitor;
-  zm::ai::ClassSettings classes;
   zm::ai::ClassSetting car;
   car.report = false;
   car.confidence_threshold = 10;
-  classes["car"] = car;
-  FakeDetector *fake = monitor.UseFake(classes);
+  FakeDetector *fake = monitor.UseFake(zm::ai::ClassSettings{{"car", car}});
 
   SECTION("a reported class raises the score and names the cause") {
     fake->results = {{Det("person", 0.9f), Det("car", 0.95f)}};

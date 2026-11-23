@@ -20,6 +20,7 @@ set(ZM_BIN_SRC_FILES
   zm_monitor_permission.cpp
   zm_mp4_sidx.cpp
   zm_logger.cpp
+  zm_detector.cpp
   zm_event.cpp
   zm_eventstream.cpp
   zm_event_tag.cpp

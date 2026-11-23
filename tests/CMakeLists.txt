@@ -31,6 +31,7 @@ set(TEST_SOURCES
   zm_fifo_stream.cpp
   zm_font.cpp
   zm_hwaccel_candidates.cpp
+  zm_detector.cpp
   zm_image.cpp
   zm_image_annotate.cpp
   zm_image_overlay_rotate.cpp

@@ -51,6 +51,11 @@ use ZoneMinder::Database qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 $table = 'Controls';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
@@ -708,7 +713,7 @@ sub host {
 
   if (!$self->{ua}) {
     require LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   }
   $self->guess_credentials();
   return $$self{host};

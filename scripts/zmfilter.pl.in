@@ -570,7 +570,10 @@ sub uploadArchFile {
         : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
     ;
-  my @archImageFiles = glob($archImagePath);
+  # Not glob(): it splits its pattern on whitespace, so a storage path with a
+  # space in it matches none of the event's files.
+  require File::Glob;
+  my @archImageFiles = File::Glob::bsd_glob($archImagePath);
   my $archLocPath;
 
   my $archError = 0;

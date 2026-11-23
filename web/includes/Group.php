@@ -21,19 +21,19 @@ class Group extends ZM_Object {
   }
 
   public function delete() {
-    if ( property_exists($this, 'Id') ) {
-      dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($this->{'Id'}));
-      # Children move up to this group's parent, read now as an earlier delete may have moved this group.
-      $row = dbFetchOne('SELECT `ParentId` FROM `Groups` WHERE `Id`=?', NULL, array($this->{'Id'}));
-      dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($row ? $row['ParentId'] : null, $this->{'Id'}));
-      dbQuery('DELETE FROM `Groups` WHERE Id=?', array($this->{'Id'}));
-      if ( isset($_COOKIE['zmGroup']) ) {
-        if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
-          unset($_COOKIE['zmGroup']);
-          zm_setcookie('zmGroup', '');
-        }
+    if ( !property_exists($this, 'Id') or !$this->{'Id'} ) return false;
+    if ( !dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($this->{'Id'})) ) return false;
+    # Children move up to this group's parent, read now as an earlier delete may have moved this group.
+    $row = dbFetchOne('SELECT `ParentId` FROM `Groups` WHERE `Id`=?', NULL, array($this->{'Id'}));
+    if ( !dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($row ? $row['ParentId'] : null, $this->{'Id'})) ) return false;
+    if ( !dbQuery('DELETE FROM `Groups` WHERE Id=?', array($this->{'Id'})) ) return false;
+    if ( isset($_COOKIE['zmGroup']) ) {
+      if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
+        unset($_COOKIE['zmGroup']);
+        zm_setcookie('zmGroup', '');
       }
     }
+    return true;
   } # end function delete()
 
   public function depth( $new = null ) {

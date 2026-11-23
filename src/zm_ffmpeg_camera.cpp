@@ -462,7 +462,7 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
     if (ret < 0) {
       Error("Could not parse ffmpeg input options '%s'. Options must be key=value pairs separated by commas or "
-            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", mOptions.c_str());
+            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", options_for_log(mOptions).c_str());
     }
 
     // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which

@@ -96,14 +96,18 @@ int AlarmScore(const std::vector<Detection> &detections, const ClassSettings &se
   return static_cast<int>(std::lround(std::clamp(best, 0.0f, 1.0f) * 100));
 }
 
-std::string AlarmCause(const std::vector<Detection> &detections, const ClassSettings &settings) {
+std::vector<std::string> ReportedLabels(const std::vector<Detection> &detections, const ClassSettings &settings) {
   std::vector<std::string> labels;
   for (const Detection &detection : detections) {
     if (detection.label.empty() or !Reports(settings, detection.label)) continue;
     if (std::find(labels.begin(), labels.end(), detection.label) == labels.end())
       labels.push_back(detection.label);
   }
-  return Join(labels, ", ");
+  return labels;
+}
+
+std::string AlarmCause(const std::vector<Detection> &detections, const ClassSettings &settings) {
+  return Join(ReportedLabels(detections, settings), ", ");
 }
 
 bool InferenceBehind(bool was_behind, double lag_seconds, double behind_seconds) {

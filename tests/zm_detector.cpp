@@ -86,6 +86,7 @@ TEST_CASE("Only reported classes alarm, scored by the most confident", "[detecto
 
   CHECK(zm::ai::AlarmScore(found, settings) == 90);
   CHECK(zm::ai::AlarmCause(found, settings) == "person, dog");
+  CHECK(zm::ai::ReportedLabels(found, settings) == std::vector<std::string>{"person", "dog"});
   CHECK(zm::ai::AlarmScore({Det("car", 0.95f)}, settings) == 0);
   CHECK(zm::ai::AlarmCause({Det("car", 0.95f)}, settings).empty());
   CHECK(zm::ai::AlarmScore({}, settings) == 0);
@@ -100,17 +101,21 @@ TEST_CASE("InferenceBehind falls behind at the threshold and recovers under half
 
 TEST_CASE("DrawDetections outlines each detection in its class colour", "[detector]") {
   config.font_file_location = "data/fonts/04_valid.zmfnt";
-  Image image(32, 24, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  // Labels are drawn inside the top left of each box, in whichever font the
+  // test binary loaded first, so check the bottom of the left edges.
+  Image image(160, 120, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
   image.Clear();
   ClassSettings settings;
   ClassSetting blue = Setting(true, 50);
   blue.box_color = kRGBBlue;
   settings["car"] = blue;
 
-  zm::ai::DrawDetections(image, {Det("person", 0.9f, 2, 2, 10, 8), Det("car", 0.9f, 16, 12, 10, 8)}, settings, 1);
-  CHECK(image.Buffer(2, 6)[0] == 0xff);    // person: default red, left edge
-  CHECK(image.Buffer(16, 16)[2] == 0xff);  // car: blue, left edge
-  CHECK(image.Buffer(16, 16)[0] == 0);
+  zm::ai::DrawDetections(image, {Det("person", 0.9f, 2, 2, 40, 50), Det("car", 0.9f, 80, 60, 40, 50)}, settings, 1);
+  CHECK(image.Buffer(2, 50)[0] == 0xff);    // person: default red
+  CHECK(image.Buffer(2, 50)[2] == 0);
+  CHECK(image.Buffer(80, 108)[2] == 0xff);  // car: blue
+  CHECK(image.Buffer(80, 108)[0] == 0);
+  CHECK(image.Buffer(150, 10)[0] == 0);     // nothing drawn outside the boxes
 }
 
 #if ZM_HAS_NLOHMANN_JSON

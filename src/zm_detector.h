@@ -122,7 +122,9 @@ std::vector<Detection> FilterDetections(const std::vector<Detection> &detections
 // The alarm score for detections: the highest confidence of a class that
 // reports, as a percentage, or 0 when none does.
 int AlarmScore(const std::vector<Detection> &detections, const ClassSettings &settings);
-// The classes that report, each once, in the order first seen: "person, dog".
+// The classes that report, each once, in the order first seen.
+std::vector<std::string> ReportedLabels(const std::vector<Detection> &detections, const ClassSettings &settings);
+// ReportedLabels() as the alarm cause: "person, dog".
 std::string AlarmCause(const std::vector<Detection> &detections, const ClassSettings &settings);
 
 // Whether inference should be skipped because it has fallen lag_seconds

@@ -682,6 +682,20 @@ function queryRequest() {
   return $data;
 }
 
+// Remove camera credentials from an exported monitor for users who cannot edit it.
+function exportStripCredentials(array $data) {
+  unset($data['User'], $data['Pass'], $data['ONVIF_Username'], $data['ONVIF_Password']);
+  if (isset($data['Host'])) {
+    $data['Host'] = preg_replace('/^[^@\/]*@/', '', $data['Host']);
+  }
+  foreach (array('Path', 'SecondPath') as $field) {
+    if (isset($data[$field])) {
+      $data[$field] = preg_replace('#://[^@/]*@#', '://', $data[$field]);
+    }
+  }
+  return $data;
+}
+
 function exportMonitorsJSON() {
   require_once('includes/Monitor.php');
   require_once('includes/Zone.php');
@@ -750,6 +764,10 @@ function exportMonitorsJSON() {
         unset($zone_data[$field]);
       }
       $monitor_data['Zones'][] = $zone_data;
+    }
+
+    if (!editableMonitor($db_row['Id'])) {
+      $monitor_data = exportStripCredentials($monitor_data);
     }
 
     $export['monitors'][] = $monitor_data;

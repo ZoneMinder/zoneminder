@@ -963,7 +963,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -1097,7 +1097,7 @@ sub fix_DefaultVideo {
     Debug('Have ' . @contents . ' files in '.$path);
     closedir(DIR);
 
-    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
     if ( @mp4_files ) {
       $$event{DefaultVideo} = $mp4_files[0];
     }

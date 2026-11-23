@@ -176,6 +176,9 @@ unsigned char*  H26X_ZoneMinderStreamSource::extractFrame(unsigned char* frame, 
   unsigned char *startFrame = nullptr;
   if (size >= 3)
     startFrame = this->findMarker(frame, size, markerLength);
+  // A start code that ends the data has no NAL header byte after it to read.
+  if (startFrame != nullptr and static_cast<size_t>(startFrame - frame) + markerLength >= size)
+    startFrame = nullptr;
   if (startFrame != nullptr) {
     size_t endMarkerLength = 0;
     Debug(4, "startFrame: %p marker Length %zu", startFrame, markerLength);

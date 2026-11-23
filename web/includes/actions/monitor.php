@@ -392,6 +392,14 @@ if ($action == 'save') {
         continue;
       }
 
+      # The same right ajax/control.php demands when an action is fired by hand.
+      # Without it a user who may edit this monitor could store an action whose
+      # alarms drive a light or speaker on a monitor they have no Control over.
+      if ( !canView('Control', $target) ) {
+        $error_message .= 'Ignoring action: no Control permission on monitor '.validInt($target).'.<br/>';
+        continue;
+      }
+
       # Never store an action the target cannot perform. The editor filters the
       # dropdown, but the request is not to be trusted. A disabled select is
       # not submitted at all, so the key may simply be absent.

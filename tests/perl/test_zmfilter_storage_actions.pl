@@ -30,6 +30,7 @@ package main;
 
 our %Config;
 sub Debug {} sub Info {} sub Warning {} sub Error {}
+sub zmDbExecute { $saves++; return 1; }
 
 my $file = $ENV{ZMFILTER_IN} || "$FindBin::Bin/../../scripts/zmfilter.pl.in";
 open(my $fh, '<', $file) or die "Can't read $file: $!";

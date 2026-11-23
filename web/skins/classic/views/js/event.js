@@ -22,7 +22,11 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
-var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+// Seconds per frame for video.js frame stepping, from the event as it is now. Without a usable frame count (an event still recording has none) assume 25 fps.
+function frameSeconds() {
+  const spf = parseFloat(eventData.Length) / parseFloat(eventData.Frames);
+  return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
+}
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
@@ -673,7 +677,7 @@ function streamFastFwd(action) {
 
 function streamSlowFwd(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + frameSeconds());
   } else {
     streamReq({command: CMD_SLOWFWD});
   }
@@ -681,7 +685,7 @@ function streamSlowFwd(action) {
 
 function streamSlowRev(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() - spf);
+    vid.currentTime(vid.currentTime() - frameSeconds());
   } else {
     streamReq({command: CMD_SLOWREV});
   }

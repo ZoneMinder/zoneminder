@@ -84,6 +84,9 @@ function load(loadedTab) {
 
   const pillBindings = [];
   const noop = {
+    ajaxSuccess: function() {
+      return this;
+    },
     on: function() {
       return this;
     },

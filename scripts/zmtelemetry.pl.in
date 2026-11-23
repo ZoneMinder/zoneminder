@@ -98,15 +98,11 @@ if (defined $interval) {
   }
 }
 
-if (!($Config{ZM_TELEMETRY_DATA} or $force)) {
-  print("ZoneMinder Telemetry Agent not enabled.  Exiting.\n");
-  exit(0);
-}
-
 print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 $lastCheck = 0 if !defined($lastCheck) or $lastCheck eq '';
+my $wasEnabled;
 
 while (1) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
@@ -115,6 +111,18 @@ while (1) {
       #What we do here is not that important, so just skip this interval
       sleep($interval);
     }
+  }
+  # The setting can be turned off in the web UI while this daemon is running
+  # Do not exit when it is off: zmdc restarts a daemon that exits, so stay
+  # running, upload nothing and look again after the interval.
+  my $enabled = telemetryEnabled($dbh, $force);
+  if (!defined($wasEnabled) or $enabled != $wasEnabled) {
+    Info($enabled ? 'ZoneMinder Telemetry Agent enabled.' : 'ZoneMinder Telemetry Agent disabled, not uploading.');
+    $wasEnabled = $enabled;
+  }
+  if (!$enabled) {
+    sleep($interval);
+    next;
   }
   my $now = time();
   my $since_last_check = $now - $lastCheck;
@@ -150,6 +158,14 @@ exit(0);
 ###############
 # SUBROUTINES #
 ###############
+
+# Whether ZM_TELEMETRY_DATA is still on in the database
+sub telemetryEnabled {
+  my ($dbh, $force) = @_;
+  return 1 if $force;
+  my ($value) = $dbh->selectrow_array('SELECT `Value` FROM `Config` WHERE `Name` = ?', undef, 'ZM_TELEMETRY_DATA');
+  return $value ? 1 : 0;
+}
 
 # collect data to send
 sub collectData {

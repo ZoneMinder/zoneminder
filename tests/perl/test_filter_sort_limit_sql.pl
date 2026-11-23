@@ -76,4 +76,13 @@ $sql = build_sql({sort_field => 'Id IS NULL; DROP TABLE Events'});
 check('sort_field with statement separator and NULL check is ignored',
   $sql !~ /ORDER BY/, $sql);
 
+$sql = build_sql({sort_field => 'MonitorName, StartDateTime', sort_asc => 1, limit => 0});
+check('multi-part MonitorName maps to M.Name', scalar($sql =~ /ORDER BY M\.Name, E\.StartDateTime ASC/), $sql);
+
+$sql = build_sql({sort_field => 'StartTime DESC, Secs', sort_asc => 1, limit => 0});
+check('multi-part StartTime and Secs map to their Events columns', scalar($sql =~ /ORDER BY E\.StartDateTime DESC, E\.Length ASC/), $sql);
+
+$sql = build_sql({sort_field => 'Tags, Id', sort_asc => 1, limit => 0});
+check('multi-part Tags maps to the tag subselect', scalar($sql =~ /GROUP_CONCAT\(Name\).*, E\.Id ASC/), $sql);
+
 exit($failures ? 1 : 0);

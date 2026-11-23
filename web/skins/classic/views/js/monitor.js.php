@@ -60,7 +60,9 @@ function validateForm(form) {
 
   // No monitor input should have whitespace at beginning or end, so strip them out first.
   for (let i=0; i<elements.length; i++) {
-    if (elements[i].nodeName != 'SELECT') {
+    // Passwords may legitimately start or end with a space, and the camera password fields are text inputs masked by the masked-input class, so leave those untouched.
+    const isPassword = elements[i].type == 'password' || (elements[i].classList && elements[i].classList.contains('masked-input'));
+    if (elements[i].nodeName != 'SELECT' && !isPassword) {
       elements[i].value = elements[i].value.trim();
     }
   }

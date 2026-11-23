@@ -544,6 +544,33 @@ svg circle {
 .zone-type-inactive   { color: #7f8c8d !important; font-weight: bold; }
 .zone-type-privacy    { color: #222222 !important; font-weight: bold; }
 
+#zoneTestBtn {margin-top: 5px;}
+/* Allow text wrapping within the selected Chosen element */
+#zoneTestEvent_chosen .chosen-single {
+  height: auto !important;
+  white-space: normal !important;
+}
+
+#zoneTestEvent_chosen .chosen-single span {
+  white-space: normal !important;
+  word-break: break-word;
+  margin-right: 20px; /* Leave space for an arrow */
+}
+
+/* Align the arrow vertically to the center */
+#zoneTestEvent_chosen .chosen-single div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  top: 0;
+}
+
+#zoneTestEvent_chosen .chosen-single div b {
+  height: 18px; /* We record the height of the arrow sprite itself. */
+  background-position: 0 2px;
+}
+
 /* Narrow screens: stack the columns and size the feed from the width again */
 @media (max-width: 900px) {
   #zoneForm {

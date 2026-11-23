@@ -138,6 +138,21 @@ function process_dnsmasq_configfile($configFile) {
   return $our_configvals;
 }
 
+function dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter) {
+  # The name comes from the DHCP client, so it and the other lease fields are escaped.
+  $name = validHtmlStr($lease['name']);
+  $mac = validHtmlStr($lease['mac']);
+  $ip = validHtmlStr($lease['ip']);
+  return '
+<tr>
+  <td class="hostname">'.$name.'</td>
+  <td class="mac">'.$mac.'</td>
+  <td class="ip"><input type="text" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" name="config[dhcp-host]['.$mac.']" value="'.$ip.'"/></td>
+  <td class="expiry">'.($lease['expiry'] == 0 ? translate('Never') : $dateTimeFormatter->format((int)$lease['expiry'])).'</td>
+  <td class="Monitor">'.(isset($monitors_by_ip[$lease['ip']]) ? $monitors_by_ip[$lease['ip']]->link_to() : '').'</td>
+</tr>';
+}
+
 function read_leasefile($file) {
   $leases = [];
   $contents = @file_get_contents($file);
@@ -190,14 +205,7 @@ foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
 }
 $leases = read_leasefile('/var/lib/misc/dnsmasq.leases');
 foreach ($leases as $lease) {
-  echo '
-<tr>
-  <td class="hostname">'.$lease['name'].'</td>
-  <td class="mac">'.$lease['mac'].'</td>
-  <td class="ip"><input type="text" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" name="config[dhcp-host]['.$lease['mac'].']" value="'.$lease['ip'].'"/></td>
-  <td class="expiry">'.($lease['expiry'] == 0 ? translate('Never') : $dateTimeFormatter->format((int)$lease['expiry'])).'</td>
-  <td class="Monitor">'.(isset($monitors_by_ip[$lease['ip']]) ? $monitors_by_ip[$lease['ip']]->link_to() : '').'</td>
-</tr>';
+  echo dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter);
 } # end foreach
 ?>
   </tbody>

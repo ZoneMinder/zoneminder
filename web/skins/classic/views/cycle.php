@@ -168,7 +168,7 @@ echo $navbar = getNavBarHTML();
           <ul class="nav nav-pills flex-column h-100">
   <?php
   foreach ( $monitors as $m ) {
-            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.validHtmlStr($m->Name()).'</a></li>';
   }
   ?>
           </ul>

@@ -1522,7 +1522,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
                            tmpPicture->linesize, directbuffer,
                            imagePixFormat, width, height, 1);
 
-      sws_scale(
+      if (sws_scale(
         imgConversionContext,
         capturePictures[capture_frame]->data,
         capturePictures[capture_frame]->linesize,
@@ -1530,7 +1530,10 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         height,
         tmpPicture->data,
         tmpPicture->linesize
-      );
+      ) < 0) {
+        Error("Unable to convert the captured image with sws_scale");
+        return -1;
+      }
     } else if (conversion_type == 2) {
       Debug(9, "Calling the conversion function");
       /* Call the image conversion function and convert directly into the shared memory */

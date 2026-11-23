@@ -56,6 +56,22 @@ class ProbeEventStream : public EventStream {
   int frameId() const { return curr_frame_id; }
   void rate(int r) { replay_rate = r; }
   SystemTimePoint startTime() const { return event_data->start_time; }
+  // Fills a CmdMsg the way the UI does for a seek: the command byte, then a
+  // 4-byte big-endian seconds field and a 4-byte big-endian microseconds field.
+  void seek(uint32_t seconds, uint32_t micros) {
+    CmdMsg msg = {};
+    msg.msg_type = MSG_CMD;
+    msg.msg_data[0] = static_cast<char>(CMD_SEEK);
+    msg.msg_data[1] = static_cast<char>((seconds >> 24) & 0xff);
+    msg.msg_data[2] = static_cast<char>((seconds >> 16) & 0xff);
+    msg.msg_data[3] = static_cast<char>((seconds >> 8) & 0xff);
+    msg.msg_data[4] = static_cast<char>(seconds & 0xff);
+    msg.msg_data[5] = static_cast<char>((micros >> 24) & 0xff);
+    msg.msg_data[6] = static_cast<char>((micros >> 16) & 0xff);
+    msg.msg_data[7] = static_cast<char>((micros >> 8) & 0xff);
+    msg.msg_data[8] = static_cast<char>(micros & 0xff);
+    processCommand(&msg);
+  }
 };
 
 }  // namespace
@@ -136,6 +152,43 @@ TEST_CASE("event= with a time starts on the last frame at or before it", "[Event
     stream.loadFrameTimes({Milliseconds(0), Milliseconds(100), Milliseconds(200)}, Milliseconds(500));
     stream.start(stream.startTime() + Milliseconds(450));
     CHECK(stream.frameId() == 3);
+  }
+}
+
+TEST_CASE("CMD_SEEK to an offset inside the event lands on the last frame at or before it", "[EventStreamCmd]") {
+  ProbeEventStream stream;
+  stream.loadFrames(10, Seconds(1));
+  stream.start(stream.startTime());
+  CHECK(stream.frameId() == 1);
+
+  SECTION("a whole-second offset") {
+    stream.seek(3, 0);
+    CHECK(stream.frameId() == 4);
+  }
+  SECTION("an offset between two frames") {
+    stream.seek(2, 500000);
+    CHECK(stream.frameId() == 3);
+  }
+}
+
+TEST_CASE("CMD_SEEK to a huge offset is clamped to the end of the event", "[EventStreamCmd]") {
+  // The offset fields used to be read as signed int shifts, so a first byte
+  // >= 128 wrapped negative and the seek was refused with "Invalid offset",
+  // leaving the stream on its current frame. As uint32_t the offset is huge
+  // but positive, so it clamps to the event duration and seeks to the last
+  // frame.
+  ProbeEventStream stream;
+  stream.loadFrames(10, Seconds(1));
+  stream.start(stream.startTime() + Seconds(2));
+  CHECK(stream.frameId() == 3);
+
+  SECTION("0x80000000 seconds") {
+    stream.seek(0x80000000u, 0);
+    CHECK(stream.frameId() == 10);
+  }
+  SECTION("0xffffffff seconds") {
+    stream.seek(0xFFFFFFFFu, 0);
+    CHECK(stream.frameId() == 10);
   }
 }
 

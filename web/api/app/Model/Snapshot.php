@@ -81,10 +81,16 @@ class Snapshot extends AppModel {
   public function beforeSave($options = array()) {
     if (!$this->id) {
       global $user;
-      if (empty($this->data[$this->alias]['CreatedBy']) and $user)
+      if ($user) {
         $this->data[$this->alias]['CreatedBy'] = $user->Id();
-      if (empty($this->data[$this->alias]['CreatedOn']))
-        $this->data[$this->alias]['CreatedOn'] = date('Y-m-d H:i:s');
+      } else {
+        unset($this->data[$this->alias]['CreatedBy']);
+      }
+      $this->data[$this->alias]['CreatedOn'] = date('Y-m-d H:i:s');
+    } else {
+      // Ownership and creation time are immutable once set.
+      unset($this->data[$this->alias]['CreatedBy']);
+      unset($this->data[$this->alias]['CreatedOn']);
     }
     return true;
   }

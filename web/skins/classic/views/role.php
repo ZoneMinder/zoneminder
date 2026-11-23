@@ -28,7 +28,8 @@ require_once('includes/Group.php');
 require_once('includes/Role_Group_Permission.php');
 
 if (isset($_REQUEST['rid']) and $_REQUEST['rid']) {
-  if (!($Role = new ZM\User_Role(validCardinal($_REQUEST['rid'])))) {
+  $Role = new ZM\User_Role(validCardinal($_REQUEST['rid']));
+  if (!$Role->Id()) {
     $view = 'error';
     return;
   }

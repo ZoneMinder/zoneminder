@@ -107,7 +107,7 @@ switch ( $_REQUEST['action'] ) {
     if (dbFetchOne('SELECT Id FROM Tags WHERE LOWER(Name) = LOWER(?) AND Id != ?', 'Id', array($tagName, $tagId))) {
       ajaxError('A tag named '.validHtmlStr($tagName).' already exists');
     }
-    dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId));
+    if (!dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId))) ajaxError('Failed to rename tag');
     ajaxResponse();
     break;
   case 'deletetag' :
@@ -120,7 +120,7 @@ switch ( $_REQUEST['action'] ) {
     if (dbFetchOne('SELECT TagId FROM Events_Tags WHERE TagId = ? LIMIT 1', 'TagId', array($tagId))) {
       ajaxError('The tag is still on events and cannot be deleted');
     }
-    dbQuery('DELETE FROM Tags WHERE Id = ?', array($tagId));
+    if (!dbQuery('DELETE FROM Tags WHERE Id = ?', array($tagId))) ajaxError('Failed to delete tag');
     ajaxResponse();
     break;
 } // end switch action

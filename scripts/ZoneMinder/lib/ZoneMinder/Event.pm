@@ -279,6 +279,8 @@ sub GenerateVideo {
   # Name is user editable; keep the output file inside the event directory.
   ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
   $video_name =~ s/^[-.]/_/;
+  # An empty name would make the output file start with '-', which ffmpeg reads as an option.
+  $video_name = 'Event' if $video_name eq '';
 
   my @file_parts;
   if ( $rate ) {

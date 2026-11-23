@@ -303,11 +303,11 @@ $writeActions = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
 $postRequired = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
 
 if (in_array($action, $readActions) && !canView('Events')) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 if (in_array($action, $writeActions) && !canEdit('Events')) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 if (in_array($action, $postRequired) && $_SERVER['REQUEST_METHOD'] !== 'POST') {

@@ -104,8 +104,12 @@ if ($action == 'Save') {
       if (isset($_POST['group_permission']) and isset($_POST['group_permission'][$g->Id()])) {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
-          $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
-          $g->Permissions(null); # reload
+          if (!$permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]))) {
+            $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+            unset($_REQUEST['redirect']);
+          } else {
+            $g->Permissions(null); # reload
+          }
         }
       }
     }
@@ -116,7 +120,10 @@ if ($action == 'Save') {
           $permission = $dbUser->Monitor_Permission($m->Id());
           $new_permission = $_POST['monitor_permission'][$m->Id()];
           if ($permission->Permission() != $new_permission) {
-            $permission->save(['Permission'=>$new_permission]);
+            if (!$permission->save(['Permission'=>$new_permission])) {
+              $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+              unset($_REQUEST['redirect']);
+            }
           }
         }
       }

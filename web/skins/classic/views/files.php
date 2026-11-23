@@ -31,13 +31,41 @@ if (!$path) {
 }
 
 $is_ok_path = false;
+$real_bases = array();
 if ($path) {
-  foreach ($storage_areas as $storage) {
-    $rc = strstr($path, $storage->Path(), true);
-    if ((false !== $rc) and ($rc == '')) {
-      # Must be at the beginning
-      $is_ok_path = true;
-      break;
+  # Resolve the request first so a '.' or '..' segment cannot pass the folder checks and then
+  # resolve to the storage root. A path that does not resolve is refused.
+  $real = realpath($path);
+  if ($real !== false) {
+    foreach ($storage_areas as $storage) {
+      $base = realpath($storage->Path());
+      if ($base === false) continue;
+      $base = rtrim($base, '/');
+      if ($real === $base or strpos($real, $base.'/') === 0) {
+        $is_ok_path = true;
+        $real_bases[] = $base;
+      }
+    }
+  }
+  if ($is_ok_path) $path = $real;
+  # Without System view, only an event folder of a monitor the user can view,
+  # which is where the event page links to.
+  if ($is_ok_path and !canView('System')) {
+    $visible = false;
+    foreach ($real_bases as $base) {
+      if (strpos($path, $base.'/') !== 0) continue;
+      $parts = explode('/', substr($path, strlen($base) + 1));
+      if (ctype_digit($parts[0])) {
+        $monitor = ZM\Monitor::find_one(['Id'=>$parts[0]]);
+        if ($monitor and $monitor->canView()) {
+          $visible = true;
+          break;
+        }
+      }
+    }
+    if (!$visible) {
+      $view = 'error';
+      return;
     }
   }
   if ($is_ok_path) {

@@ -41,6 +41,8 @@ if (count( $user->unviewableMonitorIds())) {
 # can't be expressed as event terms. Null = no such filter active. refs #4976
 $attr_monitor_ids = getFilteredMonitorIds();
 if ($attr_monitor_ids !== null) {
+  // An empty list drops out of the query as a term, so match nothing with an id no monitor has.
+  if (!count($attr_monitor_ids)) $attr_monitor_ids = array(0);
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$attr_monitor_ids));
 }
 // TODO: Why is $user->viewableMonitorIds() returning $user->unviewableMonitorIds()
@@ -386,7 +388,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     if (count($advsearch) or $search != '') {
       $search_filter = new ZM\Filter();
-      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>(count($event_ids) ? $event_ids : array(0))));
 
       // There are two search bars in the log view, normal and advanced
       // Making an exuctive decision to ignore the normal search, when advanced search is in use

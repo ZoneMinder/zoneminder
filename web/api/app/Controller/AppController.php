@@ -200,7 +200,7 @@ class AppController extends Controller {
 
   # Monitor columns that hold, or can hold, camera credentials.
   protected function monitorCredentialColumns() {
-    return array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password', 'Host', 'Path', 'SecondPath', 'ONVIF_URL');
+    return array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password', 'Host', 'Path', 'SecondPath', 'ONVIF_URL', 'ControlAddress');
   }
 
   # Camera credentials are for users who can edit the monitor.
@@ -209,7 +209,7 @@ class AppController extends Controller {
     foreach (array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password') as $field) {
       if (isset($row[$field])) $row[$field] = '';
     }
-    foreach (array('Host', 'Path', 'SecondPath', 'ONVIF_URL') as $field) {
+    foreach (array('Host', 'Path', 'SecondPath', 'ONVIF_URL', 'ControlAddress') as $field) {
       if (!empty($row[$field])) $row[$field] = preg_replace('#^([a-z][a-z0-9+.-]*://)?[^/?\#]*@#i', '$1', $row[$field]);
     }
     return $row;

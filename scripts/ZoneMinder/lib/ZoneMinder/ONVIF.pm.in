@@ -124,7 +124,7 @@ sub interpret_messages {
       foreach my $l_xaddr (split ' ', $probe_match->get_XAddrs()) {
 #   find IPv4 address
         print "l_xaddr = $l_xaddr\n" if $verbose;
-        if ( $l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]| ) {
+        if ( $l_xaddr =~ m{^https?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(?::[0-9]+)?(?:/|$)} ) {
           $xaddr = $l_xaddr;
           last;
         } else {

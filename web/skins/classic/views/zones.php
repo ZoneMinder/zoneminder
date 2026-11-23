@@ -41,7 +41,8 @@ if ( !($mids and count($mids)) ) {
   return;
 }
 $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
-$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]); }));
+# A monitor the user may not view is left out, as a monitor that does not exist is.
+$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]) and $monitors[$mid]->canView(); }));
 if ( !count($mids) ) {
   $view = 'error';
   return;

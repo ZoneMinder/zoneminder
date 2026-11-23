@@ -102,7 +102,8 @@ function processRows(rows) {
         '<br/><div class="small text-muted">' + archived + emailed + '</div>';
     if ( typeof canView !== 'undefined' && canView.Events ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     const notes = row.Notes || '';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    const notesTitle = notes.replace(/<br\s*\/?>/gi, '\n');
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notesTitle + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + notes + '</u></div></div></a>';
     } else if ( notes && notes != 'Forced Web: ' ) {

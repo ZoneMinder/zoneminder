@@ -44,7 +44,11 @@ function validInt($v) { return (int)$v; }
 function validJsStr($v) { return addslashes($v); }
 function validHtmlStr($v) { return htmlspecialchars($v); }
 
-require_once __DIR__.'/../../web/includes/control_functions.php';
+// The path to control_functions.php can be overridden (e.g. to test the
+// pre-fix version) via the ZM_TEST_CONTROL_FUNCTIONS environment variable.
+$zm_control_functions = getenv('ZM_TEST_CONTROL_FUNCTIONS');
+if (!$zm_control_functions) $zm_control_functions = __DIR__.'/../../web/includes/control_functions.php';
+require_once $zm_control_functions;
 require_once __DIR__.'/../../web/includes/Object.php';
 require_once __DIR__.'/../../web/includes/Control.php';
 
@@ -236,6 +240,29 @@ foreach ($map as $orientation => $want) {
   preg_match('/--xcoord=\S+ --ycoord=\S+/', $cmd, $m);
   check("moveMap $orientation sends $want", isset($m[0]) ? $m[0] : $cmd, $want);
 }
+
+// ----------------------------------------------------------------------------
+// Test 10: movePseudoMap & moveConMap with a monitor of zero size must not
+// divide by zero (DivisionByZeroError on PHP 8), but log and return ''
+// ----------------------------------------------------------------------------
+$monZero = new MockMonitor('ROTATE_0', $ctrl, 0, 0);
+foreach (array('movePseudoMap', 'moveConMap') as $mapControl) {
+  $_REQUEST = array('control' => $mapControl, 'x' => 120, 'y' => 160, 'scale' => 100);
+  $threw = '';
+  $cmd = null;
+  try {
+    $cmd = buildControlCommand($monZero);
+  } catch ( Throwable $e ) {
+    $threw = get_class($e).': '.$e->getMessage();
+  }
+  check("$mapControl with zero ViewWidth/ViewHeight does not throw", $threw, '');
+  check("$mapControl with zero ViewWidth/ViewHeight returns empty command", $cmd, '');
+}
+
+// Control case: a monitor with non-zero size still builds a real command.
+$_REQUEST = array('control' => 'movePseudoMap', 'x' => 120, 'y' => 160, 'scale' => 100);
+$cmd = buildControlCommand(new MockMonitor('ROTATE_0', $ctrl, 640, 480));
+check('movePseudoMap with non-zero ViewWidth/ViewHeight still returns a command', strpos($cmd, '--command=') !== false, true);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

@@ -693,6 +693,12 @@ function exportStripCredentials(array $data) {
       $data[$field] = preg_replace('#://[^@/]*@#', '://', $data[$field]);
     }
   }
+  if (isset($data['ControlAddress'])) {
+    $data['ControlAddress'] = preg_replace('/^[^@\/]*@/', '', $data['ControlAddress']);
+  }
+  if (isset($data['ONVIF_URL'])) {
+    $data['ONVIF_URL'] = preg_replace('#://[^@/]*@#', '://', $data['ONVIF_URL']);
+  }
   return $data;
 }
 

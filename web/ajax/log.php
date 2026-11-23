@@ -228,7 +228,7 @@ function logFilter() {
     foreach ($requestComponents as $component) $query['values'][] = $component;
   }
 
-  if (!empty($_REQUEST['ServerId'])) {
+  if (!empty($_REQUEST['ServerId']) && is_scalar($_REQUEST['ServerId'])) {
     $requested = true;
     if ($where) $where .= ' AND ';
     $where .= 'ServerId = ?';

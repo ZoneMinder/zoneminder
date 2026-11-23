@@ -22,6 +22,8 @@ class TagOrder {
   // rather than propagated, so a bad row heals itself on next write instead
   // of silently freezing (this was bug #4 in the client-side version).
   public static function load($userId) {
+    if ($userId === null || (int)$userId <= 0) return array();
+
     $row = dbFetchOne(
       'SELECT Value FROM User_Preferences WHERE UserId = ? AND Name = ?',
       NULL,
@@ -40,6 +42,8 @@ class TagOrder {
   // Moves $tagId to the front of the user's recency list, trims to
   // MAX_ENTRIES, and persists it.
   public static function recordUsage($userId, $tagId) {
+    if ($userId === null || (int)$userId <= 0) return;
+
     $tagId = (int)$tagId;
     if ($tagId <= 0) return;
 

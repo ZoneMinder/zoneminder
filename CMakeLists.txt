@@ -711,6 +711,13 @@ else()
   message(AUTHOR_WARNING "nlohmann_json headers weren't found - AI results will not be available")
 endif()
 
+# Object detection backends compiled into zmc, for the web UI to offer.
+set(ZM_OBJECT_DETECTORS "")
+if(HAVE_LIBCURL AND ZM_HAS_NLOHMANN_JSON)
+  list(APPEND ZM_OBJECT_DETECTORS "http")
+endif()
+string(REPLACE ";" "," ZM_OBJECT_DETECTORS_CSV "${ZM_OBJECT_DETECTORS}")
+
 # Check for mmap and enable in all components
 set(ZM_MEM_MAPPED 0)
 set(ENABLE_MMAP no)

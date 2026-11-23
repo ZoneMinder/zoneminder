@@ -757,9 +757,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
     col++;
     ai.model = dbrow[col] ? dbrow[col] : "";
     col++;
-    ai.object_threshold = dbrow[col] ? strtof(dbrow[col], nullptr) : 0.4f;
+    ai.object_threshold = std::clamp(dbrow[col] ? strtof(dbrow[col], nullptr) : 0.4f, 0.0f, 1.0f);
     col++;
-    ai.nms_threshold = dbrow[col] ? strtof(dbrow[col], nullptr) : 0.25f;
+    ai.nms_threshold = std::clamp(dbrow[col] ? strtof(dbrow[col], nullptr) : 0.25f, 0.0f, 1.0f);
     col++;
     if (ai.backend != "none" and purpose == CAPTURE)
       ai.classes = LoadAIDetectionSettings(id);

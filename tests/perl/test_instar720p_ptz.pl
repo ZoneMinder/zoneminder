@@ -12,7 +12,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
+use lib ($ENV{ZM_LIB_DIR} // "$FindBin::Bin/../../scripts/ZoneMinder/lib");
 
 use URI;
 use ZoneMinder::Control::Instar720p;
@@ -69,12 +69,14 @@ sub new {
     Id => 1,
     ControlAddress => $opts{ControlAddress} // 'http://admin:secret@192.0.2.1:80',
     ControlDevice => $opts{ControlDevice} // 'test-cam',
-    ModectDuringPTZ => 1,
+    ModectDuringPTZ => $opts{ModectDuringPTZ} // 1,
     AutoStopTimeout => $opts{AutoStopTimeout} // 0,
+    suspended => 0,
+    resumed => 0,
   }, $class;
 }
-sub suspendMotionDetection {}
-sub resumeMotionDetection {}
+sub suspendMotionDetection { $_[0]->{suspended}++ }
+sub resumeMotionDetection { $_[0]->{resumed}++ }
 
 package main;
 
@@ -96,7 +98,7 @@ sub camera {
     address => '192.0.2.1:80',
     base_url => 'http://admin:secret@192.0.2.1:80/',
   }, 'ZoneMinder::Control::Instar720p';
-  return ($control, $ua);
+  return ($control, $ua, $mon);
 }
 
 # 1. Credential parsing in open() with colons in password
@@ -128,6 +130,26 @@ sub camera {
   # With quotes stripped, 6 + 1 = 7 capped at 6, sending -brightness=6.
   check('irisAbsOpen does not numify quoted "6" to 1',
     ($urls[-1] // '') =~ /-brightness=6/ ? 1 : 0, 1);
+}
+
+# 3. Commands with no corresponding stop must never suspend motion detection.
+#    ModectDuringPTZ is 0, so the old code would have suspended here and never
+#    resumed (the web UI sends no moveStop after these commands).
+{
+  for my $method (qw(presetHome up down left right)) {
+    my ($control, $ua, $mon) = camera(ModectDuringPTZ => 0);
+    $control->$method();
+    check("$method does not suspend motion detection", $mon->{suspended}, 0);
+  }
+}
+
+# 4. Positive control: a continuous move followed by stop does suspend and resume.
+{
+  my ($control, $ua, $mon) = camera(ModectDuringPTZ => 0);
+  $control->moveConUp();
+  $control->moveStop();
+  check('moveConUp then moveStop suspends once', $mon->{suspended}, 1);
+  check('moveConUp then moveStop resumes once', $mon->{resumed}, 1);
 }
 
 print "\n$passes passed, $failures failed\n";

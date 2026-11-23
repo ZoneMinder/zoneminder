@@ -444,3 +444,34 @@ TEST_CASE("PacketQueue: nothing is queued before the first video keyframe") {
   queue.stop();
   queue.clear();
 }
+
+// The counters are sized by addStream(), so a packet whose stream index is
+// outside them must be refused instead of counted out of bounds.
+TEST_CASE("PacketQueue: a packet for a stream the queue does not count is refused") {
+  PacketQueue queue;
+  queue.addStream();
+  queue.setKeepKeyframes(false);
+  queue.setMaxVideoPackets(0);
+  queue.setPreEventVideoPackets(2);
+
+  packetqueue_iterator *analysis_it = queue.get_video_it(false);
+  REQUIRE(analysis_it != nullptr);
+
+  REQUIRE(queue.queuePacket(video_packet(1)));
+  REQUIRE(queue.size() == 1);
+
+  auto stray = video_packet(0);
+  stray->packet->stream_index = 5;
+  REQUIRE_FALSE(queue.queuePacket(stray));
+  REQUIRE(queue.size() == 1);
+
+  auto negative = video_packet(0);
+  negative->packet->stream_index = -1;
+  REQUIRE_FALSE(queue.queuePacket(negative));
+  REQUIRE(queue.size() == 1);
+
+  REQUIRE(queue.packet_count(0) == 1);
+
+  queue.stop();
+  queue.clear();
+}

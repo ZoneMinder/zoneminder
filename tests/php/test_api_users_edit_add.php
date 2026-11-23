@@ -64,6 +64,7 @@ class FakeModel {
   }
   function validates() { return $this->valid; }
   function delete() { return true; }
+  function getDataSource() { return new class { function begin() {} function commit() {} function rollback() {} }; }
   function deleteAll($conditions, $cascade = true) { return true; }
 }
 class FakeRequest {

@@ -52,6 +52,7 @@ class FakeUser {
   }
 }
 class FakeUserPreference {
+  function getDataSource() { return new class { function begin() {} function commit() {} function rollback() {} }; }
   function deleteAll($conditions, $cascade = true) {
     global $pdo;
     $where = array();

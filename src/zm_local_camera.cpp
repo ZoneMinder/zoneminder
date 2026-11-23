@@ -1419,9 +1419,10 @@ int LocalCamera::PreCapture() {
 
 int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // We assume that the avpacket is allocated, and just needs to be filled
+  // Static: a camera sharing the channel reuses the last capture below.
   static uint8_t* buffer = nullptr;
-  int buffer_bytesused = 0;
-  int capture_frame = -1;
+  static int buffer_bytesused = 0;
+  static int capture_frame = -1;
 
   int captures_per_frame = 1;
   if (channel_count > 1)

@@ -25,6 +25,7 @@ if ( !canEdit('Monitors') ) {
 
 $mids = (isset($_REQUEST['mids']) and is_array($_REQUEST['mids'])) ? array_filter(array_map('validCardinal', $_REQUEST['mids'])) : array();
 $monitors = $mids ? ZM\Monitor::find(array('Id' => $mids)) : array();
+$monitors = array_values(array_filter($monitors, function($m) { return !$m->Deleted() && canEdit('Monitors', $m->Id()); }));
 if ( !count($monitors) ) {
   $view = 'error';
   return;

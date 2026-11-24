@@ -430,7 +430,8 @@ function changeRate() {
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
-          clearInterval(intervalRewind);
+          // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+          stopFastRev();
           vid.pause();
         } else {
           vid.playbackRate(0);
@@ -737,7 +738,8 @@ function streamFastRev(action) {
     setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
-        clearInterval(intervalRewind);
+        // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+        stopFastRev();
         vid.pause();
       } else {
         vid.playbackRate(0);

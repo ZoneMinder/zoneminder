@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <string>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -427,5 +428,60 @@ TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
     REQUIRE(server.recv(rcv.data(), rcv.size()) == msg.size());
 
     REQUIRE(rcv == msg);
+  }
+}
+
+// accept() on a listener whose queue is empty must fail without tearing the
+// listener down: a non-blocking descriptor makes ::accept() return EAGAIN,
+// which is one of the transient errors that leave the socket usable.
+TEST_CASE("ZM::TcpUnixServer accept transient failure", "[zm_comms_accept]") {
+  const std::string sock_path = makeUnixSocketPath();
+
+  zm::TcpUnixServer server;
+  REQUIRE(server.bind(sock_path.c_str()) == true);
+  REQUIRE(server.listen() == true);
+  REQUIRE(server.isListening() == true);
+
+  const int listen_sd = server.getReadDesc();
+  REQUIRE(listen_sd >= 0);
+  REQUIRE(::fcntl(listen_sd, F_SETFL, ::fcntl(listen_sd, F_GETFL) | O_NONBLOCK) != -1);
+
+  const auto listenerStillOpen = [&]() {
+    REQUIRE(server.isOpen() == true);
+    REQUIRE(server.isListening() == true);
+    REQUIRE(server.getReadDesc() == listen_sd);
+    // The state flags could lie about the descriptor, the kernel cannot.
+    REQUIRE(::fcntl(listen_sd, F_GETFD) != -1);
+  };
+
+  SECTION("accept() with no pending connection") {
+    REQUIRE(server.accept() == false);
+    listenerStillOpen();
+  }
+
+  SECTION("accept(newSocket) with no pending connection") {
+    zm::TcpUnixSocket *newSocket = reinterpret_cast<zm::TcpUnixSocket *>(1);
+    REQUIRE(server.accept(newSocket) == false);
+    REQUIRE(newSocket == nullptr);
+    listenerStillOpen();
+  }
+
+  SECTION("listener still usable after transient failure") {
+    zm::TcpUnixSocket *newSocket = nullptr;
+    REQUIRE(server.accept(newSocket) == false);
+
+    zm::TcpUnixClient client;
+    REQUIRE(client.connect(sock_path.c_str()) == true);
+    REQUIRE(client.isConnected() == true);
+
+    // The accepted socket is owned by the caller; held in a unique_ptr so a
+    // failing REQUIRE does not leak it.
+    zm::TcpUnixSocket *raw = nullptr;
+    REQUIRE(server.accept(raw) == true);
+    std::unique_ptr<zm::TcpUnixSocket> accepted(raw);
+
+    REQUIRE(accepted != nullptr);
+    REQUIRE(accepted->isConnected() == true);
+    REQUIRE(server.isListening() == true);
   }
 }

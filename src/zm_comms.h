@@ -342,12 +342,14 @@ class UnixSocket : virtual public Socket {
 
  protected:
   bool resolveLocal(const char *serv, const char *proto) {
+    delete mLocalAddr;
     SockAddrUnix *addr = new SockAddrUnix;
     mLocalAddr = addr;
     return addr->resolve(serv, proto);
   }
 
   bool resolveRemote(const char *path, const char *proto) {
+    delete mRemoteAddr;
     SockAddrUnix *addr = new SockAddrUnix;
     mRemoteAddr = addr;
     return addr->resolve(path, proto);

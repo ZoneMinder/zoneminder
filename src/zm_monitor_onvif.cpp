@@ -417,7 +417,7 @@ void ONVIF::Subscribe() {
 
     logPrintf(Logger::ERROR + parent->Importance(), 
         "ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
-        event_endpoint_url_.c_str(),
+        url_for_log(event_endpoint_url_).c_str(),
         rc, soap_error_name(rc),
         fault_string, detail ? detail : "null");
 
@@ -502,7 +502,7 @@ void ONVIF::Subscribe() {
 
   // Cache the subscription address before any soap_end() calls free the response memory
   subscription_address_ = response.SubscriptionReference.Address;
-  Debug(2, "ONVIF: Cached subscription address: %s", subscription_address_.c_str());
+  Debug(2, "ONVIF: Cached subscription address: %s", url_for_log(subscription_address_).c_str());
 
   // Update renewal tracking times from initial subscription response
   if (response.wsnt__TerminationTime != 0) {
@@ -528,7 +528,7 @@ void ONVIF::Subscribe() {
   tev__PullMessages.MessageLimit = 10;
 
   Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
-      pull_timeout_seconds, subscription_timeout_seconds, subscription_address_.c_str());
+      pull_timeout_seconds, subscription_timeout_seconds, url_for_log(subscription_address_).c_str());
   int pull_rc = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
   if ((pull_rc != SOAP_OK) &&
       (soap->error != SOAP_EOF)
@@ -1405,7 +1405,7 @@ bool ONVIF::do_wsa_request(const char* address, const char* action) {
   const char* RequestMessageID = soap_wsa_rand_uuid(soap);
   if (soap_wsa_request(soap, RequestMessageID, address, action) != SOAP_OK) {
     Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=%s. Error %i %s, %s",
-        RequestMessageID, address, action, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+        RequestMessageID, address ? url_for_log(address).c_str() : "(null)", action, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
     return false;
   }
 

@@ -103,7 +103,7 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/viewer/$cmd" );
     my $res = $self->{ua}->request($req);

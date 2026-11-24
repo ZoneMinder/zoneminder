@@ -35,6 +35,14 @@ if ($action == 'Save') {
   $rid = isset($_REQUEST['rid']) ? validInt($_REQUEST['rid']) : 0;
   $dbRole = new ZM\User_Role($rid);
 
+  # Saving a role that failed to load would insert a new one
+  if ($rid and !$dbRole->Id()) {
+    ZM\Warning('Role '.$rid.' not found');
+    $error_message = 'Role not found<br/>';
+    unset($_REQUEST['redirect']);
+    return;
+  }
+
   # Need to check for uniqueness of Name
   if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name'])) {
     $_REQUEST['role']['Name'] = trim($_REQUEST['role']['Name']);

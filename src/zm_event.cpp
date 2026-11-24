@@ -159,9 +159,17 @@ Event::Event(
                       monitor->Latitude(),
                       monitor->Longitude()
                     );
+  // zmDbDoInsert returns 0 on a failure it will not retry itself, so back off and give up after a few tries
+  int insert_attempts = 0;
   do {
     id = zmDbDoInsert(sql);
-  } while (!id and !zm_terminate);
+    if (id or zm_terminate) break;
+    if (++insert_attempts >= 10) {
+      Error("Unable to insert event after %d attempts", insert_attempts);
+      break;
+    }
+    sleep(1);
+  } while (true);
 
   /* None of these are crucial, and are simple when done as individual transactions */
   sql = stringtf("INSERT INTO `Events_Hour` (EventId,MonitorId,StartDateTime,DiskSpace)"

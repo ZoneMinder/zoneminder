@@ -808,7 +808,9 @@ function buildControlCommand($monitor) {
       }
       $ctrlCommand .= ' --preset='.$preset;
     } elseif ( $_REQUEST['control'] == 'moveMap' ) {
-      $ctrlCommand .= " --xcoord=$x --ycoord=$y";
+      // moveMap with both x and y is handled above.
+      ZM\Warning('moveMap needs x and y');
+      return '';
     }
   }
   $ctrlCommand .= ' --command='.$_REQUEST['control'];

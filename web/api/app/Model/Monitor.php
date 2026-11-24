@@ -118,7 +118,7 @@ class Monitor extends AppModel {
     if ($value === null || $value === '') {
       return true;
     }
-    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
     if ($type !== 'Local') {
       return true;
     }

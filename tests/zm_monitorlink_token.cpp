@@ -63,4 +63,22 @@ TEST_CASE("Token::parse_monitor_link", "[MonitorLink]") {
 
   REQUIRE_FALSE(Token::parse_monitor_link("abc", monitor_id, zone_id));
   REQUIRE_FALSE(Token::parse_monitor_link("1:x", monitor_id, zone_id));
+
+  // Text after the digits is not part of an id: "5 6" is a missing comma, and
+  // stoul would read it as monitor 5.
+  REQUIRE_FALSE(Token::parse_monitor_link("5 6", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("5x", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("5:6x", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("1:2:3", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("3.5", monitor_id, zone_id));
+  REQUIRE_FALSE(Token::parse_monitor_link("+3", monitor_id, zone_id));
+
+  // Blanks around a field are not text: these linked monitor 1 zone 2 before.
+  for (const char *spaced : {"1 : 2", "1: 2", "1 :2", " 1:2 "}) {
+    CAPTURE(spaced);
+    monitor_id = zone_id = 0;
+    REQUIRE(Token::parse_monitor_link(spaced, monitor_id, zone_id));
+    REQUIRE(monitor_id == 1);
+    REQUIRE(zone_id == 2);
+  }
 }

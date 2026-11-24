@@ -542,9 +542,11 @@ our $hasJSONAny = 0;
 
 sub _testJSON {
   return if $testedJSON;
+  # import() returns nothing, so count the load not dying
   my $result = eval {
     require JSON::MaybeXS;
     JSON::MaybeXS->import();
+    1;
   };
   $testedJSON = 1;
   $hasJSONAny = 1 if $result;
@@ -565,8 +567,9 @@ sub jsonEncode {
 
   _testJSON();
   if ($hasJSONAny) {
+    # ascii keeps the text valid whether it is sent as bytes or stored as characters
     my $string = eval {
-      JSON::MaybeXS->encode_json($value);
+      JSON::MaybeXS->new(allow_nonref => 1, ascii => 1)->encode($value);
     };
     Error('Unable to encode object to JSON: '.$@) unless $string;
     return $string;
@@ -603,7 +606,7 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::MaybeXS->decode_json($value) };
+    my $object = eval { JSON::MaybeXS->new(allow_nonref => 1)->decode($value) };
     Fatal("Unable to decode JSON string '$value': $@") unless $object;
     return $object;
   }

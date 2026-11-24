@@ -2,6 +2,7 @@ const table = $j('#frameStatsTable');
 const backBtn = $j('#backBtn');
 const statsBtn = $j('#statsBtn');
 let wasHidden = false;
+let noStats = false;
 
 function changeScale() {
   const scale = $j('#scale').val();
@@ -67,11 +68,13 @@ function getStat(params) {
         $j('#frameStatsTable').empty().append('<tbody>');
         if (data.result == "Error") {
           console.log(`Error running getStat function: ${data.message}`);
+          noStats = true;
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');
           return;
         }
         if (!data.raw.length) {
+          noStats = true;
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');
           return;
@@ -118,7 +121,7 @@ function onStatsResize(vidwidth) {
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
-    statsBtn.prop('disabled', false);
+    statsBtn.prop('disabled', noStats);
     if (!table.is(':visible') && wasHidden) {
       table.toggle(true);
       wasHidden = false;

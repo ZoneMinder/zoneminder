@@ -167,7 +167,9 @@ sub parseControlAddress {
   $$self{port} = $url->port ? $url->port : $url->default_port;
   $$self{path} = $url->path ? $url->path : '/onvif/PTZ';
 
+  # URI returns an IPv6 host without the brackets a URL and a Host header need.
   $$self{address} = $url->host;
+  $$self{address} = '['.$$self{address}.']' if $$self{address} =~ /:/;
   $$self{BaseURL} = $$self{scheme}.'://'.$$self{address}.':'.$$self{port};
   Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}");
 }

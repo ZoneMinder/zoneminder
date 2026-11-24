@@ -52,3 +52,26 @@ TEST_CASE("Uri keeps IPv4 host and port", "[Uri]") {
   REQUIRE(ipv4.Port == "554");
   REQUIRE(ipv4.Path == "/s");
 }
+
+TEST_CASE("Uri does not take a :// in the query for the scheme", "[Uri]") {
+  // With no scheme, the first ':' found was the one in the query's "http://",
+  // which put the host start past the query and threw std::length_error.
+  Uri u("192.168.1.5/live?url=http://x");
+
+  REQUIRE(u.Protocol == "");
+  REQUIRE(u.Host == "192.168.1.5");
+  REQUIRE(u.Path == "/live");
+  REQUIRE(u.QueryString == "?url=http://x");
+
+  Uri bare("h?u=rtsp://x");
+
+  REQUIRE(bare.Protocol == "");
+  REQUIRE(bare.Host == "h");
+  REQUIRE(bare.QueryString == "?u=rtsp://x");
+
+  Uri with_scheme("rtsp://h/s?u=http://x");
+
+  REQUIRE(with_scheme.Protocol == "rtsp");
+  REQUIRE(with_scheme.Host == "h");
+  REQUIRE(with_scheme.Path == "/s");
+}

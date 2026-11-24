@@ -1776,6 +1776,7 @@ function loadFrames(zm_events) {
 
     let query = '';
     let batch = [];
+    let outstanding = 0; // the caller redraws once, so resolve when every batch is in
     while (ids.length) {
       const id = ids.shift();
       query += '/EventId:'+id;
@@ -1786,6 +1787,7 @@ function loadFrames(zm_events) {
         // and the ajax callbacks run later.
         const batch_ids = batch;
         batch = [];
+        outstanding++;
         $j.ajax(zmAuth.appendTo(url+query+'.json'), {
           timeout: 0,
           success: function(data) {
@@ -1832,7 +1834,7 @@ function loadFrames(zm_events) {
             } else {
               // console.log("No frames in data", data);
             } // end if there are frames
-            resolve();
+            if (--outstanding == 0) resolve();
           },
           error: function(jqXHR) {
             logAjaxFail(jqXHR);

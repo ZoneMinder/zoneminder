@@ -273,7 +273,7 @@ sub api {
   push @headers, 'Cookie' => $self->{api_cookie} if $self->{api_cookie};
 
   my $res = eval {
-    $self->{ua}->post('http://'.$self->{host}.'/api'.$path, @headers,
+    $self->{ua}->post('http://'.($self->{address} // $self->{host}).'/api'.$path, @headers,
       Content => encode_json({action => $action, data => $data}));
   };
   if (!$res) {

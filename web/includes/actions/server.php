@@ -29,6 +29,14 @@ global $error_message;
 if ($action == 'save') {
   if (!empty($_REQUEST['id'])) {
     $dbServer = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, [$_REQUEST['id']]);
+    // A server deleted in another tab matches no row, so an UPDATE would report a save that never happened
+    if (!$dbServer) {
+      ZM\Warning('Server not found for save');
+      $error_message .= 'Server not found<br/>';
+      $view = 'options';
+      $_REQUEST['tab'] = 'servers';
+      return;
+    }
   } else {
     $dbServer = array();
   }

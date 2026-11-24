@@ -515,8 +515,13 @@ sub delete {
       }
 
       if (!$err) {
-        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
-        last;
+        last if $in_transaction;
+        # A failed commit rolls the deletes back, so the rows are still there; keep the files.
+        if ($ZoneMinder::Database::dbh->commit()) {
+          last;
+        }
+        $err = $ZoneMinder::Database::dbh->err() // 1;
+        $errstr = $ZoneMinder::Database::dbh->errstr() // 'commit failed';
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;

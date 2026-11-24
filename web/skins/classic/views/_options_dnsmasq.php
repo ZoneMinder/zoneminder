@@ -124,6 +124,14 @@ function process_dnsmasq_configfile($configFile) {
           }
           $option = explode(',', $value, 2);
           $our_configvals[$name][$option[0]] = isset($option[1]) ? $option[1] : '';
+        } else if ($name == 'dhcp-host') {
+          # Reservations as this page writes them: dhcp-host=<mac>,<ip>
+          if (!isset($our_configvals[$name])) {
+            $our_configvals[$name] = [];
+          }
+          if (preg_match('/^([0-9a-f]{2}(?::[0-9a-f]{2}){5}),(\d{1,3}(?:\.\d{1,3}){3})$/i', $value, $host)) {
+            $our_configvals[$name][strtolower($host[1])] = $host[2];
+          }
         } else {
           $our_configvals[$name] = $value;
         }
@@ -151,6 +159,24 @@ function dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter) {
   <td class="expiry">'.($lease['expiry'] == 0 ? translate('Never') : $dateTimeFormatter->format((int)$lease['expiry'])).'</td>
   <td class="Monitor">'.(isset($monitors_by_ip[$lease['ip']]) ? $monitors_by_ip[$lease['ip']]->link_to() : '').'</td>
 </tr>';
+}
+
+# A saved reservation is only posted back if it has a row. A host that is not
+# in the leases file at the moment would otherwise lose its reservation on Save.
+function dnsmasq_host_rows($leases, $reserved, $monitors_by_ip, $dateTimeFormatter) {
+  $html = '';
+  foreach ($leases as $lease) {
+    $mac = strtolower($lease['mac']);
+    if (isset($reserved[$mac])) {
+      $lease['ip'] = $reserved[$mac];
+      unset($reserved[$mac]);
+    }
+    $html .= dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter);
+  }
+  foreach ($reserved as $mac => $ip) {
+    $html .= dnsmasq_lease_row(['name'=>'', 'mac'=>$mac, 'ip'=>$ip, 'expiry'=>0, 'id'=>''], $monitors_by_ip, $dateTimeFormatter);
+  }
+  return $html;
 }
 
 function read_leasefile($file) {
@@ -204,9 +230,7 @@ foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
   }
 }
 $leases = read_leasefile('/var/lib/misc/dnsmasq.leases');
-foreach ($leases as $lease) {
-  echo dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter);
-} # end foreach
+echo dnsmasq_host_rows($leases, isset($dnsmasq_config['dhcp-host']) ? $dnsmasq_config['dhcp-host'] : [], $monitors_by_ip, $dateTimeFormatter);
 ?>
   </tbody>
 </table>

@@ -80,7 +80,7 @@ void ZoneMinderStreamSource::WriteRun() {
     NAL_Frame *nal = nullptr;
     while (!stop_ and !zm_terminate and !nal) {
       std::unique_lock<std::mutex> lck(mutex_);
-      if (m_nalQueue.empty()) {
+      if (m_nalQueue.empty() and !stop_) {
         Debug(3, "waiting");
         condition_.wait(lck);
         if (stop_ or zm_terminate) return;

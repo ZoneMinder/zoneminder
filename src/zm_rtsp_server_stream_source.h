@@ -29,7 +29,12 @@ class ZoneMinderStreamSource {
  public:
 
   void Stop() {
-    stop_ = true;
+    // Set under the mutex WriteRun tests stop_ and waits with, or the notify
+    // can land between its test and its wait and the thread sleeps forever
+    {
+      std::lock_guard<std::mutex> lock(mutex_);
+      stop_ = true;
+    }
     condition_.notify_all();
   };
 

@@ -111,17 +111,29 @@ class Zone extends AppModel {
       }
       $data['NumCoords'] = $n;
       $data['Area'] = round(abs($sum) / 2.0);
-      // zmc reads thresholds as a percentage of the zone when Coords have decimals. A value
-      // over 100 is a pixel count, so convert it with the zone's size in pixels.
-      if (strpos($data['Coords'], '.') !== false and $data['Area'] > 0) {
+    }
+    // zmc reads thresholds as a percentage of the zone when Coords have decimals. A value
+    // over 100 is a pixel count, so convert it with the zone's size in pixels. An edit that
+    // sends no Coords is measured against the zone's stored Coords and Area.
+    $fields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
+    $pixelCounts = array_filter($fields, function($field) use ($data) {
+      return isset($data[$field]) and is_numeric($data[$field]) and floatval($data[$field]) > 100;
+    });
+    if (count($pixelCounts)) {
+      if (isset($data['Coords'])) {
+        $coords = $data['Coords'];
+        $area = isset($data['Area']) ? $data['Area'] : 0;
+      } else {
+        $coords = $this->id ? $this->field('Coords') : null;
+        $area = $this->id ? $this->field('Area') : 0;
+      }
+      if (is_string($coords) and strpos($coords, '.') !== false and $area > 0) {
         $monitorId = isset($data['MonitorId']) ? $data['MonitorId'] : ($this->id ? $this->field('MonitorId') : null);
         $monitor = $monitorId ? $this->Monitor->find('first', array('conditions' => array('Id' => $monitorId))) : null;
         if ($monitor and !empty($monitor['Monitor']['Width']) and !empty($monitor['Monitor']['Height'])) {
-          $pixels = $data['Area'] / 10000.0 * $monitor['Monitor']['Width'] * $monitor['Monitor']['Height'];
-          foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
-            if (isset($data[$field]) and is_numeric($data[$field]) and floatval($data[$field]) > 100) {
-              $data[$field] = min(100, round(floatval($data[$field]) / $pixels * 100, 2));
-            }
+          $pixels = $area / 10000.0 * $monitor['Monitor']['Width'] * $monitor['Monitor']['Height'];
+          foreach ($pixelCounts as $field) {
+            $data[$field] = min(100, round(floatval($data[$field]) / $pixels * 100, 2));
           }
         }
       }

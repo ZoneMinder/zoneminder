@@ -96,6 +96,12 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $_REQUEST['filter']['LockRows'] = empty($_REQUEST['filter']['LockRows']) ? 0 : 1;
+      // A filter deleted in another tab would be saved here as a new one
+      if (($action == 'Save') and validCardinal($_REQUEST['Id']) and !$filter->Id()) {
+        ZM\Warning('Filter not found for save');
+        $error_message .= 'Filter not found.<br/>';
+        return;
+      }
       // Save overwrites the stored filter, so the user must be allowed to edit it as it is now,
       // not only as it would be after their changes (which could name them as the owner).
       // SaveAs and execute write a new filter, checked below with the changes applied.

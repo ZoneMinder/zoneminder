@@ -43,9 +43,20 @@ class AppModel extends Model {
         $this->invalidate($field, $field.' must be a single value');
         continue;
       }
-      if (!is_scalar($value) or $value === '') continue;
-      $value = (string)$value;
+      if (!is_scalar($value)) continue;
       $type = $column['type'];
+      if ($value === '') {
+        // Cake sends '' as it is to a NOT NULL column, and MySQL refuses it as a number, a date or an enum.
+        // Cake drops an empty primary key and empty created/modified/updated before the insert.
+        if ($field != $this->primaryKey and !in_array($field, array('created', 'modified', 'updated')) and
+            isset($column['null']) and !$column['null'] and
+            (in_array($type, array('integer', 'biginteger', 'tinyinteger', 'smallinteger', 'float', 'decimal', 'datetime', 'timestamp', 'date'))
+             or strpos($type, 'enum(') === 0)) {
+          $this->invalidate($field, $field.' must not be empty');
+        }
+        continue;
+      }
+      $value = (string)$value;
       if (in_array($type, array('integer', 'biginteger', 'tinyinteger', 'smallinteger', 'float', 'decimal'))) {
         if (!is_numeric($value)) {
           $this->invalidate($field, $field.' must be a number');

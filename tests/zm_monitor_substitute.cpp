@@ -75,6 +75,20 @@ TEST_CASE("Monitor::Substitute expands the name before strftime", "[Monitor][Lab
   REQUIRE(monitor.Substitute("%%N", At(1000, 0)) == "%N");
 }
 
+// With another code character the name still goes through strftime, so its % must be doubled too.
+TEST_CASE("Monitor::Substitute keeps a % in the name literal when the code character is not %", "[Monitor][Label]") {
+  LabelMonitor monitor;
+  monitor.SetName("50%Yard");
+  const char *saved = config.timestamp_code_char;
+  config.timestamp_code_char = "!";
+  const std::string text = monitor.Substitute("!N", At(1000, 0));
+  const std::string mixed = monitor.Substitute("!N %Y", At(1000, 0));
+  config.timestamp_code_char = saved;
+  REQUIRE(text == "50%Yard");
+  REQUIRE(mixed.compare(0, 8, "50%Yard ") == 0);
+  REQUIRE(mixed.size() == 12);
+}
+
 TEST_CASE("Monitor::Substitute does not cut a UTF-8 character at the length cap", "[Monitor][Label]") {
   LabelMonitor monitor;
   std::string name = "a";

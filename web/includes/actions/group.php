@@ -37,6 +37,14 @@ if ( $action == 'save' ) {
   $old_ids = $group->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group->Id())) : array();
   $moved = array_merge(array_diff($old_ids, $new_ids), array_diff($new_ids, $old_ids));
   $new_parent = (($_REQUEST['newGroup']['ParentId'] ?? '') == '' ? null : $_REQUEST['newGroup']['ParentId']);
+  $raw_name = $_REQUEST['newGroup']['Name'] ?? '';
+  $new_name = is_array($raw_name) ? '' : trim((string)$raw_name);
+  if ($new_name === '') {
+    ZM\Warning('Group save with empty name for group '.$group->Id());
+    $error_message .= 'A group needs a name.<br/>';
+    $view = 'groups';
+    return;
+  }
   // The group modal posts view=group, which has no view file, so failures are
   // shown on the Groups page; otherwise index.php sends the user to the console.
   if (!ZM\Group::validParent($group->Id(), $new_parent)) {
@@ -56,7 +64,7 @@ if ( $action == 'save' ) {
 
   if (!$group->save(
       array(
-      'Name'=>  $_REQUEST['newGroup']['Name'],
+      'Name'=>  $new_name,
       'ParentId'=>$new_parent,
       )
     )) {

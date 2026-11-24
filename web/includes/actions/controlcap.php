@@ -28,6 +28,14 @@ if ( $action == 'Save' ) {
   require_once('includes/Control.php');
   $Control = new ZM\Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
 
+  // A capability deleted in another tab would be saved here as a new one
+  if ( !empty($_REQUEST['cid']) and !$Control->Id() ) {
+    global $error_message;
+    ZM\Warning('Control capability not found for save');
+    $error_message .= 'Control capability not found.</br>';
+    return;
+  }
+
   $field_defaults = array(
     'CanWake' =>  0,
     'CanSleep'  =>  0,

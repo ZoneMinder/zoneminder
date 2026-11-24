@@ -174,6 +174,26 @@ sub moveStop
    $self->sendCmd( $cmd );
 }
 
+# The web ui sends zoomStop, focusStop and irisStop when a continuous zoom, focus
+# or iris button is released. The camera has one stop command for the whole ptz head.
+sub zoomStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub focusStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub irisStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
 sub autoStop
 {
     my $self = shift;

@@ -143,33 +143,41 @@ sub moveConRight {
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
 }
 
-# Diagonal moves are not supported by the camera so we emulate them
+# Diagonal moves are not supported by the camera so we emulate them by
+# sending both axis commands back to back, then stopping all axes once.
+sub moveDiagonal {
+  my ($self, $vcmd, $hcmd) = @_;
+  $self->sendCmd($vcmd);
+  $self->sendCmd($hcmd);
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+}
+
 sub moveConUpRight {
   my $self = shift;
   Debug('Move Up-Right');
-  $self->moveConUp();
-  $self->moveConRight();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=up',
+    'ptzctrl.cgi?-step=0&-act=right');
 }
 
 sub moveConDownRight {
   my $self = shift;
   Debug('Move Down-Right');
-  $self->moveConDown();
-  $self->moveConRight();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=down',
+    'ptzctrl.cgi?-step=0&-act=right');
 }
 
 sub moveConUpLeft {
   my $self = shift;
   Debug('Move Up-Left');
-  $self->moveConUp();
-  $self->moveConLeft();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=up',
+    'ptzctrl.cgi?-step=0&-act=left');
 }
 
 sub moveConDownLeft {
   my $self = shift;
   Debug('Move Down-Left');
-  $self->moveConDown();
-  $self->moveConLeft();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=down',
+    'ptzctrl.cgi?-step=0&-act=left');
 }
 
 # Stop

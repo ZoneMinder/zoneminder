@@ -851,6 +851,8 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
+    } else if ($this->{'Type'} == 'File' || $this->{'Type'} == 'cURL') {
+      $source = preg_replace('/^.*\//', '', (string)$this->{'Path'});
     } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});

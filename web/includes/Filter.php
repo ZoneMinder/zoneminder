@@ -1275,6 +1275,7 @@ class Filter extends ZM_Object {
     $is_isnot_opTypes = $this->is_isnot_opTypes();
     $booleanValues = $this->booleanValues();
     $storageareas= null;
+    $zones = null;
     $states = array();
     foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
       $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
@@ -1456,6 +1457,14 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
+          if (!$zones) {
+            $zones = array();
+            foreach ( dbFetchAll('SELECT Zones.Id, Zones.Name, Zones.MonitorId, Monitors.Name AS MonitorName FROM Zones INNER JOIN Monitors ON Monitors.Id=Zones.MonitorId WHERE Monitors.Deleted=false ORDER BY lower(Monitors.Name), lower(Zones.Name) ASC') as $zone ) {
+              if ( visibleMonitor($zone['MonitorId']) ) {
+                $zones[$zone['Id']] = validHtmlStr($zone['MonitorName'].': '.$zone['Name']);
+              }
+            }
+          }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;

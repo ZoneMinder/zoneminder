@@ -209,6 +209,7 @@ class Control extends ZM_Object {
       }
       $cmds['WhiteIn'] = $cmds['WhiteRoot'].'In';
       $cmds['WhiteOut'] = $cmds['WhiteRoot'].'Out';
+      $cmds['WhiteStop'] = 'whiteStop';
       $cmds['WhiteAuto'] = 'whiteAuto';
       $cmds['WhiteMan'] = 'whiteMan';
     }

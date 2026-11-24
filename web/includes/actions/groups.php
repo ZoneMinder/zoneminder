@@ -44,7 +44,10 @@ if ( $action == 'delete' ) {
         ZM\Warning('Need edit permission on every monitor in group '.$Group->Id().' to delete it');
         continue;
       }
-      $Group->delete();
+      if ($Group->delete() === false) {
+        $error_message .= 'Error deleting group: '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }
   }

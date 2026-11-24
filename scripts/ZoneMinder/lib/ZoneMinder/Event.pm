@@ -40,6 +40,7 @@ require File::Find;
 require File::Path;
 require File::Copy;
 require File::Basename;
+require File::Glob;
 require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
@@ -811,7 +812,9 @@ sub CopyTo {
     my $bucket = $NewStorage->bucket();
     if ($s3 and $bucket) {
       my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
-      my @files = glob("$OldPath/*");
+      # Not glob(): it splits its pattern on whitespace, so a storage path with a
+      # space in it matches none of the event's files.
+      my @files = File::Glob::bsd_glob("$OldPath/*");
       Debug("Files to move @files");
       eval {
         foreach my $file (@files) {

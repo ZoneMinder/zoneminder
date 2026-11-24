@@ -43,7 +43,9 @@ function deleteReports(ids) {
 }
 
 function initPage() {
-  deleteBtn.prop('disabled', !canEdit.Events);
+  // A new report has no id yet, so there is nothing to delete.
+  const reportId = document.getElementById('reportForm').getAttribute('data-report_id');
+  deleteBtn.prop('disabled', !(canEdit.Events && reportId));
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);

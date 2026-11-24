@@ -74,7 +74,10 @@ if ($action == 'Save') {
       if (!is_string($new_permission) or !in_array($new_permission, $valid_permissions, true)) continue;
       if ($permission->Permission() != $new_permission) {
         $permission->RoleId($dbRole->Id());
-        $permission->save(array('Permission'=>$new_permission));
+        if (!$permission->save(array('Permission'=>$new_permission))) {
+          $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+          unset($_REQUEST['redirect']);
+        }
       }
     }
   }
@@ -88,7 +91,10 @@ if ($action == 'Save') {
         if (!is_string($new_permission) or !in_array($new_permission, $valid_permissions, true)) continue;
         if ($permission->Permission() != $new_permission) {
           $permission->RoleId($dbRole->Id());
-          $permission->save(['Permission'=>$new_permission]);
+          if (!$permission->save(['Permission'=>$new_permission])) {
+            $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+            unset($_REQUEST['redirect']);
+          }
         }
       }
     }

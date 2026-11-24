@@ -175,7 +175,7 @@ class RolesController extends AppController {
     if ($this->Role->delete()) {
       $message = 'The role has been deleted.';
     } else {
-      $message = 'The role could not be deleted. Please, try again.';
+      throw new InternalErrorException(__('The role could not be deleted.'));
     }
     $this->set(array(
       'message' => $message,

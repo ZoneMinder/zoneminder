@@ -57,7 +57,9 @@ jobs:
           export PERL5LIB="$PWD/build/scripts/ZoneMinder/lib:$PWD/scripts/ZoneMinder/lib"
           failed=0
           for t in tests/perl/*.pl scripts/ZoneMinder/t/*.t; do
-            out=$(timeout 120 perl "$t" 2>&1); rc=$?
+            # The step runs under bash -e, so take the exit code without letting
+            # a failing test end the loop.
+            rc=0; out=$(timeout 120 perl "$t" 2>&1) || rc=$?
             if [ $rc -eq 0 ]; then
               echo "--- $t: ok"
             elif echo "$out" | grep -q "Can't connect to local MySQL server\|ZoneMinder configuration file found but is not readable"; then

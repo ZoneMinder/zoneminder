@@ -78,7 +78,9 @@ sub sendCmd {
   my $result = undef;
   $self->printMsg($cmd, 'Tx');
 
-  my $url = 'http://'.$$self{host}.':'.$$self{port}.'/cgi-bin/hi3510/'.$cmd.
+  # URI returns an IPv6 host without the brackets a URL needs.
+  my $host = $$self{host} =~ /:/ ? '['.$$self{host}.']' : $$self{host};
+  my $url = 'http://'.$host.':'.$$self{port}.'/cgi-bin/hi3510/'.$cmd.
     '&usr='.uri_escape($$self{username}).'&pwd='.uri_escape($$self{password});
 
   my $req = HTTP::Request->new(GET=>$url);

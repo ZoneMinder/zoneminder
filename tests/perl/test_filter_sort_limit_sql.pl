@@ -61,4 +61,28 @@ check('limit with UNION is ignored', $sql !~ /UNION|LIMIT/, $sql);
 $sql = build_sql({sort_field => 'Id', limit => 100});
 check('numeric limit still used', $sql =~ /LIMIT 0,100$/, $sql);
 
+$sql = build_sql({sort_field => 'EndDateTime IS NOT NULL, EndDateTime', sort_asc => 1, limit => 0});
+check('multi-column sort with IS NOT NULL used',
+  scalar($sql =~ /ORDER BY E\.EndDateTime IS NOT NULL, E\.EndDateTime ASC/), $sql);
+
+$sql = build_sql({sort_field => 'StartDateTime DESC, Id'});
+check('multi-column sort with per-column direction used',
+  scalar($sql =~ /ORDER BY E\.StartDateTime DESC, E\.Id /), $sql);
+
+$sql = build_sql({sort_field => 'Id, (SELECT SLEEP(5))', limit => 0});
+check('multi-column sort with subselect is ignored', $sql !~ /SLEEP|ORDER BY/, $sql);
+
+$sql = build_sql({sort_field => 'Id IS NULL; DROP TABLE Events'});
+check('sort_field with statement separator and NULL check is ignored',
+  $sql !~ /ORDER BY/, $sql);
+
+$sql = build_sql({sort_field => 'MonitorName, StartDateTime', sort_asc => 1, limit => 0});
+check('multi-part MonitorName maps to M.Name', scalar($sql =~ /ORDER BY M\.Name, E\.StartDateTime ASC/), $sql);
+
+$sql = build_sql({sort_field => 'StartTime DESC, Secs', sort_asc => 1, limit => 0});
+check('multi-part StartTime and Secs map to their Events columns', scalar($sql =~ /ORDER BY E\.StartDateTime DESC, E\.Length ASC/), $sql);
+
+$sql = build_sql({sort_field => 'Tags, Id', sort_asc => 1, limit => 0});
+check('multi-part Tags maps to the tag subselect', scalar($sql =~ /GROUP_CONCAT\(Name\).*, E\.Id ASC/), $sql);
+
 exit($failures ? 1 : 0);

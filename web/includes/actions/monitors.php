@@ -37,6 +37,12 @@ if ($action == 'save') {
       continue;
     }
     $Monitor = new ZM\Monitor($mid);
+    // Saving a monitor that failed to load would insert a new one, and a deleted one is not edited.
+    if (!$Monitor->Id() or $Monitor->Deleted()) {
+      ZM\Warning('Monitor '.$mid.' not found');
+      $error_message .= 'Monitor '.validHtmlStr($mid).' no longer exists.<br/>';
+      continue;
+    }
     // Before stopping it, so a refused save leaves the monitor running.
     $refused = $Monitor->commandFieldChangesNotAllowed($newMonitor);
     if (count($refused)) {

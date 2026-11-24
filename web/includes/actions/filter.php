@@ -41,8 +41,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           if ($filter->Background()) {
             $filter->control('stop');
           }
-          $filter->delete();
-          ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          if (!$filter->delete()) {
+            $error_message .= 'Error deleting filter: '.htmlspecialchars(dbLastError()).'<br/>';
+          } else {
+            ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          }
         } else {
           $error_message .= 'You do not have permission to delete the filter.<br/>';
         }

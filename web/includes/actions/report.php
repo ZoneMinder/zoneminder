@@ -68,8 +68,11 @@ if ($action == 'save') {
     }
   }
 } else if ($action == 'delete') {
-  $report->delete();
-  $redirect = '?view=reports';
+  if (!$report->delete()) {
+    $error_message .= 'Error deleting report: '.htmlspecialchars(dbLastError()).'<br/>';
+  } else {
+    $redirect = '?view=reports';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Report");
 }

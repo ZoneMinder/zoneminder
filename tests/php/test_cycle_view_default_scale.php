@@ -4,7 +4,12 @@
 // reScale() multiplies, so on PHP 8 the cycle view died with a TypeError when any monitor
 // in it had that default, and a 640px style value raised a non-numeric warning.
 //
+// The view then ran the scale through validInt(), which strips non-digits: a DefaultScale
+// of '640px' streamed the monitor at 640% and 'fit_to_width' became ''. The fix keeps a
+// value only if it is purely digits, otherwise '0' (Auto).
+//
 // Run as: php tests/php/test_cycle_view_default_scale.php
+// Set ZM_TEST_CYCLE_PHP to test a different copy of the view (e.g. the original).
 
 namespace ZM {
   class Monitor {
@@ -13,7 +18,10 @@ namespace ZM {
     function Id() { return $this->row['Id']; }
     function Name() { return $this->row['Name']; }
     function DefaultScale() { return $this->row['DefaultScale']; }
-    function getStreamHTML($options) { return 'stream'.$this->row['Id']; }
+    function getStreamHTML($options) {
+      $GLOBALS['capturedStreamScale'] = isset($options['scale']) ? $options['scale'] : null;
+      return 'stream'.$this->row['Id'];
+    }
     function JanusEnabled() { return false; }
     function RTSP2WebEnabled() { return false; }
   }
@@ -36,7 +44,6 @@ namespace {
   function translate($s) { return $s; }
   function canView($a) { return true; }
   function canStream() { return true; }
-  function validInt($v) { return preg_replace('/\D/', '', (string)$v); }
   function validHtmlStr($s) { return htmlspecialchars((string)$s); }
   function zm_session_start() {}
   function noCacheHeaders() {}
@@ -47,9 +54,11 @@ namespace {
   function htmlSelect() { return ''; }
   function cache_bust($s) { return $s; }
 
-  // The real helper
+  // The real helpers
   $fn = file_get_contents(__DIR__.'/../../web/includes/functions.php');
   preg_match('/^function reScale\(.*?^}/ms', $fn, $m);
+  eval($m[0]);
+  preg_match('/^function validInt\(.*?^}/ms', $fn, $m);
   eval($m[0]);
 
   set_error_handler(function ($no, $str) { throw new ErrorException($str); });
@@ -57,7 +66,10 @@ namespace {
   $failures = 0;
   function check($n, $got, $want) {
     global $failures;
-    if ($got === $want) { echo "ok - $n\n"; } else { $failures++; echo "FAIL - $n (got ".var_export($got, true).")\n"; }
+    if ( $got === $want ) { echo "ok - $n\n"; } else { $failures++; echo "FAIL - $n (got ".var_export($got, true).")\n"; }
+  }
+  function cyclePhpPath() {
+    return getenv('ZM_TEST_CYCLE_PHP') ?: __DIR__.'/../../web/skins/classic/views/cycle.php';
   }
   function view() {
     global $scales;
@@ -65,7 +77,7 @@ namespace {
     $view = 'cycle';
     ob_start();
     try {
-      include __DIR__.'/../../web/skins/classic/views/cycle.php';
+      include cyclePhpPath();
     } catch (Throwable $e) {
       ob_end_clean();
       return 'threw: '.$e->getMessage();
@@ -74,16 +86,35 @@ namespace {
   }
 
   // The view declares a function, so it can only be included once per process.
-  if (isset($argv[1])) {
+  // argv[1] is the monitor's DefaultScale, optional argv[2] the zmCycleScale cookie.
+  if ( isset($argv[1]) ) {
     $monitorRows = array(
       array('Id'=>1, 'Name'=>'Front', 'Capturing'=>'Always', 'Width'=>640, 'Height'=>480, 'DefaultScale'=>$argv[1]),
     );
-    echo view();
+    if ( isset($argv[2]) )
+      $_COOKIE['zmCycleScale'] = $argv[2];
+    $result = view();
+    echo $result.' scale='.var_export($GLOBALS['capturedStreamScale'], true);
     exit(0);
   }
-  foreach (array('0', '100', 'fit_to_width', '640px') as $defScale) {
-    $got = shell_exec(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.escapeshellarg($defScale));
-    check("cycle view shows a monitor with DefaultScale $defScale", $got, 'ok');
+  function runChild($defScale, $cookie = null) {
+    $cmd = escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.escapeshellarg($defScale);
+    if ( $cookie !== null )
+      $cmd .= ' '.escapeshellarg($cookie);
+    return trim((string)shell_exec($cmd));
   }
+  function checkCase($defScale, $wantScale) {
+    $got = runChild($defScale);
+    check("cycle view shows a monitor with DefaultScale $defScale", strpos($got, 'ok scale=') === 0, true);
+    check("DefaultScale $defScale passes scale $wantScale to getStreamHTML", substr($got, strlen('ok scale=')), "'".$wantScale."'");
+  }
+  checkCase('640px', '0');
+  checkCase('fit_to_width', '0');
+  checkCase('100', '100');
+  checkCase('0', '0');
+
+  $got = runChild('100', '640px');
+  check("cycle view shows a monitor with zmCycleScale 640px", strpos($got, 'ok scale=') === 0, true);
+  check("zmCycleScale 640px passes scale 0 to getStreamHTML", substr($got, strlen('ok scale=')), "'0'");
   exit($failures ? 1 : 0);
 }

@@ -206,7 +206,7 @@ if ( !$Event->Id() ) {
 }
 
 if ( $Event->Id() and !file_exists($Event->Path()) )
-  echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+  echo '<div class="error">Event was not found at '.validHtmlStr($Event->Path()).'.  It is unlikely that playback will be possible.</div>';
 ?>
 
 <!-- BEGIN HEADER -->

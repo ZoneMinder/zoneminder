@@ -67,6 +67,8 @@ namespace {
   $root = isset($argv[1]) ? $argv[1] : dirname(__DIR__, 2);
   $path = $root.'/web/ajax/console.php';
   $src = file_get_contents($path);
+  // The strip helper uses the real ZM\removeUserinfo().
+  require_once($root.'/web/includes/log_redact.php');
 
   $has_strip = preg_match('/^function exportStripCredentials\(.*?\n\}/ms', $src, $m);
   if ($has_strip) {
@@ -96,6 +98,8 @@ namespace {
     check('strip keeps Name', $out['Name'], 'Front');
     $plain = exportStripCredentials(array('ControlAddress' => '192.168.1.5:80'));
     check('strip leaves ControlAddress without userinfo unchanged', $plain['ControlAddress'], '192.168.1.5:80');
+    $scheme = exportStripCredentials(array('ControlAddress' => 'http://admin:pw@10.0.0.1:80'));
+    check('strip removes ControlAddress userinfo after a scheme', $scheme['ControlAddress'], 'http://10.0.0.1:80');
   }
 
   if (!preg_match('/^function exportMonitorsJSON\(.*?\n\}/ms', $src, $m)) {

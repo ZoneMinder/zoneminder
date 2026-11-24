@@ -685,19 +685,10 @@ function queryRequest() {
 // Remove camera credentials from an exported monitor for users who cannot edit it.
 function exportStripCredentials(array $data) {
   unset($data['User'], $data['Pass'], $data['ONVIF_Username'], $data['ONVIF_Password']);
-  if (isset($data['Host'])) {
-    $data['Host'] = preg_replace('/^[^@\/]*@/', '', $data['Host']);
-  }
-  foreach (array('Path', 'SecondPath') as $field) {
+  foreach (array('Host', 'Path', 'SecondPath', 'ControlAddress', 'ONVIF_URL') as $field) {
     if (isset($data[$field])) {
-      $data[$field] = preg_replace('#://[^@/]*@#', '://', $data[$field]);
+      $data[$field] = ZM\removeUserinfo($data[$field]);
     }
-  }
-  if (isset($data['ControlAddress'])) {
-    $data['ControlAddress'] = preg_replace('/^[^@\/]*@/', '', $data['ControlAddress']);
-  }
-  if (isset($data['ONVIF_URL'])) {
-    $data['ONVIF_URL'] = preg_replace('#://[^@/]*@#', '://', $data['ONVIF_URL']);
   }
   return $data;
 }

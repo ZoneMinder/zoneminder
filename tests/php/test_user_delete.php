@@ -5,6 +5,7 @@ namespace ZM {
 }
 
 namespace {
+  chdir(__DIR__.'/../../web');
   $queries = array();
   function canEdit($area) { return true; }
   function dbQuery($sql, $params = null) { global $queries; $queries[] = array($sql, $params); return true; }

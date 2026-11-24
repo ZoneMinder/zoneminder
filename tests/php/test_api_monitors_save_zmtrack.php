@@ -76,6 +76,7 @@ class FakeController {
   function set($a) { $this->out = $a; }
   function requestCommandFields() { return array(); }
   function pinRequestId($m, $id) {}
+  protected function resizeZones($id, $old, $new) {}
 }
 eval('class FakeCtl extends FakeController { '.$fix(extractMethod($source, 'edit')).' '.$fix(extractMethod($source, 'add')).' }');
 

@@ -51,6 +51,7 @@ namespace {
   function human_filesize($n) { return $n; }
   function dbQuery($sql, $values) { $GLOBALS['rows'] = array(array('Id'=>5, 'MonitorId'=>1, 'Name'=>'Event-5', 'StartDateTime'=>'2026-11-21 10:00:00', 'Length'=>10)); return new Results(); }
   function dbFetchNext($r) { return array_shift($GLOBALS['rows']); }
+  function parseSort($saveToSession=false, $querySep='&amp;') { global $sortQuery; $sortQuery = ''; }
 
   // The real helper
   $fn = file_get_contents(__DIR__.'/../../web/includes/functions.php');

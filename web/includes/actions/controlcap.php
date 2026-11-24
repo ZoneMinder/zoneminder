@@ -46,6 +46,7 @@ if ( $action == 'Save' ) {
     'HasTiltSpeed'  =>  0,
     'HasTurboTilt'  =>  0,
     'CanZoom' => 0,
+    'CanAutoZoom' => 0,
     'CanZoomRel' => 0,
     'CanZoomAbs' => 0,
     'CanZoomCon' => 0,

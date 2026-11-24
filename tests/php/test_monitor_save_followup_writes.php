@@ -69,9 +69,9 @@ namespace ZM {
 }
 
 namespace {
-  $root = isset($argv[1]) ? rtrim($argv[1], '/') : null;
+  $root = isset($argv[1]) ? rtrim($argv[1], '/') : dirname(__DIR__, 2);
   if (!$root or !is_file("$root/web/includes/actions/monitor.php")) {
-    fwrite(STDERR, "usage: php test_monitor_save_followup_writes.php <repo root>\n");
+    fwrite(STDERR, "usage: php test_monitor_save_followup_writes.php [repo root]\n");
     exit(2);
   }
 

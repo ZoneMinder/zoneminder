@@ -34,6 +34,10 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
 
     if ( !empty($zid) ) {
       $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($mid, $zid));
+      if ( !$zone ) {
+        $error_message .= 'Zone not found.<br/>';
+        return;
+      }
     } else {
       $zone = array();
     }

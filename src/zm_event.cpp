@@ -161,13 +161,18 @@ Event::Event(
                       monitor->Latitude(),
                       monitor->Longitude()
                     );
-  // zmDbDoInsert returns 0 on a failure it will not retry itself, so back off and give up after a few tries
+  // zmDbDoInsert returns 0 on a failure it will not retry itself. Recording
+  // matters more than the row, so after a few tries record under a time-based
+  // id and leave the row to zmrecover.pl.
   int insert_attempts = 0;
   do {
     id = zmDbDoInsert(sql);
     if (id or zm_terminate) break;
-    if (++insert_attempts >= 10) {
-      Error("Unable to insert event after %d attempts", insert_attempts);
+    if (++insert_attempts >= 3) {
+      id = EventFallbackId(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count(), monitor->Id());
+      Error("Unable to insert event for monitor %u after %d attempts, recording it as event %" PRIu64
+          " without a database row. Run zmrecover.pl to add it.", monitor->Id(), insert_attempts, id);
       break;
     }
     sleep(1);

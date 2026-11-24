@@ -31,7 +31,8 @@ require_once('includes/Group_Permission.php');
 require_once('includes/User_Role.php');
 
 if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
-	if ( !($User = new ZM\User(validCardinal($_REQUEST['uid']))) ) {
+	$User = new ZM\User(validCardinal($_REQUEST['uid']));
+	if ( !$User->Id() ) {
 		$view = 'error';
 		return;
 	}

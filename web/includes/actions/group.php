@@ -32,6 +32,13 @@ if ( $action == 'save' ) {
   if ( !empty($_REQUEST['gid']) )
     $group_id = $_REQUEST['gid'];
   $group = new ZM\Group($group_id);
+  // A group deleted in another tab would be saved here as a new one
+  if ($group_id and !$group->Id()) {
+    ZM\Warning('Group not found for save');
+    $error_message .= 'Group not found.<br/>';
+    $view = 'groups';
+    return;
+  }
 
   $new_ids = isset($_REQUEST['newGroup']['MonitorIds']) ? array_map('intval', (array)$_REQUEST['newGroup']['MonitorIds']) : array();
   $old_ids = $group->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group->Id())) : array();

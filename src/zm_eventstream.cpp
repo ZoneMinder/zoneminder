@@ -1537,7 +1537,9 @@ void EventStream::runStream() {
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {
-  std::unique_ptr<FILE, decltype(&fclose)> fdj(fopen(filepath.c_str(), "rb"), &fclose);
+  // A lambda deleter: decltype(&fclose) carries glibc attributes that -Wignored-attributes rejects.
+  auto file_closer = [](FILE *f) { if (f) fclose(f); };
+  std::unique_ptr<FILE, decltype(file_closer)> fdj(fopen(filepath.c_str(), "rb"), file_closer);
   if (!fdj) {
     Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
     std::string error_message = stringtf("Can't open %s: %s", filepath.c_str(), strerror(errno));

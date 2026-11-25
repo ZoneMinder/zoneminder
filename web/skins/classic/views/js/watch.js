@@ -1133,6 +1133,18 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // Zone overlays are always in the DOM; #monitor.hide-zones controls them.
+  const zonesCookie = getCookie('zmWatchShowZones');
+  if (zonesCookie !== null && zonesCookie !== undefined) {
+    setZonesVisible(zonesCookie == '1');
+  } else {
+    const zonesMonitor = document.getElementById('monitor');
+    if (zonesMonitor) updateZonesButton(zonesMonitor.classList.contains('hide-zones'));
+  }
+  if (document.getElementById('toggleZonesButton')) {
+    bindButton('#toggleZonesButton', 'click', null, toggleZones);
+  }
+
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1257,6 +1269,31 @@ function initPage() {
     setTimeout(indicatorLightStatusReq, 800);
   });
 } // initPage
+
+function updateZonesButton(hidden) {
+  const button = document.getElementById('toggleZonesButton');
+  if (!button) return;
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  const icon = button.querySelector('.material-icons');
+  if (icon) icon.textContent = hidden ? 'layers' : 'layers_clear';
+}
+
+function setZonesVisible(visible) {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  monitor.classList.toggle('hide-zones', !visible);
+  updateZonesButton(!visible);
+}
+
+function toggleZones() {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  const hidden = monitor.classList.toggle('hide-zones');
+  setCookie('zmWatchShowZones', hidden ? '0' : '1');
+  updateZonesButton(hidden);
+}
 
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');

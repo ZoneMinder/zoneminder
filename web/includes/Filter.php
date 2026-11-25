@@ -44,6 +44,8 @@ class Filter extends ZM_Object {
     'AutoMoveTo'      =>  0,
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
+    'AutoTag'         =>  0,
+    'AutoTagId'       =>  0,
     'UpdateDiskSpace' =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
@@ -245,6 +247,10 @@ class Filter extends ZM_Object {
     ) as $field => $term) {
       if ($this->$field()) $auto_terms[] = $term;
     }
+    // As ZoneMinder::Filter::Sql: the tag id only goes into the SQL as digits
+    $tag_id = $this->AutoTagId();
+    if ($this->AutoTag() and is_scalar($tag_id) and preg_match('/^\s*([1-9][0-9]*)\s*$/', (string)$tag_id, $m))
+      $auto_terms[] = 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$m[1].')';
     if (count($auto_terms)) $conditions[] = '( '.implode(' or ', $auto_terms).' )';
 
     if ($this->LockRows() and $this->skip_locked())
@@ -1641,6 +1647,7 @@ class Filter extends ZM_Object {
         $this->AutoArchive() or
         $this->AutoMove() or
         $this->AutoCopy() or
+        $this->AutoTag() or
         $this->AutoVideo() or
         $this->AutoUpload() or
         $this->AutoEmail() or

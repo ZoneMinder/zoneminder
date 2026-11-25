@@ -446,6 +446,7 @@ $SLANG = array(
     'FilterCopyEvents'      => 'Copy all matches',
     'FilterLockRows'        => 'Lock Rows',
     'FilterMoveEvents'      => 'Move all matches',
+    'FilterTagEvents'       => 'Tag all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterEmailTo'    			=> 'Email To',
     'FilterEmailSubject'	  => 'Email Subject',

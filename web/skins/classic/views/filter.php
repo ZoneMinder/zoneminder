@@ -112,6 +112,13 @@ $focusWindow = true;
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
 
+// Tags the AutoTag action can add; htmlSelect escapes the names
+$autoTagOptions = array();
+foreach (dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') as $tag) {
+  $autoTagOptions[$tag['Id']] = $tag['Name'];
+}
+$autoTagId = isset($autoTagOptions[$filter->AutoTagId()]) ? $filter->AutoTagId() : null;
+
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
   $weekdays[$i] = date('D', mktime(12, 0, 0, 1, $i+1, 2001));
@@ -329,6 +336,13 @@ if ( canEdit('System') ) {
               <input type="checkbox" id="filter[AutoCopy]" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
               <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
             </p>
+<?php if (count($autoTagOptions)) { ?>
+            <p>
+              <label for="filter[AutoTag]"><?php echo translate('FilterTagEvents') ?></label>
+              <input type="checkbox" id="filter[AutoTag]" name="filter[AutoTag]" value="1"<?php if ( $filter->AutoTag() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autotag"/>
+              <?php echo htmlSelect('filter[AutoTagId]', $autoTagOptions, $autoTagId, $filter->AutoTag() ? null : array('style'=>'display:none;')); ?>
+            </p>
+<?php } ?>
             <p>
               <label for="filter[AutoMove]"><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" id="filter[AutoMove]" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>

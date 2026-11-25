@@ -245,6 +245,7 @@ sub getFilters {
     or `UpdateDiskSpace` = 1
     or `AutoMove` = 1
     or `AutoCopy` = 1
+    or `AutoTag` = 1
     ) ORDER BY `Name`';
   my ($sth, $res) = zmDbExecute($sql, @sql_values) or Fatal("Unable to execute '$sql'");
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
@@ -286,6 +287,7 @@ sub checkFilter {
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
           ($filter->{AutoCopy}?'copy':()),
+          ($filter->{AutoTag}?'tag':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -343,6 +345,13 @@ sub checkFilterEvent {
     Info("Unarchiving event $Event->{Id}");
     # Do it individually to avoid locking up the table for new events
     $Event->save({Archived=>0});
+  }
+  if ( $filter->{AutoTag} and $filter->{AutoTagId} ) {
+    Info("Tagging event $Event->{Id} with tag $filter->{AutoTagId}");
+    # IGNORE: the event may have been given the tag since the filter matched it
+    zmDbExecute('INSERT IGNORE INTO `Events_Tags` (`TagId`, `EventId`, `AssignedBy`) VALUES (?, ?, ?)',
+      $filter->{AutoTagId}, $Event->{Id}, $filter->{UserId});
+    zmDbExecute('UPDATE `Tags` SET `LastAssignedDate`=NOW() WHERE `Id`=?', $filter->{AutoTagId});
   }
   if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
     if ( !$Event->{Videoed} ) {

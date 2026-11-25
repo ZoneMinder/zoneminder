@@ -72,6 +72,15 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
+      $_REQUEST['filter']['AutoTag'] = empty($_REQUEST['filter']['AutoTag']) ? 0 : 1;
+      // The tag must exist; anything else turns the action off
+      $autoTagId = $_REQUEST['filter']['AutoTagId'] ?? '';
+      if (!is_scalar($autoTagId) or !preg_match('/^[1-9][0-9]*$/', (string)$autoTagId)
+        or !dbFetchOne('SELECT Id FROM Tags WHERE Id=?', 'Id', array($autoTagId))) {
+        $autoTagId = 0;
+      }
+      $_REQUEST['filter']['AutoTagId'] = $autoTagId;
+      if (!$autoTagId) $_REQUEST['filter']['AutoTag'] = 0;
       $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
       // The view only renders this checkbox when ZM_OPT_FFMPEG is on, so leave the stored value alone otherwise
       if (ZM_OPT_FFMPEG) {

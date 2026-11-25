@@ -283,7 +283,10 @@ if ( $zone['Id'] ) {
 if ( count($other_zones) ) {
   $html = '';
   foreach ( $other_zones as $other_zone ) {
-    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
+    # Percent coordinates are always written with decimals; without any they are pixels
+    $otherPoints = coordsToPoints($other_zone['Coords']) ?: array();
+    convertPixelPointsToPercent($otherPoints, $monitor->ViewWidth(), $monitor->ViewHeight(), strpos($other_zone['Coords'], '.') === false);
+    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', pointsToCoords($otherPoints));
     $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
   }
   echo $html;

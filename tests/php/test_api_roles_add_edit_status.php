@@ -40,6 +40,10 @@ class FakeRequest {
   public $data = array(); public $method;
   function __construct($m) { $this->method = $m; }
   function is($t) { return strtolower($t) == strtolower($this->method); }
+  function allowMethod() {
+    foreach (func_get_args() as $m) if ($this->is($m)) return true;
+    throw new Exception('Method Not Allowed');
+  }
 }
 eval('class Harness {
   public $Role, $request, $response, $set = array();

@@ -121,6 +121,7 @@ class RolesController extends AppController {
  * @return void
  */
   public function edit($id = null) {
+    $this->request->allowMethod('post', 'put');
     $this->Role->id = $id;
 
     global $user;

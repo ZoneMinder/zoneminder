@@ -51,9 +51,28 @@
   $sql = $filter->debugSql();
   $explain_sql = $sql;
 
+  // EXPLAIN's Rows column is only an estimate. Count the filter's own query so
+  // the modal can say how many events match right now. Remove the listing
+  // LIMIT first: a Limit caps how many events the filter acts on, it does not
+  // change how many match. ORDER BY is left alone; it does not change a count.
+  $count_sql = preg_replace('/\s+LIMIT\s+\d+\s*$/i', '', $sql);
+  $count_sql = 'SELECT COUNT(*) AS Total FROM ('.$count_sql.') AS FilterMatches';
 
   echo preg_replace('/\n/', '<br/>', validHtmlStr($sql));
 ?></p>
+<p>
+<?php
+  $match_count = dbFetchOne($count_sql, 'Total');
+  if ($match_count === false) {
+    echo 'Matching events: unavailable';
+  } else {
+    echo 'Matching events: '.(int)$match_count;
+    if ($filter->limit()) {
+      echo ' <span class="filterdebug-limit">(filter Limit '.(int)$filter->limit().' applies)</span>';
+    }
+  }
+?>
+</p>
 <p><label>MySQL Explanation</label>
 <?php
   echo '

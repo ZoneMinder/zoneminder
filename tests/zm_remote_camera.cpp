@@ -147,13 +147,13 @@ class OneShotServer {
 };
 
 // GetResponse() result for the reply, with a watchdog that sets zm_terminate if it never returns.
-int HttpResponseFor(const std::string &reply, bool &watchdog_fired) {
+int HttpResponseFor(const std::string &reply, bool &watchdog_fired, const char *method = "simple") {
   config.http_timeout = 300;
   config.watch_max_delay = 1;
   config.http_version = "1.0";
   config.http_ua = "test";
   OneShotServer server(reply);
-  RemoteCameraHttp camera(nullptr, "simple", "127.0.0.1", server.Port(), "/", "", "",
+  RemoteCameraHttp camera(nullptr, method, "127.0.0.1", server.Port(), "/", "", "",
                           4, 4, 3, 0, 0, 0, 0, false, false);
   camera.Initialise();
   REQUIRE(camera.Connect() >= 0);
@@ -190,3 +190,20 @@ TEST_CASE("HTTP camera: an empty single image body is an error, not an endless r
     REQUIRE(r < 0);
   }
 }
+
+#if HAVE_LIBPCRE
+TEST_CASE("HTTP camera regexp parser: a single image without Content-Length ends when the camera closes", "[RemoteCamera]") {
+  bool watchdog_fired = false;
+  const std::string body = "\xff\xd8JPEGDATA\xff\xd9";
+  SECTION("body") {
+    int r = HttpResponseFor("HTTP/1.0 200 OK\r\nContent-Type: image/jpeg\r\n\r\n" + body, watchdog_fired, "regexp");
+    REQUIRE_FALSE(watchdog_fired);
+    REQUIRE(r == static_cast<int>(body.size()));
+  }
+  SECTION("no body") {
+    int r = HttpResponseFor("HTTP/1.0 200 OK\r\nContent-Type: image/jpeg\r\n\r\n", watchdog_fired, "regexp");
+    REQUIRE_FALSE(watchdog_fired);
+    REQUIRE(r < 0);
+  }
+}
+#endif

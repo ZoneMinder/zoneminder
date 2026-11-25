@@ -105,7 +105,8 @@ if (isset($_REQUEST['newMonitor'])) {
     monitorFillUncheckedFields($_REQUEST['newMonitor']) : $_REQUEST['newMonitor']);
 
   if (ZM_OPT_X10)
-    $newX10Monitor = $_REQUEST['newX10Monitor'];
+    $newX10Monitor = (isset($_REQUEST['newX10Monitor']) and is_array($_REQUEST['newX10Monitor'])) ?
+      $_REQUEST['newX10Monitor'] + $x10Monitor : $x10Monitor;
 } else {
   if (ZM_OPT_X10)
     $newX10Monitor = $x10Monitor;

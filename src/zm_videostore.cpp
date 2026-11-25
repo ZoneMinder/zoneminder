@@ -1075,7 +1075,7 @@ bool VideoStore::setup_resampler() {
     Error("could not open codec (%d) (%s)",
           ret, av_make_error_string(ret).c_str());
     audio_out_codec = nullptr;
-    audio_out_ctx = nullptr;
+    avcodec_free_context(&audio_out_ctx);
     audio_out_stream = nullptr;
     return false;
   }
@@ -1204,15 +1204,19 @@ bool VideoStore::setup_resampler() {
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
-  unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-                                          nullptr,
+  int audioSampleBuffer_size = av_samples_get_buffer_size(
+                                 nullptr,
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-                                          audio_out_ctx->ch_layout.nb_channels,
+                                 audio_out_ctx->ch_layout.nb_channels,
 #else
-                                          audio_out_ctx->channels,
+                                 audio_out_ctx->channels,
 #endif
-                                          audio_out_ctx->frame_size,
-                                          audio_out_ctx->sample_fmt, 0);
+                                 audio_out_ctx->frame_size,
+                                 audio_out_ctx->sample_fmt, 0);
+  if (audioSampleBuffer_size < 0) {
+    Error("Could not get the audio sample buffer size (%s)", av_make_error_string(audioSampleBuffer_size).c_str());
+    return false;
+  }
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
 
   if (!converted_in_samples) {

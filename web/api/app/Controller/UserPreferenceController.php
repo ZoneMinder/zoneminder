@@ -151,7 +151,17 @@ class UserPreferenceController extends AppController {
 		}
 		$this->assertOwned($id);
 		if ($this->request->is(array('post', 'put'))) {
-			if ($this->UserPreference->save($this->request->data)) {
+			$data = $this->request->data;
+			if (isset($data['UserPreference'])) {
+				$data = $data['UserPreference'];
+			}
+			// The row is the one in the URL, whatever Id the body names.
+			$data['Id'] = $id;
+			global $user;
+			if ($user and ($user->System() != 'Edit')) {
+				$data['UserId'] = $user->Id();
+			}
+			if ($this->UserPreference->save($data)) {
 			}
 		} else {
 			$options = array('conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id));

@@ -2,6 +2,7 @@
 
 #include "zm_ffmpeg.h"
 #include "zm_logger.h"
+#include "zm_signal.h"
 
 FFmpeg_Input::FFmpeg_Input() :
   streams(nullptr),
@@ -19,6 +20,12 @@ FFmpeg_Input::~FFmpeg_Input() {
     Close();
   }
 }  // end ~FFmpeg_Input()
+
+int FFmpeg_Input::InterruptCallback(void *opaque) {
+  const FFmpeg_Input *input = static_cast<const FFmpeg_Input *>(opaque);
+  if (zm_terminate) return 1;
+  return input->opening and (std::chrono::steady_clock::now() - input->open_start > Seconds(10));
+}
 
 /* Takes streams provided from elsewhere.  They might not come from the same source
  * but we will treat them as if they are.  */
@@ -40,6 +47,23 @@ int FFmpeg_Input::Open(
 
 int FFmpeg_Input::Open(const char *filepath) {
   int error;
+
+  // Without a callback a network input that accepts the connection and never
+  // answers blocks avformat_open_input() for good, past SIGTERM.
+  struct OpenWindow {
+    bool &flag;
+    ~OpenWindow() { flag = false; }
+  } window{opening};
+  open_start = std::chrono::steady_clock::now();
+  opening = true;
+
+  input_format_context = avformat_alloc_context();
+  if (!input_format_context) {
+    Error("Unable to allocate format context");
+    return AVERROR(ENOMEM);
+  }
+  input_format_context->interrupt_callback.callback = InterruptCallback;
+  input_format_context->interrupt_callback.opaque = this;
 
   /** Open the input file to read from it. */
   error = avformat_open_input(&input_format_context, filepath, nullptr, nullptr);

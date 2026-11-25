@@ -1515,7 +1515,7 @@ $codecs = array(
             </li>
             <li>
 <?php
-  $stream_available = canView('Stream') and $monitor->Type()=='WebSite' or ($monitor->CaptureFPS() && $monitor->Capturing() != 'None');
+  $stream_available = canView('Stream') && ($monitor->Type()=='WebSite' || ($monitor->CaptureFPS() && $monitor->Capturing() != 'None'));
   $options = array();
 
   $ratio_factor = $monitor->ViewWidth() ? $monitor->ViewHeight() / $monitor->ViewWidth() : 1;

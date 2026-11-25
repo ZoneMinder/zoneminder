@@ -71,6 +71,11 @@ std::vector<int> parse_cpu_list(const std::string &list) {
   return cpus;
 }
 
+std::vector<int> cpu_set_for_pinning(const std::vector<int> &shared_set) {
+  if (shared_set.size() > 1) return shared_set;
+  return {};
+}
+
 // sched_getcpu, cpu_set_t and pthread_setaffinity_np are GNU extensions. On
 // other platforms the threads are simply left wherever the scheduler puts them.
 #if defined(__linux__)
@@ -98,7 +103,9 @@ std::string read_first_line(const std::string &path) {
 // The CPUs that share the capture CPU's last-level cache: pinning to this set
 // keeps a monitor's threads cache-local without capping them on one core. The
 // highest cache index for a CPU is its last level (usually L3, which on current
-// CPUs is shared within a CCX / NUMA node). Falls back to the capture CPU alone.
+// CPUs is shared within a CCX / NUMA node). Returns empty (do not pin) when
+// that cache is private to a single core, since there is no shared cache to
+// exploit and pinning would only serialize the threads onto one core.
 std::vector<int> capture_cpu_set_list() {
   if (our_cpu < 0) return {};
   std::string shared;
@@ -108,11 +115,7 @@ std::vector<int> capture_cpu_set_list() {
     if (v.empty()) break;  // no higher cache level
     shared = v;            // keep the last (highest) level seen
   }
-  if (!shared.empty()) {
-    std::vector<int> cpus = parse_cpu_list(shared);
-    if (!cpus.empty()) return cpus;
-  }
-  return { our_cpu };
+  return cpu_set_for_pinning(parse_cpu_list(shared));
 }
 
 bool pin_to_capture_cpu_set(pthread_t handle) {

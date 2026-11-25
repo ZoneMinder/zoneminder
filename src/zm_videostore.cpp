@@ -682,15 +682,16 @@ bool VideoStore::open() {
     }
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    // we crash if we try again
-    if (ENOSPC != ret) {
+    // we crash if we try again. ret is an AVERROR, so compare with AVERROR(ENOSPC).
+    if (ret != AVERROR(ENOSPC)) {
       Warning("Unable to set movflags trying with defaults.%d %s",
               ret, av_make_error_string(ret).c_str());
 
       ret = avformat_write_header(oc, nullptr);
       Debug(1, "Done %d", ret);
     } else {
-      Error("ENOSPC. fail");
+      Error("Monitor %u: disk full writing %s, the event will not be recorded. Free space on the storage area",
+          monitor->Id(), filename.c_str());
     }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");

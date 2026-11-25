@@ -240,6 +240,7 @@ class Monitor extends ZM_Object {
     'StreamChannel'   => 'Restream',
     'Go2RTCEnabled'   => array('type'=>'integer','default'=>0),
     'Go2RTCDisableBackChannel'   => array('type'=>'boolean','default'=>1),
+    'CPUAffinity'   => array('type'=>'boolean','default'=>0),
     'JanusEnabled'   => array('type'=>'boolean','default'=>0),
     'JanusAudioEnabled'   => array('type'=>'boolean','default'=>0),
     'Janus_Profile_Override'   => '',

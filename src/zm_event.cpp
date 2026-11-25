@@ -206,6 +206,7 @@ Event::Event(
   dbQueue.push(std::move(sql));
 
   thread_ = std::thread(&Event::Run, this);
+  if (monitor->CPUAffinity()) PinToCaptureCpuSet(thread_);
 }
 
 Event::~Event() {

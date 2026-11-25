@@ -211,6 +211,7 @@ int main(int argc, char *argv[]) {
   zmLoadDBConfig();
   logInit(log_id_string);
 
+  RecordCaptureCpu();
   HwCapsDetect();
 #if HAVE_LIBCURL
   curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -240,6 +241,16 @@ int main(int argc, char *argv[]) {
     exit(-1);
   } else {
     Debug(2, "%zu monitors loaded", monitors.size());
+  }
+
+  // If any monitor this process serves asked for CPU affinity, pin this capture
+  // thread to the capture CPU's cache set, so the worker threads it spawns --
+  // pinned to the same set -- stay cache-local to it.
+  for (const std::shared_ptr<Monitor> &monitor : monitors) {
+    if (monitor->CPUAffinity()) {
+      PinSelfToCaptureCpuSet();
+      break;
+    }
   }
 
   Info("Starting Capture version %s", ZM_VERSION);

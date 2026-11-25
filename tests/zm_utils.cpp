@@ -669,3 +669,70 @@ TEST_CASE("UrlHost") {
   REQUIRE(UrlHost("zm.example.com") == "zm.example.com");
   REQUIRE(UrlHost("") == "");
 }
+
+TEST_CASE("parse_cpu_list") {
+  REQUIRE(parse_cpu_list("0") == std::vector<int>{0});
+  REQUIRE(parse_cpu_list("0,2,4") == std::vector<int>({0, 2, 4}));
+  REQUIRE(parse_cpu_list("0-3") == std::vector<int>({0, 1, 2, 3}));
+  REQUIRE(parse_cpu_list("0-2,8,10-11") == std::vector<int>({0, 1, 2, 8, 10, 11}));
+  // sysfs lists carry a trailing newline and may have stray whitespace.
+  REQUIRE(parse_cpu_list(" 0 - 1 ,  3 \n") == std::vector<int>({0, 1, 3}));
+  REQUIRE(parse_cpu_list("").empty());
+  // A malformed token is skipped, the rest still parse.
+  REQUIRE(parse_cpu_list("0,x,2") == std::vector<int>({0, 2}));
+}
+
+TEST_CASE("cpu_set_for_pinning") {
+  // A set that spans more than one CPU (a genuinely shared last-level cache)
+  // is returned unchanged.
+  REQUIRE(cpu_set_for_pinning({0, 1}) == std::vector<int>({0, 1}));
+  REQUIRE(cpu_set_for_pinning({4, 5, 6, 7}) == std::vector<int>({4, 5, 6, 7}));
+  // A single-CPU set means the cache is private to that core (e.g. AmpereOne,
+  // where every cache level is per-core): there is nothing shared to exploit,
+  // so do not pin rather than serialize the threads onto one core.
+  REQUIRE(cpu_set_for_pinning({0}).empty());
+  REQUIRE(cpu_set_for_pinning({}).empty());
+}
+
+// RecordCaptureCpu() records the calling thread's CPU in our_cpu, and
+// PinToCaptureCpuSet() pins a thread to the set of CPUs sharing that CPU's
+// last-level cache, so a monitor's workers stay cache-local to capture.
+#if defined(__linux__)
+TEST_CASE("PinToCaptureCpuSet pins a thread to the capture CPU's cache set") {
+  const int cpu = RecordCaptureCpu();
+  REQUIRE(cpu == our_cpu);
+  REQUIRE(cpu >= 0);  // sched_getcpu should succeed in the test environment
+
+  std::thread t([] { std::this_thread::sleep_for(std::chrono::milliseconds(20)); });
+  // The outcome depends on this machine's cache topology: where the capture
+  // CPU's last-level cache is shared by more than one core it pins and returns
+  // true; where that cache is private to the core (no shared cache to exploit)
+  // it is a correct no-op returning false. Accept both, and check that a pin
+  // that did happen is to a genuinely shared set that includes the capture CPU.
+  const bool pinned = PinToCaptureCpuSet(t);
+  if (pinned) {
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    REQUIRE(pthread_getaffinity_np(t.native_handle(), sizeof(cpuset), &cpuset) == 0);
+    REQUIRE(CPU_ISSET(our_cpu, &cpuset));
+    REQUIRE(CPU_COUNT(&cpuset) > 1);
+  }
+
+  t.join();
+}
+
+TEST_CASE("PinToCaptureCpuSet is a no-op when the capture CPU is unknown") {
+  const int saved = our_cpu;
+  our_cpu = -1;
+  std::thread t([] {});
+  REQUIRE(PinToCaptureCpuSet(t) == false);
+  t.join();
+  our_cpu = saved;
+}
+#else
+TEST_CASE("PinToCaptureCpuSet reports failure where it is unsupported") {
+  std::thread t([] {});
+  REQUIRE(PinToCaptureCpuSet(t) == false);
+  t.join();
+}
+#endif

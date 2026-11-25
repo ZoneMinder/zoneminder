@@ -27,6 +27,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <thread>
 #include "span.hpp"
 #include <stdexcept>
 #include <string>
@@ -126,6 +127,33 @@ std::string TimevalToString(timeval tv);
 
 extern unsigned int sse_version;
 extern unsigned int neonversion;
+
+// The CPU the capture process was running on when RecordCaptureCpu() was last
+// called, or -1 if it could not be determined.
+extern int our_cpu;
+// Record the calling thread's current CPU in our_cpu and return it (-1 on
+// failure, or where CPU affinity is unsupported).
+int RecordCaptureCpu();
+// Parse a Linux cpu list such as "0-3,8,10-11" into CPU indices. Exposed for
+// testing.
+std::vector<int> parse_cpu_list(const std::string &list);
+// The subset of a last-level-cache CPU set that is worth pinning to. A set
+// that spans more than one CPU is returned unchanged; a set of one CPU (or
+// empty) means the capture CPU's last-level cache is private to that core, so
+// there is no shared cache to exploit and pinning there would only serialize a
+// monitor's threads onto one core. Returns empty in that case, i.e. "do not
+// pin". Pure and exposed for testing. (On e.g. AmpereOne, where every cache
+// level is per-core, this makes CPU affinity a correct no-op.)
+std::vector<int> cpu_set_for_pinning(const std::vector<int> &shared_set);
+// Pin thread to the set of CPUs that share the capture CPU's last-level cache,
+// so a monitor's worker threads stay cache-local to capture without being
+// capped on a single core. No-op returning false when the capture CPU is
+// unknown, when that cache is private to a single core (nothing shared to
+// exploit), or on platforms without CPU affinity.
+bool PinToCaptureCpuSet(std::thread &thread);
+// As PinToCaptureCpuSet, but for the calling thread (the capture thread).
+bool PinSelfToCaptureCpuSet();
+
 void HwCapsDetect();
 void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 

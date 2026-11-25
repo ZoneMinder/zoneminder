@@ -174,7 +174,7 @@ sub moveConRight
 	my $params = shift;
 	Debug( "Orientation" );
 	my $dvalue=$self->getDisplayAttr(10);
-	if ( $dvalue == 1 )
+	if ( $dvalue <= 1 )
 	{
 	$dvalue=4;
 	my $cmd = "parameters?rotation=$dvalue";

@@ -53,6 +53,10 @@ function saveMonitorSequence($monitor_ids) {
         \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
         continue;
       }
+      if ( !editableMonitor($monitor_id) ) {
+        \ZM\Warning('Not allowed to edit monitor '.$monitor_id.', skipping it in the sort');
+        continue;
+      }
       $ids[] = $monitor_id;
     } // end for each monitor_id
     if ( $ids ) {

@@ -181,14 +181,18 @@ $where = array();   // key => path:line, for the report only
 $scanned = 0;
 $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/web'));
 foreach ($iterator as $file) {
-  if ($file->isDir() or $file->getExtension() !== 'php') continue;
+  if ($file->isDir()) continue;
   $path = $file->getPathname();
+  // A .php.in template is the source of a .php file cmake generates, so a clean
+  // checkout is scanned the same as a built tree.
+  if ($file->getExtension() !== 'php' and substr($path, -7) !== '.php.in') continue;
+  if (substr($path, -7) === '.php.in' and file_exists(substr($path, 0, -3))) continue;
   // web/api is cakephp, assets are third party.
   if (strpos($path, '/api/') !== false) continue;
   if (strpos($path, '/assets/') !== false) continue;
   $scanned++;
   foreach (cut_short_assignments(file_get_contents($path)) as $find) {
-    $relative = substr($path, strlen($root) + 1);
+    $relative = preg_replace('/\.in$/', '', substr($path, strlen($root) + 1));
     $offenders[] = $relative.' '.$find['key'];
     $where[$relative.' '.$find['key']] = $relative.':'.$find['line'];
   }

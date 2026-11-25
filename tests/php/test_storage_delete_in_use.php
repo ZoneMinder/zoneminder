@@ -24,6 +24,7 @@ namespace ZM {
 }
 
 namespace {
+  chdir(__DIR__.'/../../web');
   function canEdit($area) { return true; }
   function validCardinal($v) { return ctype_digit((string)$v) ? (int)$v : 0; }
   function validHtmlStr($s) { return htmlspecialchars($s); }

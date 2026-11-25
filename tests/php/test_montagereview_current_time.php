@@ -11,6 +11,8 @@ namespace ZM {
   class Storage {
     public static function find() { return array(); }
     public function Id() { return 0; }
+    public function Name($new=null) { return ''; }
+    public function ServerId() { return 0; }
     public function to_json() { return '{}'; }
   }
   function Warning($m) {}

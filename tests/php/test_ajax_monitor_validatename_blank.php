@@ -60,6 +60,7 @@ class AjaxDone extends Exception {
 function canView($area, $mid = null) { return true; }
 function translate($s) { return $s; }
 function validHtmlStr($s) { return htmlspecialchars((string)$s); }
+function validCardinal($v) { return ctype_digit((string)$v) ? (int)$v : 0; }
 function ajaxError($m) { throw new AjaxDone('error', $m); }
 function ajaxResponse($d) { throw new AjaxDone('response', $d); }
 

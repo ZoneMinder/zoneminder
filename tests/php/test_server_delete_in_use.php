@@ -59,7 +59,7 @@ namespace {
   include $root.'/web/includes/actions/options.php';
 
   $deleted = array_map(function($q) { return $q[1][0]; }, $GLOBALS['queries']);
-  check('only the unused server is deleted', $deleted, array('2'));
+  check('only the unused server is deleted', $deleted, array(2));
   check('only the deleted server is audited', $GLOBALS['audits'], array('delete:2'));
   check('refusal counts monitors and storage', strpos($error_message, '2 monitors, 1 storage area') !== false, true);
   check('refusal counts cron jobs', strpos($error_message, '1 cron job') !== false, true);

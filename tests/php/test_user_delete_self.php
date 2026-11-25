@@ -3,13 +3,14 @@
 // user (the loop variable left after foreach), so marking your own account together with
 // a user listed after it deleted your account without logging you out.
 //
-// Run: cd web && php ../tests/php/test_user_delete_self.php
+// Run as: php tests/php/test_user_delete_self.php
 namespace ZM {
   function Warning($m) {}
   function AuditAction($action, $object, $id, $text) {}
 }
 
 namespace {
+  chdir(__DIR__.'/../../web');
   $logouts = 0;
   function canEdit($area) { return true; }
   function dbQuery($sql, $params = null) { return true; }

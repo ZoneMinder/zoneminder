@@ -684,12 +684,18 @@ switch ($action) {
     $paths = getFramePaths($eid, $fid);
 
     $deleted = false;
-    if (file_exists($paths['img'])) { unlink($paths['img']); $deleted = true; }
-    if (file_exists($paths['lbl'])) { unlink($paths['lbl']); $deleted = true; }
+    $failed = false;
+    if (file_exists($paths['img'])) { if (unlink($paths['img'])) { $deleted = true; } else { $failed = true; } }
+    if (file_exists($paths['lbl'])) { if (unlink($paths['lbl'])) { $deleted = true; } else { $failed = true; } }
 
     if ($deleted) {
       rebuildDataYaml();
       ZM\Debug('Training: removed annotation for event '.$eid.' frame '.$fid);
+    }
+
+    if ($failed) {
+      ajaxError('Failed to delete training data files');
+      break;
     }
 
     ajaxResponse([
@@ -706,16 +712,23 @@ switch ($action) {
       break;
     }
     $deleted = 0;
+    $failed = 0;
     foreach (['images/all', 'labels/all'] as $sub) {
       $dir = $base.'/'.$sub;
       if (is_dir($dir)) {
         foreach (glob($dir.'/*') as $file) {
-          if (is_file($file)) { unlink($file); $deleted++; }
+          if (is_file($file)) { if (unlink($file)) { $deleted++; } else { $failed++; } }
         }
       }
     }
     $yamlFile = $base.'/data.yaml';
-    if (file_exists($yamlFile)) { unlink($yamlFile); $deleted++; }
+    if (file_exists($yamlFile)) { if (unlink($yamlFile)) { $deleted++; } else { $failed++; } }
+
+    if ($failed > 0) {
+      ZM\Warning('Training: failed to delete '.$failed.' training data files');
+      ajaxError('Failed to delete '.$failed.' training data files');
+      break;
+    }
 
     ZM\Warning('Training: deleted ALL training data ('.$deleted.' files)');
     ajaxResponse([
@@ -744,11 +757,17 @@ switch ($action) {
     $lblFile = $base.'/labels/all/'.$stem.'.txt';
 
     $deletedFiles = [];
+    $failed = false;
     ZM\Debug('Training: browse_delete stem='.$stem);
-    if (file_exists($imgFile)) { unlink($imgFile); $deletedFiles[] = 'images/all/'.$stem.'.jpg'; }
-    if (file_exists($lblFile)) { unlink($lblFile); $deletedFiles[] = 'labels/all/'.$stem.'.txt'; }
+    if (file_exists($imgFile)) { if (unlink($imgFile)) { $deletedFiles[] = 'images/all/'.$stem.'.jpg'; } else { $failed = true; } }
+    if (file_exists($lblFile)) { if (unlink($lblFile)) { $deletedFiles[] = 'labels/all/'.$stem.'.txt'; } else { $failed = true; } }
 
     rebuildDataYaml();
+
+    if ($failed) {
+      ajaxError('Failed to delete training data files');
+      break;
+    }
 
     ajaxResponse([
       'deleted' => $deletedFiles,

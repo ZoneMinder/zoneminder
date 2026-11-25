@@ -2513,9 +2513,9 @@ function extract_auth_values_from_url($url) {
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
 
   // URL decode the credentials since they may contain encoded special characters
-  // from ONVIF probe or manual URL entry
-  $username = urldecode($username);
-  $password = urldecode($password);
+  // from ONVIF probe or manual URL entry. rawurldecode keeps a literal + as +.
+  $username = rawurldecode($username);
+  $password = rawurldecode($password);
 
   return array( $username, $password );
 }

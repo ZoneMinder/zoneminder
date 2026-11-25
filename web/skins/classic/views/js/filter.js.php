@@ -13,6 +13,7 @@
   global $availableTags;
   global $zones;
   global $booleanValues;
+  global $stateTypes;
   global $filter;
 ?>
 <?php
@@ -44,6 +45,7 @@ const availableTags = <?php echo isset($availableTags) ? json_encode($availableT
 const sorted_monitor_ids = <?php echo isset($monitors) ? json_encode(array_keys($monitors)) : '[]' ?>;
 const zones = <?php echo isset($zones) ? json_encode($zones) : '{}' ?>;
 const booleanValues = <?php echo json_encode($booleanValues) ?>;
+const stateTypes = <?php echo json_encode($stateTypes) ?>;
 
 const errorBrackets = '<?php echo translate('ErrorBrackets') ?>';
 const errorValue = '<?php echo translate('ErrorValidValue') ?>';

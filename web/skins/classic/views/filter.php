@@ -107,6 +107,7 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
 
 $focusWindow = true;
 

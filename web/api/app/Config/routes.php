@@ -26,6 +26,9 @@
 	Router::mapResources('configs');
 	Router::mapResources('controls');
 	Router::mapResources('encoder_templates');
+	// Bulk archive takes its ids from the POST body. It must be routed before
+	// mapResources('events') so /events/archiveBulk is not read as an event id.
+	Router::connect('/events/archiveBulk', array('controller' => 'events', 'action' => 'archiveBulk'));
 	Router::mapResources('events');
 	Router::mapResources('event_data');
 	Router::mapResources('frames');

@@ -430,6 +430,23 @@ sub moveStop
     $self->sendCmd( $cmd, $msg, $content_type );
 }
 
+#Zoom Stop
+sub zoomStop
+{
+    Debug( "Zoom Stop" );
+    my $self = shift;
+    my $cmd = 'onvif/PTZ';
+    my $nonce;
+    for (0..20){$nonce .= chr(int(rand(254)));}
+    my $mydate = DateTime->now()->iso8601().'Z';
+    my $sha = Digest::SHA->new(1);
+    $sha->add($nonce.$mydate.$password);
+    my $digest = encode_base64($sha->digest,"");
+    my $msg ='<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"><s:Header><Security s:mustUnderstand="1" xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><UsernameToken><Username>'.$username.'</Username><Password Type="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordDigest">'.$digest.'</Password><Nonce EncodingType="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-soap-message-security-1.0#Base64Binary">'.encode_base64($nonce,"").'</Nonce><Created xmlns="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd">'.$mydate.'</Created></UsernameToken></Security></s:Header><s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><Stop xmlns="http://www.onvif.org/ver20/ptz/wsdl"><ProfileToken>000</ProfileToken><PanTilt>false</PanTilt><Zoom>true</Zoom></Stop></s:Body></s:Envelope>';
+    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
+    $self->sendCmd( $cmd, $msg, $content_type );
+}
+
 #Set Camera Preset
 sub presetSet
 {

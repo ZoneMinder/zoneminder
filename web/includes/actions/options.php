@@ -290,21 +290,21 @@ if ( $action == 'delete' ) {
       // since the page loaded) must keep its settings, not be disabled.
       if (!isset($_REQUEST['items'][$id])) continue;
       $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
-      $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
+      $label = isset($_REQUEST['items'][$id]['Label']) && is_string($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
       $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();
       if ($label === '') $label = null;
 
-      $iconType = isset($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
+      $iconType = isset($_REQUEST['items'][$id]['IconType']) && is_string($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
       if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
-      $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
+      $icon = isset($_REQUEST['items'][$id]['Icon']) && is_string($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
       if ($icon === '') $icon = null;
 
-      $link = isset($_REQUEST['items'][$id]['Link']) ? trim($_REQUEST['items'][$id]['Link']) : $item->Link();
+      $link = isset($_REQUEST['items'][$id]['Link']) && is_string($_REQUEST['items'][$id]['Link']) ? trim($_REQUEST['items'][$id]['Link']) : $item->Link();
       if ($link === '') $link = null;
 
       // The MenuKey is only editable for custom (non-built-in) entries, so it
       // is only present in the request for those rows; keep it otherwise.
-      $menuKey = isset($_REQUEST['items'][$id]['MenuKey']) ? trim($_REQUEST['items'][$id]['MenuKey']) : $item->MenuKey();
+      $menuKey = isset($_REQUEST['items'][$id]['MenuKey']) && is_string($_REQUEST['items'][$id]['MenuKey']) ? trim($_REQUEST['items'][$id]['MenuKey']) : $item->MenuKey();
       if ($menuKey === '') $menuKey = $item->MenuKey();
 
       if (!$item->save([

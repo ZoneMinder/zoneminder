@@ -27,7 +27,7 @@ $presets = array();
 for ($i = 1; $i <= $monitor['NumPresets']; $i++) {
   $presets[$i] = translate('Preset').' '.$i;
   if (!empty($labels[$i])) {
-    $presets[$i] .= ' ('.validHtmlStr($labels[$i]).')';
+    $presets[$i] .= ' ('.$labels[$i].')';
   }
 }
 ?>

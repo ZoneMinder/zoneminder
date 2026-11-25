@@ -4101,13 +4101,13 @@ std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_ti
 
   // Expand our own codes (%N, %Q, %f) before strftime. strftime copies unknown
   // conversions through on glibc but drops the % on BSD/macOS, so they have to
-  // be gone before it runs. When the code character is %, a literal % in an
-  // inserted value is doubled so strftime prints it as is.
+  // be gone before it runs. A literal % in an inserted value is doubled so
+  // strftime prints it as is, whichever character marks the codes.
   const char code_char = config.timestamp_code_char[0];
   const bool escape = (code_char == '%');
   auto append_value = [&](std::string &out, const std::string &value) {
     for (char c : value) {
-      if (escape && c == '%') out.push_back('%');
+      if (c == '%') out.push_back('%');
       out.push_back(c);
     }
   };

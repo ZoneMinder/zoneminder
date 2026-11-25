@@ -24,6 +24,13 @@ if ($action == 'Save') {
   require_once('includes/User.php');
   $uid = isset($_REQUEST['uid']) ? validInt($_REQUEST['uid']) : 0;
   $dbUser = new ZM\User($uid);
+  // A user deleted since the form was opened loads empty, and saving it would
+  // insert a new account from the posted fields instead.
+  if ($uid and !$dbUser->Id()) {
+    ZM\Warning('User '.$uid.' not found for save');
+    $error_message .= 'This user no longer exists.<br/>';
+    return;
+  }
 
   if (canEdit('System')) {
     if (!$uid or isset($_REQUEST['user']['Username'])) {

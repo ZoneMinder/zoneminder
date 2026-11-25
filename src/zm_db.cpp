@@ -298,7 +298,11 @@ int zmDbDo(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
-    return rc;
+    return 0;
+  }
+  if (rc) {
+    Error("Can't run query %s while terminating: %s", query.c_str(), mysql_error(&dbconn));
+    return 0;
   }
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
@@ -322,6 +326,10 @@ uint64_t zmDbDoInsert(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
+    return 0;
+  }
+  if (rc) {
+    Error("Can't run query %s while terminating: %s", query.c_str(), mysql_error(&dbconn));
     return 0;
   }
   uint64_t id = mysql_insert_id(&dbconn);

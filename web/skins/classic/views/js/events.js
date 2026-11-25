@@ -365,6 +365,13 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
+  // Double-clicking a row opens the event, using the same URL as its Id/Name
+  // link. Controls inside the row keep their own click behaviour.
+  table.on('dbl-click-row.bs.table', function(evt, row) {
+    if ($j(evt.target).closest('a, button, input, select, textarea, label').length) return;
+    window.location.assign('?view=event&eid=' + strip_html(row.Id) + filterQuery + sortQuery + '&page=1');
+  });
+
   // Hide these columns on first run when no cookie is saved
   if (!getCookie('zmEventsTable.bs.table.hiddenColumns')) {
     // table.bootstrapTable('hideColumn', 'Archived');

@@ -1165,6 +1165,24 @@ function initPage() {
   } else {
     cyclePause();
   }
+
+  // Left/Right switch monitors, as they switch events on the event view.
+  $j(document).on('keydown', function(e) {
+    e = e || window.event;
+    if (!e) return;
+    // Keys typed into a field, or used to pick from a select, are that
+    // control's own and must not drive the page.
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if ($j('.modal').is(':visible')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (monitorData.length < 2) return;
+    if (e.key === 'ArrowLeft') {
+      cyclePrev();
+    } else if (e.key === 'ArrowRight') {
+      cycleNext();
+    }
+  });
+
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
     var inactivityTime = function() {

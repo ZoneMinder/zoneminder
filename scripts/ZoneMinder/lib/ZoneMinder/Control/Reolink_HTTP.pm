@@ -86,7 +86,11 @@ sub open {
   $$self{username} = 'admin' unless $$self{username};
   $$self{password} = '' unless $$self{password};
   $$self{port} = 80 unless $$self{port};
-  $$self{protocol} = 'http';
+  $$self{protocol} = ($$self{uri} and $$self{uri}->scheme eq 'https') ? 'https' : 'http';
+  if ($$self{protocol} eq 'https') {
+    # Cameras use a self-signed certificate
+    $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+  }
   
   Debug("Reolink HTTP: Using credentials for $$self{host}:$$self{port}, user: $$self{username}");
   

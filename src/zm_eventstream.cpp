@@ -1387,6 +1387,11 @@ void EventStream::runStream() {
           }
         }
         frame_count++;
+        // frames=N asks for N frames and then the end of the stream, as MonitorStream does.
+        if (frames_to_send > 0 && frame_count >= frames_to_send) {
+          zm_terminate = true;
+          break;
+        }
       }
 
       if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()

@@ -34,7 +34,7 @@ $fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 $Event = new ZM\Event($eid);
 $monitor = $Event->Monitor();
 
-if (!$monitor->canView()) {
+if (!$Event->canView()) {
   $view = 'error';
   return;
 }

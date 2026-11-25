@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 
 $event = new ZM\Event($eid);
 
-if (!canView('Monitors', $event->MonitorId())) {
+if (!$event->canView()) {
   $view = 'error';
   return;
 }

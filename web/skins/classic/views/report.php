@@ -94,7 +94,7 @@ var events = Array();
 
 <?php
 require_once('includes/Filter.php');
-if (!$report->FilterId()) {
+if (!$report->FilterId() or !isset($FiltersById[$report->FilterId()])) {
   echo '
     </script>
   </div>

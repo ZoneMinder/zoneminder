@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ . '/../../../includes/SnapshotCreate.php';
 /**
  * Snapshots Controller
  *
@@ -89,6 +90,33 @@ class SnapshotsController extends AppController {
       $canEdit = (!$user) || ($user->Snapshots() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
+        return;
+      }
+
+      # MonitorIds takes the same path as the web action: force an alarm on each
+      # monitor, link the events it records and archive them.
+      $monitorIds = $this->requestField('Snapshot', 'MonitorIds');
+      if ( $monitorIds !== null ) {
+        if ( is_string($monitorIds) ) {
+          $monitorIds = trim($monitorIds) === '' ? array() : explode(',', $monitorIds);
+        } else if ( !is_array($monitorIds) ) {
+          $monitorIds = array($monitorIds);
+        }
+        $snapshotId = ZM\create_snapshot_from_monitors($monitorIds);
+        if ( $snapshotId ) {
+          $this->set(array(
+            'message' => 'Saved',
+            'id' => $snapshotId,
+            '_serialize' => array('message', 'id')
+          ));
+        } else {
+          ZM\Error('Failed to create Snapshot from monitors');
+          $this->set(array(
+            'message' => 'Error',
+            'id' => null,
+            '_serialize' => array('message', 'id')
+          ));
+        }
         return;
       }
 

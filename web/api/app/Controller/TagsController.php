@@ -206,6 +206,97 @@ class TagsController extends AppController {
     } # end if post
 	} # end add
 
+  /**
+   * assign method
+   *
+   * Adds one tag to each event in EventIds, as web/ajax/event.php addtag does:
+   * INSERT IGNORE keeps a duplicate harmless, and the tag's LastAssignedDate
+   * records the assignment.
+   *
+   * @return void
+   */
+  public function assign() {
+    $this->tagEventLinks('insert');
+  }
+
+  /**
+   * unassign method
+   *
+   * Removes one tag from each event in EventIds, as web/ajax/event.php
+   * removetag does.
+   *
+   * @return void
+   */
+  public function unassign() {
+    $this->tagEventLinks('delete');
+  }
+
+  # The tag/event change behind assign() and unassign(). Events=Edit is per
+  # area, so requireEventsEdit() also enforces the per-monitor ACL on each
+  # event, as the ajax handler does.
+  private function tagEventLinks($action) {
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
+
+    global $user;
+    $canEdit = (!$user) || ($user->canEdit('Events'));
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+      return;
+    }
+
+    $tagId = $this->requestField('Tag', 'TagId');
+    if ( !is_numeric($tagId) or intval($tagId) <= 0 ) {
+      throw new BadRequestException(__('TagId is required'));
+    }
+    $tagId = intval($tagId);
+
+    $eventIds = $this->requestField('Tag', 'EventIds');
+    if ( is_string($eventIds) ) $eventIds = explode(',', $eventIds);
+    if ( !is_array($eventIds) or !$eventIds ) {
+      throw new BadRequestException(__('EventIds is required'));
+    }
+    $ids = array();
+    foreach ( $eventIds as $eventId ) {
+      if ( !is_numeric($eventId) or intval($eventId) <= 0 ) {
+        throw new BadRequestException(__('EventIds must be event ids'));
+      }
+      $ids[] = intval($eventId);
+    }
+    $ids = array_values(array_unique($ids));
+
+    $this->requireEventsEdit($ids);
+
+    if ( $action == 'insert' ) {
+      if ( !dbFetchOne('SELECT Id FROM Tags WHERE Id = ?', 'Id', array($tagId)) ) {
+        throw new NotFoundException(__('Invalid tag'));
+      }
+      $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
+      foreach ( $ids as $eventId ) {
+        if ( !dbQuery($sql, array($tagId, $eventId, $user ? $user->Id() : null)) ) {
+          throw new InternalErrorException(__('Failed to add tag'));
+        }
+      }
+      if ( !dbQuery('UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?', array($tagId)) ) {
+        throw new InternalErrorException(__('Failed to add tag'));
+      }
+      $message = 'Saved';
+    } else {
+      foreach ( $ids as $eventId ) {
+        if ( !dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $eventId)) ) {
+          throw new InternalErrorException(__('Failed to remove tag'));
+        }
+      }
+      $message = 'Deleted';
+    }
+
+    $this->set(array(
+      'message' => $message,
+      '_serialize' => array('message')
+    ));
+  } # end tagEventLinks
+
 /**
  * edit method
  *

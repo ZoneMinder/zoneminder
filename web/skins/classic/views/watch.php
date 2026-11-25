@@ -498,8 +498,10 @@ echo $monitor->getStreamHTML($options);
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
             <i class="material-icons md-18">fullscreen</i>
             </button>
+<?php if (canView('Events')) { ?>
             <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?>
             </button>
+<?php } ?>
 <?php 
 $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
   (isset($_COOKIE['zmWatchVolume']) ? validInt($_COOKIE['zmWatchVolume']) : 50);

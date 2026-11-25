@@ -19,6 +19,7 @@ namespace ZM {
     function StartDateTime() { return ''; }
     function EndDateTime() { return ''; }
     function Interval() { return ''; }
+    function canEdit() { return true; }
   }
   class Filter {
     function __construct($id = null) {}
@@ -40,6 +41,7 @@ namespace {
   set_include_path($stub.PATH_SEPARATOR.get_include_path());
 
   function canView($a) { return true; }
+  function canEdit($a) { return true; }
   function validInt($v) { return preg_replace('/[^\-\d]/', '', $v); }
   function translate($s) { return $s; }
   function validHtmlStr($s) { return htmlspecialchars($s); }

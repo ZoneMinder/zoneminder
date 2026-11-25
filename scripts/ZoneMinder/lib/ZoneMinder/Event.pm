@@ -191,21 +191,26 @@ sub RelativePath {
         $$event{RelativePath} = '';
       }
     } elsif ( $$event{Scheme} eq 'Medium' ) {
-      if ( $event->Time() ) {
+      if ( $event->Time() and $$event{Id} ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
             POSIX::strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
-        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        Error('Event has no Id or no value for Time(), unable to determine path');
         $$event{RelativePath} = '';
       }
     } else { # Shallow
-      $$event{RelativePath} = join('/',
-          $event->{MonitorId},
-          $event->{Id},
-          );
+      if ( $$event{Id} ) {
+        $$event{RelativePath} = join('/',
+            $event->{MonitorId},
+            $event->{Id},
+            );
+      } else {
+        Error('Event has no Id, unable to determine path');
+        $$event{RelativePath} = '';
+      }
     } # end if Scheme
   } # end if ! Path
 

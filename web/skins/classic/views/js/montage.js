@@ -21,6 +21,7 @@ var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving
 var TimerHideShow = null;
 var webSiteReloadTimers = []; // intervals reloading WebSite monitors
 var waitingMonitorsPlacedInterval = null; // pending waitingMonitorsPlaced() poll
+var monitorsPaused = false; // whether the pause-all toolbar toggle has paused the streams
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -564,6 +565,25 @@ function playMonitors() {
   }
 }
 
+function setupPauseAllMonitors() {
+  const btn = document.getElementById('pauseAllBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    const icon = btn.querySelector('.material-icons');
+    if (monitorsPaused) {
+      playMonitors();
+      monitorsPaused = false;
+      if (icon) icon.textContent = 'pause';
+      btn.setAttribute('title', btn.getAttribute('data-title-pause-all') || 'Pause All');
+    } else {
+      pauseMonitors();
+      monitorsPaused = true;
+      if (icon) icon.textContent = 'play_arrow';
+      btn.setAttribute('title', btn.getAttribute('data-title-play-all') || 'Resume All');
+    }
+  });
+}
+
 function buildRatioSelect(objSelect) {
   presetRatio.forEach(function(value, key) {
     if (key == "auto") {
@@ -631,6 +651,7 @@ function initPage() {
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
     setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down');
   });
+  setupPauseAllMonitors();
   if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");

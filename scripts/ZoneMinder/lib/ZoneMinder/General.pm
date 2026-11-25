@@ -768,7 +768,7 @@ sub systemStatus {
 # list is in force: a program being on the list says nothing about what else
 # runs alongside it if the command can chain. Redirection is deliberately not
 # here; it starts no program.
-our @COMMAND_CHAINING = (';', '|', '&', '`', '$(');
+our @COMMAND_CHAINING = (';', '|', '&', '`', '$(', '<(', '>(');
 
 # The program a command invokes: its first word, with any surrounding quotes
 # removed. undef when there is not one. Only the program is matched, so
@@ -809,6 +809,8 @@ sub commandIsAllowed {
   foreach my $chain (@COMMAND_CHAINING) {
     return 0 if index($command, $chain) >= 0;
   }
+  # A newline separates commands in a shell just as a semicolon does.
+  return 0 if $command =~ /[\r\n]/;
 
   my $program = commandProgram($command);
   return 0 if !defined $program;

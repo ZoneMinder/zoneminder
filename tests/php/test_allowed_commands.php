@@ -71,6 +71,14 @@ $cases = array(
         'so does a backtick'),
   array('/usr/local/bin/backup.sh $(id)', '/usr/local/bin/backup.sh', false,
         'so does a dollar-paren'),
+  array("/usr/local/bin/backup.sh\ntouch /tmp/x", '/usr/local/bin/backup.sh', false,
+        'so does a newline'),
+  array("/usr/local/bin/backup.sh\r\ntouch /tmp/x", '/usr/local/bin/backup.sh', false,
+        'so does a carriage return and newline'),
+  array('/usr/local/bin/backup.sh <(id)', '/usr/local/bin/backup.sh', false,
+        'so does process substitution'),
+  array('/usr/local/bin/backup.sh >(id)', '/usr/local/bin/backup.sh', false,
+        'so does output process substitution'),
 
   // Redirection does not start a program, and refusing it would break the
   // ordinary thing people write.

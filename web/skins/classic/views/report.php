@@ -29,6 +29,10 @@ require_once('includes/Report.php');
 
 $report_id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : '';
 $report = new ZM\Report($report_id);
+if ($report_id and !$report->Id()) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Reports'));
 getBodyTopHTML();

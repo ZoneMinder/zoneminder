@@ -379,6 +379,15 @@ body.sticky #content {
   color: #ff3f34;
 }
 
+/* Refers to the success/info box at the top of the web UI */
+#info {
+  width: 100%;
+  padding: 5px;
+  font-weight: bold;
+  background-color: white;
+  color: #0fb9b1;
+}
+
 .timedErrorBox {
   color:white;
   background:#e74c3c;

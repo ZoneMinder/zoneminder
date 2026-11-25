@@ -195,6 +195,7 @@ CORSHeaders();
 $running = null;
 $action = null;
 $error_message = null;
+$info_message = null;
 $redirect = null;
 $view = isset($_REQUEST['view']) ? detaintPath($_REQUEST['view']) : null;
 $user = null;

@@ -108,6 +108,15 @@ $archiveTypes = array(
 
 $booleanValues = ZM\Filter::booleanValues();
 
+// Set by the execute action's redirect.
+if (isset($_REQUEST['executed'])) {
+  if ($_REQUEST['executed'] === '1') {
+    $info_message = translate('FilterExecuted');
+  } else {
+    $error_message .= translate('FilterExecuteFailed').'<br/>';
+  }
+}
+
 $focusWindow = true;
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');

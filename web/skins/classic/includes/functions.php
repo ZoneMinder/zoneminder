@@ -191,6 +191,10 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
+  global $info_message;
+  if ( $info_message ) {
+   echo '<div id="info" class="infoText">'.$info_message.'</div>';
+  }
   global $navbar_type;
   if ($navbar_type == 'left') {
     getSidebarTopHTML();

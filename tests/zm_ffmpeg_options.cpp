@@ -153,3 +153,12 @@ TEST_CASE("zm_parse_options drops file-writing entries spelled with _ or a leadi
   auto o2 = parse("x265-params=analysis_save=/tmp/a:--csv=/tmp/c:crf=20");
   REQUIRE(o2["x265-params"] == "crf=20");
 }
+
+TEST_CASE("zm_parse_options keeps a built-in scaling-list preset and drops a scaling-list file", "[ffmpeg]") {
+  auto o = parse("x265-params=scaling-list=default:crf=20");
+  REQUIRE(o["x265-params"] == "scaling-list=default:crf=20");
+  o = parse("x264-params=scaling-list=flat:keyint=30");
+  REQUIRE(o["x264-params"] == "scaling-list=flat:keyint=30");
+  o = parse("x264-params=scaling-list=/etc/passwd:keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30");
+}

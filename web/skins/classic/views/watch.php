@@ -86,6 +86,11 @@ if (!visibleMonitor($mid)) {
 }
 
 $monitor = new ZM\Monitor($mid);
+if ($mid and !$monitor->Id()) {
+  // A stale link to a monitor that does not exist
+  $view = 'error';
+  return;
+}
 
 # cycle is wether to do the countdown/move to next monitor bit.
 # showCycle is whether to show the cycle controls.

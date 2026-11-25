@@ -26,6 +26,8 @@ var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"eve
 var ptzVisible = <?php echo $showPtzControls ? 'true' : 'false' ?>;
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 var player = '<?php echo validJsStr($player) ?>';
+const showZonesString = "<?php echo validJsStr(translate('Show Zones')) ?>";
+const hideZonesString = "<?php echo validJsStr(translate('Hide Zones')) ?>";
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo validJsStr($monitor->Id()) ?>');

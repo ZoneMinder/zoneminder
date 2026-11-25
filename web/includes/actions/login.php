@@ -26,8 +26,10 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   // if captcha existed, it was passed
 
+  $rememberChoice = null;
   if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
-    if (!empty($_REQUEST['remember_me'])) {
+    $rememberChoice = !empty($_REQUEST['remember_me']);
+    if ($rememberChoice) {
       zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + ZM_COOKIE_LIFETIME));
       $_COOKIE['ZM_REMEMBER_ME'] = '1';
     } else {
@@ -49,6 +51,15 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     $view = 'postlogin';
     # Only a successful login uses up the destination; a retry still needs it.
     unset($_SESSION['postLoginQuery']);
+    # The session cookie was issued during authentication, before the box above
+    # was read, so reissue it to last as long as the choice says.
+    if ($rememberChoice !== null) {
+      $cookieParams = session_get_cookie_params();
+      zm_setcookie(session_name(), session_id(), array(
+        'expires' => $rememberChoice ? time() + ZM_COOKIE_LIFETIME : 0,
+        'path' => $cookieParams['path'],
+        'httponly' => true));
+    }
   }
   session_write_close();
 } # end if doing a login action

@@ -117,6 +117,7 @@ package ZoneMinder::Database;
 our $dbh;
 sub zmDbConnect {
   my $force = shift;
+  return undef if $ENV{TEST_CONNECT_FAIL};
   undef $dbh if $force;
   if (!$dbh) {
     if ($ENV{TEST_CONNECT_LOG}) {
@@ -190,6 +191,13 @@ unlink($connect_log);
 ($out, $status) = run_zmupdate('--nointeractive --user=root --pass=rootpw --migrate-events', "y\n",
   TEST_ZM_VERSION => '1.37.5', TEST_DB_VERSION => '1.36.0', TEST_CONNECT_LOG => $connect_log);
 check('--user and --pass are used for the db connection', (split /\n/, read_file($connect_log))[-1] // 'no connect', 'CONNECT root/rootpw');
+
+# A failed connection says where the credentials come from and how to override them.
+($out, $status) = run_zmupdate('--nointeractive --check', '',
+  TEST_ZM_VERSION => '1.37.5', TEST_DB_VERSION => '1.36.0', TEST_CONNECT_FAIL => 1);
+check('a failed connection exits non-zero', $status ? 'non-zero exit' : 'exit 0', 'non-zero exit');
+check('a failed connection points at zm.conf', $out =~ /zm\.conf/ ? 'mentions zm.conf' : $out, 'mentions zm.conf');
+check('a failed connection mentions --user and --pass', ($out =~ /--user/ && $out =~ /--pass/) ? 'mentions them' : $out, 'mentions them');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

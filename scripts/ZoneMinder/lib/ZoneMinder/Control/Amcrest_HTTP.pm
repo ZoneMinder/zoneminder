@@ -107,6 +107,8 @@ sub sendCmd {
     $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar( {} );
     $self->{ua}->credentials($$self{address}, $$self{realm}, $$self{username}, $$self{password});
+    # The new agent verifies certificates again; let get() turn that off once more if it has to.
+    $self->{ssl_verify_disabled} = 0;
 
     # Try again
     $res = $self->get($cmd);

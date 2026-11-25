@@ -49,6 +49,7 @@ namespace {
     sort($seqs);
     return $seqs;
   }
+  function editableMonitor($mid) { return true; }
   function dbQuery($sql, $params = null) {
     global $updates, $failNext;
     $updates[] = $params;

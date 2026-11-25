@@ -1781,6 +1781,9 @@ function initPage() {
     console.log('changescale');
     changeScale();
   }
+  // Now that the player has its size, put back the zoom remembered for this
+  // monitor.
+  restoreEventZoom();
   console.log('changeStreamQality');
   changeStreamQuality();
 
@@ -2327,10 +2330,32 @@ function fullscreenClicked() {
   }
 }
 
+// The PanZoom zoom level is remembered per monitor, like the video scale, so
+// reviewing the same detail across a camera's events does not mean zooming in
+// again on every event. Only the scale is kept, never the pan position.
+// Panning fires panzoomchange too, so only write the cookie when the level changes.
+let storedEventZoom = null;
+function storeEventZoom(scale) {
+  const value = scale.toFixed(1);
+  if (value === storedEventZoom) return;
+  storedEventZoom = value;
+  setCookie('zmEventZoom' + domMonitorId(), value);
+}
+
+function restoreEventZoom() {
+  if (typeof panZoomEnabled === 'undefined' || !panZoomEnabled) return;
+  const stored = parseFloat(getCookie('zmEventZoom' + domMonitorId()));
+  if (!(stored > 1)) return;
+  const panZoom = zmPanZoom.panZoom && zmPanZoom.panZoom[domMonitorId()];
+  if (panZoom) panZoom.zoom(stored, {animate: false});
+}
+
 // Keeps the Zoom readout on the PanZoom scale, including for video.js events
-// where no zms status arrives to refresh it.
+// where no zms status arrives to refresh it. Every zoom path (buttons, wheel,
+// pinch) ends in a panzoomchange, so this is also where the level is stored.
 function panZoomEventPanzoomchange(event) {
   $j('#zoomValue').html(event.detail.scale.toFixed(1));
+  storeEventZoom(event.detail.scale);
 }
 
 function panZoomIn(el) {

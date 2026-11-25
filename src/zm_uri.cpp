@@ -14,9 +14,10 @@ Uri::Uri(const std::string &uri) {
 
   // protocol
   iterator_t protocolStart = uri.begin();
-  iterator_t protocolEnd = std::find(protocolStart, uriEnd, ':');            //"://");
+  // A scheme comes before the query; a "://" inside the query is part of a value.
+  iterator_t protocolEnd = std::find(protocolStart, queryStart, ':');        //"://");
 
-  if (protocolEnd != uriEnd) {
+  if (protocolEnd != queryStart) {
     std::string prot = &*(protocolEnd);
     if ((prot.length() > 3) && (prot.substr(0, 3) == "://")) {
       Protocol = std::string(protocolStart, protocolEnd);

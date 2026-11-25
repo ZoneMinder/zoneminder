@@ -633,6 +633,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            Go2RTC_disable_backchannel;
+  bool            cpu_affinity;       // Pin this monitor's worker threads to the capture CPU's cache set
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -1130,6 +1131,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   inline double Longitude() const { return shared_data ? shared_data->longitude : longitude; }
   inline bool RTSPServer() const { return rtsp_server; }
   inline bool RecordAudio() const { return record_audio; }
+  inline bool CPUAffinity() const { return cpu_affinity; }
   inline bool WallClockTimestamps() const { return wallclock_timestamps; }
 
   /*

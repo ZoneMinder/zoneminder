@@ -2,10 +2,12 @@
 
 #include "zm_monitor.h"
 #include "zm_signal.h"
+#include "zm_utils.h"
 
 DecoderThread::DecoderThread(Monitor *monitor) :
   monitor_(monitor), terminate_(false) {
   thread_ = std::thread(&DecoderThread::Run, this);
+  if (monitor_->CPUAffinity()) PinToCaptureCpuSet(thread_);
 }
 
 DecoderThread::~DecoderThread() {
@@ -18,6 +20,7 @@ void DecoderThread::Start() {
   if (thread_.joinable()) thread_.join();
   terminate_ = false;
   thread_ = std::thread(&DecoderThread::Run, this);
+  if (monitor_->CPUAffinity()) PinToCaptureCpuSet(thread_);
 }
 
 void DecoderThread::Stop() {

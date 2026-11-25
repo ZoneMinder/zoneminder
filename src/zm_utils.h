@@ -27,6 +27,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <thread>
 #include "span.hpp"
 #include <stdexcept>
 #include <string>
@@ -126,6 +127,24 @@ std::string TimevalToString(timeval tv);
 
 extern unsigned int sse_version;
 extern unsigned int neonversion;
+
+// The CPU the capture process was running on when RecordCaptureCpu() was last
+// called, or -1 if it could not be determined.
+extern int our_cpu;
+// Record the calling thread's current CPU in our_cpu and return it (-1 on
+// failure, or where CPU affinity is unsupported).
+int RecordCaptureCpu();
+// Parse a Linux cpu list such as "0-3,8,10-11" into CPU indices. Exposed for
+// testing.
+std::vector<int> parse_cpu_list(const std::string &list);
+// Pin thread to the set of CPUs that share the capture CPU's last-level cache,
+// so a monitor's worker threads stay cache-local to capture without being
+// capped on a single core. No-op returning false when the capture CPU is
+// unknown or on platforms without CPU affinity.
+bool PinToCaptureCpuSet(std::thread &thread);
+// As PinToCaptureCpuSet, but for the calling thread (the capture thread).
+bool PinSelfToCaptureCpuSet();
+
 void HwCapsDetect();
 void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 

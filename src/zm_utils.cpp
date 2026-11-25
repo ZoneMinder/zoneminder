@@ -28,9 +28,11 @@
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <unistd.h>
+#include <fstream>
 #include <regex>
 #include <sstream>
 #include <sys/stat.h>
+#include <sched.h>
 
 #if defined(__arm__)
 #include <sys/auxv.h>
@@ -38,6 +40,121 @@
 
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
+int our_cpu = -1;
+
+// Parse a Linux cpu list such as "0-3,8,10-11" into CPU indices. Ill-formed
+// tokens are skipped rather than aborting the whole list. Kept free of any
+// platform API so it is unit testable everywhere.
+std::vector<int> parse_cpu_list(const std::string &list) {
+  std::vector<int> cpus;
+  std::stringstream ss(list);
+  std::string token;
+  while (std::getline(ss, token, ',')) {
+    const size_t begin = token.find_first_not_of(" \t\r\n");
+    if (begin == std::string::npos) continue;
+    const size_t end = token.find_last_not_of(" \t\r\n");
+    token = token.substr(begin, end - begin + 1);
+
+    const size_t dash = token.find('-');
+    try {
+      if (dash == std::string::npos) {
+        cpus.push_back(std::stoi(token));
+      } else {
+        const int lo = std::stoi(token.substr(0, dash));
+        const int hi = std::stoi(token.substr(dash + 1));
+        for (int c = lo; c <= hi; c++) cpus.push_back(c);
+      }
+    } catch (const std::exception &) {
+      // Skip a token that is not a number or range.
+    }
+  }
+  return cpus;
+}
+
+// sched_getcpu, cpu_set_t and pthread_setaffinity_np are GNU extensions. On
+// other platforms the threads are simply left wherever the scheduler puts them.
+#if defined(__linux__)
+int RecordCaptureCpu() {
+  our_cpu = sched_getcpu();
+  if (our_cpu < 0) {
+    // sched_getcpu can fail (old kernels, restricted environments); leave CPU
+    // affinity disabled rather than pinning to a bogus CPU number.
+    Debug(1, "sched_getcpu failed; CPU affinity disabled");
+    our_cpu = -1;
+  } else {
+    Debug(1, "Our CPU is %d", our_cpu);
+  }
+  return our_cpu;
+}
+
+namespace {
+std::string read_first_line(const std::string &path) {
+  std::ifstream f(path);
+  std::string line;
+  if (f.is_open()) std::getline(f, line);
+  return line;
+}
+
+// The CPUs that share the capture CPU's last-level cache: pinning to this set
+// keeps a monitor's threads cache-local without capping them on one core. The
+// highest cache index for a CPU is its last level (usually L3, which on current
+// CPUs is shared within a CCX / NUMA node). Falls back to the capture CPU alone.
+std::vector<int> capture_cpu_set_list() {
+  if (our_cpu < 0) return {};
+  std::string shared;
+  for (int index = 0; index < 16; index++) {
+    const std::string v = read_first_line(stringtf(
+        "/sys/devices/system/cpu/cpu%d/cache/index%d/shared_cpu_list", our_cpu, index));
+    if (v.empty()) break;  // no higher cache level
+    shared = v;            // keep the last (highest) level seen
+  }
+  if (!shared.empty()) {
+    std::vector<int> cpus = parse_cpu_list(shared);
+    if (!cpus.empty()) return cpus;
+  }
+  return { our_cpu };
+}
+
+bool pin_to_capture_cpu_set(pthread_t handle) {
+  if (our_cpu < 0) return false;  // unknown capture CPU: do nothing, quietly
+  const std::vector<int> cpus = capture_cpu_set_list();
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  for (int c : cpus) if (c >= 0 && c < CPU_SETSIZE) CPU_SET(c, &cpuset);
+  if (CPU_COUNT(&cpuset) == 0) return false;
+
+  const int rc = pthread_setaffinity_np(handle, sizeof(cpu_set_t), &cpuset);
+  if (rc != 0) {
+    Error("Error calling pthread_setaffinity_np: %d", rc);
+    return false;
+  }
+  Debug(1, "Pinned thread to %d CPUs sharing CPU %d's last-level cache",
+        CPU_COUNT(&cpuset), our_cpu);
+  return true;
+}
+}  // namespace
+
+bool PinToCaptureCpuSet(std::thread &thread) {
+  return pin_to_capture_cpu_set(thread.native_handle());
+}
+
+bool PinSelfToCaptureCpuSet() {
+  return pin_to_capture_cpu_set(pthread_self());
+}
+#else
+int RecordCaptureCpu() {
+  return our_cpu;
+}
+
+bool PinToCaptureCpuSet(std::thread &) {
+  Debug(1, "Thread cpu affinity is not supported on this platform");
+  return false;
+}
+
+bool PinSelfToCaptureCpuSet() {
+  return false;
+}
+#endif
 
 // Trim Both leading and trailing sets
 std::string Trim(const std::string &str, const std::string &char_set) {

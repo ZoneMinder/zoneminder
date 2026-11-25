@@ -1343,6 +1343,10 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
               <label><?php echo translate('Use Wallclock Timestamps') ?></label>
               <input type="checkbox" name="newMonitor[WallClockTimestamps]" value="1"<?php if ( $monitor->WallClockTimestamps() ) { ?> checked="checked"<?php } ?>/>
             </li>
+            <li class="CPUAffinity" title="<?php echo translate('Pin this monitor\'s threads to the CPUs sharing the capture CPU\'s cache. For cache locality on large/NUMA systems; of no benefit, and can cap throughput, on ordinary systems.') ?>">
+              <label><?php echo translate('CPU Affinity') ?></label>
+              <input type="checkbox" name="newMonitor[CPUAffinity]" value="1"<?php echo $monitor->CPUAffinity() ? ' checked="checked"' : '' ?>/>
+            </li>
             <li class="RecordAudio">
               <label><?php echo translate('RecordAudio') ?></label>
 <?php if ( $monitor->Type() == 'Ffmpeg' ) { ?>

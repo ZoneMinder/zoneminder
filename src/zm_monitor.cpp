@@ -110,6 +110,7 @@ std::string load_monitor_sql =
 #endif
   ", `StartupDelay`"
   ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`, `Go2RTCDisableBackChannel`"
+  ", `CPUAffinity`"
   " FROM `Monitors`";
 
 // Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
@@ -748,6 +749,9 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   device_class = dbrow[col] ? dbrow[col] : "Camera";
   col++;
   Go2RTC_disable_backchannel = dbrow[col] && atoi(dbrow[col]);
+  col++;
+
+  cpu_affinity = dbrow[col] && atoi(dbrow[col]);
   col++;
 
   // How many frames we need to have before we start analysing.

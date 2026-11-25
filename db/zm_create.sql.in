@@ -671,6 +671,7 @@ CREATE TABLE `Monitors` (
   `StreamChannel` enum('Restream','CameraDirectPrimary','CameraDirectSecondary') NOT NULL DEFAULT 'Restream',
   `Go2RTCEnabled` BOOLEAN NOT NULL default false,
   `Go2RTCDisableBackChannel` BOOLEAN NOT NULL DEFAULT true,
+  `CPUAffinity` BOOLEAN NOT NULL default false,
   `JanusEnabled` BOOLEAN NOT NULL default false,
   `JanusAudioEnabled` BOOLEAN NOT NULL default false,
   `Janus_Profile_Override` VARCHAR(30) NOT NULL DEFAULT '',

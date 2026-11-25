@@ -329,6 +329,10 @@ switch ($action) {
       ajaxError('Event not found');
       break;
     }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
+      break;
+    }
 
     $eventPath = $Event->Path();
     $objectsFile = $eventPath.'/objects.json';
@@ -398,18 +402,22 @@ switch ($action) {
       ajaxError('Invalid frame ID');
       break;
     }
-    $paths = getFramePaths($eid, $fid);
-    if (!file_exists($paths['lbl'])) {
-      ajaxResponse(['annotations' => []]);
-      break;
-    }
-    $labels = getClassLabels();
     // Need image dimensions to convert YOLO normalized back to pixels
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
       break;
     }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
+      break;
+    }
+    $paths = getFramePaths($eid, $fid);
+    if (!file_exists($paths['lbl'])) {
+      ajaxResponse(['annotations' => []]);
+      break;
+    }
+    $labels = getClassLabels();
     $imgW = $Event->Width();
     $imgH = $Event->Height();
     $anns = [];
@@ -555,6 +563,10 @@ switch ($action) {
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
+      break;
+    }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
       break;
     }
 
@@ -765,6 +777,10 @@ switch ($action) {
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
+      break;
+    }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
       break;
     }
 

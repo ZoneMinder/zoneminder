@@ -12,6 +12,7 @@ namespace ZM {
     private $id;
     public function __construct($id) { $this->id = $id; }
     public function Id() { return $this->id; }
+    public function Name() { return 'Event '.$this->id; }
     public function canView() { return in_array($this->id, self::$viewable); }
   }
 }
@@ -28,6 +29,7 @@ set_include_path($stubdir.PATH_SEPARATOR.get_include_path());
 
 function canView($what) { return true; }
 function validInt($v) { return is_scalar($v) ? preg_replace('/[^\-\d]/', '', $v) : ''; }
+function validHtmlStr($s) { return htmlspecialchars($s, ENT_QUOTES); }
 function xhtmlHeaders($f, $t) {}
 function getBodyTopHTML() {}
 function getNavBarHTML() {}

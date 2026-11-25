@@ -27,9 +27,9 @@ namespace {
 
 class PrivacyMonitor : public Monitor {
  public:
-  PrivacyMonitor() : Monitor() {
-    width = 32;
-    height = 16;
+  PrivacyMonitor(unsigned int w = 32, unsigned int h = 16) : Monitor() {
+    width = w;
+    height = h;
   }
   void AddPrivacyZone(const std::shared_ptr<Monitor> &self) {
     Polygon polygon(std::vector<Vector2>{Vector2(2, 2), Vector2(8, 2), Vector2(8, 8), Vector2(2, 8)});
@@ -53,5 +53,20 @@ TEST_CASE("Monitor::AddPrivacyBitmask: repeated calls rebuild the mask", "[Monit
     REQUIRE(mask[12 * 32 + 12] == 0);
   }
   // The zone holds the monitor; drop it so neither leaks.
+  monitor->ClearZones();
+}
+
+// MaskPrivacy reads the bitmask as y*width+x. A width that is not a multiple of 32
+// must not leave the mask rows padded, or the masked area drifts sideways.
+TEST_CASE("Monitor::AddPrivacyBitmask: mask rows are width wide", "[Monitor]") {
+  auto monitor = std::make_shared<PrivacyMonitor>(40, 16);
+  monitor->AddPrivacyZone(monitor);
+  monitor->AddPrivacyBitmask();
+  const unsigned char *mask = monitor->Mask();
+  REQUIRE(mask != nullptr);
+  REQUIRE(mask[5 * 40 + 5] == 0xff);
+  REQUIRE(mask[7 * 40 + 3] == 0xff);
+  REQUIRE(mask[5 * 40 + 20] == 0);
+  REQUIRE(mask[12 * 40 + 12] == 0);
   monitor->ClearZones();
 }

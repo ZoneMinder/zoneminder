@@ -97,6 +97,8 @@ if ($action == 'Save') {
           # Have to update auth hash in session
           zm_session_start();
           generateAuthHash(ZM_AUTH_HASH_IPS, true);
+          // Keep this session valid after changing our own password.
+          if (isset($changes['Password']) and $user) $_SESSION['passwordHash'] = $user->Password();
           session_write_close();
         }
       }
@@ -172,6 +174,8 @@ if ($action == 'Save') {
       $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
+      # The password changed under this session, which stays logged in
+      if (isset($changes['Password'])) $_SESSION['passwordHash'] = $user->Password();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
     } # end if changes

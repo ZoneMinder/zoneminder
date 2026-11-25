@@ -85,6 +85,13 @@ if ($has) {
   check('no terms but an auto action still gets a WHERE',
     norm($f->debugSql()), $base.' WHERE ( E.Archived = 1 )');
 
+  $f = make_filter("E.Id > 1\n", array('sort_field'=>'', 'sort_asc'=>1), array('AutoTag'=>1, 'AutoTagId'=>7));
+  check('tagging skips events that already have the tag',
+    norm($f->debugSql()), $base.' WHERE ( E.Id > 1 ) AND ( NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId=7) )');
+
+  $f = make_filter("E.Id > 1\n", array('sort_field'=>'', 'sort_asc'=>1), array('AutoTag'=>1, 'AutoTagId'=>0));
+  check('tagging with no tag adds no condition', norm($f->debugSql()), $base.' WHERE ( E.Id > 1 )');
+
   $f = make_filter("E.Id > 1\n", array('sort_field'=>'MonitorName', 'sort_asc'=>1));
   check('MonitorName sorts on the monitor', norm($f->debugSql()), $base.' WHERE ( E.Id > 1 ) ORDER BY M.Name ASC');
 }

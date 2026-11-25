@@ -64,6 +64,7 @@ function validateForm(form) {
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||
       form.elements['filter[AutoCopy]'].checked ||
+      (form.elements['filter[AutoTag]'] && form.elements['filter[AutoTag]'].checked) ||
       form.elements['filter[AutoMove]'].checked
     ) ) {
       alert('You have chosen to run this filter in the background but not selected any actions.');
@@ -82,6 +83,7 @@ function updateButtons(element) {
       (form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked) ||
       (form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked) ||
       (form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked) ||
+      (form.elements['filter[AutoTag]'] && form.elements['filter[AutoTag]'].checked) ||
       (form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked) ||
       (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
       (form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '') ||
@@ -128,6 +130,15 @@ function click_automove(element) {
     $j(element.form.elements['filter[AutoMoveTo]']).css('display', 'inline');
   } else {
     $j(element.form.elements['filter[AutoMoveTo]']).hide();
+  }
+}
+
+function click_autotag(element) {
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoTagId]']).css('display', 'inline');
+  } else {
+    $j(element.form.elements['filter[AutoTagId]']).hide();
   }
 }
 

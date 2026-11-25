@@ -9,7 +9,7 @@ class Role extends AppModel {
     public $validate = array(
         'Name' => array(
             'required' => array(
-                'rule' => array('notEmpty'),
+                'rule' => array('notBlank'),
                 'message' => 'A role name is required'
             ),
             'unique' => array(

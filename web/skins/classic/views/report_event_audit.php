@@ -18,6 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+if (!canView('Events')) {
+  $view = 'error';
+  return;
+}
+
 $navbar = getNavBarHTML();
 include('_monitor_filters.php');
 $resultMonitorFilters = buildMonitorsFilters();

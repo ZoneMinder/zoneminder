@@ -28,12 +28,12 @@ foreach ($monitors as $monitor) {
   $firstEvent = reset($monEventSlots[$monitor->Id()])['event'];
 
   $jsMonitor['FirstEventId'] = $firstEvent['Id'];
-  echo 'events['.$firstEvent['Id'].']='.json_encode($firstEvent).';'.PHP_EOL;
+  echo 'events['.$firstEvent['Id'].']='.json_encode($firstEvent, JSON_INVALID_UTF8_SUBSTITUTE).';'.PHP_EOL;
 
   $jsMonitors[$monitor->Id()] = $jsMonitor;
 }
 ?>
-var monitors = <?php echo json_encode($jsMonitors) ?>;
+var monitors = <?php echo json_encode($jsMonitors, JSON_INVALID_UTF8_SUBSTITUTE) ?>;
 
 var archivedString = "<?php echo translate('Archived') ?>";
 

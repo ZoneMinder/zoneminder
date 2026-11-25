@@ -541,6 +541,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
 $graphHeight = $chart['graph']['height'];
 
 if ( $mode == 'overlay' ) {
+  $minActivityHeight = 30;
   $minEventBarHeight = 10;
   $maxEventBarHeight = 40;
 
@@ -548,6 +549,10 @@ if ( $mode == 'overlay' ) {
     $chart['graph']['eventBarHeight'] = $minEventBarHeight;
     while ( ($chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1))) < $maxEventBarHeight ) {
       $chart['graph']['eventBarHeight']++;
+    }
+    if ( $chart['graph']['eventsHeight'] > ($graphHeight - $minActivityHeight) ) {
+      $chart['graph']['eventBarHeight'] = max(1, (int)floor(($graphHeight - $minActivityHeight - (count($monitors)-1)) / count($monitors)));
+      $chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1));
     }
   } else {
     $chart['graph']['eventBarHeight'] = $maxEventBarHeight;

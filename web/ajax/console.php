@@ -23,7 +23,8 @@ if ( canEdit('Monitors') ) {
   switch ( $_REQUEST['action'] ) {
   case 'sort' :
   {
-    saveMonitorSequence($_POST['monitor_ids']);
+    if ( ! saveMonitorSequence($_POST['monitor_ids']) )
+      ajaxError('Unable to save the monitor order: '.dbLastError());
     return;
   } // end case sort
   default:
@@ -44,6 +45,7 @@ function saveMonitorSequence($monitor_ids) {
   # LOCK TABLES commits any open transaction, so there is none to commit here.
   $dbConn = zmDbConn();
   $dbConn->exec('LOCK TABLES Monitors WRITE');
+  $ok = true;
   try {
     $ids = array();
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
@@ -67,12 +69,16 @@ function saveMonitorSequence($monitor_ids) {
         $sequences = range($first, $first + count($ids) - 1);
       }
       foreach ( $ids as $i => $monitor_id ) {
-        dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id));
+        if ( ! dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id)) ) {
+          $ok = false;
+          break;
+        }
       }
     }
   } finally {
     $dbConn->exec('UNLOCK TABLES');
   }
+  return $ok;
 }
 
 // The legacy Function column is skipped: nothing maintains it any more.

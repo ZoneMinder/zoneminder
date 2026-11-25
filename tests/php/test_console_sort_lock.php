@@ -53,6 +53,7 @@ namespace {
     global $updates, $failNext;
     if ($failNext) throw new \RuntimeException('update failed');
     $updates[] = $params;
+    return true;
   }
   function editableMonitor($mid) { return true; }
 

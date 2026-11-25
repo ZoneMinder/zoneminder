@@ -128,6 +128,14 @@ if ( $action == 'delete' ) {
     $effective[$row['Name']] = isset($fileConfig[$row['Name']])
       ? configFileValue($fileConfig[$row['Name']]['Value'], $row['Type']) : $row['Value'];
   }
+  // Options whose value is a number of seconds that must be at least 1. The
+  // type check only proves they are numeric: ZM_WATCH_CHECK_INTERVAL=0 makes
+  // zmwatch loop on sleep(0) and query the database nonstop, and
+  // ZM_WATCH_MAX_DELAY=0 makes it restart every capture daemon on every pass.
+  $optionMinimums = array(
+    'ZM_WATCH_CHECK_INTERVAL' => 1,
+    'ZM_WATCH_MAX_DELAY' => 1,
+  );
   $changed = false;
   while ($config = dbFetchNext($result)) {
     unset($newValue);
@@ -166,6 +174,12 @@ if ( $action == 'delete' ) {
       }
       if (!configValueIsValid($newValue, $config['Type'], (string)$config['DefaultValue'])) {
         $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is not a valid ' . $config['Type'] . '.<br/>';
+        continue;
+      }
+      if (isset($optionMinimums[$config['Name']]) and (float)$newValue < $optionMinimums[$config['Name']]) {
+        $minimum = $optionMinimums[$config['Name']];
+        $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is below the minimum of ' . $minimum . '.<br/>';
+        ZM\Error('Not saving '.$config['Name'].': '.$newValue.' is below the minimum of '.$minimum);
         continue;
       }
       if (dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name'])) === null) {

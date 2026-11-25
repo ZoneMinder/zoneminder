@@ -35,8 +35,13 @@ if ( $action == 'device' ) {
     if ( !is_scalar($name) or !is_scalar($keyString) ) {
       $error_message .= 'A device needs a Name and a KeyString<br/>';
     } else if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
-      $saved = (dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
-        array($name, $keyString, $_REQUEST['did']) ) !== null);
+      if ( !dbFetchOne('SELECT Id FROM Devices WHERE Id=?', 'Id', array($_REQUEST['did'])) ) {
+        // Deleted in another tab: the UPDATE would match no row and still report a save
+        $error_message .= 'Device not found<br/>';
+      } else {
+        $saved = (dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
+          array($name, $keyString, $_REQUEST['did']) ) !== null);
+      }
     } else {
       $saved = (dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
         array($name, $keyString) ) !== null);

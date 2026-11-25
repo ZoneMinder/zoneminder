@@ -167,6 +167,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'file_existence_check' :
+    require_once('includes/download_functions.php');
     $fileNameArray = $_REQUEST['file_name_array'] ?? [];
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
     if (count($fileNameArray) > 100) ajaxError('Too many files requested');
@@ -178,7 +179,8 @@ if ( canView('Events') or canView('Snapshots') ) {
       $fileName = ltrim($fileName, "/\\");
       if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
       $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
-      $result[] = [$fileName, file_exists($path)];
+      $first = explode(DIRECTORY_SEPARATOR, str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName))[0];
+      $result[] = [$fileName, exportNameBelongsToUser($first) and file_exists($path)];
     }
     ajaxResponse(array('response'=>$result));
     break;

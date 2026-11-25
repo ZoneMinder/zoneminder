@@ -24,6 +24,7 @@
 #include "zm_define.h"
 #include "zm_logger.h"
 
+#include <cstdint>
 #include <list>
 #include <memory>
 #include <string>
@@ -95,6 +96,37 @@ extern "C" {
       (LIBSWSCALE_VERSION_MICRO >= 100 && LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(a, d, e) ) )
 
 }
+
+// Rate limiting for the libav log callback. libavcodec can report the same
+// complaint (e.g. an SEI message the parser dislikes) once per frame at
+// AV_LOG_ERROR, which ZoneMinder maps to Warning -- a database insert per
+// frame, indefinitely, for something that changes nothing. Count the repeats
+// and print one line an interval instead.
+struct AvLogRepeat {
+  struct Entry {
+    std::string message;
+    int64_t last_logged_us = 0;
+    uint64_t suppressed = 0;
+  };
+  // Each distinct message is tracked separately, not just the previous one. A
+  // decoder complaining about a stream cycles through variants -- one camera
+  // alternates between three SEI sizes -- and remembering only the last message
+  // suppresses none of them, because every message differs from the one before.
+  //
+  // Bounded, and the oldest entry is evicted when full, so a source that emits
+  // endlessly varying text costs a fixed amount and simply stops being limited
+  // rather than growing without end.
+  std::vector<Entry> recent;
+};
+
+// How many distinct messages are tracked before the oldest is evicted.
+constexpr size_t kAvLogRepeatTracked = 32;
+
+// Whether to print this message now. suppressed_out receives how many messages
+// were dropped since the last print, so the caller can say so.
+bool av_log_should_print(AvLogRepeat &state, const std::string &message,
+                         int64_t now_us, int64_t interval_us,
+                         uint64_t *suppressed_out);
 
 /* A single function to initialize ffmpeg, to avoid multiple initializations */
 void FFMPEGInit();

@@ -27,7 +27,8 @@ namespace ZM {
   class User {
     public $f;
     function __construct($id = 0) {
-      $this->f = $id ? $GLOBALS['users'][$id] : array('Id' => null, 'Username' => '', 'Password' => '');
+      // Like the real class, an id that matches no row loads an empty user.
+      $this->f = ($id and isset($GLOBALS['users'][$id])) ? $GLOBALS['users'][$id] : array('Id' => null, 'Username' => '', 'Password' => '');
     }
     static function find_one($p) {
       foreach ($GLOBALS['users'] as $u) {
@@ -115,6 +116,17 @@ namespace {
   check('missing group key: no notice', $n, null);
   check('missing group key: only posted group saved', $saved_perms, array(array(5, 'View')));
   $groups = array();
+
+  // A user deleted since the form was opened must not be saved as a new account.
+  $n = run_save(array('uid' => '9', 'user' => array('Username' => 'ghost', 'Enabled' => 1)), array(), $alice);
+  check('deleted user: no notice', $n, null);
+  check('deleted user: nothing saved', $user_saves, array());
+  check('deleted user: the reason is shown', $error_message, 'This user no longer exists.<br/>');
+
+  // A new user (no uid) is still created.
+  $n = run_save(array('uid' => '0', 'user' => array('Username' => 'carol', 'Password' => 'Secret-pass-1', 'Enabled' => 1)), array(), $alice);
+  check('new user: saved', count($user_saves) > 0, true);
+  check('new user: no error', $error_message, '');
 
   echo "$passed passed, $failed failed\n";
   exit($failed ? 1 : 0);

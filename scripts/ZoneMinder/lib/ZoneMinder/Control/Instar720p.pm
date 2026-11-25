@@ -226,28 +226,24 @@ sub reset {
 sub up {
   my $self = shift;
   Debug('Move Up');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=up');
 }
 
 sub down {
   my $self = shift;
   Debug('Move Down');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=down');
 }
 
 sub left {
   my $self = shift;
   Debug('Move Left');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=left');
 }
 
 sub right {
   my $self = shift;
   Debug('Move Right');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=right');
 }
 
@@ -336,7 +332,6 @@ sub moveStop {
 sub presetHome {
   my $self = shift;
   Debug('Home Preset');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=0&-act=home');
 }
 

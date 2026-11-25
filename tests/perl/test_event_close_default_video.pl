@@ -85,5 +85,18 @@ sub touch { open(my $f, '>', $_[0]) or die "$_[0]: $!"; close $f; }
   check('DefaultVideo is kept when no video file is found', exists $$saved{DefaultVideo} ? 'rewritten' : 'untouched', 'untouched');
 }
 
+# A monitor whose OutputContainer is mkv or webm.
+for my $video ('41-video.h264.mkv', '41-video.vp9.webm') {
+  my $dir = tempdir(CLEANUP => 1);
+  touch("$dir/$video");
+  $saved = undef;
+  event($dir, DefaultVideo => 'incomplete.mp4')->Close();
+  check("DefaultVideo is corrected to $video", $$saved{DefaultVideo}, $video);
+
+  my $Event = event($dir, DefaultVideo => undef);
+  $Event->recover_timestamps($dir);
+  check("recover_timestamps finds $video", $$Event{DefaultVideo}, $video);
+}
+
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

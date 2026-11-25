@@ -442,6 +442,7 @@ if (count($filter->terms())) {
     }
   } else if (count($displayMonitors) != 0) {
 ?>
+          <button type="button" id="eventsButton" data-on-click="click_events"><?php echo translate('Events') ?></button>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
 <button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-control-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->

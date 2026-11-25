@@ -21,6 +21,7 @@
 #define main zmu_main
 #include "zmu.cpp"
 #undef main
+#include <cstring>
 #include <sstream>
 #include <vector>
 
@@ -93,24 +94,48 @@ TEST_CASE("zmu: state names", "[zmu]") {
 }
 
 TEST_CASE("zmu: list rows line up with the header", "[zmu]") {
-  const size_t ncols = Columns(zmu_list_header()).size();
-  REQUIRE(ncols == 11);
+  const std::string header = zmu_list_header();
+  std::vector<std::string> header_cols = Columns(header);
+  const size_t ncols = header_cols.size();
+  REQUIRE(ncols == 12);
+  // The existing columns keep their places; Name is added last.
+  REQUIRE(header_cols[0] == "Id");
+  REQUIRE(header_cols[1] == "Capturing");
+  REQUIRE(header_cols[10] == "FrameRate");
+  REQUIRE(header_cols[11] == "Name");
+  // The fixed-width part of a row is as wide as the header's.
+  const size_t name_at = header.size() - strlen("Name");
   SECTION("capturing monitor") {
-    std::string row = zmu_list_row(3, Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 123456789, 15.0);
-    REQUIRE(Columns(row).size() == ncols);
-    REQUIRE(row.size() == zmu_list_header().size());
+    std::string row = zmu_list_row(3, "FrontDoor", Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 123456789, 15.0);
+    std::vector<std::string> cols = Columns(row);
+    REQUIRE(cols.size() == ncols);
+    REQUIRE(cols[0] == "3");
+    REQUIRE(cols[11] == "FrontDoor");
+    REQUIRE(row.substr(name_at) == "FrontDoor");
   }
   SECTION("large event id keeps the columns apart") {
-    std::string row = zmu_list_row(3, Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 1234567890, 15.0);
+    std::string row = zmu_list_row(3, "FrontDoor", Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 1234567890, 15.0);
     REQUIRE(Columns(row)[9] == "1234567890");
     REQUIRE(Columns(row)[10] == "15.00");
   }
   SECTION("monitor with capturing None, as listed by -l -v") {
-    std::string row = zmu_list_row(7, Monitor::CAPTURING_NONE, 1, 1, 0, 0, 0.0, -1, -1, 0, 0.0);
+    std::string row = zmu_list_row(7, "Garage", Monitor::CAPTURING_NONE, 1, 1, 0, 0, 0.0, -1, -1, 0, 0.0);
     std::vector<std::string> cols = Columns(row);
     REQUIRE(cols.size() == ncols);
     REQUIRE(cols[0] == "7");
     REQUIRE(cols[1] == "1");
-    REQUIRE(row.size() == zmu_list_header().size());
+    REQUIRE(row.substr(name_at) == "Garage");
+  }
+  SECTION("a name with spaces leaves the other columns where they were") {
+    std::string row = zmu_list_row(4, "Front Door Camera", Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 123456789, 15.0);
+    std::vector<std::string> cols = Columns(row);
+    REQUIRE(cols[0] == "4");
+    REQUIRE(cols[10] == "15.00");
+    REQUIRE(row.substr(name_at) == "Front Door Camera");
+  }
+  SECTION("an empty name still lines up") {
+    std::string row = zmu_list_row(5, "", Monitor::CAPTURING_ALWAYS, 2, 3, 1, 0, 1700000000.5, 4, 5, 123456789, 15.0);
+    REQUIRE(row.size() == name_at);
+    REQUIRE(Columns(row).size() == ncols - 1);
   }
 }

@@ -19,7 +19,10 @@
 //
 
 $canEditMonitors = canEdit('Monitors');
-$canCreateMonitors = canCreate('Monitors');
+// A user limited to certain monitors cannot add one (actions/monitor.php refuses
+// it), so do not offer the button only for the save to be turned away.
+global $user;
+$canCreateMonitors = canCreate('Monitors') && !($user && $user->unviewableMonitorIds());
 
 $eventCounts = array(
   'Total'=>  array(

@@ -67,7 +67,8 @@ if ($action == 'Save') {
     }
     if (isset($_REQUEST['user']['Language']) and $_REQUEST['user']['Language']) {
       # Verify that the language file exists in the lang directory.
-      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
+      # A language is a file name in the lang directory, not a path.
+      if (!is_string($_REQUEST['user']['Language']) or !preg_match('/^[\w\-]+$/', $_REQUEST['user']['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
         $error_message .= 'Error setting Language. New value ' .$_REQUEST['user']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php doesn\'t exist.<br/>';
         ZM\Error($error_message);
         unset($_REQUEST['user']['Language']);
@@ -147,7 +148,8 @@ if ($action == 'Save') {
     }
     if (isset($_REQUEST['user']['Language']) and $_REQUEST['user']['Language']) {
       # Verify that the language file exists in the lang directory.
-      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
+      # A language is a file name in the lang directory, not a path.
+      if (!is_string($_REQUEST['user']['Language']) or !preg_match('/^[\w\-]+$/', $_REQUEST['user']['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
         $error_message .= 'Error setting Language. New value ' .$_REQUEST['user']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php doesn\'t exist.<br/>';
         ZM\Error($error_message);
         unset($_REQUEST['user']['Language']);

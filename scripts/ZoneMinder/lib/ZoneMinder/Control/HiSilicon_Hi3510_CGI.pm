@@ -49,6 +49,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
@@ -60,7 +64,7 @@ sub open {
   $self->loadMonitor();
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   # Parse username/password/host/port out of ControlAddress
@@ -78,7 +82,9 @@ sub sendCmd {
   my $result = undef;
   $self->printMsg($cmd, 'Tx');
 
-  my $url = 'http://'.$$self{host}.':'.$$self{port}.'/cgi-bin/hi3510/'.$cmd.
+  # URI returns an IPv6 host without the brackets a URL needs.
+  my $host = $$self{host} =~ /:/ ? '['.$$self{host}.']' : $$self{host};
+  my $url = 'http://'.$host.':'.$$self{port}.'/cgi-bin/hi3510/'.$cmd.
     '&usr='.uri_escape($$self{username}).'&pwd='.uri_escape($$self{password});
 
   my $req = HTTP::Request->new(GET=>$url);
@@ -143,33 +149,41 @@ sub moveConRight {
   $self->autoStop($self->{Monitor}->{AutoStopTimeout});
 }
 
-# Diagonal moves are not supported by the camera so we emulate them
+# Diagonal moves are not supported by the camera so we emulate them by
+# sending both axis commands back to back, then stopping all axes once.
+sub moveDiagonal {
+  my ($self, $vcmd, $hcmd) = @_;
+  $self->sendCmd($vcmd);
+  $self->sendCmd($hcmd);
+  $self->autoStop($self->{Monitor}->{AutoStopTimeout});
+}
+
 sub moveConUpRight {
   my $self = shift;
   Debug('Move Up-Right');
-  $self->moveConUp();
-  $self->moveConRight();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=up',
+    'ptzctrl.cgi?-step=0&-act=right');
 }
 
 sub moveConDownRight {
   my $self = shift;
   Debug('Move Down-Right');
-  $self->moveConDown();
-  $self->moveConRight();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=down',
+    'ptzctrl.cgi?-step=0&-act=right');
 }
 
 sub moveConUpLeft {
   my $self = shift;
   Debug('Move Up-Left');
-  $self->moveConUp();
-  $self->moveConLeft();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=up',
+    'ptzctrl.cgi?-step=0&-act=left');
 }
 
 sub moveConDownLeft {
   my $self = shift;
   Debug('Move Down-Left');
-  $self->moveConDown();
-  $self->moveConLeft();
+  $self->moveDiagonal('ptzctrl.cgi?-step=0&-act=down',
+    'ptzctrl.cgi?-step=0&-act=left');
 }
 
 # Stop

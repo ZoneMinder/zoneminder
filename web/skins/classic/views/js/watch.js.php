@@ -10,6 +10,8 @@
   global $labels;
   global $cycle;
   global $player;
+  $control = $monitor->Control();
+  require_once('includes/log_redact.php');
 ?>
 //
 // Import constants
@@ -20,8 +22,12 @@ var LIST_THUMBS = <?php echo ZM_WEB_LIST_THUMBS?'true':'false' ?>;
 
 var streamMode = "<?php echo validJsStr($streamMode) ?>";
 var showMode = "<?php echo ($showPtzControls && !empty($control))?"control":"events" ?>";
+// Whether the PTZ panel starts shown: the request, the cookie or, with neither, shown
+var ptzVisible = <?php echo $showPtzControls ? 'true' : 'false' ?>;
 var cycle = <?php echo $cycle ? 'true' : 'false' ?>;
 var player = '<?php echo validJsStr($player) ?>';
+const showZonesString = "<?php echo validJsStr(translate('Show Zones')) ?>";
+const hideZonesString = "<?php echo validJsStr(translate('Hide Zones')) ?>";
 
 var maxDisplayEvents = <?php echo 2 * MAX_EVENTS ?>;
 var monitorId = parseInt('<?php echo validJsStr($monitor->Id()) ?>');
@@ -46,8 +52,8 @@ monitorData[monitorData.length] = {
   'RTSPServer':<?php echo $m->RTSPServer() ? 'true' : 'false' ?>,
   'StreamChannel':'<?php echo validJsStr($m->StreamChannel()) ?>',
   'Go2RTCEnabled': <?php echo $m->Go2RTCEnabled() ?>,
-  'Path':'<?php echo validJsStr($m->Path()) ?>',
-  'SecondPath':'<?php echo validJsStr($m->SecondPath()) ?>',
+  'Path':'<?php echo validJsStr($m->canEdit() ? $m->Path() : ZM\removeUserinfo($m->Path())) ?>',
+  'SecondPath':'<?php echo validJsStr($m->canEdit() ? $m->SecondPath() : ZM\removeUserinfo($m->SecondPath())) ?>',
   'Restream':<?php echo $m->Restream() ? 'true' : 'false' ?>,
   'janusEnabled':<?php echo $m->JanusEnabled() ?>,
   'url': '<?php echo $m->UrlToIndex(ZM_MIN_STREAMING_PORT ? ($m->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
@@ -82,7 +88,6 @@ const imageRefreshTimeout = <?php echo 1000*ZM_WEB_REFRESH_IMAGE ?>;
 const canStream = <?php echo canStream()?'true':'false' ?>;
 
 var imageControlMode = '<?php 
-$control = $monitor->Control();
 if ($control->CanMoveMap()) {
   echo 'moveMap';
 } else if ($control->CanMoveRel()) {

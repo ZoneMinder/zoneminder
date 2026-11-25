@@ -1,5 +1,6 @@
 <?php
 require_once('includes/monitor_probe.php');
+require_once('includes/Group.php');
 
 $defaultMonitor = new ZM\Monitor();
 
@@ -123,7 +124,7 @@ if (canEdit('Monitors')) {
   case 'probe' :
   {
     $available_streams = array();
-    $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
+    $url = (isset($_REQUEST['url']) and is_string($_REQUEST['url'])) ? $_REQUEST['url'] : '';
     $url_bits = null;
     if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
       $url_bits = array('host'=>$url);
@@ -164,9 +165,12 @@ if (canEdit('Monitors')) {
       return;
     }
 
+    // Spreadsheets write UTF-8 CSV with a byte order mark that would stick to the first header cell
+    if ( fread($handle, 3) !== "\xEF\xBB\xBF" ) rewind($handle);
+
     $available_streams = array();
     $row = 0;
-    while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
+    while ( ($data = fgetcsv($handle, 0, ',')) !== FALSE ) {
       $row ++;
       if ( count($data) < 2 ) {
         ZM\Info("Skipping line $row, expected at least Name,URL columns");
@@ -192,8 +196,28 @@ if (canEdit('Monitors')) {
 
       # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
       $monitor = null;
-      $existing = ZM\Monitor::find(array('Path'=>$url));
-      if ( count($existing) ) $monitor = $existing[0];
+      $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
+      # Only offer a monitor the user may edit: the response carries its settings.
+      foreach ( $existing as $candidate ) {
+        if ( canEdit('Monitors', $candidate->Id()) ) {
+          $monitor = $candidate;
+          break;
+        }
+      }
+
+      $monitor_fields = array(
+        'Type' => 'Ffmpeg',
+        'Path' => $url,
+        'Name' => $name,
+      );
+      if ( $group !== '' ) {
+        $existing_group = ZM\Group::find_one(array('Name'=>$group));
+        if ( $existing_group ) {
+          $monitor_fields['GroupIds'] = $existing_group->Id();
+        } else {
+          ZM\Info("Line $row: no group named $group, not adding the monitor to a group");
+        }
+      }
 
       $available_streams[] = array(
         'mac'         => '',
@@ -206,11 +230,7 @@ if (canEdit('Monitors')) {
           'ip'           => $host,
           'Manufacturer' => '',
           'Model'        => '',
-          'monitor'      => array(
-            'Type' => 'Ffmpeg',
-            'Path' => $url,
-            'Name' => $name,
-          ),
+          'monitor'      => $monitor_fields,
         ),
         'Monitor'     => $monitor,
       );

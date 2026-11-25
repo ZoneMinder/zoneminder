@@ -5,6 +5,7 @@
 //   modules (FOSCAMR2C) looked it up in SQL and sent the result to the camera.
 // * It must refuse a control name that is not a plain method name: zmcontrol calls it as a
 //   method, and the command string is split back into options on spaces.
+// * It must refuse moveMap without both x and y rather than send empty coordinates.
 // * canView()/canEdit() with a monitor id must still require the area permission. They
 //   returned only the monitor check, so canView('Control', $mid) passed for anyone who could
 //   see the monitor.
@@ -61,6 +62,10 @@ check('qualified method name is refused',
 check('control with spaces is refused',
   command_for(array('control' => 'wake --preset=1')), '');
 check('missing control is refused', command_for(array()), '');
+check('moveMap without x and y is refused',
+  command_for(array('control' => 'moveMap')), '');
+check('moveMap with only x is refused',
+  command_for(array('control' => 'moveMap', 'x' => '10')), '');
 
 // ---- canView()/canEdit() with a monitor id ---------------------------------
 

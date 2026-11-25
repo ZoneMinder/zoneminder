@@ -229,10 +229,11 @@ fi;
 
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
-if [ $? -ne 0 ]; then
-  echo "Error status code is: $?"
+status=$?
+if [ $status -ne 0 ]; then
+  echo "Error status code is: $status"
   echo "Setting up build dir failed.";
-  exit $?;
+  exit $status;
 fi;
 
 cd "$DIRECTORY.orig";
@@ -354,10 +355,11 @@ EOF
   # Add any extra options specified on the CLI
   DEBUILD="$DEBUILD $DEBBUILD_EXTRA"
   eval $DEBUILD
-  if [ $? -ne 0 ]; then
-    echo "Error status code is: $?"
+  status=$?
+  if [ $status -ne 0 ]; then
+    echo "Error status code is: $status"
     echo "Build failed.";
-    exit $?;
+    exit $status;
   fi;
 
   cd ../

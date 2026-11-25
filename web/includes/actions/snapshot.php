@@ -23,7 +23,7 @@ require_once('includes/Monitor.php');
 
 if ( $action == 'create' ) {
   // A snapshot forces an alarm on each monitor and archives the events it
-  // records, so it needs Snapshots edit, and only monitors the user can view.
+  // records, so it needs Snapshots edit, and only monitors the user can edit.
   if (!canEdit('Snapshots')) {
     ZM\Warning('Creating a snapshot requires Snapshots edit permission');
     return;
@@ -39,7 +39,7 @@ if ( $action == 'create' ) {
       continue;
     }
     $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
-    if (!$monitor or !visibleMonitor($monitor->Id())) {
+    if (!$monitor or !visibleMonitor($monitor->Id()) or !$monitor->canEdit()) {
       ZM\Error('Monitor not found for id '.$monitor_id);
       continue;
     }
@@ -66,6 +66,11 @@ if ( $action == 'create' ) {
   foreach ( $monitors as $monitor ) {
     $monitor->TriggerOff();
   }
+  if (!count($snapshot->EventIds())) {
+    ZM\Error('No events were created for snapshot '.$snapshot->Id().', removing it');
+    $snapshot->delete();
+    return;
+  }
   $dbConn->beginTransaction();
   foreach ( $snapshot->Events() as $event ) {
     $event->lock();
@@ -79,15 +84,24 @@ if ( $action == 'create' ) {
 // Event scope actions, view permissions only required
 if ( isset($_REQUEST['id']) ) {
   $snapshot = new ZM\Snapshot(validCardinal($_REQUEST['id']));
+  if ( !$snapshot->Id() ) {
+    // Saving an object that failed to load would insert a new row
+    ZM\Warning('Snapshot '.$_REQUEST['id'].' not found');
+    $redirect = '?view=snapshots';
+    return;
+  }
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 
-      $changes = $snapshot->changes($_REQUEST['snapshot']);
+      $changes = $snapshot->changes(isset($_REQUEST['snapshot']) && is_array($_REQUEST['snapshot']) ? $_REQUEST['snapshot'] : array());
       if ( count($changes) ) {
         $snapshot->save($changes);
         ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';
+    } else {
+      global $error_message;
+      $error_message .= 'You do not have permission to edit this snapshot.<br/>';
     }
   } else if ( $action == 'delete' ) {
     if ( canEdit('Events') ) {

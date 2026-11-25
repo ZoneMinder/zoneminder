@@ -65,9 +65,10 @@ Depends: ${shlibs:Depends}, ${misc:Depends}, ${perl:Depends}
         ,libdata-uuid-perl
         ,libnumber-bytes-human-perl
         ,libfile-slurp-perl
+        ,libxml-libxml-perl
         ,mysql-client | mariadb-client | virtual-mysql-client
         ,perl-modules
-        ,php-mysql, php-gd, php-apcu, php-apc | php-apcu-bc, php-json
+        ,php-mysql (>= 2:8.0), php-gd, php-apcu, php-apc | php-apcu-bc, php-json
         ,policykit-1
         ,rsyslog | system-log-daemon
         ,zip

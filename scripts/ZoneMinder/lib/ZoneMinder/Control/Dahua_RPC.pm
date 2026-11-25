@@ -161,7 +161,8 @@ sub ensure_ptz_object {
   my $self = shift;
   return $self->{ptz_object} if defined $self->{ptz_object};
   my $r = $self->rpc_call('ptz.factory.instance', { channel => 0 });
-  $self->{ptz_object} = ($r && defined $r->{result}) ? $r->{result} : undef;
+  # A refusal is "result": false with an error, which is defined but not a handle.
+  $self->{ptz_object} = ($r && defined $r->{result} && !JSON::MaybeXS::is_bool($r->{result})) ? $r->{result} : undef;
   Error('Dahua_RPC: failed to create ptz instance') if !defined $self->{ptz_object};
   return $self->{ptz_object};
 }
@@ -194,22 +195,32 @@ sub ptz_raw {
 
 # Continuous-move speed comes from the UI command params (default 4).
 sub _con {
-  my ($self, $code, $params, $diag) = @_;
+  my ($self, $code, $params, $axis) = @_;
   my $mon = $$self{Monitor};
   $mon->suspendMotionDetection() if blessed($mon) && !$mon->{ModectDuringPTZ};
-  my $speed = $self->getParam($params, 'panspeed', 4);
+  my $pan_speed = $self->getParam($params, 'panspeed', 4);
+  my $tilt_speed = $self->getParam($params, 'tiltspeed', 4);
   $self->{LastCmd} = $code;
-  $self->ptz_raw('start', code => $code, arg1 => ($diag ? $speed : 0), arg2 => $speed);
+  my ($arg1, $arg2) = (0, 0);
+  if ($axis eq 'pan') {
+    $arg2 = $pan_speed;
+  } elsif ($axis eq 'tilt') {
+    $arg2 = $tilt_speed;
+  } elsif ($axis eq 'diag') {
+    $arg1 = $tilt_speed;
+    $arg2 = $pan_speed;
+  }
+  $self->ptz_raw('start', code => $code, arg1 => $arg1, arg2 => $arg2);
 }
 
-sub moveConUp        { my ($s,$p)=@_; $s->_con('Up',        $p, 0); }
-sub moveConDown      { my ($s,$p)=@_; $s->_con('Down',      $p, 0); }
-sub moveConLeft      { my ($s,$p)=@_; $s->_con('Left',      $p, 0); }
-sub moveConRight     { my ($s,$p)=@_; $s->_con('Right',     $p, 0); }
-sub moveConUpLeft    { my ($s,$p)=@_; $s->_con('LeftUp',    $p, 1); }
-sub moveConUpRight   { my ($s,$p)=@_; $s->_con('RightUp',   $p, 1); }
-sub moveConDownLeft  { my ($s,$p)=@_; $s->_con('LeftDown',  $p, 1); }
-sub moveConDownRight { my ($s,$p)=@_; $s->_con('RightDown', $p, 1); }
+sub moveConUp        { my ($s,$p)=@_; $s->_con('Up',        $p, 'tilt'); }
+sub moveConDown      { my ($s,$p)=@_; $s->_con('Down',      $p, 'tilt'); }
+sub moveConLeft      { my ($s,$p)=@_; $s->_con('Left',      $p, 'pan'); }
+sub moveConRight     { my ($s,$p)=@_; $s->_con('Right',     $p, 'pan'); }
+sub moveConUpLeft    { my ($s,$p)=@_; $s->_con('LeftUp',    $p, 'diag'); }
+sub moveConUpRight   { my ($s,$p)=@_; $s->_con('RightUp',   $p, 'diag'); }
+sub moveConDownLeft  { my ($s,$p)=@_; $s->_con('LeftDown',  $p, 'diag'); }
+sub moveConDownRight { my ($s,$p)=@_; $s->_con('RightDown', $p, 'diag'); }
 
 sub moveStop {
   my $self = shift;
@@ -220,6 +231,9 @@ sub moveStop {
     $mon->resumeMotionDetection() if blessed($mon) && !$mon->{ModectDuringPTZ};
   }
 }
+
+sub zoomStop  { my $self = shift; $self->moveStop(); }
+sub focusStop { my $self = shift; $self->moveStop(); }
 
 sub presetGoto {
   my ($self, $params) = @_;
@@ -418,6 +432,8 @@ sub set_config {
 # Probe the camera's capabilities: everything get_config returns, plus test
 # which interfaces respond vs. return InterfaceNotFound. Useful for
 # characterising an unknown Dahua/Amcrest model without writing ad-hoc scripts.
+# Strictly read-only: it never sends a method that changes camera state (no
+# reboot, no PTZ move), so it is safe to run against a live camera.
 #   zmcontrol.pl --protocol Dahua_RPC --address admin:pass@IP --command probe
 sub probe {
   my $self = shift;
@@ -441,9 +457,9 @@ sub probe {
       my $r = $self->rpc_call($m, {channel => 0}, object => $ptz_obj);
       $out{ptz}{$m} = ($r and $r->{result}) ? $r->{params} : ($r->{error}{message}//'?');
     }
-    # Test a safe ptz.start (GotoPreset 0 — no physical movement on most models)
-    my $t = $self->rpc_call('ptz.start', {code=>'GotoPreset',arg1=>0,arg2=>0,arg3=>0,channel=>0}, object=>$ptz_obj);
-    $out{ptz}{'ptz.start(GotoPreset)'} = ($t and $t->{result}) ? 'accepted' : ($t->{error}{message}//'?');
+    # No ptz.start test here: even GotoPreset can move the camera, and the
+    # getCurrentProtocolCaps/getStatus/getPresets calls above already show
+    # whether PTZ is available.
   }
 
   # --- Coaxial (light/siren/deterrence) ---
@@ -459,13 +475,36 @@ sub probe {
     $out{config}{$n} = ($r and $r->{result}) ? $r->{params}{table} : ($r->{error}{message}//'?');
   }
 
-  # --- Reachability of control methods (read-only tests) ---
-  for my $m (qw(magicBox.reboot system.listMethod)) {
-    my $r = $self->rpc_call($m);
-    # We only check if the method exists (reboot intentionally not sent; listMethod is safe)
-    $out{methods}{$m} = ($r and defined $r->{result})
-      ? ($r->{result} ? 'available' : 'error: '.($r->{error}{message}//'?'))
-      : 'unreachable';
+  # --- Method reachability (read-only) ---
+  # system.listMethod is safe and returns the method names the camera
+  # implements. magicBox.reboot would power-cycle the camera, so it is never
+  # sent: we only look for it in the returned list.
+  my $lm = $self->rpc_call('system.listMethod');
+  my @methods;
+  if ($lm and $lm->{result}) {
+    # Dahua answers {"params":{"method":[names]}}; accept a bare list too.
+    my $p = $lm->{params};
+    $p = $p->{method} if ref($p) eq 'HASH';
+    @methods = map { ref($_) eq 'HASH' ? ($_->{method} // $_->{name} // '') : ($_ // '') } @$p
+      if ref($p) eq 'ARRAY';
+    @methods = grep { length } @methods;
+  }
+  if ($lm and defined $lm->{result}) {
+    $out{methods}{'system.listMethod'} = $lm->{result}
+      ? 'available'.(@methods ? ': '.scalar(@methods).' methods' : '')
+      : 'error: '.($lm->{error}{message}//'?');
+  } else {
+    $out{methods}{'system.listMethod'} = 'unreachable';
+  }
+
+  for my $m (qw(magicBox.reboot ptz.start configManager.setConfig)) {
+    if (@methods) {
+      $out{methods}{$m} = (grep { $_ eq $m } @methods)
+        ? 'present in method list' : 'not in method list';
+    } else {
+      # Unknown/empty list format: report without guessing.
+      $out{methods}{$m} = 'not tested';
+    }
   }
 
   return \%out;

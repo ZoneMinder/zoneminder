@@ -41,8 +41,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           if ($filter->Background()) {
             $filter->control('stop');
           }
-          $filter->delete();
-          ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          if (!$filter->delete()) {
+            $error_message .= 'Error deleting filter: '.htmlspecialchars(dbLastError()).'<br/>';
+          } else {
+            ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          }
         } else {
           $error_message .= 'You do not have permission to delete the filter.<br/>';
         }
@@ -50,9 +53,18 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         ZM\Error('No filter id passed when deleting');
       }
     } else if (( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' )) {
+      if (isset($_REQUEST['filter']['Name'])) {
+        $_REQUEST['filter']['Name'] = trim($_REQUEST['filter']['Name']);
+        if ((($action == 'Save') or ($action == 'SaveAs')) and ($_REQUEST['filter']['Name'] === '')) {
+          $error_message .= 'Filter name is required.<br/>';
+          return;
+        }
+      }
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
-      $_REQUEST['filter']['Query']['limit'] = validInt($_REQUEST['filter']['Query']['limit']);
+      $limit = validInt($_REQUEST['filter']['Query']['limit']);
+      // A negative LIMIT is an SQL syntax error, which would stop the filter from ever running
+      $_REQUEST['filter']['Query']['limit'] = ($limit === '') ? '' : (string)max(0, (int)$limit);
       $_REQUEST['filter']['Query']['skip_locked'] = isset($_REQUEST['filter']['Query']['skip_locked']) ? validInt($_REQUEST['filter']['Query']['skip_locked']) : 0;
       
       $_REQUEST['filter']['AutoCopy'] = empty($_REQUEST['filter']['AutoCopy']) ? 0 : 1;
@@ -61,16 +73,42 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
       $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
-      $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
-      $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
-      $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;
-      $_REQUEST['filter']['AutoMessage'] = empty($_REQUEST['filter']['AutoMessage']) ? 0 : 1;
+      // The view only renders this checkbox when ZM_OPT_FFMPEG is on, so leave the stored value alone otherwise
+      if (ZM_OPT_FFMPEG) {
+        $_REQUEST['filter']['AutoVideo'] = empty($_REQUEST['filter']['AutoVideo']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoVideo']);
+      }
+      // The view only renders this checkbox when ZM_OPT_UPLOAD is on, so leave the stored value alone otherwise
+      if (ZM_OPT_UPLOAD) {
+        $_REQUEST['filter']['AutoUpload'] = empty($_REQUEST['filter']['AutoUpload']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoUpload']);
+      }
+      // The view only renders this checkbox when ZM_OPT_EMAIL is on, so leave the stored value alone otherwise
+      if (ZM_OPT_EMAIL) {
+        $_REQUEST['filter']['AutoEmail'] = empty($_REQUEST['filter']['AutoEmail']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoEmail']);
+      }
+      // The view only renders this checkbox when ZM_OPT_MESSAGE is on, so leave the stored value alone otherwise
+      if (ZM_OPT_MESSAGE) {
+        $_REQUEST['filter']['AutoMessage'] = empty($_REQUEST['filter']['AutoMessage']) ? 0 : 1;
+      } else {
+        unset($_REQUEST['filter']['AutoMessage']);
+      }
       $_REQUEST['filter']['AutoExecute'] = empty($_REQUEST['filter']['AutoExecute']) ? 0 : 1;
       $_REQUEST['filter']['AutoDelete'] = empty($_REQUEST['filter']['AutoDelete']) ? 0 : 1;
       $_REQUEST['filter']['UpdateDiskSpace'] = empty($_REQUEST['filter']['UpdateDiskSpace']) ? 0 : 1;
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $_REQUEST['filter']['LockRows'] = empty($_REQUEST['filter']['LockRows']) ? 0 : 1;
+      // A filter deleted in another tab would be saved here as a new one
+      if (($action == 'Save') and validCardinal($_REQUEST['Id']) and !$filter->Id()) {
+        ZM\Warning('Filter not found for save');
+        $error_message .= 'Filter not found.<br/>';
+        return;
+      }
       // Save overwrites the stored filter, so the user must be allowed to edit it as it is now,
       // not only as it would be after their changes (which could name them as the owner).
       // SaveAs and execute write a new filter, checked below with the changes applied.
@@ -81,7 +119,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $changes = $filter->changes($_REQUEST['filter']);
       ZM\Debug('Changes: ' . print_r($changes, true));
 
-      if (count($changes)) {
+      // SaveAs always writes a new row, so pressing it on an unmodified filter
+      // must still make a copy; every other action needs something to change.
+      // save() inserts the filter's current values, so an empty $changes still
+      // produces a copy with the original settings.
+      if (count($changes) or ($action == 'SaveAs')) {
         $filter->set($changes); // apply changes so that canEdit can use new values
 
         // ZM_ALLOWED_COMMANDS narrows what "Execute command" may run. Refused
@@ -108,6 +150,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           }
           if (!$filter->save($changes)) {
             $error_message = $filter->get_last_error();
+            return;
+          }
+          if (($action == 'SaveAs') and !$filter->Id()) {
+            // No new Id means no copy exists; don't pretend by redirecting to the original.
+            $error_message .= 'Failed to save a copy of the filter.<br/>';
             return;
           }
           ZM\AuditAction('save', 'filter', $filter->Id(), 'Name: '.$filter->Name().' Action: '.$action);

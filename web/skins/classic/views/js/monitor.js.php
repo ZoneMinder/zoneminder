@@ -1,6 +1,13 @@
 const hasOnvif = <?php echo ZM_HAS_ONVIF ?>;
+const useAuth = <?php echo ZM_OPT_USE_AUTH ? 'true' : 'false' ?>;
 const defaultAspectRatio = '<?php echo ZM_DEFAULT_ASPECT_RATIO ?>';
 const messageSavingDataWhenLeavingPage = '<?php echo translate('MessageSavingDataWhenLeavingPage') ?>';
+const onvifStatusLabels = [
+  '<?php echo addslashes(translate('OnvifStatusNotInUse')) ?>',
+  '<?php echo addslashes(translate('OnvifStatusNotSubscribed')) ?>',
+  '<?php echo addslashes(translate('OnvifStatusSubscribed')) ?>',
+];
+const onvifStatusUnavailable = '<?php echo addslashes(translate('OnvifStatusUnavailable')) ?>';
 const audioMotionVersionOK = '<?php echo translate('AudioMotionVersionOK') ?>';
 const audioMotionVersionNotInstalled = '<?php echo translate('AudioMotionVersionNotInstalled') ?>';
 const audioMotionVersionWrongVersion = '<?php echo translate('AudioMotionVersionWrongVersion') ?>';
@@ -43,7 +50,7 @@ if ($query) {
       echo 'rtspStreamNames[\''.validJsStr($row['RTSPStreamName']).'\'] = true;'.PHP_EOL;
   } // end foreach
 } # end if $query
-echo 'const mid='.$mid.';'.PHP_EOL;
+echo 'const mid='.(int)$mid.';'.PHP_EOL;
 ?>
 
 function validateForm(form) {
@@ -53,7 +60,9 @@ function validateForm(form) {
 
   // No monitor input should have whitespace at beginning or end, so strip them out first.
   for (let i=0; i<elements.length; i++) {
-    if (elements[i].nodeName != 'SELECT') {
+    // Passwords may legitimately start or end with a space, and the camera password fields are text inputs masked by the masked-input class, so leave those untouched.
+    const isPassword = elements[i].type == 'password' || (elements[i].classList && elements[i].classList.contains('masked-input'));
+    if (elements[i].nodeName != 'SELECT' && !isPassword) {
       elements[i].value = elements[i].value.trim();
     }
   }
@@ -86,6 +95,10 @@ function validateForm(form) {
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
     if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    } else if ( form.elements['newMonitor[Path]'].value.indexOf('://') < 0 &&
+                form.elements['newMonitor[Path]'].value.charAt(0) != '/' &&
+                !form.elements['newMonitor[Path]'].value.match(/^v4l2:/i) ) {
+      errors[errors.length] = "<?php echo translate('BadFfmpegPathProtocol') ?>";
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }
@@ -130,7 +143,8 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadMaxFPS') ?>";
     if ( form.elements['newMonitor[AlarmMaxFPS]'].value && !(parseFloat(form.elements['newMonitor[AlarmMaxFPS]'].value) >= 0 ) )
       errors[errors.length] = "<?php echo translate('BadAlarmMaxFPS') ?>";
-    if ( !form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) )
+    // A Speaker has no blend or timestamp fields to check.
+    if ( form.elements['newMonitor[RefBlendPerc]'] && (!form.elements['newMonitor[RefBlendPerc]'].value || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) > 100 ) || (parseInt(form.elements['newMonitor[RefBlendPerc]'].value) < 0 ) ) )
       errors[errors.length] = "<?php echo translate('BadRefBlendPerc') ?>";
 
     const colours = form.elements['newMonitor[Colours]'];
@@ -140,9 +154,9 @@ function validateForm(form) {
       errors[errors.length] = "<?php echo translate('BadWidth') ?>";
     if ( !form.elements['newMonitor[Height]'].value || !(parseInt(form.elements['newMonitor[Height]'].value) > 0 ) )
       errors[errors.length] = "<?php echo translate('BadHeight') ?>";
-    if ( !form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 ) )
+    if ( form.elements['newMonitor[LabelX]'] && (!form.elements['newMonitor[LabelX]'].value || !(parseInt(form.elements['newMonitor[LabelX]'].value) >= 0 )) )
       errors[errors.length] = "<?php echo translate('BadLabelX') ?>";
-    if ( !form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 ) )
+    if ( form.elements['newMonitor[LabelY]'] && (!form.elements['newMonitor[LabelY]'].value || !(parseInt(form.elements['newMonitor[LabelY]'].value) >= 0 )) )
       errors[errors.length] = "<?php echo translate('BadLabelY') ?>";
     if ( !form.elements['newMonitor[ImageBufferCount]'].value || !(parseInt(form.elements['newMonitor[ImageBufferCount]'].value) >= 2 ) )
       errors[errors.length] = "<?php echo translate('BadImageBufferCount') ?>";

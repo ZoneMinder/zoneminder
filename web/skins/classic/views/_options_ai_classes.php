@@ -53,9 +53,9 @@ if ($datasets_result) {
 $result = dbQuery('SELECT c.*, d.Name as DatasetName FROM AI_Object_Classes c LEFT JOIN AI_Datasets d ON c.DatasetId = d.Id ORDER BY d.Name, c.ClassIndex');
 if ($result) {
   while ($row = dbFetchNext($result)) {
-    $class_opt = 'class="classCol" data-cid="'.$row['Id'].'" data-dataset-id="'.$row['DatasetId'].'"';
+    $class_opt = 'class="classCol" data-cid="'.$row['Id'].'"';
 ?>
-              <tr>
+              <tr data-dataset-id="<?php echo $row['DatasetId'] ?>">
                 <td class="colMark"><input type="checkbox" name="markIds[]" value="<?php echo $row['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$canEdit ) { ?> disabled="disabled"<?php } ?>/></td>
                 <td class="colId"><?php echo makeLink('#', validHtmlStr($row['Id']), $canEdit, $class_opt) ?></td>
                 <td class="colDataset"><?php echo makeLink('#', validHtmlStr($row['DatasetName']), $canEdit, $class_opt) ?></td>

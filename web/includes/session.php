@@ -20,6 +20,18 @@ function zm_session_set_remote_addr() {
   $_SESSION['remoteAddr'] = $addr;
 }
 
+// True when the browser reached us over https, directly or through a proxy
+// that says so. Cookies set then carry the Secure flag so they are never sent
+// over plain http.
+function zm_request_is_secure() {
+  if (!empty($_SERVER['HTTPS']) and (strtolower($_SERVER['HTTPS']) !== 'off')) return true;
+  if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    $proto = explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO']);
+    return strtolower(trim($proto[0])) === 'https';
+  }
+  return false;
+}
+
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['path'])) {
@@ -31,12 +43,11 @@ function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['samesite'])) {
     $options['samesite'] = 'Strict';
   }
-
-  if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie($cookie, $value, $options);
-  } else {
-    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
+  if (!isset($options['secure']) and zm_request_is_secure()) {
+    $options['secure'] = true;
   }
+
+  setcookie($cookie, $value, $options);
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
@@ -74,19 +85,9 @@ function zm_session_start() {
       $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
     }
     $currentCookieParams['httponly'] = true;
-    if ( version_compare(phpversion(), '7.3.0', '<') ) {
-      session_set_cookie_params(
-        $currentCookieParams['lifetime'],
-        $currentCookieParams['path'].'; samesite=strict',
-        $currentCookieParams['domain'],
-        $currentCookieParams['secure'],
-        $currentCookieParams['httponly']
-      );
-    } else {
-      # samesite was introduced in 7.3.0
-      $currentCookieParams['samesite'] = 'Strict';
-      session_set_cookie_params($currentCookieParams);
-    }
+    if (zm_request_is_secure()) $currentCookieParams['secure'] = true;
+    $currentCookieParams['samesite'] = 'Strict';
+    session_set_cookie_params($currentCookieParams);
 
     ini_set('session.name', 'ZMSESSID');
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
@@ -152,11 +153,7 @@ function zm_session_regenerate_id_login() {
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
+    return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
   } else {
     \ZM\Warning("php_sapi_name === 'cli'");
   }
@@ -188,6 +185,9 @@ function zm_session_clear() {
 // without it session.use_strict_mode has no effect for a user handler, and an
 // id the client made up became its session id.
 class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestampHandlerInterface {
+  // Access time of the stored row read() found, and the id it belongs to.
+  private $readId = null;
+  private $readAccess = null;
   public function open($path, $name): bool {
     return zmDbConnOrNull() ? true : false;
   }
@@ -198,7 +198,7 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
   #[\ReturnTypeWillChange]
   public function read($id){
     if (!($db = zmDbConnOrNull())) return '';
-    $sth = $db->prepare('SELECT data FROM Sessions WHERE id = :id');
+    $sth = $db->prepare('SELECT data, access FROM Sessions WHERE id = :id');
     if (!$sth->bindParam(':id', $id, PDO::PARAM_STR, 32)) {
       ZM\Error("Failed to bind param");
       if (!$sth->bindParam(':id', $id, PDO::PARAM_STR)) {
@@ -208,6 +208,8 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
 
     if ( $sth->execute() ) {
       if (( $row = $sth->fetch(PDO::FETCH_ASSOC) ) ) {
+        $this->readId = $id;
+        $this->readAccess = intval($row['access']);
         return $row['data'];
       } 
     }
@@ -268,6 +270,9 @@ class ZMSessionHandler implements SessionHandlerInterface, SessionUpdateTimestam
   }
   // Called instead of write() when the session data didn't change.
   public function updateTimestamp($id, $data) : bool {
+    if (($this->readId === $id) && ($this->readAccess !== null) && ((time() - $this->readAccess) < 60)) {
+      return true;
+    }
     return $this->write($id, $data);
   }
 } # end class Session

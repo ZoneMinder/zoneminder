@@ -40,7 +40,7 @@ var eventData = {
     AvgScore: '<?php echo validJsStr($Event->AvgScore()) ?>',
     MaxScore: '<?php echo validJsStr($Event->MaxScore()) ?>',
     DiskSpace: '<?php echo human_filesize($Event->DiskSpace(null)) ?>',
-    Storage: '<?php echo validHtmlStr($Event->Storage()->Name()).( $Event->SecondaryStorageId() ? ', '.validHtmlStr($Event->SecondaryStorage()->Name()) : '' ) ?>',
+    Storage: <?php echo json_encode($Event->Storage()->Name().( $Event->SecondaryStorageId() ? ', '.$Event->SecondaryStorage()->Name() : '' ), JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_HEX_AMP) ?>,
     DefaultVideo: '<?php echo validHtmlStr($Event->DefaultVideo()) ?>',
     Archived: <?php echo $Event->Archived?'true':'false' ?>,
     Emailed: <?php echo $Event->Emailed?'true':'false' ?>,

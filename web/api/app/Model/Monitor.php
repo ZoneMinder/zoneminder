@@ -54,6 +54,30 @@ class Monitor extends AppModel {
          'message'    => 'Monitor Name must be specified for creation',
          'required'   => true,
        ),
+       'notBlank' => array(
+         'rule'       => 'notBlank',
+         'message'    => 'Monitor Name must not be blank',
+       ),
+       'characters' => array(
+         'rule'       => array('custom', '/^[\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]+$/u'),
+         'message'    => 'Monitor Name may only contain letters, numbers, spaces and - . ( ) : /',
+       ),
+    ),
+    'Width' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Width must be greater than 0',
+    ),
+    'Height' => array(
+      'rule' => array('comparison', '>', 0),
+      'message' => 'Height must be greater than 0',
+    ),
+    'ServerId' => array(
+      'rule' => array('rowExists', 'Server'),
+      'message' => 'ServerId does not match a server',
+    ),
+    'StorageId' => array(
+      'rule' => array('rowExists', 'Storage'),
+      'message' => 'StorageId does not match a storage area',
     ),
     // These codec values mimic acceptable ones for FFMPEG
     // Edit this if the list in ZM changes
@@ -77,12 +101,24 @@ class Monitor extends AppModel {
    * so the /dev/ restriction only applies when Type == 'Local'. Other Types
    * may legitimately hold legacy values (e.g. an RTSP URL) in this column.
    */
+  // Empty and 0 mean "none" (the default storage area, any server).
+  public function rowExists($check, $model) {
+    $value = reset($check);
+    if ($value === null or $value === '' or $value == 0) {
+      return true;
+    }
+    return (bool)ClassRegistry::init($model)->find('first', array(
+      'conditions' => array($model.'.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
+
   public function validDevicePath($check) {
     $value = reset($check);
     if ($value === null || $value === '') {
       return true;
     }
-    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
     if ($type !== 'Local') {
       return true;
     }
@@ -155,7 +191,7 @@ class Monitor extends AppModel {
       'Orientation'     => array('ROTATE_0','ROTATE_90','ROTATE_180','ROTATE_270','FLIP_HORI','FLIP_VERT'),
       // mask OutputCodec as its not an Enum in mysql
       //'OutputCodec'     => array( 'h264' ,'mjpeg','mpeg1','mpeg2'),
-      'OutputContainer' => array('auto','mp4','mkv'),
+      'OutputContainer' => array('auto','mp4','mkv','webm'),
       'DefaultView'     => array('Events','Control'),
       #'Status'          => array('Unknown','NotRunning','Running','NoSignal','Signal'),
     )
@@ -187,14 +223,23 @@ class Monitor extends AppModel {
     )
   );
 
+  // Explanation for the last daemonControl() that returned false.
+  public $daemonControlError = null;
+
+  // Returns the daemon output on success and false when the command was not run
+  // or zmdc.pl failed. Callers cannot otherwise tell a failed start from a
+  // successful one, because zmdc.pl prints its errors on stdout.
   public function daemonControl($monitor, $command, $daemon=null) {
+    $this->daemonControlError = null;
     if ($monitor['Capturing'] == 'None' and $command != 'stop') {
       ZM\Warning("Calling daemonControl with command $command when Capturing == None");
-      return;
+      $this->daemonControlError = 'Monitor capturing is set to None';
+      return false;
     }
     if (defined('ZM_SERVER_ID') and ($monitor['ServerId']!=ZM_SERVER_ID)) {
       ZM\Error('Calling daemonControl for Monitor assigned to different server. Our server id '.ZM_SERVER_ID.' != '.$monitor['ServerId']);
-      return;
+      $this->daemonControlError = 'Monitor is assigned to a different server';
+      return false;
     }
 
     $daemons = array();
@@ -215,10 +260,19 @@ class Monitor extends AppModel {
         $args = '-m ' . escapeshellarg($monitor['Id']);
       }
 
-      $shellcmd = escapeshellcmd(ZM_PATH_BIN.'/zmdc.pl '.$command.' '.$daemon.' '.$args);
+      $shellcmd = escapeshellarg(ZM_PATH_BIN.'/zmdc.pl').' '.escapeshellarg($command).' '.escapeshellarg($daemon).' '.$args;
       ZM\Debug("Command $shellcmd");
-      $status = exec($shellcmd);
+      $output = array();
+      $status = exec($shellcmd, $output, $rc);
       $status_text .= $status.PHP_EOL;
+      if ($rc != 0) {
+        ZM\Error("Command $shellcmd failed with status $rc: ".implode(PHP_EOL, $output));
+        $this->daemonControlError = trim(implode(PHP_EOL, $output));
+        if ($this->daemonControlError === '') {
+          $this->daemonControlError = "zmdc.pl exited with status $rc";
+        }
+        return false;
+      }
     } # end foreach daemon
     return $status_text;
   } # end function daemonControl

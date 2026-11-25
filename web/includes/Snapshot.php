@@ -26,11 +26,11 @@ class Snapshot extends ZM_Object {
     return new Event( $this->{'EventId'} );
   }
 
+  # Returns whether the snapshot and its event links were removed.
   public function delete() {
-    if ( property_exists($this, 'Id') ) {
-      dbQuery('DELETE FROM `Snapshots_Events` WHERE `SnapshotId`=?', array($this->{'Id'}));
-      dbQuery('DELETE FROM `Snapshots` WHERE `Id`=?', array($this->{'Id'}));
-    }
+    if ( !property_exists($this, 'Id') ) return false;
+    if ( !dbQuery('DELETE FROM `Snapshots_Events` WHERE `SnapshotId`=?', array($this->{'Id'})) ) return false;
+    return (bool)dbQuery('DELETE FROM `Snapshots` WHERE `Id`=?', array($this->{'Id'}));
   }
 
   public function EventIds( ) {
@@ -41,7 +41,11 @@ class Snapshot extends ZM_Object {
   }
   public function Events() {
     if ( ! property_exists($this, 'Events') ) {
-      $this->{'Events'} = Event::find(array('Id'=>$this->EventIds()));
+      # Only the events of monitors the user can view, as everywhere else events are listed.
+      $this->{'Events'} = array_values(array_filter(
+        Event::find(array('Id'=>$this->EventIds())),
+        function($event) { return $event->canView(); }
+      ));
     }
     return $this->{'Events'};
   }

@@ -22,10 +22,16 @@ $mids = null;
 if ( isset($_REQUEST['mid']) ) {
   $mids = array();
   $mids[] = validInt($_REQUEST['mid']);
-} else if ( isset($_REQUEST['mids']) ) {
+} else if ( isset($_REQUEST['mids']) and is_array($_REQUEST['mids']) ) {
   $mids = array_map(function($mid){return validCardinal($mid);}, $_REQUEST['mids'] );
 } else if ($user->unviewableMonitorIds()) {
-  $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $user->viewableMonitorIds())).')', 'Id', $user->viewableMonitorIds());
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  if ( count($viewableMonitorIds) ) {
+    $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false AND Id IN ('.implode(',', array_map(function(){return '?';}, $viewableMonitorIds)).')', 'Id', $viewableMonitorIds);
+  } else {
+    // IN () is a syntax error, so a user who can view no monitor has no zones
+    $mids = array();
+  }
 } else {
   $mids = dbFetchAll('SELECT Id FROM Monitors WHERE Deleted=false', 'Id');
 }
@@ -35,6 +41,12 @@ if ( !($mids and count($mids)) ) {
   return;
 }
 $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
+# A monitor the user may not view is left out, as a monitor that does not exist is.
+$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]) and $monitors[$mid]->canView(); }));
+if ( !count($mids) ) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Zones'));
 getBodyTopHTML();
@@ -51,7 +63,6 @@ echo getNavBarHTML();
       </div>
     </div>
     <div id="content">
-      <form name="contentForm" id="contentForm" method="post" action="?view=<?php echo $view ?>">
 <?php
   foreach ( $mids as $mid ) {
     $monitor = $monitors[$mid];
@@ -64,6 +75,10 @@ echo getNavBarHTML();
     $zones = array();
     foreach ( dbFetchAll('SELECT * FROM Zones WHERE MonitorId=? ORDER BY Area DESC', NULL, array($mid)) as $row ) {
       $row['Points'] = coordsToPoints($row['Coords']);
+      # Percent coordinates are always written with decimals; without any they are pixels
+      if (strpos($row['Coords'], '.') === false) {
+        convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight(), true);
+      }
 
       $row['OutOfBounds'] = false;
       foreach ($row['Points'] as $point) {
@@ -73,8 +88,8 @@ echo getNavBarHTML();
         }
       }
 
-      convertPixelPointsToPercent($row['Points'], $monitor->ViewWidth(), $monitor->ViewHeight());
       limitPoints($row['Points'], $minX, $minY, $maxX, $maxY);
+      $row['Area'] = getPolyArea($row['Points']);
       $row['Coords'] = pointsToCoords($row['Points']);
       $row['AreaCoords'] = preg_replace('/\s+/', ',', $row['Coords']);
       $zones[] = $row;
@@ -83,7 +98,10 @@ echo getNavBarHTML();
     $options = array('zones'=>true, 'state'=>true, 'mode'=>'single', 'width'=>'auto');
 ?>
     <div class="Monitor">
-        <input type="hidden" name="mids[]" value="<?php echo $mid ?>"/>
+      <form name="contentForm" method="post" action="?view=<?php echo $view ?>">
+<?php foreach ( $mids as $page_mid ) { ?>
+        <input type="hidden" name="mids[]" value="<?php echo $page_mid ?>"/>
+<?php } ?>
         <?php echo $monitor->getStreamHTML($options); ?>
         <div class="zones">
           <table id="zonesTable" class="major">
@@ -124,11 +142,11 @@ echo getNavBarHTML();
           </div>
         </div><!--zones-->
         <br class="clear"/>
+      </form>
       </div><!--Monitor-->
 <?php 
   } # end foreach monitor
 ?>
-      </form>
     </div>
   </div>
 <?php

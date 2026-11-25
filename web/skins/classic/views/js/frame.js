@@ -1,6 +1,7 @@
 const table = $j('#frameStatsTable');
 const backBtn = $j('#backBtn');
 const statsBtn = $j('#statsBtn');
+let wasHidden = false;
 
 function changeScale() {
   const scale = $j('#scale').val();
@@ -15,7 +16,16 @@ function changeScale() {
   if (img) {
     const baseWidth = $j('#base_width').val();
     const baseHeight = $j('#base_height').val();
-    if (!parseInt(scale)) {
+    if (scale == 'fit_to_width') {
+      const newSize = scaleToFit(baseWidth, baseHeight, img, false);
+      newWidth = newSize.width;
+      newHeight = newSize.height;
+    } else if (/^\d+px$/.test(scale)) {
+      // Max width, as in the event view: never wider than the page either
+      const fit = scaleToFit(baseWidth, baseHeight, img, false);
+      newWidth = Math.min(parseInt(scale), fit.width);
+      newHeight = Math.floor(newWidth * baseHeight / baseWidth);
+    } else if (!parseInt(scale)) {
       const newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
       newWidth = newSize.width;
       newHeight = newSize.height;
@@ -30,8 +40,9 @@ function changeScale() {
   }
   setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
-    if (anchor) {
-      anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
+    // A disabled link has no href; setting one would make it a live link to this page.
+    if (anchor && anchor.prop('href')) {
+      anchor.prop('href', anchor.prop('href').replace(/scale=[^&]*/, 'scale=' + scale));
     }
   });
 
@@ -45,7 +56,7 @@ function getFrameStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -116,7 +127,7 @@ function onStatsResize(vidwidth) {
 }
 
 function initPage() {
-  if (scale == '0' || scale == 'auto') changeScale();
+  if (!Number(scale)) changeScale(); // 0, auto, fit_to_width and NNNpx are sized here
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -139,10 +150,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie('zmFrameStats', 'off', 10*365);
+      setCookie('zmFrameStats', 'off');
       table.toggle(false);
     } else {
-      setCookie('zmFrameStats', 'on', 10*365);
+      setCookie('zmFrameStats', 'on');
       table.toggle(true);
     }
   });
@@ -159,7 +170,7 @@ function initPage() {
   if (getFrameStatsCookie() != 'on') {
     table.toggle(false);
   } else {
-    onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
+    if (Number(scale)) onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
   }
 
   // Manage the FRAMES Button

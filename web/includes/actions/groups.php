@@ -23,7 +23,7 @@ if ( ($action == 'setgroup') && canView('Groups')) {
   if ( !empty($_REQUEST['gid']) ) {
     zm_setcookie('zmGroup', validInt($_REQUEST['gid']));
   } else {
-    zm_setcookie('zmGroup', '', time()-3600*24*2);
+    zm_setcookie('zmGroup', '', array('expires'=>time()-3600*24*2));
   }
   $refreshParent = true;
   return;
@@ -44,7 +44,10 @@ if ( $action == 'delete' ) {
         ZM\Warning('Need edit permission on every monitor in group '.$Group->Id().' to delete it');
         continue;
       }
-      $Group->delete();
+      if ($Group->delete() === false) {
+        $error_message .= 'Error deleting group: '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }
   }

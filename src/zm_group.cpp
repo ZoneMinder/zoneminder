@@ -39,7 +39,7 @@ Group::Group(const MYSQL_ROW &dbrow) {
   name = dbrow[index++];
 }
 
-Group::Group(unsigned int p_id) : id(0) {
+Group::Group(unsigned int p_id) : id(0), parent_id(0) {
   if (p_id) {
     std::string sql = stringtf("SELECT `Id`, `ParentId`, `Name` FROM `Groups` WHERE `Id`=%u", p_id);
     Debug(2, "Loading Group for %u using %s", p_id, sql.c_str());

@@ -23,10 +23,7 @@ class ImageComponent extends Component {
 			$imageFile = $config['ZM_DIR_EVENTS']."/".$imagePath;
 			$thumbFile = $config['ZM_DIR_EVENTS']."/".$thumbPath;
 		} else {
-			if ( version_compare( phpversion(), "4.3.10", ">=") )
-			    $fraction = sprintf( "%.3F", $scale/100 );
-			else
-			    $fraction = sprintf( "%.3f", $scale/100 );
+			$fraction = sprintf( "%.3F", $scale/100 );
 			$scale = (int)round( $scale );
 			
 			$thumbCaptPath = preg_replace( "/\.jpg$/", "-$scale.jpg", $captPath );

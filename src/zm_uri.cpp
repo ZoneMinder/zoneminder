@@ -14,9 +14,10 @@ Uri::Uri(const std::string &uri) {
 
   // protocol
   iterator_t protocolStart = uri.begin();
-  iterator_t protocolEnd = std::find(protocolStart, uriEnd, ':');            //"://");
+  // A scheme comes before the query; a "://" inside the query is part of a value.
+  iterator_t protocolEnd = std::find(protocolStart, queryStart, ':');        //"://");
 
-  if (protocolEnd != uriEnd) {
+  if (protocolEnd != queryStart) {
     std::string prot = &*(protocolEnd);
     if ((prot.length() > 3) && (prot.substr(0, 3) == "://")) {
       Protocol = std::string(protocolStart, protocolEnd);
@@ -30,11 +31,24 @@ Uri::Uri(const std::string &uri) {
 
   // host
   iterator_t hostStart = protocolEnd;
-  iterator_t pathStart = std::find(hostStart, uriEnd, '/');  // get pathStart
+  iterator_t pathStart = std::find(hostStart, queryStart, '/');  // a / in the query is not the path
+  iterator_t authorityEnd = (pathStart != uriEnd) ? pathStart : queryStart;
 
-  iterator_t hostEnd = std::find(protocolEnd,
-                                 (pathStart != uriEnd) ? pathStart : queryStart,
-                                 ':');  // check for port
+  // skip user:password@
+  for (iterator_t it = hostStart; it != authorityEnd; ++it) {
+    if (*it == '@') hostStart = it + 1;
+  }
+
+  iterator_t hostEnd;
+  if ((hostStart != authorityEnd) && (*hostStart == '[')) {
+    // A bracketed IPv6 literal: the host runs to the closing bracket, whose
+    // colons are part of the address and not a port separator. Keep the
+    // brackets so that "http://" + Host rebuilds a valid URL.
+    iterator_t bracketEnd = std::find(hostStart, authorityEnd, ']');
+    hostEnd = (bracketEnd != authorityEnd) ? bracketEnd + 1 : authorityEnd;
+  } else {
+    hostEnd = std::find(hostStart, authorityEnd, ':');  // check for port
+  }
 
   Host = std::string(hostStart, hostEnd);
 

@@ -48,7 +48,7 @@ function logPanelPageSize() {
 }
 
 function getLogPanelHTML($options=array()) {
-  global $Servers;
+  global $Servers, $user;
 
   $options = array_merge(array(
     'id' => 'log',
@@ -117,6 +117,43 @@ function getLogPanelHTML($options=array()) {
   echo htmlSelect($id.'Component[]', $componentOptions, $selectedComponents,
       array('class'=>'chosen logPanel-filter logPanel-component',
         'multiple'=>'multiple', 'data-placeholder'=>translate('All')));
+  echo '</span>';
+?>
+      </span>
+      <span class="term MonitorFilter">
+        <label><?php echo translate('Monitor') ?></label>
+<?php
+  // Only the monitors this user may view, by name, which is the same set the
+  // rest of the web interface offers.
+  $monitorOptions = array(''=>translate('All'));
+  $viewableMonitorIds = null;
+  if (is_object($user) and method_exists($user, 'viewableMonitorIds')) {
+    $viewableMonitorIds = array_map('intval', $user->viewableMonitorIds());
+  }
+  if ($viewableMonitorIds === null) {
+    $monitors = dbFetchAll('SELECT Id, Name FROM Monitors WHERE Deleted=false ORDER BY Name, Sequence ASC');
+  } else if (count($viewableMonitorIds)) {
+    $monitors = dbFetchAll(
+      'SELECT Id, Name FROM Monitors WHERE Deleted=false AND Id IN ('
+        .implode(',', array_fill(0, count($viewableMonitorIds), '?')).') ORDER BY Name, Sequence ASC',
+      null, $viewableMonitorIds);
+  } else {
+    $monitors = array();
+  }
+  foreach ($monitors as $monitor) {
+    $monitorOptions[(string)$monitor['Id']] = $monitor['Name'];
+  }
+  // A single select, where the empty option means "All". Only restore a
+  // session value that is still a monitor this user may view.
+  $selectedMonitorId = '';
+  if (isset($_SESSION['zmLogMonitorId']) and is_scalar($_SESSION['zmLogMonitorId'])) {
+    $sessionMonitorId = (string)(int)$_SESSION['zmLogMonitorId'];
+    if (isset($monitorOptions[$sessionMonitorId])) $selectedMonitorId = $sessionMonitorId;
+  }
+  echo '<span class="term-value-wrapper">';
+  echo htmlSelect($id.'MonitorId', $monitorOptions, $selectedMonitorId,
+      array('class'=>'chosen logPanel-filter logPanel-monitor',
+        'data-placeholder'=>translate('All')));
   echo '</span>';
 ?>
       </span>
@@ -203,7 +240,7 @@ function getLogPanelHTML($options=array()) {
           <th data-sortable="false" data-field="toggleCheck" data-checkbox="true"></th>
 <?php } ?>
           <th data-field="Id" data-visible="false"></th>
-          <th data-sortable="true" data-field="DateTime"><?php echo translate('DateTime') ?></th>
+          <th data-sortable="true" data-searchable="false" data-field="DateTime"><?php echo translate('DateTime') ?></th>
           <th data-sortable="true" data-field="Component"<?php echo $locked === null ? '' : ' data-visible="false"' ?>><?php echo translate('Component') ?></th>
 <?php if ($multipleServers) { ?>
           <th data-sortable="false" data-field="Server"><?php echo translate('Server') ?></th>

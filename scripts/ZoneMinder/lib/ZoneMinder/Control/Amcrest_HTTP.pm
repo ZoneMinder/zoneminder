@@ -50,11 +50,15 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
@@ -100,14 +104,17 @@ sub sendCmd {
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
     # Have seen on some HikVision cams that whatever cookie LWP uses times out and it never refreshes, so we have to actually create a new LWP object.
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar( {} );
     $self->{ua}->credentials($$self{address}, $$self{realm}, $$self{username}, $$self{password});
+    # The new agent verifies certificates again; let get() turn that off once more if it has to.
+    $self->{ssl_verify_disabled} = 0;
 
     # Try again
     $res = $self->get($cmd);
     if ( $res->is_success ) {
       # Command to camera appears successful, write Info item to log
+      $result = !undef;
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.$$self{BaseURL}.$cmd);
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.$$self{BaseURL}.$cmd);
@@ -140,67 +147,85 @@ sub moveAbs ## Up, Down, Left, Right, etc. ??? Doesn't make sense here...
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&code=PositionABS&channel=0&arg1='.$pan_degrees.'&arg2='.$tilt_degrees.'&arg3=0&arg4='.$speed);
 }
 
+# Speed for a continuous move.  The web ui scales pan and tilt speed into the
+# Min/Max range of the Controls row and passes it as panspeed/tiltspeed; the
+# camera takes it as arg1/arg2 of the ptz.cgi code.  Fall back to the slowest
+# speed when none, or nothing usable, was given.
+sub move_speed {
+  my ($params, $name) = @_;
+  my $speed = ref($params) eq 'HASH' ? $params->{$name} : undef;
+  return (defined($speed) and $speed =~ /^\d+$/ and $speed > 0) ? $speed : 1;
+}
+
 sub moveConUp {
   my $self = shift;
+  my $params = shift;
   Debug('Move Up');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=Up&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=Up&channel=0&arg1=0&arg2='.move_speed($params, 'tiltspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDown {
   my $self = shift;
+  my $params = shift;
   Debug('Move Down');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=Down&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=Down&channel=0&arg1=0&arg2='.move_speed($params, 'tiltspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConLeft {
   my $self = shift;
+  my $params = shift;
   Debug('Move Left');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=Left&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=Left&channel=0&arg1=0&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConRight {
   my $self = shift;
+  my $params = shift;
   Debug('Move Right');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=Right&channel=0&arg1=0&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=Right&channel=0&arg1=0&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpRight {
   my $self = shift;
+  my $params = shift;
   Debug('Move Diagonally Up Right');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=RightUp&channel=0&arg1=1&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=RightUp&channel=0&arg1='.move_speed($params, 'tiltspeed').'&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownRight {
   my $self = shift;
+  my $params = shift;
   Debug('Move Diagonally Down Right');
-  $$self{LastCmd} = 'code=RightDown&channel=0&arg1=1&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=RightDown&channel=0&arg1='.move_speed($params, 'tiltspeed').'&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConUpLeft {
   my $self = shift;
+  my $params = shift;
   Debug('Move Diagonally Up Left');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1=1&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=LeftUp&channel=0&arg1='.move_speed($params, 'tiltspeed').'&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
 sub moveConDownLeft {
   my $self = shift;
+  my $params = shift;
   Debug('Move Diagonally Down Left');
   $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
-  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1=1&arg2=1&arg3=0';
+  $$self{LastCmd} = 'code=LeftDown&channel=0&arg1='.move_speed($params, 'tiltspeed').'&arg2='.move_speed($params, 'panspeed').'&arg3=0';
   $self->sendCmd('cgi-bin/ptz.cgi?action=start&'.$$self{LastCmd});
 }
 
@@ -332,6 +357,7 @@ sub zoomStop {
   $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=ZoomTele&channel=0&arg1=0&arg2=0&arg3=0&arg4=0');
   $self->sendCmd('cgi-bin/ptz.cgi?action=stop&code=ZoomWide&channel=0&arg1=0&arg2=0&arg3=0&arg4=0');
   $$self{LastCmd} = '';
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
 }
 
 sub focusStop {
@@ -339,6 +365,7 @@ sub focusStop {
   Debug('Focus stop');
   $self->sendCmd('cgi-bin/devVideoInput.cgi?action=adjustFocusContinuously&focus=0&zoom=0');
   $$self{LastCmd} = '';
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
 }
 
 sub irisConOpen {
@@ -981,7 +1008,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = ZoneMinder::Control::Amcrest_HTTP->new();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $$self{username} = $username;
   $$self{password} = $password;

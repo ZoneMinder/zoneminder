@@ -40,7 +40,7 @@ typedef RETSIGTYPE (SigHandler)( int );
 typedef RETSIGTYPE (SigActionHandler)( int, siginfo_t *info, void *context );
 #endif
 
-extern bool zm_reload;
+extern std::atomic<bool> zm_reload;
 extern std::atomic<bool> zm_terminate;
 
 // Where the die handler writes its crash report besides stderr. Both keep a
@@ -50,21 +50,23 @@ extern std::atomic<bool> zm_terminate;
 void zmSetCrashLogFile(int fd);
 // Syslog, sending to the socket at path as ident, with the Logger's facility.
 // _PATH_LOG is the platform's socket: /dev/log on Linux, /var/run/syslog on
-// macOS, /var/run/log on FreeBSD.
+// macOS, /var/run/log on FreeBSD. Returns false, and publishes nothing, when
+// the ident and path are those of the target already published.
 #ifndef _PATH_LOG
 #define _PATH_LOG "/dev/log"
 #endif
-void zmSetCrashSyslog(const char *ident, const char *path = _PATH_LOG);
+bool zmSetCrashSyslog(const char *ident, const char *path = _PATH_LOG);
 // Give the calling thread its own stack for the die handler, so a stack
 // overflow on that thread is reported too. Call at the start of a thread.
 void zmSetThreadAltStack();
 
-RETSIGTYPE zmc_hup_handler( int signal );
-RETSIGTYPE zmc_term_handler( int signal );
+RETSIGTYPE zm_hup_handler( int signal );
+RETSIGTYPE zm_term_handler( int signal );
+RETSIGTYPE zm_pipe_handler( int signal );
 #if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T )
-RETSIGTYPE zmc_die_handler( int signal, siginfo_t *info, void *context );
+RETSIGTYPE zm_die_handler( int signal, siginfo_t *info, void *context );
 #else
-RETSIGTYPE zmc_die_handler( int signal );
+RETSIGTYPE zm_die_handler( int signal );
 #endif
 
 void zmSetHupHandler( SigHandler *handler );

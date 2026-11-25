@@ -20,6 +20,7 @@
 #include "zm_eventstream.h"
 #include "zm_image.h"
 #include "zm_mpeg.h"
+#include "zm_signal.h"
 
 #include <cstring>
 #include <vector>
@@ -257,4 +258,39 @@ TEST_CASE("VideoStream::PackImage converts to the encoder's size, format and str
   }
 
   sws_freeContext(context);
+}
+
+TEST_CASE("VideoStream::OpenStream refuses a format with no video encoder", "[VideoStream]") {
+  // wav carries no video, so SetupCodec creates no stream or codec context.
+  VideoStream stream("pipe:", "wav", 0, 10.0, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, 32, 16);
+  CHECK_FALSE(stream.OpenStream());
+}
+
+namespace {
+
+// runStream() ends an mpeg stream by deleting the encoder; ~StreamBase deletes
+// it again when the stream object goes away.
+class MpegEndAccess : public EventStream {
+ public:
+  void RunWithEncoder() {
+    type = STREAM_MPEG;
+    event_data = new EventData();
+    vid_stream = new VideoStream("pipe:", "avi", 0, 10.0, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB, 32, 16);
+    zm_terminate = true;
+    runStream();
+  }
+  bool HasEncoder() const { return vid_stream != nullptr; }
+};
+
+}  // namespace
+
+TEST_CASE("EventStream::runStream releases the mpeg encoder once") {
+  const bool was_terminated = zm_terminate;
+  {
+    MpegEndAccess stream;
+    stream.RunWithEncoder();
+    // The destructor must not free the encoder again.
+    CHECK_FALSE(stream.HasEncoder());
+  }
+  zm_terminate = was_terminated;
 }

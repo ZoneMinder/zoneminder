@@ -28,7 +28,8 @@ require_once('includes/Group.php');
 require_once('includes/Role_Group_Permission.php');
 
 if (isset($_REQUEST['rid']) and $_REQUEST['rid']) {
-  if (!($Role = new ZM\User_Role(validCardinal($_REQUEST['rid'])))) {
+  $Role = new ZM\User_Role(validCardinal($_REQUEST['rid']));
+  if (!$Role->Id()) {
     $view = 'error';
     return;
   }
@@ -50,7 +51,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=role">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
         <input type="hidden" name="rid" value="<?php echo validHtmlStr($Role->Id()) ?>"/>
         <div id="header">
           <div class="float-left pl-3 pt-1">

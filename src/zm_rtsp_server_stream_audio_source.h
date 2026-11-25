@@ -40,6 +40,8 @@ class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
     samplingFrequencyIndex = getFrequencyIndex();
     m_timeBase = {1, frequency};
   };
+  // RTP timestamp for a pts in AV_TIME_BASE_Q
+  static int64_t RtpTimestamp(int64_t pts, AVRational timeBase);
   int getFrequency() { return frequency; };
   int getFrequencyIndex();
   const char *configStr() const { return config.c_str(); };
@@ -47,7 +49,7 @@ class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
   int getChannels() const { return channels; };
 
  protected:
-  void PushFrame(const uint8_t *data, size_t size, int64_t pts) override;
+  void PushFrame(const uint8_t *data, size_t size, int64_t pts, bool last) override;
 
  protected:
   std::string config;

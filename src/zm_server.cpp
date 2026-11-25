@@ -24,6 +24,11 @@
 #include "zm_utils.h"
 #include <cstring>
 
+// The Servers table allows NULL in all of these, and a std::string cannot be built from a null pointer.
+static std::string ColumnString(const char *value) {
+  return value ? value : "";
+}
+
 Server::Server() : id(0) {
   Warning("Instantiating default Server Object. Should not happen.");
 }
@@ -31,12 +36,12 @@ Server::Server() : id(0) {
 Server::Server(MYSQL_ROW &dbrow) {
   unsigned int index = 0;
   id = atoi(dbrow[index++]);
-  name = dbrow[index++];
-  protocol = dbrow[index++];
-  hostname = dbrow[index++];
-  path_to_index = dbrow[index++];
-  path_to_zms = dbrow[index++];
-  path_to_api = dbrow[index++];
+  name = ColumnString(dbrow[index++]);
+  protocol = ColumnString(dbrow[index++]);
+  hostname = ColumnString(dbrow[index++]);
+  path_to_index = ColumnString(dbrow[index++]);
+  path_to_zms = ColumnString(dbrow[index++]);
+  path_to_api = ColumnString(dbrow[index++]);
 }
 
 /* If a zero or invalid p_id is passed, then the old default path will be assumed.  */
@@ -50,12 +55,14 @@ Server::Server(unsigned int p_id) : id(p_id) {
     } else {
       unsigned int index = 0;
       id = atoi(dbrow[index++]);
-      name = dbrow[index++];
-      protocol = dbrow[index++];
-      hostname = dbrow[index++];
-      path_to_index = std::string(dbrow[index++]);
-      path_to_zms = std::string(dbrow[index++]);
-      path_to_api = std::string(dbrow[index++]);
+      name = ColumnString(dbrow[index++]);
+      protocol = ColumnString(dbrow[index++]);
+      hostname = ColumnString(dbrow[index++]);
+      path_to_index = ColumnString(dbrow[index++]);
+      path_to_zms = ColumnString(dbrow[index++]);
+      path_to_api = ColumnString(dbrow[index++]);
+      // The web ui reaches a server by its name when no hostname is set.
+      if (hostname.empty()) hostname = name;
       Debug(1, "Loaded Server %d '%s' %s://%s", id, name.c_str(), protocol.c_str(), hostname.c_str());
     }
   }

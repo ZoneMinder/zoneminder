@@ -10,6 +10,10 @@ if (canEdit('Monitors')) {
     ajaxError("No monitor found for id $mid.");
     return;
   }
+  if (!$monitor->canEdit()) {
+    ajaxError('Insufficient permissions');
+    return;
+  }
 
   $action = empty($_REQUEST['action']) ? '' : $_REQUEST['action'];
   $score = empty($_REQUEST['score']) ? 0 : validCardinal($_REQUEST['score']);
@@ -19,15 +23,21 @@ if (canEdit('Monitors')) {
 
   if ($action == 'show') {
   } else if ($action == 'enable') {
-    $monitor->enable();
+    if (!$monitor->enable()) {
+      ajaxError('Unable to enable monitor '.$mid.', is it running?');
+    }
   } else if ($action == 'disable') {
-    $monitor->disable();
+    if (!$monitor->disable()) {
+      ajaxError('Unable to disable monitor '.$mid.', is it running?');
+    }
   } else if ($action == 'on') {
     if ( $score == 0 ) {
       ZM\Warning('Triggering on with invalid score will have no result.');
-      return;
+      ajaxError('Triggering on requires a score greater than 0.');
     }
-    $monitor->TriggerEventOn($score, $cause, $text);
+    if (!$monitor->TriggerEventOn($score, $cause, $text)) {
+      ajaxError('Unable to trigger monitor '.$mid.', is it running?');
+    }
     if ($showtext) $monitor->TriggerShowtext($showtext);
     ZM\Info("Trigger action:'$action' cause:'$cause'");
 
@@ -38,11 +48,14 @@ if (canEdit('Monitors')) {
     #}
   } else if ($action == 'off') {
     $last_event_id = $monitor->GetLastEventId();
-    $monitor->TriggerEventOff();
+    if ($monitor->TriggerEventOff() === false) {
+      ajaxError('Unable to trigger monitor '.$mid.', is it running?');
+    }
     if ($showtext) $monitor->TriggerShowtext($showtext);
     ZM\Info("Trigger '$action'");
     # Wait til it's finished
-    while ($monitor->InAlarm() && ($last_event_id == $monitor->GetLastEventId())) {
+    $wait_until = time() + 10;
+    while ($monitor->InAlarm() && ($last_event_id == $monitor->GetLastEventId()) && time() < $wait_until) {
       # Tenth of a second
       usleep(100000);
     }

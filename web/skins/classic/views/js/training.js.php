@@ -23,7 +23,7 @@ const trainingTranslations = <?php
     'TrainingSelectBoxFirst', 'TrainingTotalClasses', 'TrainingTotalImages',
     'TrainingUnsaved', 'AcceptDetection', 'ConfirmDeleteTrainingData',
     'DrawBox', 'Frame', 'GoToFrame', 'ImagesPerClass', 'NewLabel',
-    'NoDetectionData', 'SelectLabel',
+    'NoDetectionData', 'SelectLabel', 'TrainingSavedLoaded', 'TrainingEditAnnotation',
   ];
   $t = [];
   foreach ($translationKeys as $k) $t[$k] = translate($k);
@@ -84,8 +84,8 @@ $j(document).ready(function initTrainingView() {
     }
   });
 
-  // Frame navigation
-  $j('#annotationFrameSelector').on('click', '[data-frame]', function() {
+  // Frame navigation. The Alarm and Snapshot buttons are bound by the editor itself.
+  $j('#annotationFrameSelector').on('click', '[data-frame]:not(.frame-btn)', function() {
     const frame = $j(this).data('frame');
     const current = parseInt(annotationEditor.currentFrameId);
     const total = annotationEditor.totalFrames;
@@ -118,12 +118,6 @@ $j(document).ready(function initTrainingView() {
     const fid = $j('#annotationFrameInput').val();
     if (fid && parseInt(fid) > 0) {
       annotationEditor.switchFrame(fid);
-    }
-  });
-
-  $j('#annotationFrameInput').on('keydown', function(e) {
-    if (e.key === 'Enter') {
-      $j('#annotationGoToFrame').click();
     }
   });
 

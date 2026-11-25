@@ -43,6 +43,31 @@ function getFilterSelection($name) {
   return $selectedValue;
 }
 
+// The Name and Source filters take what was typed, so they must come back as a
+// string. A cookie that happens to be valid JSON ("[12]", "123", "true") is
+// decoded by getFilterSelection() into an array, int or bool, and preg_match()
+// on an array is a TypeError that breaks every view built on the filter bar.
+function getFilterText($name) {
+  $value = getFilterSelection($name);
+  if (is_string($value)) return $value;
+  $cookieName = 'zmFilter_'.$name;
+  if (!isset($_REQUEST[$name]) and isset($_COOKIE[$cookieName]) and is_string($_COOKIE[$cookieName]))
+    return $_COOKIE[$cookieName];
+  return '';
+}
+
+// The Name filter takes plain text or a regular expression, optionally in
+// /pattern/flags form. strpos() cannot tell a leading '/' from none, so a
+// delimited pattern was wrapped a second time, and text that is not a valid
+// regular expression (an unclosed bracket, say) never fell back to a literal
+// match because PHP 8 no longer sets $php_errormsg.
+function monitorNameRegexp($filter) {
+  $regexp = preg_match('/^\/.+\/[a-z]*$/i', $filter) ? $filter : '/'.str_replace('/', '\/', $filter).'/i';
+  if (@preg_match($regexp, '') === false)
+    $regexp = '/'.preg_quote($filter, '/').'/i';
+  return $regexp;
+}
+
 // Deleted monitors are hidden from every monitor listing, which leaves no way
 // to find one again after it has been deleted. 'Deleted' is therefore offered
 // as a pseudo status in the Status filter: on its own it lists only the deleted
@@ -102,8 +127,8 @@ function getFilteredMonitorIds() {
   $statusFilter = getFilterSelection('Status');
   $conditions[] = monitorStatusFilterSql($statusFilter, $values, "COALESCE(`Status`, 'NotRunning')");
 
-  $monitorNameFilter = getFilterSelection('MonitorName');
-  $sourceFilter = getFilterSelection('Source');
+  $monitorNameFilter = getFilterText('MonitorName');
+  $sourceFilter = getFilterText('Source');
 
   if (count($conditions) == 1 and !$statusFilter and !$monitorNameFilter and !$sourceFilter)
     return null; // no attribute filter active -> all monitors
@@ -117,29 +142,23 @@ function getFilteredMonitorIds() {
       continue; // never widen visibility beyond what the user may view
 
     if ($monitorNameFilter) {
-      $regexp = $monitorNameFilter;
-      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
-      if (@preg_match($regexp, '') === false) $regexp = '/'.preg_quote($monitorNameFilter, '/').'/i';
-      if (!@preg_match($regexp, $row['Name'])) continue;
+      if (!preg_match(monitorNameRegexp($monitorNameFilter), $row['Name'])) continue;
     }
     if ($sourceFilter) {
       $Monitor = new ZM\Monitor($row);
-      $regexp = $sourceFilter;
-      if (!preg_match("/^\/.+\/[a-z]*$/i", $regexp)) $regexp = '/'.$regexp.'/i';
-      if (@preg_match($regexp, '') !== false) {
-        if (!preg_match($regexp, $Monitor->Source()) and !preg_match($regexp, $Monitor->Path()))
-          continue;
-      }
+      $regexp = monitorNameRegexp($sourceFilter);
+      if (!preg_match($regexp, $Monitor->Source()) and !preg_match($regexp, $Monitor->Path()))
+        continue;
     }
     $ids[] = $row['Id'];
   }
   return $ids;
 }
 
-function addFilterSelect($name, $options, $selectedValue=null) {
+function addFilterSelect($name, $options, $selectedValue=null, $label=null) {
   if ($selectedValue == null) $selectedValue = getFilterSelection($name);
   
-  $html = '<span class="term '.$name.'Filter"><label>'.translate($name).'</label>';
+  $html = '<span class="term '.$name.'Filter"><label>'.translate($label ? $label : $name).'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= htmlSelect($name.'[]', $options,
     $selectedValue,
@@ -204,7 +223,7 @@ function buildMonitorsFilters() {
 
     if (count($GroupsById)) {
       $group_id = getFilterSelection('GroupId');
-      $html .= addFilterSelect('GroupId', ZM\Group::get_dropdown_options(), $group_id);
+      $html .= addFilterSelect('GroupId', ZM\Group::get_dropdown_options(), $group_id, 'Group');
       $groupSql = ZM\Group::get_group_sql($group_id);
     }
   }
@@ -243,11 +262,12 @@ function buildMonitorsFilters() {
 
   if (count($user->unviewableMonitorIds()) ) {
     $ids = $user->viewableMonitorIds();
-    $conditions[] = 'M.Id IN ('.implode(',',array_map(function(){return '?';}, $ids)).')';
+    // IN () is a syntax error, so a user who can view no monitor matches nothing
+    $conditions[] = 'M.Id IN ('.(count($ids) ? implode(',',array_map(function(){return '?';}, $ids)) : '0').')';
     $values = array_merge($values, $ids);
   }
 
-  $monitorNameValue = getFilterSelection('MonitorName');
+  $monitorNameValue = getFilterText('MonitorName');
   $html .= '<span class="term MonitorNameFilter"><label>'.translate('Name').'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= '<input type="text" name="MonitorName" value="'.($monitorNameValue ? validHtmlStr($monitorNameValue) : '').'" placeholder="'.translate('text or regular expression').'" data-on-input="monitorFilterOnChange"/></span>';
@@ -311,7 +331,7 @@ function buildMonitorsFilters() {
   $html .= '</span>';
   $html .= '</span>';
 
-  $sourceValue = getFilterSelection('Source');
+  $sourceValue = getFilterText('Source');
   $html .= '<span class="term SourceFilter"><label>'.translate('Source').'</label>';
   $html .= '<span class="term-value-wrapper">';
   $html .= '<input type="text" name="Source" value="'.($sourceValue ? validHtmlStr($sourceValue) : '').'" placeholder="'.translate('text or regular expression').'"/>';
@@ -339,6 +359,9 @@ function buildMonitorsFilters() {
   $displayMonitors = array();
   $monitors_dropdown = array();
 
+  $monitorNameFilter = getFilterText('MonitorName');
+  $sourceFilter = getFilterText('Source');
+
   # Check to see if the selected monitor_id is in the results.
   if ( count($selected_monitor_ids) ) {
     $found_selected_monitor = false;
@@ -347,6 +370,24 @@ function buildMonitorsFilters() {
       if ( !visibleMonitor($monitors[$i]['Id']) ) {
         continue;
       }
+
+      if ( $monitorNameFilter ) {
+        $Monitor = new ZM\Monitor($monitors[$i]);
+        if ( !preg_match(monitorNameRegexp($monitorNameFilter), $Monitor->Name()) ) {
+          continue;
+        }
+      }
+
+      if ( $sourceFilter ) {
+        $Monitor = new ZM\Monitor($monitors[$i]);
+        $regexp = monitorNameRegexp($sourceFilter);
+        if ( !preg_match($regexp, $Monitor->Source()) ) {
+          if ( !preg_match($regexp, $Monitor->Path()) ) {
+            continue;
+          }
+        }
+      }
+
       if ( in_array($monitors[$i]['Id'], $selected_monitor_ids) ) {
         $found_selected_monitor = true;
       }
@@ -362,44 +403,21 @@ function buildMonitorsFilters() {
       continue;
     }
 
-    $monitorNameFilter = getFilterSelection('MonitorName');
     if ( $monitorNameFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
-      ini_set('track_errors', 'on');
-      $php_errormsg = '';
-      $regexp = $monitorNameFilter;
-      if (!strpos($regexp, '/')) $regexp = '/'.$regexp.'/i';
-
-      @preg_match($regexp, '');
-      if ( $php_errormsg ) {
-        $regexp = '/'.preg_quote($regexp,'/').'/i';
-      }
-
-      if ( !@preg_match($regexp, $Monitor->Name()) ) {
+      if ( !preg_match(monitorNameRegexp($monitorNameFilter), $Monitor->Name()) ) {
         continue;
       }
     }
 
-    $sourceFilter = getFilterSelection('Source');
     if ( $sourceFilter ) {
       $Monitor = new ZM\Monitor($monitors[$i]);
-      ini_set('track_errors', 'on');
-      $php_errormsg = '';
-      $regexp = $sourceFilter;
-
-      if (!preg_match("/^\/.+\/[a-z]*$/i",$regexp))
-        $regexp = '/'.$regexp.'/i';
-
-      @preg_match($regexp, '');
-      if ( $php_errormsg ) {
-        ZM\Warning($sourceFilter.' is not a valid search string');
-      } else {
-        ZM\Debug("Using $regexp for source");
-        if ( !preg_match($regexp, $Monitor->Source()) ) {
-          ZM\Debug("Source didn't match $regexp ".$Monitor->Source());
-          if ( !preg_match($regexp, $Monitor->Path()) ) {
-            continue;
-          }
+      $regexp = monitorNameRegexp($sourceFilter);
+      ZM\Debug("Using $regexp for source");
+      if ( !preg_match($regexp, $Monitor->Source()) ) {
+        ZM\Debug("Source didn't match $regexp ".$Monitor->Source());
+        if ( !preg_match($regexp, $Monitor->Path()) ) {
+          continue;
         }
       }
     }

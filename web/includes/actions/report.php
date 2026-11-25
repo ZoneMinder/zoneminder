@@ -27,6 +27,19 @@ if (!empty($_REQUEST['id'])) {
 global $redirect;
 global $error_message;
 
+if (!empty($_REQUEST['id']) and !$report->Id()) {
+  // Saving a report that failed to load would insert a new row
+  ZM\Warning('Report '.$_REQUEST['id'].' not found');
+  $redirect = '?view=reports';
+  return;
+}
+
+if (!$report->Id() and !canEdit('Events')) {
+  ZM\Warning('You do not have permission to create a report');
+  $redirect = '?view=reports';
+  return;
+}
+
 if ($report->Id() and !$report->canEdit()) {
   ZM\Warning('You do not have permission to edit report '.$report->Id());
   $redirect = '?view=reports';
@@ -34,7 +47,15 @@ if ($report->Id() and !$report->canEdit()) {
 }
 
 if ($action == 'save') {
-  $changes = $report->changes($_REQUEST['Report']);
+  $posted = isset($_REQUEST['Report']) && is_array($_REQUEST['Report']) ? $_REQUEST['Report'] : array();
+  if (isset($posted['Name'])) {
+    $posted['Name'] = is_string($posted['Name']) ? trim($posted['Name']) : '';
+    if ($posted['Name'] === '') {
+      $error_message .= 'Report Name is required<br/>';
+      return;
+    }
+  }
+  $changes = $report->changes($posted);
   if (!$report->Id()) {
     $changes['CreatedBy'] = $user->Id();
   }
@@ -47,8 +68,11 @@ if ($action == 'save') {
     }
   }
 } else if ($action == 'delete') {
-  $report->delete();
-  $redirect = '?view=reports';
+  if (!$report->delete()) {
+    $error_message .= 'Error deleting report: '.htmlspecialchars(dbLastError()).'<br/>';
+  } else {
+    $redirect = '?view=reports';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Report");
 }

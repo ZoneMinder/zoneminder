@@ -60,7 +60,6 @@ use ZoneMinder::Config qw(:all);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Database qw(:all);
 
-use POSIX;
 use Fcntl qw(:flock O_WRONLY O_CREAT);
 
 # The pid recorded in a lock file, or undef when it is empty or unreadable.
@@ -281,7 +280,6 @@ sub createEventPath {
   return $eventPath;
 }
 
-use Data::Dumper;
 
 our $_setFileOwner = undef;
 our ( $_ownerUid, $_ownerGid );
@@ -544,9 +542,11 @@ our $hasJSONAny = 0;
 
 sub _testJSON {
   return if $testedJSON;
+  # import() returns nothing, so count the load not dying
   my $result = eval {
     require JSON::MaybeXS;
     JSON::MaybeXS->import();
+    1;
   };
   $testedJSON = 1;
   $hasJSONAny = 1 if $result;
@@ -567,8 +567,9 @@ sub jsonEncode {
 
   _testJSON();
   if ($hasJSONAny) {
+    # ascii keeps the text valid whether it is sent as bytes or stored as characters
     my $string = eval {
-      JSON::MaybeXS->encode_json($value);
+      JSON::MaybeXS->new(allow_nonref => 1, ascii => 1)->encode($value);
     };
     Error('Unable to encode object to JSON: '.$@) unless $string;
     return $string;
@@ -605,7 +606,7 @@ sub jsonDecode {
 
   _testJSON();
   if ( $hasJSONAny ) {
-    my $object = eval { JSON::MaybeXS->decode_json($value) };
+    my $object = eval { JSON::MaybeXS->new(allow_nonref => 1)->decode($value) };
     Fatal("Unable to decode JSON string '$value': $@") unless $object;
     return $object;
   }
@@ -671,7 +672,7 @@ sub parseNameEqualsValueToHash {
   foreach my $line ( split ( /\r?\n/, $_[0] ) ) {
     next if ! $line;
     next if ! ( $line =~ /=/ );
-    my ($name, $value ) = split('=', $line);
+    my ($name, $value ) = split('=', $line, 2);
     $value =~ s/^'//;
     $value =~ s/'$//;
     $settings{$name} = defined $value ? $value : '';
@@ -743,9 +744,9 @@ sub systemStatus {
   my $command = $Config{ZM_PATH_BIN}.'/zmdc.pl check';
   my $output = qx($command);
   my $status = $? >> 8;
+  $output = '' if !defined($output);
+  chomp($output);
   if ( $status || logDebugging() ) {
-    $output = '' if !defined($output);
-    chomp($output);
     Debug("Command: $command Output: $output");
   }
   return $output;
@@ -767,7 +768,7 @@ sub systemStatus {
 # list is in force: a program being on the list says nothing about what else
 # runs alongside it if the command can chain. Redirection is deliberately not
 # here; it starts no program.
-our @COMMAND_CHAINING = (';', '|', '&', '`', '$(');
+our @COMMAND_CHAINING = (';', '|', '&', '`', '$(', '<(', '>(');
 
 # The program a command invokes: its first word, with any surrounding quotes
 # removed. undef when there is not one. Only the program is matched, so
@@ -808,6 +809,8 @@ sub commandIsAllowed {
   foreach my $chain (@COMMAND_CHAINING) {
     return 0 if index($command, $chain) >= 0;
   }
+  # A newline separates commands in a shell just as a semicolon does.
+  return 0 if $command =~ /[\r\n]/;
 
   my $program = commandProgram($command);
   return 0 if !defined $program;

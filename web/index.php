@@ -72,12 +72,10 @@ if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
   $skin = 'classic';
 }
 
-if (!is_dir('skins/'.$skin) ) {
-  $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
-  if (!in_array($skin, $skins)) {
-    ZM\Error("Invalid skin '$skin' setting to ".$skins[0]);
-    $skin = $skins[0];
-  }
+$skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
+if (!is_string($skin) or !in_array($skin, $skins, true)) {
+  ZM\Error('Invalid skin '.(is_string($skin) ? "'$skin'" : '(not a string)').' setting to '.$skins[0]);
+  $skin = $skins[0];
 }
 global $css;
 if (defined('ZM_FORCE_CSS_DEFAULT')) {
@@ -91,7 +89,7 @@ if (defined('ZM_FORCE_CSS_DEFAULT')) {
 } else {
   $css = 'classic';
 }
-if (!is_dir("skins/$skin/css/$css")) {
+if (!is_string($css) or !preg_match('/^[\w.-]+$/', $css) or $css === '.' or $css === '..' or !is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
   if (count($css_skins)) {
     if (!in_array($css, $css_skins)) {
@@ -116,7 +114,7 @@ $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 # Cookie overrides session
 if (isset($_COOKIE['zmNavbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+  if (is_string($_COOKIE['zmNavbar_type']) and isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
     $navbar_type = $_COOKIE['zmNavbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
@@ -124,7 +122,7 @@ if (isset($_COOKIE['zmNavbar_type'])) {
 }
 
 if (isset($_REQUEST['navbar_type'])) {
-  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+  if (is_string($_REQUEST['navbar_type']) and isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
@@ -288,6 +286,11 @@ if ( $action and $view and !$request ) {
   }
 }
 if ($error_message) ZM\Warning($error_message);
+
+# Check if already authenticated (e.g. Apache REMOTE_USER)
+if (ZM_OPT_USE_AUTH and ($view == 'login') and ($user instanceof ZM\User)) {
+  $redirect = '?view='.getHomeView();
+}
 
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);

@@ -98,6 +98,10 @@ Open up a browser and go to ``http://hostname_or_ip/zm`` to open the ZoneMinder 
 
 Ubuntu 18.04 (Bionic)
 ---------------------
+
+.. note::
+   ZoneMinder requires PHP 8.0 or newer. Ubuntu 18.04 ships PHP 7.2, so current ZoneMinder releases do not run on it. These instructions are kept for older ZoneMinder releases only.
+
 These instructions are for a brand new ubuntu 18.04 system which does not have ZM
 installed.
 

@@ -51,7 +51,7 @@ void MQTT::on_connect(int rc) {
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
-  Debug(1, "MQTT: Have message %s: %s", message->topic, static_cast<const char *>(message->payload));
+  Debug(1, "MQTT: Have message %s: %.*s", message->topic, message->payloadlen, static_cast<const char *>(message->payload));
 }
 
 void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {

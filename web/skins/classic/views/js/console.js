@@ -220,7 +220,8 @@ function processRows(rows) {
     } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
-    } else {
+    } else if (row.Capturing != 'Ondemand') {
+      // An on-demand monitor only captures while someone is watching, so no fps is normal
       if (row.CaptureFPS == '0.00') {
         source_class = 'errorText';
         source_class_reason = 'No capture FPS';
@@ -269,7 +270,7 @@ function processRows(rows) {
     var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
     now -= tz_difference;
 
-    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < now - fps_report_seconds * 1000)) {
+    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
       functionHtml = 'Offline<br/>';
     } else {
       functionHtml = '';
@@ -337,19 +338,14 @@ function processRows(rows) {
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = document.forms['monitorFiltersForm'];
-
-  if (selections && selections.length > 0) {
-    form.editBtn.disabled = false;
-    form.deleteBtn.disabled = false;
-    form.selectBtn.disabled = false;
-    form.cloneBtn.disabled = false;
-  } else {
-    form.editBtn.disabled = true;
-    form.deleteBtn.disabled = true;
-    form.selectBtn.disabled = true;
-    form.cloneBtn.disabled = true;
-  }
+  const form = document.forms['monitorForm'];
+  if (!form) return;
+  const any = selections && selections.length > 0;
+  form.editBtn.disabled = !any;
+  form.deleteBtn.disabled = !any;
+  form.selectBtn.disabled = !any;
+  // Clone copies a single monitor, so it needs exactly one selected row.
+  form.cloneBtn.disabled = !(selections && selections.length == 1);
 }
 
 function scanNetwork(element) {
@@ -488,23 +484,7 @@ function initPage() {
   }
 
   // Enable or disable buttons based on current selection and user rights
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
-      function() {
-        const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorForm'];
-        if (selections.length > 0) {
-          form.editBtn.disabled = false;
-          form.deleteBtn.disabled = false;
-          form.selectBtn.disabled = false;
-          form.cloneBtn.disabled = false;
-        } else {
-          form.editBtn.disabled = true;
-          form.deleteBtn.disabled = true;
-          form.selectBtn.disabled = true;
-          form.cloneBtn.disabled = true;
-        }
-      }
-  );
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table check-some.bs.table uncheck-some.bs.table load-success.bs.table', setButtonStates);
 
   // Setup automatic refresh with table refresh instead of page reload
   if (consoleRefreshTimeout > 0) {
@@ -613,6 +593,9 @@ function sortMonitors(button) {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
+  // The server assigns ascending Sequence in posted order, so reverse when sorted desc.
+  var options = table.bootstrapTable('getOptions');
+  if (options.sortName == 'Sequence' && options.sortOrder == 'desc') monitor_ids.reverse();
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
   $j.post(thisUrl + '?request=console', data)

@@ -43,6 +43,8 @@ $stubdir = sys_get_temp_dir().'/zm_filter_canedit_stubs_'.getmypid();
 foreach (array('database.php', 'FilterTerm.php', 'Monitor.php') as $stub) {
   file_put_contents($stubdir.'/'.$stub, "<?php\n");
 }
+// canEdit() asks Monitor for the monitors the user may not edit; none here.
+file_put_contents($stubdir.'/Monitor.php', "<?php\nnamespace ZM;\nclass Monitor { static function find() { return array(); } }\n");
 // Stub dir first so its empty database.php/FilterTerm.php/Monitor.php win, then
 // the real web/includes for Object.php and Filter.php.
 set_include_path($stubdir.PATH_SEPARATOR.__DIR__.'/../../web/includes'.PATH_SEPARATOR.get_include_path());

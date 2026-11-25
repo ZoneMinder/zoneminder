@@ -40,7 +40,10 @@ class ZonesController extends AppController {
   private function requestMonitorId() {
     $data = $this->request->data;
     if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
-    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
+    if (!isset($data['MonitorId'])) return null;
+    // An array or object here would be checked as a made-up monitor and then saved as the zone's MonitorId.
+    if (!is_scalar($data['MonitorId'])) throw new BadRequestException(__('MonitorId must be a number'));
+    return $data['MonitorId'];
   }
 
   // Find all zones which belong to a MonitorId
@@ -94,10 +97,16 @@ class ZonesController extends AppController {
     global $user;
     # null means no restriction. An empty list means the user may see no monitor, so no zone.
     $allowedMonitors = ($user and $user->unviewableMonitorIds()) ? $user->viewableMonitorIds() : null;
+    $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Zone->schema()));
+    }
     $options = array();
     if ($allowedMonitors !== null) {
-      $options['conditions'] = array('Zone.MonitorId' => $allowedMonitors);
+      $conditions[] = array('Zone.MonitorId' => $allowedMonitors);
     }
+    if (count($conditions)) $options['conditions'] = $conditions;
     $zones = $this->Zone->find('all', $options);
     $this->set(array(
       'zones' => $zones,
@@ -138,11 +147,12 @@ class ZonesController extends AppController {
     if ( $zone ) {
       require_once __DIR__ .'/../../../includes/Monitor.php';
       $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
-      $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $message = 'Saved';
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
       $message = 'Error: ';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if ( !$this->Zone->validates() ) {
         $message = $this->Zone->validationErrors;
@@ -178,13 +188,21 @@ class ZonesController extends AppController {
         return;
       }
       $this->pinRequestId($this->Zone, $id);
-      $this->requireMonitorEdit($this->zoneMonitorId($id));
+      $oldMonitorId = $this->zoneMonitorId($id);
+      $this->requireMonitorEdit($oldMonitorId);
       $monitorId = $this->requestMonitorId();
       if ($monitorId !== null) $this->requireMonitorEdit($monitorId);
       if ( $this->Zone->save($this->request->data) ) {
         $message = 'The zone has been saved.';
+        $monitorIds = array($oldMonitorId);
+        if ($monitorId !== null and $monitorId != $oldMonitorId) $monitorIds[] = $monitorId;
+        foreach ($monitorIds as $reloadId) {
+          $monitor = new ZM\Monitor($reloadId);
+          if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
+        }
       } else {
-        $message = 'Error ' . print_r($this->Zone->invalidFields());
+        $this->response->statusCode(400);
+        $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
     }
     $this->set(array(
@@ -212,11 +230,18 @@ class ZonesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
-    $this->requireMonitorEdit($this->zoneMonitorId($id));
+    $monitorId = $this->zoneMonitorId($id);
+    $this->requireMonitorEdit($monitorId);
     if ( $this->Zone->delete() ) {
-      return $this->flash(__('The zone has been deleted.'), array('action' => 'index'));
+      $monitor = new ZM\Monitor($monitorId);
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The zone could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The zone could not be deleted.'));
     }
   }
 } // end class

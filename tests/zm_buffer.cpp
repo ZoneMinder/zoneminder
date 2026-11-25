@@ -98,3 +98,25 @@ TEST_CASE("RemoteCameraHttp::ParseContentLength bounds the announced length", "[
   // A huge configured frame still yields a length an int can hold.
   REQUIRE(RemoteCameraHttp::ParseContentLength("2147483647", 4000000000ull) < 0);
 }
+
+TEST_CASE("RemoteCameraHttp::ParseBoundary strips quotes and leading dashes", "[RemoteCameraHttp]") {
+  REQUIRE(RemoteCameraHttp::ParseBoundary("frame") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("\"frame\"") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("--frame") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("\"--frame\"") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("frame\r\n") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("\"frame\"; charset=x") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("frame; foo=bar") == "frame");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("") == "");
+  REQUIRE(RemoteCameraHttp::ParseBoundary("\"") == "");
+}
+
+TEST_CASE("RemoteCameraHttp::IsBoundaryLine accepts any run of dashes", "[RemoteCameraHttp]") {
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("--frame\r\n", "frame", 5));
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("----frame\r\n", "frame", 5));
+  REQUIRE(RemoteCameraHttp::IsBoundaryLine("--FRAME\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("-frame\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("frame\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("--other\r\n", "frame", 5));
+  REQUIRE_FALSE(RemoteCameraHttp::IsBoundaryLine("Content-Type: image/jpeg\r\n", "frame", 5));
+}

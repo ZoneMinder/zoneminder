@@ -67,6 +67,7 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
     zmDbRow dbrow;
     if (!dbrow.fetch(sql)) {
       Error("Unable to load storage area for id %d: %s", id, mysql_error(&dbconn));
+      id = 0;
     } else {
       unsigned int index = 0;
       id = atoi(dbrow[index++]);

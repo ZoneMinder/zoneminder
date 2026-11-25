@@ -18,3 +18,11 @@
   stroke: #0000FF;
   fill: #0000FF;
 }
+.Inactive {
+  stroke: #7f8c8d;
+  fill: #7f8c8d;
+}
+.Privacy {
+  stroke: #222222;
+  fill: #222222;
+}

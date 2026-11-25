@@ -86,6 +86,11 @@ if (!visibleMonitor($mid)) {
 }
 
 $monitor = new ZM\Monitor($mid);
+if ($mid and !$monitor->Id()) {
+  // A stale link to a monitor that does not exist
+  $view = 'error';
+  return;
+}
 
 # cycle is wether to do the countdown/move to next monitor bit.
 # showCycle is whether to show the cycle controls.
@@ -104,6 +109,9 @@ if (!$cycle and isset($_COOKIE['zmCycleShow'])) {
 #Whether to show the controls button
 $hasPtzControls = false;
 require_once('includes/MonitorAction.php');
+# The toggle must also work for a monitor that has only manual actions
+$monitorHasActions = (ZM_OPT_CONTROL && canView('Control') &&
+  count(ZM\MonitorAction::find(array('MonitorId'=>$monitor->Id(), 'TriggerOn'=>'Manual', 'Enabled'=>1))));
 foreach ($monitors as $m) {
   if (( ZM_OPT_CONTROL && $m->Controllable() && canView('Control') && $m->Type() != 'WebSite' )) {
     //If there is control for at least one camera, then we display the block.
@@ -130,6 +138,15 @@ if ($hasPtzControls) {
   }
 }
 
+$showZones = false;
+if (isset($_REQUEST['showZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmWatchShowZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'] = $_COOKIE['zmWatchShowZones'] == 1;
+} else if (isset($_SESSION['zmWatchShowZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'];
+}
+
 $options = array();
 if (0) {
 if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
@@ -141,6 +158,10 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 }
 }
 $options['mode'] = 'single';
+
+# Always emit the zone overlays so the toggle can show/hide them without a page
+# reload; #monitor.hide-zones keeps them hidden until asked for.
+$options['zones'] = canView('System');
 
 if (!empty($_REQUEST['maxfps']) and validNum($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validNum($_REQUEST['maxfps']);
@@ -166,7 +187,7 @@ if (isset($_REQUEST['scale'])) {
 }
 */
 
-if (isset($_REQUEST['scale'])) {
+if (isset($_REQUEST['scale']) and is_string($_REQUEST['scale'])) {
   $scale = $_REQUEST['scale'];
 } else if ( isset($_COOKIE['zmWatchScaleNew'.$mid]) ) {
   $scale = $_COOKIE['zmWatchScaleNew'.$mid];
@@ -265,12 +286,17 @@ echo getNavBarHTML() ?>
             <span class="material-icons md-18">switch_video</span>
         </button>
 -->
+<?php if (canView('System')) { ?>
+        <button type="button" id="toggleZonesButton" class="btn btn-<?php echo $showZones ? 'normal' : 'secondary' ?>" title="<?php echo translate(($showZones ? 'Hide' : 'Show').' Zones') ?>">
+            <span class="material-icons md-18"><?php echo $showZones ? 'layers_clear' : 'layers' ?></span>
+        </button>
+<?php } ?>
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
         <button type="button" id="ptzToggle" class="btn <?php echo $showPtzControls ? 'btn-primary':'btn-secondary'?>"
 <?php
-    if ($monitor->Controllable() && canView('Control') && ($monitor->Type() != 'WebSite')) {
+    if (($monitor->Controllable() || $monitorHasActions) && canView('Control') && ($monitor->Type() != 'WebSite')) {
       echo 'title="'.translate('Toggle PTZ Controls').'"';
     } else {
       echo 'disabled="disabled" title="'.translate('PTZ Not available').'"';
@@ -328,7 +354,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               $players['rtsp2web_hls'] = 'RTSP2Web HLS';
               $players['janus'] = 'Janus';
               $player = validHtmlStr($monitor->DefaultPlayer());
-              if (isset($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
+              if (isset($_REQUEST['player']) and is_string($_REQUEST['player']) and isset($players[$_REQUEST['player']])) {
                 $player = validHtmlStr($_REQUEST['player']);
               } else if (isset($_COOKIE['zmWatchPlayer']) and isset($players[$_COOKIE['zmWatchPlayer']])) {
                 $player = validHtmlStr($_COOKIE['zmWatchPlayer']);
@@ -346,7 +372,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], ['class'=>'ch
               'VideoAudioVisualization'=>translate('Video and audio visualization')
             ];
             $whatDisplaySelected = 'Default'; // Default
-            if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+            if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
             } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
               $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
@@ -418,7 +444,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
       $ptzControls = ptzControls($m);
       $monitorsExtraData[$m->Id()]['ptzControls'] = $ptzControls;
     }
-    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.$m->Name().'</a></li>';
+    echo '<li id="nav-item-cycle'.$m->Id().'" class="nav-item"><a id="nav-link'.$m->Id().'" class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" data-monIdx='.$dataMonIdx++.' href="#">'.validHtmlStr($m->Name()).'</a></li>';
   }
   if ($monitorJanusUsed) {
 ?>
@@ -430,7 +456,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="monitor" class="monitor hidden-shift"
+          <div id="monitor" class="monitor hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>"
 >
 <?php 
 echo $monitor->getStreamHTML($options);
@@ -502,10 +528,11 @@ if ( $hasPtzControls ) {
 
 <!-- START table Events -->
 <?php
-if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
+// Always rendered so that moving from a WebSite monitor to a camera has a table to show
+if ( canView('Events') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
-      <div id="events" class="row justify-content-center table-responsive-sm">
+      <div id="events" class="row justify-content-center table-responsive-sm"<?php echo ($monitor->Type() == 'WebSite') ? ' style="display:none;"' : '' ?>>
         <table 
           id="eventList"
           data-locale="<?php echo i18n() ?>"
@@ -550,7 +577,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
         </table>
       </div>
 <?php
-} //end if ( canView('Events') && ($monitor->Type() != 'WebSite') )
+} //end if ( canView('Events') )
 ?>
 <!-- END table Events -->
 

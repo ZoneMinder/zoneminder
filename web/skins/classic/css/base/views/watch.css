@@ -62,6 +62,18 @@
   width: 100%;
 }
 
+/* The overlay covers the whole image, so it must not swallow clicks meant for
+   the stream underneath. */
+.monitor svg.zones {
+  pointer-events: none;
+}
+
+/* Zone overlays are always rendered so toggleZones can show them without a
+   page reload. This hides them until the Show Zones button is pressed. */
+#monitor.hide-zones svg.zones {
+  display: none;
+}
+
 .monitorStream {
   text-align: center;
   margin: 0 auto;

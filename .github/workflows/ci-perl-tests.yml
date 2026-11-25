@@ -1,0 +1,75 @@
+name: CI Perl Tests
+
+# Runs tests/perl and scripts/ZoneMinder/t. cmake is only configured, not
+# built: that is the step that generates ZoneMinder::Base, ::Config,
+# ::ConfigData and ::Memory from their .pm.in templates.
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  perl-tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config \
+            libavcodec-dev libavformat-dev libavutil-dev libavdevice-dev \
+            libswresample-dev libswscale-dev \
+            default-libmysqlclient-dev \
+            libbz2-dev libcurl4-openssl-dev libjpeg-dev libturbojpeg0-dev \
+            libpcre2-dev libpolkit-gobject-1-dev libssl-dev zlib1g-dev \
+            libv4l-dev libvncserver-dev \
+            libmosquitto-dev libmosquittopp-dev \
+            gsoap libgsoap-dev \
+            libarchive-zip-perl libclass-std-fast-perl libcrypt-eksblowfish-perl \
+            libcryptx-perl libdata-dump-perl libdata-uuid-perl libdate-manip-perl \
+            libdatetime-perl libdbi-perl libdbd-mysql-perl libdevice-serialport-perl \
+            libdigest-sha-perl libfile-slurp-perl libimage-info-perl \
+            libio-interface-perl libio-socket-multicast-perl libio-socket-ssl-perl \
+            libjson-maybexs-perl libmime-lite-perl libmime-tools-perl \
+            libmodule-load-conditional-perl libnet-sftp-foreign-perl \
+            libnumber-bytes-human-perl libphp-serialization-perl libsoap-wsdl-perl \
+            libsys-cpu-perl libsys-meminfo-perl libsys-mmap-perl \
+            liburi-encode-perl liburi-perl libwww-perl libxml-libxml-perl
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_MAN=0
+
+      - name: Run the Perl tests
+        run: |
+          # PERL5LIB rather than -I, so the scripts and modules a test starts
+          # as a subprocess see the generated modules too.
+          export PERL5LIB="$PWD/build/scripts/ZoneMinder/lib:$PWD/scripts/ZoneMinder/lib"
+          failed=0
+          for t in tests/perl/*.pl scripts/ZoneMinder/t/*.t; do
+            # The step runs under bash -e, so take the exit code without letting
+            # a failing test end the loop.
+            rc=0; out=$(timeout 120 perl "$t" 2>&1) || rc=$?
+            if [ $rc -eq 0 ]; then
+              echo "--- $t: ok"
+            elif echo "$out" | grep -q "Can't connect to local MySQL server\|ZoneMinder configuration file found but is not readable"; then
+              # The generated ZoneMinder::Config reads zm.conf and the Config
+              # table as it loads, so these need an installed database.
+              echo "--- $t: skipped, needs a configured install and database"
+            else
+              echo "--- $t: FAILED (exit $rc)"
+              echo "$out"
+              failed=1
+            fi
+          done
+          exit $failed

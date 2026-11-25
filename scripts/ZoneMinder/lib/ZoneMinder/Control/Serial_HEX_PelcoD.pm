@@ -45,6 +45,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # Pelco-D over HTTP_SERIAL_HEX Control Protocol
@@ -82,18 +86,25 @@ sub open {
   }
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 
-  my ( $username, $password, $host ) = ( $uri->authority() =~ /^([^:]+):([^@]*)@(.+)$/ );
+  my ( $username, $password );
+  if ( my $userinfo = $uri->userinfo() ) {
+    ( $username, $password ) = split( /:/, $userinfo, 2 );
+  }
+  my $host = $uri->host();
   Debug("Have username: $username host: $host");
   
   $uri->userinfo(undef);
 
   #  my $realm = $self->{Monitor}->{ControlDevice};
-  ($channel, $camera, $realm) = split /:/, $self->{Monitor}->{ControlDevice};
+  ($channel, $camera, $realm) = split /:/, ($self->{Monitor}->{ControlDevice} // '');
+  $channel //= 1;
+  $camera //= 1;
+  $realm //= '';
 
   $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
   my $url = 'cgi-bin/cmd/encoder?PTZ_VENDOR';
@@ -425,14 +436,14 @@ sub irisRelClose {
 sub irisAuto {
   my $self = shift;
   Debug('Iris Auto');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
   $self->sendCmd( \@cmd );
 }
 
 sub irisMan {
   my $self = shift;
   Debug('Iris Manual');
-  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x00 );
+  my @cmd = ( SYNC, $camera, 0x00, 0x2D, 0x00, 0x01 );
   $self->sendCmd( \@cmd );
 }
 

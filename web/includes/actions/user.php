@@ -26,6 +26,14 @@ if ($action == 'Save') {
   $dbUser = new ZM\User($uid);
 
   if (canEdit('System')) {
+    if (!$uid or isset($_REQUEST['user']['Username'])) {
+      $username = isset($_REQUEST['user']['Username']) ? preg_replace('/[^\w\.@ ]/', '', trim($_REQUEST['user']['Username'])) : '';
+      if ($username === '') {
+        $error_message = 'A Username is required<br/>';
+        unset($_REQUEST['redirect']);
+        return;
+      }
+    }
     # Need to check for uniqueness of Username
     $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username']));
     if ($user_with_my_username and 
@@ -47,6 +55,11 @@ if ($action == 'Save') {
         return;
       }
       $_REQUEST['user']['Password'] = password_hash($_REQUEST['user']['Password'], PASSWORD_BCRYPT);
+    } else if (!$uid) {
+      # A new user needs a password: without one the row keeps the column default, an empty password.
+      $error_message .= passwordProblemText('NewPasswordRequired').'<br/>';
+      unset($_REQUEST['redirect']);
+      return;
     } else {
       unset($_REQUEST['user']['Password']);
     }
@@ -75,7 +88,7 @@ if ($action == 'Save') {
       ZM\AuditAction(($uid ? 'update' : 'create'), 'user', $dbUser->Id(), 'Username: '.$dbUser->Username().' Changed: '.implode(', ', array_keys($changes)));
 
       if ($uid) {
-        if ($user and ($dbUser->Username() == $user->Username())) {
+        if ($user and ($dbUser->Id() == $user->Id())) {
           # We are the logged in user, need to update the $user object and generate a new auth_hash
           $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
 
@@ -88,11 +101,15 @@ if ($action == 'Save') {
     } # end if changes
 
     foreach (ZM\Group::find() as $g) {
-      if (isset($_POST['group_permission'])) {
+      if (isset($_POST['group_permission']) and isset($_POST['group_permission'][$g->Id()])) {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
-          $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
-          $g->Permissions(null); # reload
+          if (!$permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]))) {
+            $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+            unset($_REQUEST['redirect']);
+          } else {
+            $g->Permissions(null); # reload
+          }
         }
       }
     }
@@ -103,7 +120,10 @@ if ($action == 'Save') {
           $permission = $dbUser->Monitor_Permission($m->Id());
           $new_permission = $_POST['monitor_permission'][$m->Id()];
           if ($permission->Permission() != $new_permission) {
-            $permission->save(['Permission'=>$new_permission]);
+            if (!$permission->save(['Permission'=>$new_permission])) {
+              $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+              unset($_REQUEST['redirect']);
+            }
           }
         }
       }

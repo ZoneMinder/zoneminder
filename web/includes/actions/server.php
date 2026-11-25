@@ -24,27 +24,59 @@ if (!canEdit('System')) {
   return;
 }
 
+global $error_message;
+
 if ($action == 'save') {
   if (!empty($_REQUEST['id'])) {
     $dbServer = dbFetchOne('SELECT * FROM Servers WHERE Id=?', NULL, [$_REQUEST['id']]);
+    // A server deleted in another tab matches no row, so an UPDATE would report a save that never happened
+    if (!$dbServer) {
+      ZM\Warning('Server not found for save');
+      $error_message .= 'Server not found<br/>';
+      $view = 'options';
+      $_REQUEST['tab'] = 'servers';
+      return;
+    }
   } else {
     $dbServer = array();
   }
 
+  $newServer = (isset($_REQUEST['newServer']) and is_array($_REQUEST['newServer'])) ? $_REQUEST['newServer'] : array();
+
   $types = array();
-  $changes = getFormChanges($dbServer, $_REQUEST['newServer'], $types);
+  $changes = getFormChanges($dbServer, $newServer, $types);
+
+  $name = array_key_exists('Name', $newServer) ? $newServer['Name'] : ($dbServer['Name'] ?? '');
+  if (!is_string($name) or (trim($name) === '')) {
+    ZM\Warning('Refusing to save server with an empty Name');
+    $error_message .= 'Server Name is required<br/>';
+    $changes = array();
+  }
 
   if (count($changes)) {
     if (!empty($_REQUEST['id'])) {
-      dbQuery('UPDATE Servers SET '.implode(', ', $changes).' WHERE Id = ?',
+      $result = dbQuery('UPDATE Servers SET '.implode(', ', $changes).' WHERE Id = ?',
         array($_REQUEST['id']) );
     } else {
-      dbQuery('INSERT INTO Servers SET '.implode(', ', $changes));
+      $result = dbQuery('INSERT INTO Servers SET '.implode(', ', $changes));
     }
-    ZM\AuditAction((!empty($_REQUEST['id']) ? 'update' : 'create'), 'server', $_REQUEST['id'] ?? 0, 'Changed: '.implode(', ', array_keys($changes)));
-    $refreshParent = true;
+    if ($result === null) {
+      $error_message .= 'Error saving server: '.htmlspecialchars(dbLastError()).'<br/>';
+    } else {
+      ZM\AuditAction((!empty($_REQUEST['id']) ? 'update' : 'create'), 'server',
+        !empty($_REQUEST['id']) ? $_REQUEST['id'] : dbInsertId(),
+        'Changed: '.implode(', ', array_keys($changes)));
+      $refreshParent = true;
+    }
   }
-  $redirect = '?view=options&tab=servers';
+  if (!$error_message) {
+    $redirect = '?view=options&tab=servers';
+  } else {
+    // The modal form posts view=server, which has no view file. Render the
+    // options page instead so that the error is shown.
+    $view = 'options';
+    $_REQUEST['tab'] = 'servers';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Server");
 }

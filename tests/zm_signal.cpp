@@ -22,6 +22,7 @@
 
 #include <chrono>
 #include <csignal>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
@@ -37,6 +38,7 @@
 #include <sys/un.h>
 #include <sys/wait.h>
 #include <thread>
+#include <type_traits>
 #include <unistd.h>
 
 // zm_die_handler is defined in zm_signal.cpp with external linkage but is not
@@ -250,6 +252,44 @@ TEST_CASE("zm_die_handler dies of the real signal rather than exiting from the h
   REQUIRE(captured.find("Got signal 11 (SIGSEGV, Segmentation fault), crashing\n") != std::string::npos);
 }
 
+#if ( HAVE_SIGINFO_T && HAVE_UCONTEXT_T ) && \
+    (defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__aarch64__))
+// macOS gives a SIGSEGV sent with kill() the fault code SEGV_ACCERR and no
+// sender pid or uid, so it cannot be told apart from a fault there.
+#ifndef __APPLE__
+TEST_CASE("a SIGSEGV sent with kill() is reported with its sender, not a fault address", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] { kill(getpid(), SIGSEGV); });
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE(WTERMSIG(status) == SIGSEGV);
+  // The child sent it to itself. si_addr overlaps the sender's pid and uid, so
+  // there is no fault address to report.
+  REQUIRE(captured.find("Sent by process ") != std::string::npos);
+  REQUIRE(captured.find(" (uid " + std::to_string(getuid()) + ")\n") != std::string::npos);
+  REQUIRE(captured.find("Instruction pointer: ") != std::string::npos);
+  REQUIRE(captured.find("Fault address") == std::string::npos);
+  REQUIRE(captured.find("Fault reason") == std::string::npos);
+}
+#endif  // __APPLE__
+
+TEST_CASE("a memory fault is reported with its address", "[signal]") {
+  std::string captured;
+  int status = run_crashing_child(captured, [] {
+    // Read through volatile so the compiler cannot see the address and turn
+    // the write into a trap instruction.
+    volatile uintptr_t address = 16;
+    *reinterpret_cast<volatile int *>(address) = 1;
+  });
+
+  REQUIRE(WIFSIGNALED(status));
+  REQUIRE((WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS));
+  REQUIRE(captured.find("Fault reason: ") != std::string::npos);
+  REQUIRE(captured.find("Fault address: 0x10, instruction pointer: 0x") != std::string::npos);
+  REQUIRE(captured.find("Sent by process") == std::string::npos);
+}
+#endif
+
 TEST_CASE("zm_die_handler writes to the log file most recently set, not one closed since", "[signal]") {
   char first_path[] = "/tmp/zm_signal_test_XXXXXX";
   char second_path[] = "/tmp/zm_signal_test_XXXXXX";
@@ -294,6 +334,16 @@ TEST_CASE("zm_die_handler sends the crash report to syslog", "[signal]") {
   REQUIRE(message.rfind("<139>zmtest_m1[", 0) == 0);
   REQUIRE(message.find("]: Got signal 11 (SIGSEGV") != std::string::npos);
   REQUIRE(message.back() != '\n');
+}
+
+TEST_CASE("zmSetCrashSyslog publishes a target only when the ident or path changes", "[signal]") {
+  REQUIRE(zmSetCrashSyslog("zmtest-a", "/tmp/zm-test-log-a"));
+  REQUIRE_FALSE(zmSetCrashSyslog("zmtest-a", "/tmp/zm-test-log-a"));
+  REQUIRE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-a"));
+  REQUIRE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-b"));
+  REQUIRE_FALSE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-b"));
+  REQUIRE(zmSetCrashSyslog(nullptr, "/tmp/zm-test-log-b"));
+  REQUIRE_FALSE(zmSetCrashSyslog("", "/tmp/zm-test-log-b"));
 }
 
 TEST_CASE("zm_die_handler reaches a syslog daemon that made a new socket", "[signal]") {
@@ -510,3 +560,12 @@ TEST_CASE("a crash with ZM_DUMP_CORES on leaves the process dumpable", "[signal]
   REQUIRE(dumpable_during_report(true) == 1);
 }
 #endif
+
+TEST_CASE("zm_reload is atomic and set by zm_hup_handler", "[signal]") {
+  STATIC_REQUIRE(std::is_same_v<decltype(zm_reload), std::atomic<bool>>);
+  REQUIRE(zm_reload.is_lock_free());
+  zm_reload = false;
+  zm_hup_handler(SIGHUP);
+  REQUIRE(zm_reload.load() == true);
+  zm_reload = false;
+}

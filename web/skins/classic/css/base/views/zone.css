@@ -1,7 +1,22 @@
+/* The three detection stages, one colour each everywhere: the threshold rows,
+   the minimums drawn in the user setting box, the frame's outlines in a
+   replay, and their legends. Pass and fail are only ever green and red. */
 #zoneForm {
+  --zmAlarm: #ffa500;
+  --zmAlarmFill: rgba(255, 165, 0, 0.15);
+  --zmFilter: #00c8ff;
+  --zmFilterFill: rgba(0, 200, 255, 0.15);
+  --zmBlob: #ff00ff;
+  --zmBlobFill: rgba(255, 0, 255, 0.2);
+  --zmPass: #9be09b;
+  --zmFail: #e04040;
+  --zmInAlarm: #007a00;
+  --zmUnknown: #505050;
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 12px;
+  /* Off the window edges, like the buttons in the header above. */
+  padding: 0 12px 12px;
   /* Fill the remaining height of #content so the image column can be sized to
    * what is left over after the buttons below it. */
   flex: 1 1 auto;
@@ -93,7 +108,8 @@
    object-fit is fill, deliberately: contain would letterbox and shift the
    coordinate mapping. A still from the same camera has the same aspect anyway;
    one that does not gets stretched, which keeps the maths honest. */
-#imageFrame #objectStill {
+#imageFrame #objectStill,
+#imageFrame .replayMedia {
     position: absolute;
     top: 0;
     left: 0;
@@ -189,7 +205,7 @@
 /* Size of the measuring box, in capture pixels. Sits just above the box, or
    just inside it when the box is close to the top edge. Yellow on black to
    tie it to the box without competing with the red zone outline. */
-#imageFrame #objectSizeLabel {
+#imageFrame .boxLabel {
     position: absolute;
     z-index: 6;
     transform: translateY(-100%);
@@ -205,7 +221,7 @@
     pointer-events: none;
 }
 
-#imageFrame #objectSizeLabel.below {
+#imageFrame .boxLabel.below {
     transform: none;
     margin-top: 2px;
 }
@@ -218,6 +234,140 @@
     stroke-width: 2px;
     vector-effect: non-scaling-stroke;
 }
+
+/* Drag the box to move it. fill is none, so without this only the stroke
+   would take the press. */
+.zones #objectRect {
+    pointer-events: all;
+    cursor: move;
+    touch-action: none;
+}
+
+/* Bottom-right corner handle: drag to resize. */
+#imageFrame #objectResizeHandle {
+    position: absolute;
+    z-index: 6;
+    width: 12px;
+    height: 12px;
+    transform: translate(-50%, -50%);
+    background: #ffff00;
+    border: 1px solid #000000;
+    cursor: nwse-resize;
+    touch-action: none;
+}
+
+/* Rebuilt from saved thresholds rather than drawn: dashed, as an estimate. */
+.zones #objectRect.saved {
+    stroke-dasharray: 6 4;
+}
+
+/* Each Min threshold drawn to scale inside the object box. Colours repeat as
+   swatches on the matching rows of #rectangleSettings. */
+.zones #objectAlarmRect,
+.zones #objectFilterRect,
+.zones #objectBlobRect,
+.zones #objectKernelRect {
+    /* Presses fall through to the svg, not #objectRect, so keep them off. */
+    pointer-events: none;
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+.zones #objectAlarmRect { fill: var(--zmAlarmFill); stroke: var(--zmAlarm); }
+.zones #objectFilterRect { fill: var(--zmFilterFill); stroke: var(--zmFilter); }
+.zones #objectBlobRect { fill: var(--zmBlobFill); stroke: var(--zmBlob); }
+.zones #objectKernelRect { fill: #ffffff; stroke: #000000; }
+/* Bigger than the threshold it must fit inside: zone.js refuses to save it. */
+.zones .outOfOrder { stroke: #ff0000 !important; stroke-width: 2px !important; stroke-dasharray: 3 2; }
+/* Text forced dark, as for .objectSizeChanged: the dark skin's light input
+   text would vanish on the pink. */
+#zoneSettings input.outOfOrder { border-color: #ff0000; background: #ffe0e0; color: #000; }
+
+/* zma's outlines for the frame on screen, in the colours of the minimums
+   they are measured against: alarmed, filtered, largest blob. Pass or fail
+   is in the label's marks. They never take a press. */
+.zones #replayAlarmRect,
+.zones #replayFilterRect,
+.zones #replayBlobRect {
+    fill: none;
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+}
+.zones #replayAlarmRect { stroke: var(--zmAlarm); stroke-dasharray: 6 3; }
+.zones #replayFilterRect { stroke: var(--zmFilter); stroke-dasharray: 2 3; }
+.zones #replayBlobRect { stroke: var(--zmBlob); }
+
+#replayTimeline {
+    display: block;
+    width: 100%;
+    height: 24px;
+    cursor: pointer;
+}
+#replayFrameInfo { margin-left: 0.5em; }
+.legend { font-size: 0.85em; margin: 2px 0; }
+.legend span { margin-right: 0.8em; white-space: nowrap; }
+.legend span::before {
+    content: "";
+    display: inline-block;
+    box-sizing: border-box;
+    width: 0.9em;
+    height: 0.9em;
+    margin-right: 0.3em;
+    vertical-align: middle;
+}
+/* Timeline: one colour per frame. */
+.legend .legendScored::before { background: var(--zmPass); }
+.legend .legendInAlarm::before { background: var(--zmInAlarm); }
+.legend .legendFail::before { background: var(--zmFail); }
+.legend .legendNone::before { background: rgba(128,128,128,0.25); }
+.legend .legendRerun::before { background: var(--zmUnknown); }
+/* Two rows: your settings, then this frame. Filled squares are your
+   minimums, outlines what the frame measured, both in the stage colours. */
+#boxLegend .legendRow { margin: 2px 0; }
+#boxLegend .legendHead { margin-right: 0.6em; font-weight: 600; }
+#boxLegend .lgObject::before { border: 2px solid #ffff00; }
+#boxLegend .lgEstimate::before { border: 2px dashed #ffff00; }
+#boxLegend .lgAlarm::before { background: var(--zmAlarmFill); border: 1px solid var(--zmAlarm); }
+#boxLegend .lgFilter::before { background: var(--zmFilterFill); border: 1px solid var(--zmFilter); }
+#boxLegend .lgBlob::before { background: var(--zmBlobFill); border: 1px solid var(--zmBlob); }
+#boxLegend .lgKernel::before { background: #ffffff; border: 1px solid #000000; }
+#boxLegend .lgAlarmBox::before { border: 2px dashed var(--zmAlarm); }
+#boxLegend .lgFilterBox::before { border: 2px dotted var(--zmFilter); }
+#boxLegend .lgBlobBox::before { border: 2px solid var(--zmBlob); }
+
+/* Min vs got for the frame on screen, pinned top left of the image. */
+#imageFrame .boxLabel.replayStats {
+    top: 4px;
+    left: 4px;
+    transform: none;
+    margin: 0;
+    padding: 3px 6px;
+    font-size: 12px;
+    color: #ffffff;
+}
+#imageFrame .replayStats div { border-left: 4px solid transparent; padding-left: 4px; }
+#imageFrame .replayStats .swatchAlarm { border-left-color: var(--zmAlarm); }
+#imageFrame .replayStats .swatchFilter { border-left-color: var(--zmFilter); }
+#imageFrame .replayStats .swatchBlob { border-left-color: var(--zmBlob); }
+/* On a dark chip everywhere, so the bright tick and cross read on the light
+   page as on the image. */
+.checkMark { font-weight: bold; padding: 0 3px; border-radius: 2px; background: rgba(0, 0, 0, 0.65); }
+.checkMark.ok { color: #40ff40; }
+.checkMark.bad { color: #ff5050; }
+/* The live stream's "Paused" text, while the recording plays over it. */
+.replaying [id^="stream-info-block"] { display: none; }
+
+
+#zoneTestPanel { margin-top: 0.5em; }
+#zoneTestEventId { width: 8em; }
+.zoneTestTitle { cursor: help; font-weight: bold; }
+
+/* Same colours as the threshold rects on the image. Under the table ids, or
+   #zoneSettings th's own border wins. */
+#zoneSettings th.swatch, #rectangleSettings th.swatch { border-left: 4px solid transparent; }
+#zoneSettings th.swatchAlarm, #rectangleSettings th.swatchAlarm { border-left-color: var(--zmAlarm); }
+#zoneSettings th.swatchFilter, #rectangleSettings th.swatchFilter { border-left-color: var(--zmFilter); }
+#zoneSettings th.swatchBlob, #rectangleSettings th.swatchBlob { border-left-color: var(--zmBlob); }
 
 #zonePoints table table th,
 #zonePoints table table td {
@@ -385,6 +535,40 @@ svg circle {
 
 #imageFrame #objectImageReplaceBtn:hover {
     opacity: 1;
+}
+
+.zone-type-active     { color: #d9534f !important; font-weight: bold; }
+.zone-type-inclusive  { color: #e67e22 !important; font-weight: bold; }
+.zone-type-exclusive  { color: #9b59b6 !important; font-weight: bold; }
+.zone-type-preclusive { color: #337ab7 !important; font-weight: bold; }
+.zone-type-inactive   { color: #7f8c8d !important; font-weight: bold; }
+.zone-type-privacy    { color: #222222 !important; font-weight: bold; }
+
+#zoneTestBtn {margin-top: 5px;}
+/* Allow text wrapping within the selected Chosen element */
+#zoneTestEvent_chosen .chosen-single {
+  height: auto !important;
+  white-space: normal !important;
+}
+
+#zoneTestEvent_chosen .chosen-single span {
+  white-space: normal !important;
+  word-break: break-word;
+  margin-right: 20px; /* Leave space for an arrow */
+}
+
+/* Align the arrow vertically to the center */
+#zoneTestEvent_chosen .chosen-single div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  top: 0;
+}
+
+#zoneTestEvent_chosen .chosen-single div b {
+  height: 18px; /* We record the height of the arrow sprite itself. */
+  background-position: 0 2px;
 }
 
 /* Narrow screens: stack the columns and size the feed from the width again */

@@ -44,11 +44,11 @@ Enabling Authentication
 Authentication (**OPT_USE_AUTH**) is set on the first-run page of a new install (see `First Run`_). An install upgraded from an older version keeps the setting it had, and one set up without a login has it off. If yours has authentication off, we strongly recommend turning it on: with it off, anyone who can reach ZoneMinder can do everything, and so can any web page opened in a browser on the same network. To turn it on:
 
 * Click on the :guilabel:`Options` link in the top bar of the web interface.
-* You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`System` tab and scroll down to the section containing authentication parameters.
+* You will now be presented with a sidebar full of Option tabs. Click on the :guilabel:`Authentication` tab.
 
 .. figure:: images/getting-started-enable-auth-1.png
 
-    Authentication Parameters in System Tab
+    Authentication Parameters in Authentication Tab
 
 * **OPT_USE_AUTH:** Enable by checking the box. This enables user authentication.
 * **AUTH_HASH_SECRET:** Installing or upgrading with ``zmupdate.pl -f`` (the packages do this) sets a random secret. If it still reads ``...Change me to something unique...``, enter a random string.
@@ -224,7 +224,7 @@ Selecting Themes
 When you first install ZoneMinder, the web interface uses what is called the Base theme. It is worthwhile to note that ZoneMinder has Base, Classic and Dark themes available. These themes are controlled by the Skin and CSS settings found in the Options menu. 
 
 * Click on the :guilabel:`Options` link on the top of the web interface Console.
-* This will bring you to the Options window as shown below. Click on the :guilabel:`System` tab to access the available CSS themes. Changes applied here will remain after you end the session. Note that the theme for the current session will not change, see the next steps to change the theme immediately for the current session.
+* This will bring you to the Options window as shown below. Click on the :guilabel:`Display` tab to access the available CSS themes. Changes applied here will remain after you end the session. Note that the theme for the current session will not change, see the next steps to change the theme immediately for the current session.
 
 .. image:: images/getting-started-options-system.png
     :width: 500px
@@ -235,7 +235,7 @@ When you first install ZoneMinder, the web interface uses what is called the Bas
 
 * Click :guilabel:`Save` at the bottom if you decide to change the default theme.
 
-* Now, switch to the :guilabel:`Display` tab. Changes applied here will only remain until you end the current session. This allows you to try out the different CSS themes available.
+* Now, switch to the :guilabel:`This Session` tab. Changes applied here will only remain until you end the current session. This allows you to try out the different CSS themes available.
 
 .. image:: images/getting-started-options-display.png
     :width: 500px

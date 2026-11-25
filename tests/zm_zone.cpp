@@ -526,3 +526,185 @@ TEST_CASE("Zone::CheckAlarms clears only the diff pixels std_alarmedpixels leave
     CheckMaskMatchesFullRowMemset(polygon);
   }
 }
+
+TEST_CASE("Zone::ParseCoords: percentage coordinates", "[Zone]") {
+  Polygon polygon;
+  bool clamped = true;
+  REQUIRE(Zone::ParseCoords("0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00", 1920, 1080, polygon, clamped));
+  REQUIRE(polygon.GetVertices().size() == 4);
+  REQUIRE_FALSE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: pixel coordinates inside the monitor", "[Zone]") {
+  Polygon polygon;
+  bool clamped = true;
+  REQUIRE(Zone::ParseCoords("0,0 99,0 99,99 0,99", 100, 100, polygon, clamped));
+  REQUIRE(polygon.GetVertices().size() == 4);
+  REQUIRE_FALSE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: pixel coordinates outside the monitor are clamped", "[Zone]") {
+  Polygon polygon;
+  bool clamped = false;
+  REQUIRE(Zone::ParseCoords("0,0 500,0 500,500 0,500", 100, 100, polygon, clamped));
+  REQUIRE(clamped);
+}
+
+TEST_CASE("Zone::ParseCoords: unparsable coordinates are rejected", "[Zone]") {
+  Polygon polygon;
+  bool clamped = false;
+  REQUIRE_FALSE(Zone::ParseCoords("", 100, 100, polygon, clamped));
+  REQUIRE_FALSE(Zone::ParseCoords("garbage", 100, 100, polygon, clamped));
+  REQUIRE_FALSE(Zone::ParseCoords("1.5,abc 2.5,3.5", 100, 100, polygon, clamped));
+}
+
+TEST_CASE("Zone::CheckAlarms counts and sums alarmed pixels like the scalar loop", "[Zone]") {
+  EnsureZoneConfig();
+
+  // 77 is not a multiple of 16, so every row also runs the scalar tail.
+  const int w = 77, h = 40;
+  Polygon polygon;
+  REQUIRE(Zone::ParsePolygonString("3,1 70,2 76,39 0,30", polygon));
+
+  auto delta = std::unique_ptr<Image>(new Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+  uint32_t seed = 12345;
+  for (int y = 0; y < h; y++)
+    for (int x = 0; x < w; x++) {
+      seed = seed * 1103515245 + 12345;
+      *delta->Buffer(x, y) = static_cast<uint8_t>(seed >> 16);
+    }
+
+  const std::pair<int, int> thresholds[] = {{0, 0}, {5, 0}, {20, 200}, {127, 128}, {0, 1}, {254, 0}};
+  for (const auto &[min_threshold, max_threshold] : thresholds) {
+    CAPTURE(min_threshold, max_threshold);
+    auto monitor = MakeZoneMonitor(w, h);
+    Zone zone(monitor, 1, "sums", Zone::ACTIVE, polygon, kRGBBlack, Zone::ALARMED_PIXELS,
+              min_threshold, max_threshold, 0, 0);
+
+    const uint8_t calc_max = max_threshold ? max_threshold : 255;
+    unsigned int expected_count = 0, expected_sum = 0;
+    for (int y = 0; y < h; y++)
+      for (int x = 0; x < w; x++) {
+        const uint8_t d = *delta->Buffer(x, y);
+        if (*zone.getPgImage()->Buffer(x, y) && d > min_threshold && d <= calc_max) {
+          expected_count++;
+          expected_sum += d;
+        }
+      }
+    REQUIRE(expected_count > 0);
+
+    std::vector<uint8_t> expected = ExpectedMask(zone.getPgImage(), delta.get(), w, h,
+                                                 min_threshold, max_threshold,
+                                                 polygon.Extent().Lo().y_, polygon.Extent().Hi().y_);
+    REQUIRE(zone.CheckAlarms(delta.get()));
+    CHECK(zone.GetStats().alarm_pixels_ == expected_count);
+    CHECK(zone.GetStats().pixel_diff_ == static_cast<int>(expected_sum / expected_count));
+    const Image *mask = zone.AlarmImage();
+    for (int y = polygon.Extent().Lo().y_; y <= polygon.Extent().Hi().y_; y++)
+      CHECK(memcmp(mask->Buffer(0, y), expected.data() + static_cast<size_t>(y) * w, w) == 0);
+  }
+}
+
+namespace {
+
+// The filter loop CheckAlarms used before, kept as the reference: a white pixel
+// stays only if some all white bx by by box within the zone's rows and the
+// pixel's own row range covers it.
+unsigned int ReferenceFilter(std::vector<uint8_t> &mask, const Image *poly, int w,
+                             int lo_y, int hi_y, int bx, int by) {
+  std::vector<int> lo(hi_y + 1, -1), hi(hi_y + 1, -1);
+  for (int y = lo_y; y <= hi_y; y++)
+    for (int x = 0; x < w; x++)
+      if (poly->Buffer(x, y)[0]) {
+        if (lo[y] < 0) lo[y] = x;
+        hi[y] = x;
+      }
+
+  unsigned int count = 0;
+  for (int y = lo_y; y <= hi_y; y++) {
+    if (lo[y] < 0) continue;
+    for (int x = lo[y]; x <= hi[y]; x++) {
+      uint8_t &pixel = mask[static_cast<size_t>(y) * w + x];
+      if (pixel != kWhite) continue;
+      const int ldx = (x >= lo[y] + bx - 1) ? -(bx - 1) : lo[y] - x;
+      const int hdx = (x <= hi[y] - (bx - 1)) ? 0 : (hi[y] - x) - (bx - 1);
+      const int ldy = (y >= lo_y + by - 1) ? -(by - 1) : lo_y - y;
+      const int hdy = (y <= hi_y - (by - 1)) ? 0 : (hi_y - y) - (by - 1);
+      bool block = false;
+      for (int dy = ldy; !block && dy <= hdy; dy++)
+        for (int dx = ldx; !block && dx <= hdx; dx++) {
+          block = true;
+          for (int dy2 = 0; block && dy2 < by; dy2++)
+            for (int dx2 = 0; block && dx2 < bx; dx2++)
+              if (!mask[static_cast<size_t>(y + dy + dy2) * w + x + dx + dx2]) block = false;
+        }
+      if (block) {
+        count++;
+      } else {
+        pixel = kBlack;
+      }
+    }
+  }
+  return count;
+}
+
+}  // namespace
+
+TEST_CASE("Zone::CheckAlarms filters pixels like the box scan it replaced", "[Zone]") {
+  EnsureZoneConfig();
+  const int w = 61, h = 47;
+  const char *shapes[] = {"5,3 55,1 60,40 30,46 0,25", "0,0 60,0 60,46 0,46", "20,10 24,10 24,30 20,30"};
+  const std::pair<int, int> boxes[] = {{3, 3}, {2, 1}, {1, 4}, {5, 2}, {7, 7}, {9, 9}};
+  const int densities[] = {200, 128, 40};
+
+  uint32_t seed = 7;
+  for (const char *shape : shapes) {
+    Polygon polygon;
+    REQUIRE(Zone::ParsePolygonString(shape, polygon));
+    const int lo_y = polygon.Extent().Lo().y_;
+    const int hi_y = std::min(polygon.Extent().Hi().y_, h - 1);
+    for (const int density : densities) {
+      auto delta = std::unique_ptr<Image>(new Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+      for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++) {
+          seed = seed * 1103515245 + 12345;
+          // Clumps, so some boxes survive at every density
+          const bool clump = ((x / 6 + y / 5) % 3) == 0;
+          *delta->Buffer(x, y) = (clump || static_cast<int>((seed >> 16) & 0xff) < density) ? 100 : 0;
+        }
+      for (const auto &[bx, by] : boxes) {
+        CAPTURE(shape, density, bx, by);
+        auto monitor = MakeZoneMonitor(w, h);
+        Zone zone(monitor, 1, "filter", Zone::ACTIVE, polygon, kRGBBlack, Zone::FILTERED_PIXELS,
+                  50, 0, 1, 0, Vector2(bx, by), 0, 0);
+
+        std::vector<uint8_t> expected = ExpectedMask(zone.getPgImage(), delta.get(), w, h, 50, 0, lo_y, hi_y);
+        const unsigned int expected_count = ReferenceFilter(expected, zone.getPgImage(), w, lo_y, hi_y, bx, by);
+
+        zone.CheckAlarms(delta.get());
+        CHECK(static_cast<unsigned int>(zone.GetStats().alarm_filter_pixels_) == expected_count);
+        const Image *mask = zone.AlarmImage();
+        REQUIRE(mask->Colours() == ZM_COLOUR_GRAY8);
+        for (int y = lo_y; y <= hi_y; y++)
+          CHECK(memcmp(mask->Buffer(0, y), expected.data() + static_cast<size_t>(y) * w, w) == 0);
+
+        if (expected_count) {
+          int box_lo_x = w, box_hi_x = -1, box_lo_y = h, box_hi_y = -1;
+          for (int y = lo_y; y <= hi_y; y++)
+            for (int x = 0; x < w; x++)
+              if (expected[static_cast<size_t>(y) * w + x]) {
+                box_lo_x = std::min(box_lo_x, x);
+                box_hi_x = std::max(box_hi_x, x);
+                box_lo_y = std::min(box_lo_y, y);
+                box_hi_y = std::max(box_hi_y, y);
+              }
+          const Box &alarm_box = zone.GetStats().alarm_box_;
+          CHECK(alarm_box.Lo().x_ == box_lo_x);
+          CHECK(alarm_box.Hi().x_ == box_hi_x);
+          CHECK(alarm_box.Lo().y_ == box_lo_y);
+          CHECK(alarm_box.Hi().y_ == box_hi_y);
+        }
+      }
+    }
+  }
+}

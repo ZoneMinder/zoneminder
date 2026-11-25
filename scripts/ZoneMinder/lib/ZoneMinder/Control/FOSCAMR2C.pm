@@ -70,6 +70,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Database qw(zmDbConnect); 
 use Time::HiRes qw( usleep );
+use URI::Escape qw(uri_escape_utf8);
  
 sub new
 {
@@ -299,10 +300,10 @@ sub presetSet
     $ref = ($sth->fetchrow_hashref());
     my $label2 = $ref->{'Label2'};
     Debug( "Delete Preset $preset with name $label2 from camera" );
-    my $cmd = "CGIProxy.fcgi?cmd=ptzDeletePresetPoint&name=$label2";
+    my $cmd = "CGIProxy.fcgi?cmd=ptzDeletePresetPoint&name=".uri_escape_utf8($label2);
     $self->sendCmd( $cmd );
     Debug( "Set Preset $preset with cmd $label in camera" );
-    $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=$label";
+    $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=".uri_escape_utf8($label);
     $self->sendCmd( $cmd );
     Debug( "Delete row Preset $preset with Label2 $label2 from db" );
     $sth = $dbh->prepare('DELETE FROM `ControlPresetNames` WHERE `Preset` = ?');
@@ -332,7 +333,7 @@ sub presetGoto
     my $label = $ref->{'Label'};
     $sth->finish();
     Debug( "Goto Preset $preset with cmd $label" );
-    my $cmd = "CGIProxy.fcgi?cmd=ptzGotoPresetPoint&name=$label";
+    my $cmd = "CGIProxy.fcgi?cmd=ptzGotoPresetPoint&name=".uri_escape_utf8($label);
     $self->sendCmd( $cmd );
 }
  

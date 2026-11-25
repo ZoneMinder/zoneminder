@@ -26,6 +26,7 @@
 #include <cstring>
 #include <fcntl.h>
 #include <memory>
+#include <pthread.h>
 #ifdef __linux__
 #include <sys/prctl.h>
 #endif
@@ -52,7 +53,7 @@ std::atomic<int> crash_log_fd{-1};
 // Where and as whom the report goes to syslog. A target is never changed or
 // freed once published: zmSetCrashSyslog() publishes a new one instead, so a
 // handler reading one on another thread never sees it half written. One is
-// leaked per Logger reopen of syslog, which is rare.
+// only leaked when the ident or path actually changes.
 struct CrashSyslogTarget {
   struct sockaddr_un addr;
   char ident[64];
@@ -161,7 +162,8 @@ void crash_syslog(const char *str) {
          reinterpret_cast<const struct sockaddr *>(&target->addr), sizeof(target->addr));
 }
 
-void crash_syslog(const CrashLine &line) {
+// Only the backtrace() fallback in zm_die_handler calls this; libunwind builds don't.
+[[maybe_unused]] void crash_syslog(const CrashLine &line) {
   crash_syslog(line.c_str());
 }
 
@@ -206,7 +208,7 @@ const char *crash_signal_name(int signal) {
   sigset_t unblock;
   sigemptyset(&unblock);
   sigaddset(&unblock, signal);
-  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  pthread_sigmask(SIG_UNBLOCK, &unblock, nullptr);
 
   raise(signal);
   _exit(-1);  // Fallback if raise() somehow did not terminate us.
@@ -215,7 +217,8 @@ const char *crash_signal_name(int signal) {
 // The crash report has taken too long: end the process on the signal it was
 // reporting.
 void crash_report_timeout(int) {
-  die_of(crash_signal.load());
+  int sig = crash_signal.load();
+  die_of(sig ? sig : SIGALRM);
 }
 
 // Bound the time left for the crash report of signal. alarm() and sigaction()
@@ -229,7 +232,7 @@ void limit_crash_report(int signal) {
   sigset_t unblock;
   sigemptyset(&unblock);
   sigaddset(&unblock, SIGALRM);
-  sigprocmask(SIG_UNBLOCK, &unblock, nullptr);
+  pthread_sigmask(SIG_UNBLOCK, &unblock, nullptr);
   alarm(kCrashReportSeconds);
 }
 
@@ -247,7 +250,7 @@ thread_local ThreadAltStack thread_alt_stack;
 
 }  // namespace
 
-bool zm_reload = false;
+std::atomic<bool> zm_reload = false;
 std::atomic<bool> zm_terminate = false;
 
 void zmSetCrashLogFile(int fd) {
@@ -262,10 +265,17 @@ void zmSetCrashLogFile(int fd) {
   if (dup2(fd, reserved) >= 0) fcntl(reserved, F_SETFD, FD_CLOEXEC);
 }
 
-void zmSetCrashSyslog(const char *ident, const char *path) {
+bool zmSetCrashSyslog(const char *ident, const char *path) {
+  const char *stored_ident = ident && *ident ? ident : "zoneminder";
+  const CrashSyslogTarget *current = crash_syslog_target.load();
+  if (current
+      and !strncmp(current->addr.sun_path, path, sizeof(current->addr.sun_path) - 1)
+      and !strncmp(current->ident, stored_ident, sizeof(current->ident) - 1))
+    return false;
+
   if (crash_syslog_fd.load() < 0) {
     int created = socket(AF_UNIX, SOCK_DGRAM, 0);
-    if (created < 0) return;
+    if (created < 0) return false;
     fcntl(created, F_SETFD, FD_CLOEXEC);
     fcntl(created, F_SETFL, O_NONBLOCK);
     int expected = -1;
@@ -276,8 +286,9 @@ void zmSetCrashSyslog(const char *ident, const char *path) {
   auto *target = new CrashSyslogTarget();
   target->addr.sun_family = AF_UNIX;
   strncpy(target->addr.sun_path, path, sizeof(target->addr.sun_path) - 1);
-  strncpy(target->ident, ident && *ident ? ident : "zoneminder", sizeof(target->ident) - 1);
+  strncpy(target->ident, stored_ident, sizeof(target->ident) - 1);
   crash_syslog_target = target;
+  return true;
 }
 
 void zmSetThreadAltStack() {
@@ -335,9 +346,10 @@ RETSIGTYPE zm_die_handler(int signal)
   // A zero core size limit stops the kernel writing a core file, but a
   // core_pattern that pipes to a program (systemd-coredump, apport) is handed
   // the dump anyway, and it is up to that program to honour the limit. A
-  // process that is not dumpable is not dumped at all, unless fs.suid_dumpable
-  // is 2. This is done only now, as it also stops ptrace and changes who owns
-  // the process's /proc files.
+  // process made not dumpable is not dumped at all, whatever fs.suid_dumpable
+  // says: the kernel uses that setting only for a process that changes
+  // credentials or runs a setuid or unreadable program. This is done only now,
+  // as it also stops ptrace and changes who owns the process's /proc files.
   if (crash_no_core) prctl(PR_SET_DUMPABLE, 0, 0, 0, 0);
 #endif
 
@@ -353,6 +365,14 @@ RETSIGTYPE zm_die_handler(int signal)
   void *ip = nullptr;
   void *fault_addr = nullptr;
   if ( info && context ) {
+    // A signal sent with kill(), raise() and the like rather than raised by a
+    // fault has no fault address: si_addr shares its storage with the sender's
+    // pid and uid, which are reported instead. macOS marks such a signal with a
+    // fault code and no sender, so there it is reported as a fault.
+    bool sent = info->si_code == SI_USER or info->si_code == SI_QUEUE;
+#ifdef SI_TKILL
+    sent = sent or info->si_code == SI_TKILL;
+#endif
     // For memory fault signals (SIGSEGV, SIGBUS, SIGFPE, SIGILL), si_addr is valid.
     fault_addr = info->si_addr;
 
@@ -403,7 +423,12 @@ RETSIGTYPE zm_die_handler(int signal)
       }
     }
     line.clear();
-    crash_emit(line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n"));
+    if (sent) {
+      line.str("Sent by process ").dec(info->si_pid).str(" (uid ").dec(info->si_uid).str(")\n");
+    } else {
+      line.str("Fault reason: ").str(code_desc).str(" (signal code ").dec(info->si_code).str(")\n");
+    }
+    crash_emit(line);
 
     ucontext_t *uc = (ucontext_t *) context;
 #if defined(__x86_64__)
@@ -440,7 +465,11 @@ RETSIGTYPE zm_die_handler(int signal)
 
     // Report the fault address and instruction pointer.
     line.clear();
-    line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    if (sent) {
+      line.str("Instruction pointer: ");
+    } else {
+      line.str("Fault address: ").ptr(fault_addr).str(", instruction pointer: ");
+    }
     if ( ip ) {
       line.ptr(ip);
     } else {

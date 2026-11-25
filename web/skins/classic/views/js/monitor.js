@@ -66,9 +66,12 @@ function loadLocations( element ) {
   returnLocationSelect.options.length = 1;
   //returnLocationSelect.options[0] = new Option( noneString, -1 );
 
-  var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
+  // controlOptions is keyed by control Id, not by position in the dropdown.
+  var returnLocationOptions = controlOptions[controlIdSelect.value];
   if ( returnLocationOptions ) {
     for ( let i = 0; i < returnLocationOptions.length; i++ ) {
+      // null is a control with no Home preset
+      if ( returnLocationOptions[i] === null ) continue;
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
@@ -78,7 +81,8 @@ function Restream_onclick(e) {
   const Restream = $j('[name="newMonitor[Restream]"]');
   if (Restream.length) {
     const RTSP_User = $j('#RTSP_User');
-    if (Restream[0].checked) {
+    // The user list only means something when authentication is on.
+    if (Restream[0].checked && useAuth) {
       RTSP_User.show();
     } else {
       RTSP_User.hide();
@@ -109,7 +113,7 @@ function updateRestreamVisibility() {
   const rtspUser = document.getElementById('RTSP_User');
   if (rtspUser) {
     const restream = form.elements['newMonitor[Restream]'];
-    if (!showRestream || !restream || !restream.checked) {
+    if (!useAuth || !showRestream || !restream || !restream.checked) {
       rtspUser.style.display = 'none';
     } else {
       rtspUser.style.display = '';
@@ -206,6 +210,10 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
     el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
+  // The maximum is only checked against the pre event count once it is entered
+  document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]').forEach(function(el) {
+    el.addEventListener('change', window['buffer_setting_oninput'].bind(el));
+  });
   update_estimated_ram_use();
 
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
@@ -222,43 +230,19 @@ function initPage() {
     };
     el.onchange();
   });
-  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+  document.querySelectorAll('select[name="newMonitor[OutputCodecName]"]').forEach(function(el) {
     el.onchange = function() {
-      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
-      if (encoder_dropdown) {
-        for (i=0; i<encoder_dropdown[0].options.length; i++) {
-          option = encoder_dropdown[0].options[i];
-          if ( this.value == 27 ) {
-            option.disabled = !option.value.includes('264');
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 167 /* vp9 */ ) {
-            option.disabled = !(option.value.includes('vp9'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 173 /* hevc */ ) {
-            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 226 /* av1 */ ) {
-            option.disabled = !(option.value.includes('av1'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else {
-            option.disabled = false;
-          }
+      const encoder_dropdown = document.querySelector('select[name="newMonitor[Encoder]"]');
+      if (!encoder_dropdown) return;
+      let reset = false;
+      for (const option of encoder_dropdown.options) {
+        option.disabled = !ZM_EncoderTemplates.encoderMatchesCodec(this.value, option.value);
+        if (option.disabled && option.selected) {
+          encoder_dropdown.selectedIndex = 0;
+          reset = true;
         }
-      } else {
-        console.log('No encoder');
       }
+      if (reset) encoder_dropdown.dispatchEvent(new Event('change'));
     };
     el.onchange();
   });
@@ -570,6 +554,7 @@ function initPage() {
     AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
   }
   startAudioLevelMeter();
+  startOnvifStatus();
   rememberSelectedTab();
 } // end function initPage()
 
@@ -650,8 +635,15 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function() {
+    success: function(data) {
       alertBlock.fadeOut({duration: 'fast'});
+      const errorDiv = (typeof data === 'string') ?
+        new DOMParser().parseFromString(data, 'text/html').getElementById('error') : null;
+      if (errorDiv && errorDiv.textContent.trim()) {
+        $j('#contentButtons').show();
+        alert(errorDiv.textContent.trim());
+        return;
+      }
       sourceFormMonitor = $j('#contentForm').serialize();
       if (href) {
         if (href == 'reload') {
@@ -664,13 +656,15 @@ function saveMonitorData(href = '') {
     },
     error: function() {
       alertBlock.fadeOut({duration: 'fast'});
+      // Save and Close hid the buttons; bring them back so the user can retry.
+      $j('#contentButtons').show();
       alert('An error occurred while saving data.'); /* Proper formatting required! */
     }
   });
   $j('#saveConfirm').modal('hide');
 }
 
-function ll2dms(input) {
+function ll2dms() {
   const latitude = document.getElementById('newMonitor[Latitude]');
   if (latitude.value === '') return;
   if (latitude.value < -90) latitude.value=-90;
@@ -682,15 +676,10 @@ function ll2dms(input) {
   if (longitude.value > 180) longitude.value=180;
   const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
 
-  if (input.id == 'newMonitor[Latitude]') {
-    const dms = document.getElementById('LatitudeDMS');
-    dms.value = dmsCoords.latitude.toString(2);
-  } else if (input.id == 'newMonitor[Longitude]') {
-    const dms = document.getElementById('LongitudeDMS');
-    dms.value = dmsCoords.longitude.toString(2);
-  } else {
-    console.log("Unknown input in ll2dms");
-  }
+  // Both are needed to convert, so fill both: when the second coordinate is
+  // entered, the first one's DMS box was left empty.
+  document.getElementById('LatitudeDMS').value = dmsCoords.latitude.toString(2);
+  document.getElementById('LongitudeDMS').value = dmsCoords.longitude.toString(2);
   updateMarker();
 }
 
@@ -698,6 +687,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);
@@ -717,21 +707,57 @@ function change_Path(event) {
     return;
   }
 
+  // Credentials live in the authority: the text after "://" up to the first
+  // "/", "?" or "#". An "@" in the path or query is not an auth separator.
+  const authorityStart = protoPrefixPos+3;
+  const authorityEnd = pathInput.value.slice(authorityStart).search(/[/?#]/);
+  const authority = authorityEnd == -1 ?
+    pathInput.value.slice(authorityStart) :
+    pathInput.value.slice(authorityStart, authorityStart+authorityEnd);
+
   // check the formatting of the url
-  const authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 ) {
-    console.log('ignoring URL without "@"');
-    return;
+  const atPos = authority.lastIndexOf('@');
+  let authSeparatorPos;
+  if ( atPos != -1 ) {
+    // A raw @ in the password is fine: the last @ of the authority ends it.
+    authSeparatorPos = authorityStart + atPos;
+  } else {
+    // No @ in the authority. Raw / ? # in a password (user:pa#ss@host) put the
+    // @ after the first delimiter, so accept it only if the authority looks
+    // like user:pass and not host:port, [ipv6] or a bare host. That keeps an @
+    // in the path or query (rtsp://h:554/live?token=a@b) from being read as
+    // credentials.
+    const colonPos = authority.indexOf(':');
+    const afterColon = colonPos == -1 ? '' : authority.slice(colonPos+1);
+    if ( authority == '' || authority[0] == '[' || colonPos == -1 ||
+         afterColon == '' || /^\d+$/.test(afterColon) ) {
+      console.log('ignoring URL without "@" in the authority');
+      return;
+    }
+    authSeparatorPos = authorityEnd == -1 ? -1 :
+      pathInput.value.indexOf('@', authorityStart+authorityEnd);
+    if ( authSeparatorPos == -1 ) {
+      return;
+    }
   }
 
   const fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+  if ( fieldsSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
     console.warn('ignoring URL incorrectly formatted, missing ":"');
     return;
   }
 
-  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
-  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  // The User and Pass fields hold the decoded values (the server decodes them
+  // the same way), so a %40 in the URL must not end up in them literally.
+  const decodeCredential = function(value) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value; // a lone % that is not an escape
+    }
+  };
+  const usernameValue = decodeCredential(pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos ));
+  const passwordValue = decodeCredential(pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos ));
   if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
@@ -755,7 +781,7 @@ function change_Path(event) {
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
   }
 }
@@ -787,7 +813,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value)
+  // Typing a new maximum passes through smaller numbers, don't cut the pre event count down to them
+  const typing_max = (this.id == 'newMonitor[MaxImageBufferCount]') && e && (e.type == 'input');
+  if (!typing_max
+    &&
+    parseInt(max_image_buffer_count.value)
     &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {
@@ -840,7 +870,8 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  updateMarker(latitude, longitude);
+  ll2dms(form.elements['newMonitor[Latitude]']);
+  ll2dms(form.elements['newMonitor[Longitude]']);
 }
 
 function getLocation() {
@@ -964,15 +995,39 @@ function startAudioLevelMeter() {
   pollAudioLevel();
 }
 
+// Shows whether zmc holds an ONVIF event subscription for this monitor, so a
+// failing subscription no longer has to be found in the logs.
+var onvifStatusTimer = null;
+
+function pollOnvifStatus() {
+  const el = document.getElementById('onvifStatus');
+  if (!el || !$j(el).is(':visible')) return;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'onvifStatus', mid: el.dataset.mid})
+      .done(function(data) {
+        el.textContent = (data.result !== 'Error' && data.status !== null && onvifStatusLabels[data.status]) ?
+          onvifStatusLabels[data.status] : onvifStatusUnavailable;
+      })
+      .fail(function() {
+        el.textContent = onvifStatusUnavailable;
+      });
+}
+
+function startOnvifStatus() {
+  if (!document.getElementById('onvifStatus')) return;
+  if (onvifStatusTimer) clearInterval(onvifStatusTimer);
+  onvifStatusTimer = setInterval(pollOnvifStatus, 5000);
+  pollOnvifStatus();
+}
+
 function Recording_onChange(e) {
 }
 
 function SecondPath_onChange(e) {
   if (e.value) {
-    $j('#AnalysingSource').show();
+    $j('#AnalysisSource').show();
     $j('#RecordingSource').show();
   } else {
-    $j('#AnalysingSource').hide();
+    $j('#AnalysisSource').hide();
     $j('#RecordingSource').hide();
   }
 }
@@ -1048,6 +1103,8 @@ function populate_models(ManufacturerId) {
   dropdown.empty();
   dropdown.append('<option value="" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
+  // With the model back at Unknown, the name box is how one is entered.
+  $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
 
   if (ManufacturerId) {
     // Populate dropdown with list of provinces
@@ -1078,9 +1135,10 @@ function ManufacturerId_onchange(ManufacturerId_select) {
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
-    ModelId_dropdown.append('<option selected="true">Unknown</option>');
+    ModelId_dropdown.append('<option value="" selected="true">Unknown</option>');
     ModelId_dropdown.prop('selectedIndex', 0);
-    $j('[name="newMonitor[Model]"]').show();
+    // A disabled input is not submitted, so enable it as well as show it.
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 
@@ -1136,8 +1194,8 @@ function devices_onchange(devices) {
   }
 }
 function ControlId_onChange(ddm) {
-  const ControlEditButton = document.getElementById('ControlEditButton');
-  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+  const ControlEditButton = document.getElementById('ControlEdit');
+  if (ControlEditButton) ControlEditButton.disabled = !ddm.value;
 }
 
 function ControlEdit_onClick() {

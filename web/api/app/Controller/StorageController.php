@@ -36,7 +36,12 @@ class StorageController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Storage->schema()));
+      global $user;
+      $fields = array_keys($this->Storage->schema());
+      if ($user && $user->System() != 'Edit') {
+        $fields = array_values(array_diff($fields, array('Url')));
+      }
+      $conditions = $this->FilterComponent->buildFilter($named_params, $fields);
     } else {
       $conditions = array();
     }
@@ -88,22 +93,32 @@ class StorageController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if ( !$canEdit ) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->Storage->create();
-      if ( $this->Storage->save($this->request->data) ) {
-				# Might be nice to send it a start request
-        #$this->daemonControl($this->Storage->id, 'start', $this->request->data);
-        return $this->flash(__('The storage area has been saved.'), array('action' => 'index'));
-      }
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if ( !$canEdit ) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->Storage, null);
+    $this->Storage->create();
+    if ( $this->Storage->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->Storage->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->set(array(
+      'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**
@@ -126,10 +141,12 @@ class StorageController extends AppController {
     if ( !$this->Storage->exists($id) ) {
       throw new NotFoundException(__('Invalid storage area'));
     }
+    $this->request->allowMethod('post', 'put');
+    $this->pinRequestId($this->Storage, $id);
     if ( $this->Storage->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error';
     }
 
     $this->set(array(
@@ -163,10 +180,21 @@ class StorageController extends AppController {
 
     #$this->daemonControl($this->Storage->id, 'stop');
 
+    # The web UI refuses the same delete, which would orphan the events and monitors using this area.
+    require_once __DIR__ .'/../../../includes/Storage.php';
+    $storage = new ZM\Storage($id);
+    if ( $storage->EventCount() or $storage->MonitorCount() ) {
+      throw new BadRequestException(__('The storage area is in use by events or monitors'));
+    }
+
     if ( $this->Storage->delete() ) {
-      return $this->flash(__('The storage area has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The storage area could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The storage area could not be deleted.'));
     }
   }
 }

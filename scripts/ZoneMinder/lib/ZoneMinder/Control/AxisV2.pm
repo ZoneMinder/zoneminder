@@ -33,6 +33,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # Axis V2 Control Protocol
@@ -50,7 +54,7 @@ sub open {
   my $self = shift;
   $self->loadMonitor();
 
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
@@ -329,7 +333,7 @@ sub focusRelNear {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=-$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelNear($params);
     }
@@ -347,7 +351,7 @@ sub focusRelFar {
   } else {
     my $cmd = "/axis-cgi/com/ptz.cgi?rfocus=$step";
     my $res = $self->sendCmd($cmd);
-    if ($res->content ne 'ok') {
+    if (!$res || !$res->is_success) {
       $$self{use_optics} = 1;
       $self->focusRelFar($params);
     }
@@ -447,7 +451,7 @@ sub presetHome {
 
 sub reboot {
   my $self = shift;
-  my $response = $self->sendCmd('/axis-cgi/restart.cgi');
+  my $response = $self->sendCmd('/axis-cgi/admin/restart.cgi');
   return $response->is_success;
 }
 
@@ -521,7 +525,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = new ZoneMinder::Control::AxisV2();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $$self{username} = $username;
   $$self{password} = $password;

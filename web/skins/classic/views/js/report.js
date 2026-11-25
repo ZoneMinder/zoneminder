@@ -18,6 +18,14 @@ function deleteReports(ids) {
 
   $j.getJSON(thisUrl + '?request=reports&task=delete&ids[]='+chunk.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          window.location.reload();
+          return;
+        }
+        if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         if (ids.length) {
           if (ticker.innerHTML.length < 1 || ticker.innerHTML.length > 10) {
             ticker.innerHTML = '.';
@@ -35,7 +43,9 @@ function deleteReports(ids) {
 }
 
 function initPage() {
-  deleteBtn.prop('disabled', !canEdit.Events);
+  // A new report has no id yet, so there is nothing to delete.
+  const reportId = document.getElementById('reportForm').getAttribute('data-report_id');
+  deleteBtn.prop('disabled', !(canEdit.Events && reportId));
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);

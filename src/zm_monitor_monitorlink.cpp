@@ -19,7 +19,10 @@
 
 #include "zm_monitor.h"
 
+#include <algorithm>
+
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #if ZM_MEM_MAPPED
 #include <sys/mman.h>
@@ -88,6 +91,9 @@ bool Monitor::MonitorLink::connect() {
     disconnect();
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
+    // A zone link reads zone_scores[zone_index], which follows TriggerData
+    if (zone_index >= 0)
+      mem_size += (static_cast<off_t>(zone_index) + 1) * sizeof(int);
 
     Debug(1, "link.mem.size=%jd", static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
@@ -146,8 +152,8 @@ bool Monitor::MonitorLink::connect() {
     trigger_data = (TriggerData *)((char *)shared_data + sizeof(SharedData));
     zone_scores = (int *)((unsigned long)trigger_data + sizeof(TriggerData));
 
-    if (!shared_data->valid) {
-      Debug(3, "Linked memory not initialised by capture daemon");
+    if (!isAlive()) {
+      Debug(3, "Linked memory not initialised or stale");
       disconnect();
       return false;
     }
@@ -157,8 +163,16 @@ bool Monitor::MonitorLink::connect() {
 
     return true;
   }
-  return connected;
+  return isConnected();
 }  // end bool Monitor::MonitorLink::connect()
+
+bool Monitor::MonitorLink::isAlive() const {
+  if (!shared_data || !shared_data->valid) return false;
+  timeval now = {};
+  gettimeofday(&now, nullptr);
+  double max_delay = config.watch_max_delay > 0 ? config.watch_max_delay : 10.0;
+  return (now.tv_sec - shared_data->heartbeat_time) < max_delay;
+}
 
 bool Monitor::MonitorLink::disconnect() {
   connected = false;
@@ -218,16 +232,27 @@ bool Monitor::MonitorLink::inAlarm() {
 }
 
 int Monitor::MonitorLink::score() {
-  if (zone_id and (zone_index >= 0)) {
-    Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
-    return zone_scores[zone_index];
-  }
-
   if (shared_data->state == ALARM) {
+    if (zone_id) {
+      if (zone_index >= 0 && zone_scores) {
+        Debug(1, "Checking zone %u, zone_index is %d, score is %d", zone_id, zone_index, zone_scores[zone_index]);
+        return zone_scores[zone_index];
+      }
+      Debug(1, "Zone %u not found or no zone scores, returning 0", zone_id);
+      return 0;
+    }
     Debug(1, "Checking all zones score is %d", shared_data->last_frame_score.load());
-    return shared_data->last_frame_score;
+    // The source writes last_frame_score on every packet, so an audio packet
+    // or a frame skipped by motion detection leaves 0 while it is still in
+    // ALARM. It is alarmed: report at least 1 as ALERT does.
+    return std::max<int>(1, shared_data->last_frame_score);
   }
   if (shared_data->state == ALERT) {
+    if (zone_id && zone_index < 0) {
+      // Same as ALARM above: a zone that can't be found never triggers.
+      Debug(1, "Zone %u not found, returning 0", zone_id);
+      return 0;
+    }
     // Linked monitor's event is still open in its post-event window — motion
     // has paused but may resume. Return a sentinel so our event stays open;
     // do not latch last_frame_score, which would inflate the receiving

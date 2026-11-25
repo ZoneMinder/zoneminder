@@ -147,6 +147,9 @@ if ( $action == 'delete' ) {
     // Readonly rows are maintained by the daemons (version detection, telemetry),
     // so a posted value for one is not saved, and not counted as a change.
     if (!empty($config['Readonly'])) continue;
+    // System rows (paths the daemons execute, such as ZM_PATH_FFMPEG) are only changed in
+    // the config files, as the Options page already shows them.
+    if (!empty($config['System'])) continue;
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
       if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;

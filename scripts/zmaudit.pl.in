@@ -376,9 +376,9 @@ MAIN: while( $loop ) {
             my @contents = $Event->files();
             Debug("Have " . @contents . " files in $day_dir/$event_dir");
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -429,7 +429,11 @@ MAIN: while( $loop ) {
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
                 executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
-                $cleaned = 1;
+                if ( -e $event_dir ) {
+                  Warning("Unable to remove event directory $day_dir/$event_dir");
+                } else {
+                  $cleaned = 1;
+                }
               }
             } # end if able to find id
           } # end foreach event_dir without link

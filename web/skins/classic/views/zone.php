@@ -248,6 +248,7 @@ echo getNavBarHTML();
       </div>
       <div class="float-right pr-3 pt-1">
         <button type="button" id="saveBtn" value="Save" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>><i class="fa fa-save"></i></button>
+        <button type="button" id="undoBtn" value="Undo" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Undo') ?>" disabled="disabled"><i class="fa fa-reply"></i></button>
         <button type="button" id="resetBtn" value="Reset" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Reset') ?>" disabled="disabled"><i class="fa fa-undo"></i></button>
         <button type="button" id="cancelBtn" value="Cancel" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Cancel') ?>"><i class="fa fa-times"></i></button>
       </div>
@@ -283,7 +284,10 @@ if ( $zone['Id'] ) {
 if ( count($other_zones) ) {
   $html = '';
   foreach ( $other_zones as $other_zone ) {
-    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
+    # Percent coordinates are always written with decimals; without any they are pixels
+    $otherPoints = coordsToPoints($other_zone['Coords']) ?: array();
+    convertPixelPointsToPercent($otherPoints, $monitor->ViewWidth(), $monitor->ViewHeight(), strpos($other_zone['Coords'], '.') === false);
+    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', pointsToCoords($otherPoints));
     $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
   }
   echo $html;
@@ -358,7 +362,7 @@ if ( count($other_zones) ) {
               <div>
                 <?php # No name: it sits in the zone form, and a named field is a zone
                 # change to Reset and gets posted on Save. ?>
-                <?php echo htmlSelect('', $test_options, '', array('id'=>'zoneTestEvent',
+                <?php echo htmlSelect('', $test_options, '', array('id'=>'zoneTestEvent', 'class'=>'chosen chosen-auto-width',
                   'aria-label'=>translate('Event')) + ($test_disabled ? array('disabled'=>'disabled') : array())) ?>
                 <input type="number" id="zoneTestEventId" min="1" step="1" placeholder="<?php echo translate('ZoneTestEventId') ?>" title="<?php echo translate('ZoneTestEventIdHelp') ?>"<?php echo $test_disabled ? ' disabled' : '' ?>/>
                 <!-- A disabled button gets no hover, so the reason sits on a wrapper. -->

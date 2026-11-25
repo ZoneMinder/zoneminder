@@ -41,8 +41,11 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
           if ($filter->Background()) {
             $filter->control('stop');
           }
-          $filter->delete();
-          ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          if (!$filter->delete()) {
+            $error_message .= 'Error deleting filter: '.htmlspecialchars(dbLastError()).'<br/>';
+          } else {
+            ZM\AuditAction('delete', 'filter', $_REQUEST['Id'], 'Name: '.$filter->Name());
+          }
         } else {
           $error_message .= 'You do not have permission to delete the filter.<br/>';
         }
@@ -50,6 +53,13 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         ZM\Error('No filter id passed when deleting');
       }
     } else if (( $action == 'Save' ) or ( $action == 'SaveAs' ) or ( $action == 'execute' )) {
+      if (isset($_REQUEST['filter']['Name'])) {
+        $_REQUEST['filter']['Name'] = trim($_REQUEST['filter']['Name']);
+        if ((($action == 'Save') or ($action == 'SaveAs')) and ($_REQUEST['filter']['Name'] === '')) {
+          $error_message .= 'Filter name is required.<br/>';
+          return;
+        }
+      }
       $_REQUEST['filter']['Query']['sort_field'] = validStr($_REQUEST['filter']['Query']['sort_field']);
       $_REQUEST['filter']['Query']['sort_asc'] = validStr($_REQUEST['filter']['Query']['sort_asc']);
       $limit = validInt($_REQUEST['filter']['Query']['limit']);
@@ -62,6 +72,15 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
+      $_REQUEST['filter']['AutoTag'] = empty($_REQUEST['filter']['AutoTag']) ? 0 : 1;
+      // The tag must exist; anything else turns the action off
+      $autoTagId = $_REQUEST['filter']['AutoTagId'] ?? '';
+      if (!is_scalar($autoTagId) or !preg_match('/^[1-9][0-9]*$/', (string)$autoTagId)
+        or !dbFetchOne('SELECT Id FROM Tags WHERE Id=?', 'Id', array($autoTagId))) {
+        $autoTagId = 0;
+      }
+      $_REQUEST['filter']['AutoTagId'] = $autoTagId;
+      if (!$autoTagId) $_REQUEST['filter']['AutoTag'] = 0;
       $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
       // The view only renders this checkbox when ZM_OPT_FFMPEG is on, so leave the stored value alone otherwise
       if (ZM_OPT_FFMPEG) {
@@ -93,6 +112,12 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['Background'] = empty($_REQUEST['filter']['Background']) ? 0 : 1;
       $_REQUEST['filter']['Concurrent'] = empty($_REQUEST['filter']['Concurrent']) ? 0 : 1;
       $_REQUEST['filter']['LockRows'] = empty($_REQUEST['filter']['LockRows']) ? 0 : 1;
+      // A filter deleted in another tab would be saved here as a new one
+      if (($action == 'Save') and validCardinal($_REQUEST['Id']) and !$filter->Id()) {
+        ZM\Warning('Filter not found for save');
+        $error_message .= 'Filter not found.<br/>';
+        return;
+      }
       // Save overwrites the stored filter, so the user must be allowed to edit it as it is now,
       // not only as it would be after their changes (which could name them as the owner).
       // SaveAs and execute write a new filter, checked below with the changes applied.

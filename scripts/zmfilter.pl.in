@@ -245,6 +245,7 @@ sub getFilters {
     or `UpdateDiskSpace` = 1
     or `AutoMove` = 1
     or `AutoCopy` = 1
+    or `AutoTag` = 1
     ) ORDER BY `Name`';
   my ($sth, $res) = zmDbExecute($sql, @sql_values) or Fatal("Unable to execute '$sql'");
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
@@ -286,6 +287,7 @@ sub checkFilter {
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
           ($filter->{AutoCopy}?'copy':()),
+          ($filter->{AutoTag}?'tag':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
@@ -343,6 +345,13 @@ sub checkFilterEvent {
     Info("Unarchiving event $Event->{Id}");
     # Do it individually to avoid locking up the table for new events
     $Event->save({Archived=>0});
+  }
+  if ( $filter->{AutoTag} and $filter->{AutoTagId} ) {
+    Info("Tagging event $Event->{Id} with tag $filter->{AutoTagId}");
+    # IGNORE: the event may have been given the tag since the filter matched it
+    zmDbExecute('INSERT IGNORE INTO `Events_Tags` (`TagId`, `EventId`, `AssignedBy`) VALUES (?, ?, ?)',
+      $filter->{AutoTagId}, $Event->{Id}, $filter->{UserId});
+    zmDbExecute('UPDATE `Tags` SET `LastAssignedDate`=NOW() WHERE `Id`=?', $filter->{AutoTagId});
   }
   if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
     if ( !$Event->{Videoed} ) {
@@ -561,7 +570,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
+  my $archFile = basename($Event->Monitor()->Name()).'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
@@ -570,7 +579,10 @@ sub uploadArchFile {
         : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
     ;
-  my @archImageFiles = glob($archImagePath);
+  # Not glob(): it splits its pattern on whitespace, so a storage path with a
+  # space in it matches none of the event's files.
+  require File::Glob;
+  my @archImageFiles = File::Glob::bsd_glob($archImagePath);
   my $archLocPath;
 
   my $archError = 0;
@@ -970,8 +982,8 @@ sub substituteTags {
 
   $text =~ s/%FID%/$filter->{Id}/g;
   $text =~ s/%FN%/$filter->{Name}/g;
-  ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
-  $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;
+  # The filter view opens a saved filter by Id; it has no filter_name parameter
+  $text =~ s/%FP%/$url?view=filter&Id=$filter->{Id}/g;
 
   return $text;
 } # end substituteTags

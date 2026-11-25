@@ -37,6 +37,11 @@ class AppModel extends Model {
     foreach ($this->schema() as $field => $column) {
       if (!isset($this->data[$this->alias][$field])) continue;
       $value = $this->data[$this->alias][$field];
+      if (is_array($value) and $value) {
+        // Cake would put the word Array in the insert and MySQL would answer with an unknown column.
+        $this->invalidate($field, $field.' must be a single value');
+        continue;
+      }
       if (!is_scalar($value) or $value === '') continue;
       $value = (string)$value;
       $type = $column['type'];

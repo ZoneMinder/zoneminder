@@ -255,7 +255,7 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
         ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
-  return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+  return '<object id="'.validHtmlStr($id).'" data="'.validHtmlStr($src).'" alt="'.validHtmlStr($title).'" width="'.validHtmlStr($width).'" height="'.validHtmlStr($height).'"></object>';
 }
 
 function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
@@ -1617,6 +1617,11 @@ function getDeviceStatusX10($key) {
 }
 
 function setDeviceStatusX10($key, $status) {
+  # The socket message is "status;key", so a ';' in either would add fields to it.
+  if (!is_scalar($key) or !is_scalar($status) or preg_match('/[;\x00-\x1f]/', $key.$status)) {
+    ZM\Warning('Refused X10 command, key and command may not contain ; or control characters');
+    return 'unknown';
+  }
   $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
   if ( $socket < 0 ) {
     ZM\Fatal('socket_create() failed: '.socket_strerror($socket));
@@ -2315,7 +2320,7 @@ function html_input($name, $type='text', $value='', $options=array()) {
   $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
 
   foreach (array_keys($options) as $k) {
-    $attributes[] = $k.'="'.$options[$k].'"';
+    $attributes[] = $k.'="'.validHtmlStr($options[$k]).'"';
   }
   $html .= join(' ', $attributes);
   $html .= '/>';
@@ -2513,9 +2518,9 @@ function extract_auth_values_from_url($url) {
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
 
   // URL decode the credentials since they may contain encoded special characters
-  // from ONVIF probe or manual URL entry
-  $username = urldecode($username);
-  $password = urldecode($password);
+  // from ONVIF probe or manual URL entry. rawurldecode keeps a literal + as +.
+  $username = rawurldecode($username);
+  $password = rawurldecode($password);
 
   return array( $username, $password );
 }
@@ -2701,5 +2706,60 @@ function findVideoEventFile ($Event, $ext="*") {
     }
   }
   return $path;
+}
+
+# Builds the dnsmasq configuration text from the posted config[] array.
+# Returns false when a directive or value could run a program, include another file or start a new line.
+function dnsmasqConfText($config) {
+  if (!is_array($config)) return false;
+  $denied = [
+    'dhcp-script', 'conf-script', 'dumpfile', 'dhcp-luascript', 'conf-file', 'conf-dir', 'servers-file', 'addn-hosts',
+    'hostsdir', 'dhcp-hostsfile', 'dhcp-optsfile', 'dhcp-hostsdir', 'dhcp-optsdir', 'dhcp-leasefile',
+    'user', 'group', 'pid-file', 'log-facility', 'tftp-root',
+  ];
+  $unsafe = function($text) { return preg_match('/[\r\n\0]/', (string)$text); };
+  foreach ($config as $name=>$value) {
+    if (!preg_match('/^[a-z0-9-]+$/', (string)$name) or in_array($name, $denied)) return false;
+    if (is_array($value)) {
+      foreach ($value as $k=>$v) {
+        if ($unsafe($k) or (is_array($v) ? true : $unsafe($v))) return false;
+      }
+    } else if ($unsafe($value)) {
+      return false;
+    }
+  }
+  $conf = '';
+  foreach ($config as $name=>$value) {
+    if ($name == 'dhcp-host') {
+      foreach ($value as $mac=>$ip) {
+        $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-option') {
+      foreach ($value as $option_name=>$option_value) {
+        $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
+      }
+    } else if (
+        ($name == 'bind-interfaces')
+        or
+        ($name == 'dhcp-authoritative')
+        ) {
+      if ($value=='yes') {
+        $conf .= $name.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-range') {
+      $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
+    } else {
+      if (is_array($value)) {
+        foreach ($value as $v) {
+        }
+      } else if ($value === '') {
+        # an option without a value, e.g. no-resolv
+        $conf .= $name.PHP_EOL;
+      } else {
+        $conf .= $name.'='.$value.PHP_EOL;
+      }
+    }
+  }
+  return $conf;
 }
 ?>

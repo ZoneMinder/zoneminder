@@ -219,6 +219,12 @@ sub moveStop {
   # not implemented
 }
 
+# The web ui sends zoomStop when a continuous zoom button is released.
+sub zoomStop {
+  my $self = shift;
+  Debug( "Zoom Stop: not implemented" );
+}
+
 sub zoomConTele {
   my ($self, $params) = @_;
   my $val = defined($params->{speed}) ? $params->{speed} - 6 : -5;

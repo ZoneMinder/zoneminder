@@ -422,23 +422,28 @@ if ( $version ) {
       }
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
-          $command .= ' -S'.$portOrSocket;
+          $command .= ' -S'.shellQuote($portOrSocket);
         } else {
-          $command .= ' -h'.$host.' -P'.$portOrSocket;
+          $command .= ' -h'.shellQuote($host).' -P'.shellQuote($portOrSocket);
         }
       } else {
-        $command .= ' -h'.$host; 
+        $command .= ' -h'.shellQuote($host);
       }
       my $backup = '@ZM_TMPDIR@/'.$Config{ZM_DB_NAME}.'-'.$version.'.dump';
-      $command .= ' --add-drop-table --databases '.$Config{ZM_DB_NAME}.' > '.$backup;
+      # The dump holds password hashes and secrets: make it owner only, and never
+      # write through a file or symlink already at that name.
+      unlink($backup);
+      $command = 'set -C; '.$command.' --add-drop-table --databases '.shellQuote($Config{ZM_DB_NAME}).' > '.shellQuote($backup);
       print("Creating backup to $backup. This may take several minutes.\n");
       ($command) = $command =~ /(.*)/; # detaint
       print("Executing '$command'\n") if logDebugging();
       my ( $output, $status );
       {
         local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
+        my $oldUmask = umask(077);
         $output = qx($command);
         $status = $?;
+        umask($oldUmask);
       }
       if ( $status || logDebugging() ) {
         chomp( $output );
@@ -1045,14 +1050,14 @@ sub patchDB {
   }
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
-      $command .= ' -S'.$portOrSocket;
+      $command .= ' -S'.shellQuote($portOrSocket);
     } else {
-      $command .= ' -h'.$host.' -P'.$portOrSocket;
+      $command .= ' -h'.shellQuote($host).' -P'.shellQuote($portOrSocket);
     }
   } elsif ( $host ) {
-    $command .= ' -h'.$host;
+    $command .= ' -h'.shellQuote($host);
   }
-  $command .= ' '.$Config{ZM_DB_NAME}.' < '.$updateDir.'/zm_update-'.$version.'.sql';
+  $command .= ' '.shellQuote($Config{ZM_DB_NAME}).' < '.shellQuote($updateDir.'/zm_update-'.$version.'.sql');
 
   print("Executing '$command'\n") if logDebugging();
   ($command) = $command =~ /(.*)/; # detaint

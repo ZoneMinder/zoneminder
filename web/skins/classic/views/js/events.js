@@ -102,15 +102,17 @@ function processRows(rows) {
         '<br/><div class="small text-muted">' + archived + emailed + '</div>';
     if ( typeof canView !== 'undefined' && canView.Events ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     const notes = row.Notes || '';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    const notesTitle = notes.replace(/<br\s*\/?>/gi, '\n');
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notesTitle + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + notes + '</u></div></div></a>';
     } else if ( notes && notes != 'Forced Web: ' ) {
       row.Cause = row.Cause + '<br/><div class="small text-muted">' + notes + '</div>';
     }
-    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.Frames + '</a>';
-    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + row.AlarmFrames + '</a>';
-    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + row.MaxScore + '</a>';
+    // Frames, AlarmFrames and MaxScore are null until zmc first updates a new event
+    row.Frames = '<a href="?view=frames&amp;eid=' + eid + '">' + (row.Frames ?? 0) + '</a>';
+    row.AlarmFrames = '<a href="?view=frames&amp;eid=' + eid + '">' + (row.AlarmFrames ?? 0) + '</a>';
+    row.MaxScore = '<a href="?view=frame&amp;eid=' + eid + '&amp;fid=0">' + (row.MaxScore ?? 0) + '</a>';
     row.Location = (parseFloat(row.Latitude) || parseFloat(row.Longitude)) ? row.Latitude+', '+row.Longitude : '';
     row.DiskSpace = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.DiskSpace + '</a>';
     row.Storage = '<a href="?view=event&amp;eid=' + eid + filterQuery + sortQuery + '&amp;page=1">' + row.Storage + '</a>';

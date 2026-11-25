@@ -40,7 +40,8 @@ function changeScale() {
   }
   setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
-    if (anchor) {
+    // A disabled link has no href; setting one would make it a live link to this page.
+    if (anchor && anchor.prop('href')) {
       anchor.prop('href', anchor.prop('href').replace(/scale=[^&]*/, 'scale=' + scale));
     }
   });

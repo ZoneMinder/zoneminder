@@ -33,6 +33,8 @@ namespace ZM {
         $this->defaultVideo = $GLOBALS['test_default_video'];
       }
     }
+    public function Id() { return 7; }
+    public function canView() { return true; }
     public function DefaultVideo() { return $this->defaultVideo; }
     public function getStreamSrc($args = array(), $querySep = '&') {
       $GLOBALS['stream_src_calls'][] = array($this->id, $args, $querySep);
@@ -65,6 +67,7 @@ namespace {
   function canView($area) { return true; }
   function validJsStr($v) { return (is_null($v) or is_array($v)) ? '' : strip_tags(addslashes($v)); }
   function validInt($v) { return is_array($v) ? '' : preg_replace('/[^\-\d]/', '', $v); }
+  function validCardinal($v) { return is_scalar($v) ? preg_replace('/\D/', '', $v) : ''; }
   function translate($s) { return $s; }
   function dbFetchOne($sql, $col = null, $params = array()) {
     return array(

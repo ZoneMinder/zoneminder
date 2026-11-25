@@ -1197,6 +1197,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
+  int GetStreamReplayBuffer() const { return stream_replay_buffer; }
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
@@ -1311,6 +1312,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // True when the section_length boundary lies between two packet timestamps
   // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
   static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
+  // The reference image must be re-seeded when signal returns whenever analysis is on, whatever the recording mode.
+  static bool ReacquireNeedsRefReset(int analysing) { return analysing != ANALYSING_NONE; }
   // Alarm frames counted while in PREALARM. Per monitor: one zmc process can
   // run several monitors, whose analysis threads must not share the count.
   int PreAlarmCount() const { return pre_alarm_count_; }

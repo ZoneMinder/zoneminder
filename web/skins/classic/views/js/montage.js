@@ -334,7 +334,8 @@ function setRatioForMonitor(objStream, id=null) {
   }
 
   const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
-  if (!height) {
+  const numericHeight = Number(height);
+  if (!Number.isFinite(numericHeight) || numericHeight <= 0) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
     //console.log('good height', height, objStream);
@@ -600,17 +601,14 @@ function fullscreenchanged(event) {
 } // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
-  //Let's calculate the average Ratio value for the displayed monitors
-  let total = 0;
-  for (let i = 0; i < arrRatioMonitors.length; i++) {
-    total += arrRatioMonitors[i];
-  }
-  const avg = total / arrRatioMonitors.length;
+  // Ignore monitors without a usable size (0, NaN, Infinity), e.g. WebSite monitors with no width/height
+  const valid = arrRatioMonitors.filter((r) => Number.isFinite(r) && r > 0);
+  const avg = valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 16 / 9;
 
-  // We create an array of aspect ratios from the basic set of objects and find the closest avg Ratio value in it
+  // Closest preset ratio; presets 'auto' and 'real' have an empty value and must be skipped
   const arr = [];
   presetRatio.forEach(function(value, key) {
-    arr.push(value);
+    if (value !== '') arr.push(value);
   });
   averageMonitorsRatio = arr.reduce(function(prev, curr) {
     return (Math.abs(curr - avg) < Math.abs(prev - avg) ? curr : prev);

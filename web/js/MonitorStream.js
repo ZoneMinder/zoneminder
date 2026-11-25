@@ -1276,8 +1276,6 @@ function MonitorStream(monitorData) {
     const audioStream = this.getAVStream();
     if (!volumeSlider || !audioStream) return;
 
-    //$j('#volumeControls'+this.id).show();
-    $j('#volumeControls'+this.id).removeClass('disabled');
     if (!this.handlerEventListener['volumechange']) {
       this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
           (event) => {

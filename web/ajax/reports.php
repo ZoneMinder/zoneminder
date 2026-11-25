@@ -81,7 +81,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     $messages = array();
@@ -110,8 +110,8 @@ function deleteRequest($id) {
     $message[] = 'Report not found.';
   } else if (!$report->canEdit()) {
     $message[] = 'You do not have permission to delete report '.$report->Id();
-  } else {
-    $report->delete();
+  } else if ( !$report->delete() ) {
+    $message[] = 'Report '.$id.' could not be deleted.';
   }
   
   return $message;

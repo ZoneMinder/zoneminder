@@ -314,6 +314,12 @@ int RemoteCameraHttp::ReadData(Buffer &buffer, unsigned int bytes_expected) {
 
   Debug(4, "buffer size: %d", static_cast<int>(buffer));
 
+  if (ResponseTooLarge(buffer.size(), imagesize)) {
+    Error("Response of %d bytes is larger than any frame of %llu bytes, giving up",
+          static_cast<int>(buffer.size()), static_cast<unsigned long long>(imagesize));
+    return -1;
+  }
+
   return total_bytes_read;
 }  // end readData
 
@@ -353,6 +359,14 @@ std::string RemoteCameraHttp::QuoteRegex(const std::string &text) {
     quoted += c;
   }
   return quoted;
+}
+
+bool RemoteCameraHttp::ResponseTooLarge(unsigned long long buffered, unsigned long long image_size) {
+  // The same bound as ParseContentLength gives one frame, with room for a second one
+  // arriving behind it and for the headers. A response without a Content-Length is
+  // buffered until its end marker shows up, which an endless stream never sends.
+  constexpr unsigned long long kMaxBuffered = 1ull << 30;
+  return buffered > std::min(kMaxBuffered, 4 * image_size + 2ull * ZM_NETWORK_BUFSIZ);
 }
 
 int RemoteCameraHttp::ParseContentLength(const char *text, unsigned long long image_size) {
@@ -596,6 +610,29 @@ int RemoteCameraHttp::GetResponse() {
             bytes += bytes_read;
           }
           Debug(3, "Got end of image by length, content-length = %d", content_length);
+        } else if (mode == SINGLE_IMAGE) {
+          // No length: the image ends when the camera closes the connection.
+          const TimePoint empty_start = std::chrono::steady_clock::now();
+          while (!content_length and !zm_terminate) {
+            int buffer_len = ReadData(buffer);
+            if (buffer_len < 0) {
+              Error("Unable to read content");
+              return -1;
+            }
+            bytes += buffer_len;
+            if (buffer_len) continue;
+            content_length = buffer.size();
+            while (content_length > 0 and (buffer[content_length-1] == '\r' or buffer[content_length-1] == '\n'))
+              content_length--;
+            if (!content_length) {
+              if (zm_terminate or std::chrono::steady_clock::now() - empty_start > FPSeconds(config.watch_max_delay)) {
+                Error("Empty image body, no data received");
+                return -1;
+              }
+              std::this_thread::sleep_for(Milliseconds(100));
+            }
+          }
+          Debug(3, "Got end of image by closure, content-length = %d", content_length);
         } else {
           while (!content_length) {
             int buffer_len = GetData();

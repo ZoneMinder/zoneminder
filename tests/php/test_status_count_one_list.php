@@ -9,6 +9,11 @@
 namespace ZM {
   function Debug($m) {}
   function Error($m) {}
+  class Event {
+    public function __construct($id = null) { $this->id = $id; }
+    public function Id() { return $this->id ?: 7; }
+    public function canView() { return true; }
+  }
 }
 
 namespace {

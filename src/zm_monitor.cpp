@@ -894,8 +894,8 @@ void Monitor::LoadCamera() {
                                         port.c_str(),
                                         user.c_str(),
                                         pass.c_str(),
-                                        width,
-                                        height,
+                                        camera_width,
+                                        camera_height,
                                         colours,
                                         brightness,
                                         contrast,
@@ -1337,6 +1337,15 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  // These pointed into the mapping that is gone.
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+  video_store_data = nullptr;
+  shared_timestamps = nullptr;
+  shared_images = nullptr;
+  image_pixelformats = nullptr;
+  analysis_image_pixelformats = nullptr;
+
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
@@ -1397,7 +1406,8 @@ void Monitor::AddPrivacyBitmask() {
   for (const Zone &zone : zones) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
-        privacy_image = zm::make_unique<Image>(width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        // MaskPrivacy indexes the bitmask as y*width+x, so the rows must not be padded.
+        privacy_image = zm::make_unique<Image>(width, width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
       privacy_image->Fill(0xff, zone.GetPolygon());
@@ -2321,14 +2331,16 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
             closeEvent();
           }
-        } else if (shared_data->recording == RECORDING_ALWAYS) {
-          if (!event) {
-            if (!cause.empty()) cause += ", ";
-            cause += SIGNAL_CAUSE + std::string(": Reacquired");
-          } else {
-            event->addNote(SIGNAL_CAUSE, "Reacquired");
+        } else {
+          if (shared_data->recording == RECORDING_ALWAYS) {
+            if (!event) {
+              if (!cause.empty()) cause += ", ";
+              cause += SIGNAL_CAUSE + std::string(": Reacquired");
+            } else {
+              event->addNote(SIGNAL_CAUSE, "Reacquired");
+            }
           }
-          if (shared_data->analysing != ANALYSING_NONE) {
+          if (ReacquireNeedsRefReset(shared_data->analysing)) {
             if  (analysis_image == ANALYSISIMAGE_YCHANNEL) {
               Image *y_image = packet->get_y_image();
               if (y_image) {
@@ -4123,13 +4135,13 @@ std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_ti
 
   // Expand our own codes (%N, %Q, %f) before strftime. strftime copies unknown
   // conversions through on glibc but drops the % on BSD/macOS, so they have to
-  // be gone before it runs. When the code character is %, a literal % in an
-  // inserted value is doubled so strftime prints it as is.
+  // be gone before it runs. A literal % in an inserted value is doubled so
+  // strftime prints it as is, whichever character marks the codes.
   const char code_char = config.timestamp_code_char[0];
   const bool escape = (code_char == '%');
   auto append_value = [&](std::string &out, const std::string &value) {
     for (char c : value) {
-      if (escape && c == '%') out.push_back('%');
+      if (c == '%') out.push_back('%');
       out.push_back(c);
     }
   };
@@ -4872,6 +4884,8 @@ int Monitor::PrimeCapture() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
@@ -5045,6 +5059,8 @@ int Monitor::Play() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",

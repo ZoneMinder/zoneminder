@@ -91,22 +91,25 @@ class RolesController extends AppController {
 
       $this->pinRequestId($this->Role, null);
       $this->Role->create();
+      $id = null;
       if ($this->Role->save($this->request->data)) {
         $message = 'Saved';
+        $id = $this->Role->id;
       } else {
         $message = 'Error';
         // if there is a validation message, use it
         if (!$this->Role->validates()) {
           $message = $this->Role->validationErrors;
         }
+        $this->response->statusCode(400);
       }
     } else {
-      $message = 'Add without post data';
+      throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
-      'role'        => $this->Role,
       'message'     => $message,
-      '_serialize'  => array('message')
+      'id'          => $id,
+      '_serialize'  => array('message', 'id')
     ));
   }
 
@@ -140,6 +143,7 @@ class RolesController extends AppController {
         if (!$this->Role->validates()) {
           $message = $this->Role->validationErrors;
         }
+        $this->response->statusCode(400);
       }
     } else {
       $this->request->data = $this->Role->read(null, $id);
@@ -173,7 +177,7 @@ class RolesController extends AppController {
     if ($this->Role->delete()) {
       $message = 'The role has been deleted.';
     } else {
-      $message = 'The role could not be deleted. Please, try again.';
+      throw new InternalErrorException(__('The role could not be deleted.'));
     }
     $this->set(array(
       'message' => $message,

@@ -151,3 +151,10 @@ TEST_CASE("Monitor::MaxFPSByDropping applies only to decoder-fed cameras", "[Mon
   REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::LIBCURL, Monitor::PASSTHROUGH));
   REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::VNC, Monitor::PASSTHROUGH));
 }
+
+// After signal loss the reference image is stale. It must be re-seeded on
+// reacquire for every recording mode that analyses, not only Record.
+TEST_CASE("Monitor::ReacquireNeedsRefReset follows analysing, not recording", "[Monitor][analyse]") {
+  REQUIRE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_ALWAYS));
+  REQUIRE_FALSE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_NONE));
+}

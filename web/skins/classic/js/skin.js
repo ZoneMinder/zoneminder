@@ -1322,7 +1322,8 @@ function manageShutdownBtns(element) {
         if ( data.result == 'Error' ) {
           respText.html('<h2>Error</h2>' + data.message);
         } else if ( data.rc ) {
-          respText.html('<h2>Error</h2>' + data.output);
+          const lines = [].concat(data.output || []).map(escapeHTML);
+          respText.html('<h2>Error</h2>' + lines.join('<br/>'));
         } else {
           $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {

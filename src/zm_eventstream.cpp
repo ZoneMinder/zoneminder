@@ -1019,8 +1019,11 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
     // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
     // dimensions match (every frame of a given event), eliminating a ~2MB
     // malloc/free per streamed frame.
-    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-    return &reuse_image_;
+    if (reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB))
+      return &reuse_image_;
+    // reuse_image_ still holds the last good frame, or nothing for the first one.
+    // Treat the unreadable file as missing and try the video.
+    reuse_filepath_.clear();
   }
   if (!ffmpeg_input) return nullptr;
 
@@ -1384,6 +1387,11 @@ void EventStream::runStream() {
           }
         }
         frame_count++;
+        // frames=N asks for N frames and then the end of the stream, as MonitorStream does.
+        if (frames_to_send > 0 && frame_count >= frames_to_send) {
+          zm_terminate = true;
+          break;
+        }
       }
 
       if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()

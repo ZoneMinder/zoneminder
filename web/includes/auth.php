@@ -828,6 +828,11 @@ function userFromSession() {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
       $user = new ZM\User(dbFetchOne($sql, NULL, array($_SESSION['username'])));
+      # A password reset ends the sessions that logged in with the old password.
+      if ($user->Id() and isset($_SESSION['passwordHash']) and !hash_equals((string)$_SESSION['passwordHash'], (string)$user->Password())) {
+        ZM\Info('The password of '.$_SESSION['username'].' changed since this session logged in, ending it');
+        $user = null;
+      }
     }
   }
   return $user;
@@ -923,10 +928,9 @@ function zm_authenticate_request() {
 
   if (ZM_OPT_USE_AUTH) {
     if (!empty($_REQUEST['token'])) {
-      // we only need to get the username here
-      // don't know the token type. That will
-      // be checked later 
-      $ret = validateToken($_REQUEST['token'], 'any');
+      // Only an access token logs in to the web UI; a refresh token is for
+      // minting access tokens at host/login.
+      $ret = validateToken($_REQUEST['token'], 'access');
       if (!$ret[0]) {
         // validateToken returns array(false, $errorMessage) on failure.
         // Assigning false to $user would leave isset($user) true, bypassing

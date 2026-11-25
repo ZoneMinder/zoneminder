@@ -277,8 +277,9 @@ if ( $concat_name ) {
   # monitor/event names. The list entries are absolute paths, so its location
   # does not affect ffmpeg's resolution.
   my ($fd, $concat_list_file) = tempfile('zmconcat-XXXXXX', SUFFIX => '.concat.lst', DIR => '@ZM_TMPDIR@');
-  foreach ( @video_files ) {
-    print $fd "file '$_'\n";
+  foreach my $video_file_path ( @video_files ) {
+    ( my $escaped = $video_file_path ) =~ s/'/'\\''/g;
+    print $fd "file '$escaped'\n";
   }
   close $fd;
   # ffmpeg asks on the terminal before replacing an existing file, so say which.

@@ -654,7 +654,7 @@ class Event extends ZM_Object {
   }
 
   public function file_exists() {
-    if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return true;
     }
     if ( !defined('ZM_SERVER_ID') ) {
@@ -694,7 +694,7 @@ class Event extends ZM_Object {
   } # end public function file_exists()
 
   public function file_size() {
-    if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
     }
     if ( !defined('ZM_SERVER_ID') ) {

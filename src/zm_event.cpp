@@ -148,8 +148,10 @@ Event::Event(
                       monitor->Height(),
                       // Both come from outside the daemon: zone names (Monitors=Edit in the
                       // web UI) and the external trigger's cause and text. refs GHSA-hc5x-7jfw-r692
-                      zmDbEscapeString(cause).c_str(),
-                      zmDbEscapeString(notes).c_str(),
+                      // A trigger can cut either one in the middle of a UTF-8 character, and
+                      // MySQL refuses the insert, which the loop below would retry forever.
+                      zmDbEscapeString(Utf8Sanitize(cause)).c_str(),
+                      zmDbEscapeString(Utf8Sanitize(notes)).c_str(),
                       state_id,
                       monitor->getOrientation(),
                       0,
@@ -159,9 +161,17 @@ Event::Event(
                       monitor->Latitude(),
                       monitor->Longitude()
                     );
+  // zmDbDoInsert returns 0 on a failure it will not retry itself, so back off and give up after a few tries
+  int insert_attempts = 0;
   do {
     id = zmDbDoInsert(sql);
-  } while (!id and !zm_terminate);
+    if (id or zm_terminate) break;
+    if (++insert_attempts >= 10) {
+      Error("Unable to insert event after %d attempts", insert_attempts);
+      break;
+    }
+    sleep(1);
+  } while (true);
 
   /* None of these are crucial, and are simple when done as individual transactions */
   sql = stringtf("INSERT INTO `Events_Hour` (EventId,MonitorId,StartDateTime,DiskSpace)"
@@ -346,14 +356,16 @@ Event::~Event() {
       video_file.c_str(), // defaults to ""
       video_size,
       id);
-  zmDbDo(sql);
+  bool closed_in_db = zmDbDoUpdate(sql) > 0;
 
-  if (video_file_linked) {
+  if (video_file_linked && closed_in_db) {
     // Now that DefaultVideo=final is committed, remove the incomplete.* hard
     // link. A reader of the row before this point resolved the file under
     // either name; after it, only the final name remains.
     if (unlink(video_incomplete_path.c_str()) != 0)
       Warning("Failed unlinking %s: %s", video_incomplete_path.c_str(), strerror(errno));
+  } else if (video_file_linked) {
+    Error("Event %" PRIu64 " row was not updated, keeping %s", id, video_incomplete_path.c_str());
   }
 
   if (storage_id) {

@@ -58,6 +58,10 @@ class Monitor extends AppModel {
          'rule'       => 'notBlank',
          'message'    => 'Monitor Name must not be blank',
        ),
+       'characters' => array(
+         'rule'       => array('custom', '/^[\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]+$/u'),
+         'message'    => 'Monitor Name may only contain letters, numbers, spaces and - . ( ) : /',
+       ),
     ),
     'Width' => array(
       'rule' => array('comparison', '>', 0),
@@ -114,7 +118,7 @@ class Monitor extends AppModel {
     if ($value === null || $value === '') {
       return true;
     }
-    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
     if ($type !== 'Local') {
       return true;
     }

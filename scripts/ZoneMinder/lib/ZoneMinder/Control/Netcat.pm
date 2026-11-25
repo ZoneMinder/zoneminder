@@ -40,6 +40,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 our ($profileToken, $address, $port, $username, $password);
@@ -137,7 +141,7 @@ sub open {
 
   Debug("Using credentials for user $username");
 
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   my $res = $self->get('http://'.$address.':'.$port.'/onvif/device_service');
@@ -214,7 +218,9 @@ sub parseControlAddress {
     }
   }
   if (defined $addressport) {
-    ($address, $port) = split /:/, $addressport, 2;
+    my $p;
+    ($address, $p) = split /:/, $addressport, 2;
+    $port = $p if defined $p && length $p;
   }
 }
 

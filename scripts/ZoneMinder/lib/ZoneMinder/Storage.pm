@@ -143,8 +143,8 @@ sub bucket {
     if ($s3) {
       my $bucket = $$self{bucket} = $s3->bucket($$self{aws_bucket});
       if ( !$bucket ) {
-        Error("S3 bucket $bucket not found.");
-        die;
+        Error("S3 bucket $$self{aws_bucket} not found.");
+        return undef;
       }
     } # end if s3 
   } # end if bucket

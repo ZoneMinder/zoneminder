@@ -86,7 +86,11 @@ sub open {
   $$self{username} = 'admin' unless $$self{username};
   $$self{password} = '' unless $$self{password};
   $$self{port} = 80 unless $$self{port};
-  $$self{protocol} = 'http';
+  $$self{protocol} = ($$self{uri} and $$self{uri}->scheme eq 'https') ? 'https' : 'http';
+  if ($$self{protocol} eq 'https') {
+    # Cameras use a self-signed certificate
+    $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+  }
   
   Debug("Reolink HTTP: Using credentials for $$self{host}:$$self{port}, user: $$self{username}");
   
@@ -278,6 +282,7 @@ sub sendApiCmd {
           # rspCode -6 is 'please login first': the camera dropped our token
           # (reboot, session limit, lease cut short), whatever our own expiry says.
           $token_rejected = 1 if defined($response->[0]->{error}) and ($response->[0]->{error}->{rspCode} // 0) == -6;
+          $result = undef;
         }
       }
     };

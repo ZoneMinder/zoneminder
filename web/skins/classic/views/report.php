@@ -18,14 +18,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#if (!canView('Reports')) {
-  #$view = 'error';
-  #return;
-#} else if (!ZM_FEATURES_SNAPSHOTS) {
-  #$view = 'console';
-  #return;
-#}
-#
+if (!canView('Events')) {
+  $view = 'error';
+  return;
+}
 
 require_once('includes/Event.php');
 require_once('includes/Filter.php');
@@ -33,6 +29,10 @@ require_once('includes/Report.php');
 
 $report_id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : '';
 $report = new ZM\Report($report_id);
+if ($report_id and !$report->Id()) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Reports'));
 getBodyTopHTML();
@@ -109,6 +109,8 @@ if (count($user->unviewableMonitorIds())) {
 }
 $events = $filter->Events();
 foreach ($events as $event) {
+  // The filter's own terms can use OR, which the monitor term added above does not restrict.
+  if (!$event->canView()) continue;
   echo 'events[events.length] = '.$event->to_json().PHP_EOL;
 }
 ?>

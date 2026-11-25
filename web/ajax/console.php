@@ -23,7 +23,8 @@ if ( canEdit('Monitors') ) {
   switch ( $_REQUEST['action'] ) {
   case 'sort' :
   {
-    saveMonitorSequence($_POST['monitor_ids']);
+    if ( ! saveMonitorSequence($_POST['monitor_ids']) )
+      ajaxError('Unable to save the monitor order: '.dbLastError());
     return;
   } // end case sort
   default:
@@ -44,6 +45,7 @@ function saveMonitorSequence($monitor_ids) {
   # LOCK TABLES commits any open transaction, so there is none to commit here.
   $dbConn = zmDbConn();
   $dbConn->exec('LOCK TABLES Monitors WRITE');
+  $ok = true;
   try {
     $ids = array();
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
@@ -51,6 +53,10 @@ function saveMonitorSequence($monitor_ids) {
       $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
       if ( ( !$monitor_id ) or ! ( is_integer($monitor_id) or ctype_digit($monitor_id) ) ) {
         \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);
+        continue;
+      }
+      if ( !editableMonitor($monitor_id) ) {
+        \ZM\Warning('Not allowed to edit monitor '.$monitor_id.', skipping it in the sort');
         continue;
       }
       $ids[] = $monitor_id;
@@ -63,28 +69,41 @@ function saveMonitorSequence($monitor_ids) {
         $sequences = range($first, $first + count($ids) - 1);
       }
       foreach ( $ids as $i => $monitor_id ) {
-        dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id));
+        if ( ! dbQuery('UPDATE Monitors SET Sequence=? WHERE Id=?', array($sequences[$i], $monitor_id)) ) {
+          $ok = false;
+          break;
+        }
       }
     }
   } finally {
     $dbConn->exec('UNLOCK TABLES');
   }
+  return $ok;
 }
 
 // The legacy Function column is skipped: nothing maintains it any more.
 function monitorMatchesSearch($monitor, $search) {
-  foreach (array('Name', 'Path', 'Device', 'Host', 'Id', 'Status') as $field) {
+  foreach (array('Name', 'Device', 'Id', 'Status') as $field) {
     if (isset($monitor[$field]) && stripos($monitor[$field], $search) !== false)
       return true;
   }
-  return false;
+  // The raw Host and Path hold credentials: match what the Source column shows, as the Source filter does.
+  $Monitor = new ZM\Monitor($monitor);
+  return stripos($Monitor->Source(), $search) !== false || stripos(pathWithoutQuery($Monitor->Path()), $search) !== false;
+}
+
+// Cameras often take credentials as query parameters (user=, pwd=), and Path()
+// only strips user:pass@, so match the path without its query string.
+function pathWithoutQuery($path) {
+  $cut = strcspn((string)$path, '?#');
+  return substr((string)$path, 0, $cut);
 }
 
 // The Source filter matches what the Source column shows, or the Path, as the
 // filter bar does. The raw Host holds credentials and hides the port.
 function monitorMatchesSource($monitor, $regexp) {
   $Monitor = new ZM\Monitor($monitor);
-  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, $Monitor->Path());
+  return preg_match($regexp, $Monitor->Source()) || preg_match($regexp, pathWithoutQuery($Monitor->Path()));
 }
 
 // Source, Server, Storage and Function are display values, not row columns.
@@ -124,8 +143,8 @@ function queryRequest() {
   // Get pagination parameters
   $offset = 0;
   if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
-    if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-      ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+    if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+      ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
     } else {
       $offset = $_REQUEST['offset'];
     }
@@ -133,8 +152,8 @@ function queryRequest() {
   
   $limit = 0;
   if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
-    if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-      ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+    if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+      ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
     } else {
       $limit = $_REQUEST['limit'];
     }
@@ -673,6 +692,17 @@ function queryRequest() {
   return $data;
 }
 
+// Remove camera credentials from an exported monitor for users who cannot edit it.
+function exportStripCredentials(array $data) {
+  unset($data['User'], $data['Pass'], $data['ONVIF_Username'], $data['ONVIF_Password']);
+  foreach (array('Host', 'Path', 'SecondPath', 'ControlAddress', 'ONVIF_URL') as $field) {
+    if (isset($data[$field])) {
+      $data[$field] = ZM\removeUserinfo($data[$field]);
+    }
+  }
+  return $data;
+}
+
 function exportMonitorsJSON() {
   require_once('includes/Monitor.php');
   require_once('includes/Zone.php');
@@ -741,6 +771,10 @@ function exportMonitorsJSON() {
         unset($zone_data[$field]);
       }
       $monitor_data['Zones'][] = $zone_data;
+    }
+
+    if (!editableMonitor($db_row['Id'])) {
+      $monitor_data = exportStripCredentials($monitor_data);
     }
 
     $export['monitors'][] = $monitor_data;

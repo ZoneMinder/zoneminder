@@ -22,7 +22,11 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
-var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+// Seconds per frame for video.js frame stepping, from the event as it is now. Without a usable frame count (an event still recording has none) assume 25 fps.
+function frameSeconds() {
+  const spf = parseFloat(eventData.Length) / parseFloat(eventData.Frames);
+  return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
+}
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
@@ -426,7 +430,8 @@ function changeRate() {
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
-          clearInterval(intervalRewind);
+          // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+          stopFastRev();
           vid.pause();
         } else {
           vid.playbackRate(0);
@@ -673,7 +678,7 @@ function streamFastFwd(action) {
 
 function streamSlowFwd(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + frameSeconds());
   } else {
     streamReq({command: CMD_SLOWFWD});
   }
@@ -681,7 +686,7 @@ function streamSlowFwd(action) {
 
 function streamSlowRev(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() - spf);
+    vid.currentTime(vid.currentTime() - frameSeconds());
   } else {
     streamReq({command: CMD_SLOWREV});
   }
@@ -733,7 +738,8 @@ function streamFastRev(action) {
     setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
-        clearInterval(intervalRewind);
+        // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+        stopFastRev();
         vid.pause();
       } else {
         vid.playbackRate(0);
@@ -1533,8 +1539,8 @@ function getStat() {
         tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
+        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData[key] ?? 0) + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData['AlarmFrames'] ?? 0) + '</a>';
         break;
       //case 'AlarmFrames':
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1565,7 +1571,7 @@ function getStat() {
       //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
       //  break;
       case 'Score':
-        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
+        tdString = 'Total:' + (eventData['TotScore'] ?? 0) + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + (eventData['MaxScore'] ?? 0) + '</a>' + ' Avg:' + (eventData['AvgScore'] ?? 0);
         break;
       case 'n/a':
         tdString = 'n/a';
@@ -1775,6 +1781,9 @@ function initPage() {
     console.log('changescale');
     changeScale();
   }
+  // Now that the player has its size, put back the zoom remembered for this
+  // monitor.
+  restoreEventZoom();
   console.log('changeStreamQality');
   changeStreamQuality();
 
@@ -2321,10 +2330,32 @@ function fullscreenClicked() {
   }
 }
 
+// The PanZoom zoom level is remembered per monitor, like the video scale, so
+// reviewing the same detail across a camera's events does not mean zooming in
+// again on every event. Only the scale is kept, never the pan position.
+// Panning fires panzoomchange too, so only write the cookie when the level changes.
+let storedEventZoom = null;
+function storeEventZoom(scale) {
+  const value = scale.toFixed(1);
+  if (value === storedEventZoom) return;
+  storedEventZoom = value;
+  setCookie('zmEventZoom' + domMonitorId(), value);
+}
+
+function restoreEventZoom() {
+  if (typeof panZoomEnabled === 'undefined' || !panZoomEnabled) return;
+  const stored = parseFloat(getCookie('zmEventZoom' + domMonitorId()));
+  if (!(stored > 1)) return;
+  const panZoom = zmPanZoom.panZoom && zmPanZoom.panZoom[domMonitorId()];
+  if (panZoom) panZoom.zoom(stored, {animate: false});
+}
+
 // Keeps the Zoom readout on the PanZoom scale, including for video.js events
-// where no zms status arrives to refresh it.
+// where no zms status arrives to refresh it. Every zoom path (buttons, wheel,
+// pinch) ends in a panzoomchange, so this is also where the level is stored.
 function panZoomEventPanzoomchange(event) {
   $j('#zoomValue').html(event.detail.scale.toFixed(1));
+  storeEventZoom(event.detail.scale);
 }
 
 function panZoomIn(el) {

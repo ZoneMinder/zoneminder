@@ -97,6 +97,8 @@ class VideoStream {
   // Convert image into out as a packed (align 1) buffer of pf at width x height,
   // reusing *context. An image of another shape is fitted inside, keeping its
   // aspect ratio, on black. Returns false if the conversion could not be set up.
+  // Point pkt at frame's packed picture data, for the rawvideo format.
+  static void SetRawPacket(AVPacket *pkt, const AVFrame *frame);
   static void FillBlack(AVPixelFormat pf, int height, uint8_t *data[4], const int linesize[4]);
   static bool PackImage(const Image &image, AVPixelFormat pf, int width, int height,
                         std::vector<uint8_t> &out, SwsContext **context);

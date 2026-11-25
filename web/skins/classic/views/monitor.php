@@ -27,6 +27,12 @@ if (!canEdit('Monitors', empty($_REQUEST['mid'])?0:$_REQUEST['mid'])) {
   $view = 'error';
   return;
 }
+// A clone copies the source monitor's settings, credentials included, so the
+// user needs the same permission on the source as for editing it.
+if (isset($_REQUEST['dupId']) and !canEdit('Monitors', validCardinal($_REQUEST['dupId']))) {
+  $view = 'error';
+  return;
+}
 
 $Server = null;
 if (defined('ZM_SERVER_ID')) {
@@ -105,7 +111,8 @@ if (isset($_REQUEST['newMonitor'])) {
     monitorFillUncheckedFields($_REQUEST['newMonitor']) : $_REQUEST['newMonitor']);
 
   if (ZM_OPT_X10)
-    $newX10Monitor = $_REQUEST['newX10Monitor'];
+    $newX10Monitor = (isset($_REQUEST['newX10Monitor']) and is_array($_REQUEST['newX10Monitor'])) ?
+      $_REQUEST['newX10Monitor'] + $x10Monitor : $x10Monitor;
 } else {
   if (ZM_OPT_X10)
     $newX10Monitor = $x10Monitor;
@@ -1182,7 +1189,7 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
             <li class="settingsGroup"><?php echo translate('OtherAnalysisSettings') ?></li>
             <li class="LinkedMonitors">
               <label><?php echo translate('LinkedMonitors'); echo makeHelpLink('OPTIONS_LINKED_MONITORS') ?></label>
-              <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo $monitor->LinkedMonitors() ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
+              <input type="text" name="newMonitor[LinkedMonitors]" value="<?php echo validHtmlStr($monitor->LinkedMonitors()) ?>" data-on-input="updateLinkedMonitorsUI"/><br/>
               <div id="LinkedMonitorsUI"></div>
             </li>
             <li id="function_use_Amcrest_API" class="use_Amcreat_API">
@@ -1437,7 +1444,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="FunctionJanusProfileOverride">
               <label><?php echo translate('Janus Profile-ID Override') ?></label>
-              <input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo $monitor->Janus_Profile_Override()?>"/>
+              <input type="text" name="newMonitor[Janus_Profile_Override]" value="<?php echo validHtmlStr($monitor->Janus_Profile_Override()) ?>" maxlength="30"/>
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_PROFILE_OVERRIDE']['Help'].'</div>';
@@ -1446,7 +1453,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
             </li>
             <li id="FunctionJanusRTSPSessionTimeout">
               <label><?php echo translate('Janus RTSP Session Timeout Override') ?></label>
-              <input type="text" name="newMonitor[Janus_RTSP_Session_Timeout]" value="<?php echo $monitor->Janus_RTSP_Session_Timeout()?>"/>
+              <input type="text" name="newMonitor[Janus_RTSP_Session_Timeout]" value="<?php echo validHtmlStr($monitor->Janus_RTSP_Session_Timeout()) ?>"/>
 <?php
   if ( isset($OLANG['FUNCTION_JANUS_RTSP_SESSION_TIMEOUT']) ) {
     echo '<div class="form-text">'.$OLANG['FUNCTION_JANUS_RTSP_SESSION_TIMEOUT']['Help'].'</div>';
@@ -1514,7 +1521,7 @@ $codecs = array(
             </li>
             <li>
 <?php
-  $stream_available = canView('Stream') and $monitor->Type()=='WebSite' or ($monitor->CaptureFPS() && $monitor->Capturing() != 'None');
+  $stream_available = canView('Stream') && ($monitor->Type()=='WebSite' || ($monitor->CaptureFPS() && $monitor->Capturing() != 'None'));
   $options = array();
 
   $ratio_factor = $monitor->ViewWidth() ? $monitor->ViewHeight() / $monitor->ViewWidth() : 1;
@@ -1949,7 +1956,7 @@ echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnL
         </li>
         <li>
           <label class="MQTT_Subscriptions"><?php echo translate('MQTT Subscriptions') ?></label>
-          <input type="text" name="newMonitor[MQTT_Subscriptions]" value="<?php echo $monitor->MQTT_Subscriptions() ?>" />
+          <input type="text" name="newMonitor[MQTT_Subscriptions]" value="<?php echo validHtmlStr($monitor->MQTT_Subscriptions()) ?>" />
         </li>
 <?php
     break;

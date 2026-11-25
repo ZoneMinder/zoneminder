@@ -161,7 +161,8 @@ sub ensure_ptz_object {
   my $self = shift;
   return $self->{ptz_object} if defined $self->{ptz_object};
   my $r = $self->rpc_call('ptz.factory.instance', { channel => 0 });
-  $self->{ptz_object} = ($r && defined $r->{result}) ? $r->{result} : undef;
+  # A refusal is "result": false with an error, which is defined but not a handle.
+  $self->{ptz_object} = ($r && defined $r->{result} && !JSON::MaybeXS::is_bool($r->{result})) ? $r->{result} : undef;
   Error('Dahua_RPC: failed to create ptz instance') if !defined $self->{ptz_object};
   return $self->{ptz_object};
 }

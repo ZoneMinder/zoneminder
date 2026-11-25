@@ -369,7 +369,10 @@ function initPage() {
   // link. Controls inside the row keep their own click behaviour.
   table.on('dbl-click-row.bs.table', function(evt, row) {
     if ($j(evt.target).closest('a, button, input, select, textarea, label').length) return;
-    window.location.assign('?view=event&eid=' + strip_html(row.Id) + filterQuery + sortQuery + '&page=1');
+    // row.Id holds the Id link's markup; only its number goes into the URL.
+    const eid = parseInt(strip_html(row.Id), 10);
+    if (!eid) return;
+    window.location.assign('?view=event&eid=' + eid + filterQuery + sortQuery + '&page=1');
   });
 
   // Hide these columns on first run when no cookie is saved

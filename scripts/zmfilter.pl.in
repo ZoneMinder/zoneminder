@@ -973,8 +973,8 @@ sub substituteTags {
 
   $text =~ s/%FID%/$filter->{Id}/g;
   $text =~ s/%FN%/$filter->{Name}/g;
-  ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
-  $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;
+  # The filter view opens a saved filter by Id; it has no filter_name parameter
+  $text =~ s/%FP%/$url?view=filter&Id=$filter->{Id}/g;
 
   return $text;
 } # end substituteTags

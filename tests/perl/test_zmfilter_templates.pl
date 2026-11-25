@@ -89,6 +89,12 @@ sub event {
     $text eq 'first=http://zm/index.php?view=frame&mid=1&eid=1&fid=3 max=http://zm/index.php?view=frame&mid=1&eid=1&fid=4', $text);
 }
 
+# %FP% opens the filter that matched; the filter view only takes an Id
+{
+  my $text = ZF::substituteTags('%FP%', $filter);
+  check('%FP% links to the filter by its Id', $text eq 'http://zm/index.php?view=filter&Id=7', $text);
+}
+
 # Summary email
 {
   my $body_tpl = "<html>head %FN%\n%SUMMARY%<p>%EN% %EI%</p>\n%SUMMARY%tail %FN% %FP%</html>";
@@ -104,7 +110,7 @@ sub event {
   my $body = $ZF::sent[0]{body} // '';
   check('events already emailed are left out', ($body !~ /two/ && $body =~ /one/ && $body =~ /three/) ? 1 : 0, $body);
   check('events already emailed are not saved again', "@ZF::saved" eq '1 3', "@ZF::saved");
-  check('text after the summary part gets its tags', scalar($body =~ /tail my filter http:\/\/zm\/index\.php\?view=filter&filter_name=my\+filter/), $body);
+  check('text after the summary part gets its tags', scalar($body =~ /tail my filter http:\/\/zm\/index\.php\?view=filter&Id=7/), $body);
   check('no tag is left in the body', scalar($body !~ /%[A-Z0-9]+%/), $body);
 
   @ZF::sent = ();

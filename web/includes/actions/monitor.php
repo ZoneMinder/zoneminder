@@ -100,6 +100,21 @@ if ($action == 'save') {
 
   $monitor = new ZM\Monitor($mid);
 
+  # Refuse an Ffmpeg source path with no protocol. ffmpeg then fails in
+  # avformat_open_input with "Protocol not found" and zmdc restarts zmc in a
+  # loop without pointing at the field. Absolute paths and ffmpeg's scheme-less
+  # v4l2: form are valid, so allow those.
+  $type = isset($newMonitor['Type']) ? $newMonitor['Type'] : $monitor->Type();
+  if ($type == 'Ffmpeg') {
+    $path = array_key_exists('Path', $newMonitor) ? $newMonitor['Path'] : $monitor->Path();
+    if ($path !== null and $path !== '' and strpos($path, '://') === false and
+        substr($path, 0, 1) !== '/' and stripos($path, 'v4l2:') !== 0) {
+      $error_message .= translate('BadFfmpegPathProtocol').'</br>';
+      ZM\Warning('Refused to save monitor '.$mid.': Source Path must start with a protocol such as rtsp://');
+      return;
+    }
+  }
+
   // Define a field type for anything that's not simple text equivalent
   $types = monitorFormUncheckedDefaults();
 

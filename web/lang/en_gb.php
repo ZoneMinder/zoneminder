@@ -164,6 +164,7 @@ $SLANG = array(
     'BadDevice'             => 'Device must be set to a valid value',
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFfmpegOptions'      => 'Source -> Options must be key=value pairs separated by commas or new lines, such as tls_verify=0. Write ffmpeg command line flags like -tls_verify 0 without the dash and with =. Could not use:',
+    'BadFfmpegPathProtocol' => 'Source -> Path must start with a protocol such as rtsp://, or be an absolute file path.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',

@@ -286,6 +286,20 @@ class AppController extends Controller {
     }
   }
 
+  # Throw unless the user may edit every event in $eventIds, which includes its monitor.
+  protected function requireEventsEdit($eventIds) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    foreach (array_unique($eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if (!$event->Id()) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      if (!$event->canEdit()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
   # Drop the events on monitors the user may not view from a row's contained Event list.
   protected function filterContainedEvents($row, $key = 'Event') {
     $condition = $this->viewableMonitorCondition('MonitorId');

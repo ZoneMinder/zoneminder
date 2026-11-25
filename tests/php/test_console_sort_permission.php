@@ -51,6 +51,7 @@ namespace {
   function dbQuery($sql, $params = null) {
     global $updates;
     $updates[] = $params;
+    return true;
   }
   function editableMonitor($mid) { return $mid != 2; }
 

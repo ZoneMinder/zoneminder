@@ -173,7 +173,6 @@ $known = array(
   'web/skins/classic/views/_options_dnsmasq.php $cfg = ... or',
   'web/skins/classic/views/filter.php $canSave = ... or',
   'web/skins/classic/views/filter.php $canDelete = ... and',
-  'web/skins/classic/views/monitor.php $stream_available = ... and',
 );
 
 $offenders = array();

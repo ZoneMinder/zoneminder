@@ -154,7 +154,8 @@ int RemoteCameraHttp::Connect() {
   if (!hp) {
     RemoteCamera::Initialise();
     if (!hp) {
-      Error("Unable to resolve address for remote camera, aborting");
+      Error("Monitor %u: unable to resolve the camera address %s port %s, aborting",
+          monitor->Id(), host.c_str(), port.c_str());
       return -1;
     }
   }
@@ -185,7 +186,8 @@ int RemoteCameraHttp::Connect() {
   }
 
   if ( p == nullptr ) {
-    Error("Unable to connect to the remote camera, aborting");
+    Error("Monitor %u: unable to connect to the camera at %s port %s, aborting",
+        monitor->Id(), host.c_str(), port.c_str());
     return -1;
   }
 
@@ -428,7 +430,8 @@ int RemoteCameraHttp::GetResponse() {
 
           if ( status_code == 401 ) {
             if ( mNeedAuth ) {
-              Error( "Failed authentication: " );
+              Error("Monitor %u: the camera at %s refused the login for user '%s' (401). Check the monitor Username and Password",
+                  monitor->Id(), host.c_str(), username.c_str());
               return( -1 );
             }
             mNeedAuth = true;
@@ -833,11 +836,13 @@ int RemoteCameraHttp::GetResponse() {
 
           if (status == 401) {
             if (mNeedAuth) {
-              Error("Failed authentication");
+              Error("Monitor %u: the camera at %s refused the login for user '%s' (401). Check the monitor Username and Password",
+                  monitor->Id(), host.c_str(), username.c_str());
               return -1;
             }
             if (!authenticate_header) {
-              Error("Failed authentication, but don't have an authentication header.");
+              Error("Monitor %u: the camera at %s asked for a login (401) without a WWW-Authenticate header",
+                  monitor->Id(), host.c_str());
               return -1;
             }
             mNeedAuth = true;

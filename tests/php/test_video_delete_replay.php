@@ -18,6 +18,7 @@ namespace ZM {
     function Width() { return 640; }
     function Height() { return 480; }
     function DefaultVideo() { return ''; }
+    function canView($u=null) { return true; }
   }
   class Monitor {
     function DefaultRate() { return 100; }

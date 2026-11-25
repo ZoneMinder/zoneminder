@@ -318,6 +318,10 @@ function buildControlCommand($monitor) {
 
       $halfWidth = $monitor->ViewWidth() / 2;
       $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
@@ -413,6 +417,10 @@ function buildControlCommand($monitor) {
 
       $halfWidth = $monitor->ViewWidth() / 2;
       $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 

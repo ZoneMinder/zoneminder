@@ -103,6 +103,7 @@ getBodyTopHTML();
       <table
         id="AddMonitorsTable"
         data-locale="<?php echo i18n() ?>"
+        data-escape="true"
         data-ajax="ajaxRequest"
         data-pagination="false"
         data-show-pagination-switch="false"
@@ -145,8 +146,8 @@ data-min-width="562"
               <th data-sortable="true" data-field="camera.monitor.Height" class="Height"><?php echo translate('Height') ?></th>
               <th data-sortable="true" data-field="camera.Codec" class="Codec"><?php echo translate('Codec') ?></th>
               <th data-sortable="true" data-field="Monitor.Name" class="MonitorName"><?php echo translate('Monitor') ?></th>
-              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;" class="Thumbnail"><?php echo translate('Thumbnail') ?></th>
-              <th data-sortable="false" data-field="buttons"><?php echo translate('Add').' / '.translate('Edit') ?></th>
+              <th data-sortable="false" data-field="Thumbnail" data-escape="false" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;" class="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="false" data-field="buttons" data-escape="false"><?php echo translate('Add').' / '.translate('Edit') ?></th>
             </tr>
           </thead>
 

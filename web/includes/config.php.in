@@ -329,8 +329,9 @@ function loadConfig( $defineConsts=true ) {
   # What is left exists only in zm.conf / conf.d: database credentials, paths and the
   # like. Those have no Private column, and consumers such as skin.js.php export every
   # entry that is not marked Private to the browser, so mark them Private unless they
-  # are known to be needed client side. refs GHSA-jv9c-pg2m-5m6m
-  $public_file_config = array('ZM_DIR_SOUNDS');
+  # are known to be needed client side. ZM_PATH_ZMS is the URL path API clients
+  # build stream URLs from. refs GHSA-jv9c-pg2m-5m6m, #8237
+  $public_file_config = array('ZM_DIR_SOUNDS', 'ZM_PATH_ZMS');
   foreach ($initial_config as $name => $c) {
     unset($initial_config[$name]['File']); # the API returns these entries whole
     if (!isset($initial_config[$name]['Private']))

@@ -682,6 +682,17 @@ function queryRequest() {
   return $data;
 }
 
+// Remove camera credentials from an exported monitor for users who cannot edit it.
+function exportStripCredentials(array $data) {
+  unset($data['User'], $data['Pass'], $data['ONVIF_Username'], $data['ONVIF_Password']);
+  foreach (array('Host', 'Path', 'SecondPath', 'ControlAddress', 'ONVIF_URL') as $field) {
+    if (isset($data[$field])) {
+      $data[$field] = ZM\removeUserinfo($data[$field]);
+    }
+  }
+  return $data;
+}
+
 function exportMonitorsJSON() {
   require_once('includes/Monitor.php');
   require_once('includes/Zone.php');
@@ -750,6 +761,10 @@ function exportMonitorsJSON() {
         unset($zone_data[$field]);
       }
       $monitor_data['Zones'][] = $zone_data;
+    }
+
+    if (!editableMonitor($db_row['Id'])) {
+      $monitor_data = exportStripCredentials($monitor_data);
     }
 
     $export['monitors'][] = $monitor_data;

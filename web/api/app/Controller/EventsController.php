@@ -392,6 +392,9 @@ class EventsController extends AppController {
       return;
     }
 
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ( $this->request->is('post') ) {
       $monitorId = $this->requestField('Event', 'MonitorId');
       if ($monitorId === null) {

@@ -7,6 +7,7 @@ var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
+var streamPrepareInterval = null;
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
@@ -887,14 +888,18 @@ function streamPrepareStart(monitor=null) {
     el.addEventListener('mouseleave', handleMouseLeave);
   }
 
-  const i = setInterval(function() {
+  // One poller per page: a monitor switch calls this again before the last
+  // stream appeared, and that poller would otherwise run forever.
+  if (streamPrepareInterval) clearInterval(streamPrepareInterval);
+  streamPrepareInterval = setInterval(function() {
     const livestream = document.querySelector('[id ^= "liveStream"]');
 
     if (!livestream) {
       console.log("No id matching liveStream");
     } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
-      clearInterval(i);
+      clearInterval(streamPrepareInterval);
+      streamPrepareInterval = null;
       document.getElementById('monitor').classList.remove('hidden-shift');
       monitorsSetScale(monitorId);
     }

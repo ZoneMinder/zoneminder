@@ -237,7 +237,15 @@ function getMenuKeyHrefMap() {
 // MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
 function menuItemEffectiveLink($item) {
   $link = $item->Link();
-  if ($link !== null && $link !== '') return $link;
+  if ($link !== null && $link !== '') {
+    // Browsers ignore whitespace and control characters inside a scheme, so
+    // look at the link without them. Only http(s) may carry a scheme, as a
+    // javascript: or data: link would run script in the session of whoever
+    // clicks it.
+    $bare = preg_replace('/[\x00-\x20]+/', '', $link);
+    if (!preg_match('/^[a-z][a-z0-9+.\-]*:/i', $bare) or preg_match('/^https?:/i', $bare)) return $link;
+    $link = null;
+  }
   $map = getMenuKeyHrefMap();
   $key = $item->MenuKey();
   return isset($map[$key]) ? $map[$key] : '?view='.$key;

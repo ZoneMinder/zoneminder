@@ -26,6 +26,21 @@ class TagsController extends AppController {
   }
 
 /**
+ * Adds to each tag the number of its events on monitors the caller may view.
+ *
+ * @param array $tags          Tag rows from the tag find.
+ * @param array $visibleCounts Tag Id => events on monitors the caller may view.
+ * @return array
+ */
+	protected function tagEventCounts(array $tags, array $visibleCounts) {
+		foreach ( $tags as &$tag ) {
+			$tagId = $tag['Tag']['Id'];
+			$tag['Tag']['Events'] = isset($visibleCounts[$tagId]) ? (int)$visibleCounts[$tagId] : 0;
+		}
+		return $tags;
+	}
+
+/**
  * index method
  *
  * @return void
@@ -53,6 +68,34 @@ class TagsController extends AppController {
       'contain'=> [],
     );
 
+    # Each tag's event count, from one grouped query, counting only events on
+    # monitors the caller may view. The tag list itself stays unrestricted.
+    global $user;
+    $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
+    $count_rows = $this->Tag->find('all', array(
+      'recursive' => -1,
+      'fields' => array('Tag.Id', 'COUNT(Events.Id) AS VisibleEvents'),
+      'joins' => array(
+        array(
+          'table' => 'Events_Tags',
+          'alias' => 'Events_Tags',
+          'type'  => 'inner',
+          'conditions' => array('Events_Tags.TagId = Tag.Id'),
+        ),
+        array(
+          'table' => 'Events',
+          'alias' => 'Events',
+          'type'  => 'inner',
+          'conditions' => array_merge(array('Events.Id = Events_Tags.EventId'), $monitorCondition),
+        ),
+      ),
+      'group' => array('Tag.Id'),
+    ));
+    $visibleCounts = array();
+    foreach ( $count_rows as $row ) {
+      $visibleCounts[$row['Tag']['Id']] = (int)$row[0]['VisibleEvents'];
+    }
+
     if (isset($conditions['Events.Id'])) {
       // Support comma-separated Event IDs for querying tags across multiple events
       $event_id_value = $conditions['Events.Id'];
@@ -79,14 +122,13 @@ class TagsController extends AppController {
       # monitor-restricted user cannot confirm which tags attach to events on
       # cameras they are denied. The plain tag list (no Events.Id filter) is a
       # global label vocabulary and is intentionally left unrestricted.
-      global $user;
-      $monitorCondition = $this->viewableMonitorCondition('Events.MonitorId');
       if ( count($monitorCondition) ) {
         $conditions[] = $monitorCondition;
       }
     }
 
 		$tags = $this->Tag->find('all', $find_array);
+		$tags = $this->tagEventCounts($tags, $visibleCounts);
 		$this->set(array(
 			'tags' => $tags,
 			'_serialize' => array('tags')

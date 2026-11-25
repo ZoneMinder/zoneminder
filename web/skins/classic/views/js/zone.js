@@ -3,6 +3,10 @@ var playBtn = $j('#playBtn');
 var saveBtn = $j('#saveBtn');
 var cancelBtn = $j('#cancelBtn');
 var resetBtn = $j('#resetBtn');
+var undoBtn = $j('#undoBtn');
+var undoStack = [];
+var maxUndoStack = 50;
+var undoInput = null; // the point input whose edit already has an undo step
 var initialState = null; // normalised snapshot of form values taken on load, for change detection
 var initialValues = null; // raw form values as loaded, for restoring on reset
 var initialPoints = null; // snapshot of zone['Points'] taken on load
@@ -467,6 +471,7 @@ function updateActivePoint(index, position) {
 } // end function updateActivePoint(index)
 
 function addPoint(index) {
+  pushUndo();
   var nextIndex = index+1;
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
@@ -483,9 +488,50 @@ function addPoint(index) {
 }
 
 function delPoint(index) {
+  pushUndo();
   zone['Points'].splice(index, 1);
   drawZonePoints();
   updateArea();
+}
+
+/* Keeps deep copies of the points so an edit can be rolled back */
+function pushUndo() {
+  undoInput = null;
+  undoStack.push(JSON.parse(JSON.stringify(zone['Points'])));
+  if ( undoStack.length > maxUndoStack ) {
+    undoStack.shift();
+  }
+  updateUndoButton();
+}
+
+// The point inputs update on every keystroke; typing one value is one step.
+function pushUndoForInput(input) {
+  if ( undoInput === input ) return;
+  pushUndo();
+  undoInput = input;
+}
+
+function updateUndoButton() {
+  undoBtn.prop('disabled', undoStack.length === 0);
+}
+
+function undo() {
+  if ( undoStack.length === 0 ) return;
+  zone['Points'] = undoStack.pop();
+  undoInput = null;
+  drawZonePoints();
+  updateArea();
+  updateUndoButton();
+}
+
+function handleUndoKeydown(event) {
+  const key = (event.key || '').toLowerCase();
+  if ( !((event.ctrlKey || event.metaKey) && key === 'z') ) return;
+  const target = event.target || {};
+  const tag = (target.tagName || '').toUpperCase();
+  if ( tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ) return;
+  event.preventDefault();
+  undo();
 }
 
 function limitPointValue(point, loVal, hiVal) {
@@ -505,6 +551,7 @@ function updateX(input) {
 
   // Empty while the value is being retyped; keep the point where it is
   if ( input.value === '' ) return;
+  pushUndoForInput(input);
   limitPointValue(input, 0, maxX);
 
   const point = $j('#point'+index);
@@ -523,6 +570,7 @@ function updateX(input) {
 function updateY(input) {
   const index = input.getAttribute('data-point-index');
   if ( input.value === '' ) return;
+  pushUndoForInput(input);
   limitPointValue(input, 0, maxY);
 
   const point = $j('#point'+index);
@@ -578,6 +626,7 @@ function checkDirty() {
 function resetChanges() {
   const form = document.zoneForm;
   // drawZonePoints re-creates the point inputs, so they are not restored here
+  pushUndo();
   zone['Points'] = JSON.parse(JSON.stringify(initialPoints));
   drawZonePoints();
 
@@ -638,7 +687,10 @@ function drawZonePoints() {
     $j(imageFeed).append(div);
 
     div.draggable({
-      'start': setActivePoint.bind(i, i),
+      'start': function() {
+        pushUndo();
+        setActivePoint(i);
+      },
       'stop': fixActivePoint.bind(i, i),
       'drag': function(event, ui) {
         clampDragPosition(ui.position, imageFeed.clientWidth, imageFeed.clientHeight);
@@ -875,6 +927,13 @@ function initPage() {
   if ( el = resetBtn[0] ) {
     el.onclick = resetChanges;
   }
+
+  if ( el = undoBtn[0] ) {
+    el.onclick = undo;
+  }
+  updateUndoButton();
+
+  document.addEventListener('keydown', handleUndoKeydown);
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {

@@ -248,6 +248,7 @@ echo getNavBarHTML();
       </div>
       <div class="float-right pr-3 pt-1">
         <button type="button" id="saveBtn" value="Save" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>><i class="fa fa-save"></i></button>
+        <button type="button" id="undoBtn" value="Undo" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Undo') ?>" disabled="disabled"><i class="fa fa-reply"></i></button>
         <button type="button" id="resetBtn" value="Reset" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Reset') ?>" disabled="disabled"><i class="fa fa-undo"></i></button>
         <button type="button" id="cancelBtn" value="Cancel" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Cancel') ?>"><i class="fa fa-times"></i></button>
       </div>

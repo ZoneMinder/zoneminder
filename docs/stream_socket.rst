@@ -25,10 +25,40 @@ shm access does not need the convention or the producer's zm.conf. Either
 way, connect with retry — the socket appears when zmc starts and survives
 camera reconnects.
 
-Only cameras that deliver encoded packets (the Ffmpeg source and anything
-built on it) announce a media stream. Sources that hand zmc decoded images
-(V4L2, MJPEG over HTTP, VNC) have no encoded stream to forward, so their
-socket sends no HELLO or MEDIA and carries lifecycle events only.
+Cameras that deliver encoded packets (the Ffmpeg source and anything built
+on it) have those packets forwarded as they are. Sources that hand zmc
+decoded images (V4L2, MJPEG over HTTP, VNC) have nothing encoded to forward,
+so zmc encodes their images for the socket, after rotation, deinterlacing and
+privacy masking, as the monitor's ``StreamEncoder`` setting says:
+
+``mjpeg`` (the default)
+  Every MEDIA message is one JPEG, and every one is a keyframe. Cheap, and
+  available in every FFmpeg build.
+``h264_vaapi``, ``hevc_vaapi``, ``h264_qsv``, ``hevc_qsv``, ``h264_nvenc``, ``hevc_nvenc``, ``h264_v4l2m2m``
+  A hardware encoder, on the monitor's ``EncoderHWAccelDevice``. Annex B,
+  no B-frames, a keyframe at least every two seconds, with the parameter sets
+  both in the HELLO extradata and in front of every keyframe. If it will not
+  open, zmc logs a warning and uses ``mjpeg``.
+``none``
+  No video: the socket carries lifecycle events only.
+
+Software H.264/H.265 encoders are not offered: encoding continuously for
+every such monitor would cost more CPU than the feature is worth. The
+encoder runs only while at least one consumer is connected, and the first
+image a consumer receives is encoded as a keyframe. While nobody is
+connected nothing is encoded and no keyframe is cached. The stream is
+announced (video HELLO) from the first image after zmc starts, whether or not
+anyone is connected. This requires a Decoding setting other than None, since
+the images are taken from the decoder thread.
+
+A monitor with **RTSP Server** enabled always has a consumer:
+``zm_rtsp_server`` keeps a stream socket connection open to every
+RTSP-enabled monitor whether or not any RTSP client is watching, so such a
+monitor is encoded all the time. ``zm_rtsp_server`` serves H.264, H.265 and
+AV1 only and turns ``mjpeg`` away, so a decoded-image monitor with RTSP Server
+on and the ``mjpeg`` default spends CPU encoding images that are not served.
+To restream such a monitor over RTSP, choose a hardware H.264/H.265 encoder;
+otherwise turn RTSP Server off for it.
 
 Access control
 --------------

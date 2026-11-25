@@ -63,6 +63,9 @@ class StreamSocket {
   void Stop();    // send BYE to connected clients, close everything, unlink
 
   bool IsRunning() const { return thread_.joinable(); }
+  // Whether any consumer is connected. A producer with work to do per
+  // message (encoding, for instance) can skip it while nobody is listening.
+  bool HasClients();
   const std::string &Path() const { return path_; }
 
   // Apply the monitor's complete stream parameter set in one step. Either

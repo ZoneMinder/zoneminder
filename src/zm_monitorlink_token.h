@@ -24,6 +24,8 @@
 
 #include "zm_monitor.h"
 
+#include <algorithm>
+#include <charconv>
 #include <limits>
 #include <stdexcept>
 
@@ -109,14 +111,21 @@ class Token {
  public:
 
   // Splits "<monitor id>" or "<monitor id>:<zone id>" (zone id 0 when absent).
-  // False when either isn't a number or doesn't fit an unsigned int: stoul
-  // returns an unsigned long, so 99999999999 would otherwise be truncated to
-  // some other monitor's id.
+  // False when either, blanks around it aside, isn't all digits or doesn't fit
+  // an unsigned int: stoul stops at the first character that isn't a digit, so
+  // "5 6" or "5x" would otherwise link monitor 5, and returns an unsigned long,
+  // so 99999999999 would be truncated to some other monitor's id.
   static bool parse_monitor_link(std::string_view value, unsigned int &monitor_id, unsigned int &zone_id) noexcept {
     auto to_id = [](std::string_view digits) {
-      unsigned long id = std::stoul(std::string(digits));
-      if (id > std::numeric_limits<unsigned int>::max()) throw std::out_of_range("id");
-      return static_cast<unsigned int>(id);
+      // Blanks around a field ("1 : 2") are not part of the id.
+      const char *blanks = " \t\r\n";
+      digits.remove_prefix(std::min(digits.find_first_not_of(blanks), digits.size()));
+      if (!digits.empty()) digits.remove_suffix(digits.size() - 1 - digits.find_last_not_of(blanks));
+      unsigned int id = 0;
+      const char *last = digits.data() + digits.size();
+      auto [end, ec] = std::from_chars(digits.data(), last, id);
+      if (ec != std::errc() or end != last) throw std::invalid_argument("id");
+      return id;
     };
     try {
       auto colon_position = value.find(':');

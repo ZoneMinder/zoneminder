@@ -71,6 +71,7 @@ VideoStore::VideoStore(
   packets_written(0),
   frame_count(0),
   packet_write_failures(0),
+  write_packet_failed_(false),
   video_encoded(false),
   video_passthrough_fallback(false),
   hw_device_ctx(nullptr),
@@ -1673,7 +1674,18 @@ int VideoStore::writeAudioFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
   return 0;
 }  // end int VideoStore::writeAudioFramePacket(AVPacket *ipkt)
 
+VideoStoreFinalizeAction videostore_finalize_action(bool write_packet_failed, unsigned int packets_written) {
+  if (write_packet_failed) return VideoStoreFinalizeAction::kSkipWriteFailed;
+  if (packets_written == 0) return VideoStoreFinalizeAction::kSkipNoPackets;
+  return VideoStoreFinalizeAction::kWriteTrailer;
+}
+
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
+  if (write_packet_failed_) {
+    // The muxer may be in an inconsistent state after a prior failure; another
+    // av_interleaved_write_frame can trigger ffmpeg's internal abort().
+    return AVERROR(EINVAL);
+  }
   pkt->pos = -1;
   pkt->stream_index = stream->index;
   ZM_DUMP_PACKET(pkt, "packet in write_packet");
@@ -1739,8 +1751,10 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
       Error("Error writing packet: %s", av_make_error_string(ret).c_str());
     }
     packet_write_failures++;
+    write_packet_failed_ = true;
   } else {
     Debug(4, "Success writing packet");
+    packets_written++;
   }
 
   // HLS fragment tracking: with movflags=frag_keyframe, the muxer flushes the
@@ -1796,17 +1810,29 @@ void VideoStore::finalize() {
     }
   }
 
-  flush_codecs();
+  int rc = 0;
+  switch (videostore_finalize_action(write_packet_failed_, packets_written)) {
+    case VideoStoreFinalizeAction::kSkipWriteFailed:
+      Warning("Skipping codec flush, interleaved flush and trailer due to prior write failure");
+      break;
+    case VideoStoreFinalizeAction::kSkipNoPackets:
+      Warning("Skipping codec flush, interleaved flush and trailer: no packets ever written to muxer");
+      break;
+    case VideoStoreFinalizeAction::kWriteTrailer: {
+      flush_codecs();
 
-  Debug(4, "Flushing interleaved queues");
-  av_interleaved_write_frame(oc, nullptr);
+      Debug(4, "Flushing interleaved queues");
+      av_interleaved_write_frame(oc, nullptr);
 
-  Debug(1, "Writing trailer");
-  int rc = av_write_trailer(oc);
-  if (rc < 0) {
-    Error("Error writing trailer %s", av_err2str(rc));
-  } else {
-    Debug(3, "Success Writing trailer");
+      Debug(1, "Writing trailer");
+      rc = av_write_trailer(oc);
+      if (rc < 0) {
+        Error("Error writing trailer %s", av_err2str(rc));
+      } else {
+        Debug(3, "Success Writing trailer");
+      }
+      break;
+    }
   }
 
   // After av_write_trailer, the file contains init+fragments_1..N + mfra trailer.

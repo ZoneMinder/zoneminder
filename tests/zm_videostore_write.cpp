@@ -249,3 +249,23 @@ TEST_CASE("VideoStore audio transcode: packets longer than one AAC frame lose no
     if (p.stream == 1) audio++;
   CHECK(audio * 1024 >= 20000);
 }
+
+// finalize() must not flush the codecs and write the container trailer after a
+// write has failed (the muxer state can be inconsistent and av_write_trailer
+// can abort), nor when no packet ever reached the muxer (the fragmented-MP4
+// muxer aborts on an empty fragment list, which short-lived events on hardware
+// encoders hit). A prior failure takes priority over the empty case.
+TEST_CASE("videostore_finalize_action", "[videostore]") {
+  SECTION("writes the trailer when packets were written and none failed") {
+    REQUIRE(videostore_finalize_action(false, 5) == VideoStoreFinalizeAction::kWriteTrailer);
+  }
+  SECTION("skips on a prior write failure") {
+    REQUIRE(videostore_finalize_action(true, 5) == VideoStoreFinalizeAction::kSkipWriteFailed);
+  }
+  SECTION("skips when no packet ever reached the muxer") {
+    REQUIRE(videostore_finalize_action(false, 0) == VideoStoreFinalizeAction::kSkipNoPackets);
+  }
+  SECTION("a prior failure takes priority over the empty case") {
+    REQUIRE(videostore_finalize_action(true, 0) == VideoStoreFinalizeAction::kSkipWriteFailed);
+  }
+}

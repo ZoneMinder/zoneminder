@@ -86,7 +86,9 @@ sub open {
     $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
       # userinfo is percent-encoded when the password holds @ or :
-      @$self{'username','password'} = map { uri_unescape($_) } $uri->userinfo() =~ /^(.*):(.*)$/;
+      # split on the first colon only, so a raw colon in the password is kept
+      my ( $user, $pass ) = split( /:/, $uri->userinfo(), 2 );
+      @$self{'username','password'} = ( uri_unescape($user), defined($pass) ? uri_unescape($pass) : undef );
     } else {
       $$self{username} = $self->{Monitor}->{User};
       $$self{password} = $self->{Monitor}->{Pass};

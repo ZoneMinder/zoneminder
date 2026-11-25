@@ -1617,6 +1617,11 @@ function getDeviceStatusX10($key) {
 }
 
 function setDeviceStatusX10($key, $status) {
+  # The socket message is "status;key", so a ';' in either would add fields to it.
+  if (!is_scalar($key) or !is_scalar($status) or preg_match('/[;\x00-\x1f]/', $key.$status)) {
+    ZM\Warning('Refused X10 command, key and command may not contain ; or control characters');
+    return 'unknown';
+  }
   $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
   if ( $socket < 0 ) {
     ZM\Fatal('socket_create() failed: '.socket_strerror($socket));

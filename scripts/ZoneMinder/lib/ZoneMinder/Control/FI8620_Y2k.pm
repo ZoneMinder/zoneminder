@@ -41,6 +41,10 @@ require ZoneMinder::Base;
 require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 # ===================================================================================================================================
 #
 # FI8620 FOSCAM Dome PTZ H264 Control Protocol
@@ -90,7 +94,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
@@ -111,7 +115,7 @@ sub sendCmd
     printMsg( $cmd, "Tx" );
     # I solve the authentication problem with recent Foscam
     # I use perl Basic Authentication method
-    my $ua = LWP::UserAgent->new();
+    my $ua = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     my $req = HTTP::Request->new( GET =>"http://".$self->{Monitor}->{ControlAddress}."/web/cgi-bin/hi3510/".$cmd );
     $req->authorization_basic('admin', $self->{Monitor}->{ControlDevice} );
     my $res = $self->{ua}->request($req);

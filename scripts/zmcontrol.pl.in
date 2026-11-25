@@ -227,6 +227,8 @@ if ($options{command}) {
   $control->loadMonitor();
   if (!$control->open()) {
     Warning("Failed to open control");
+    # Not every module records the failure itself, and the retry below keys on it.
+    $control->{state} = 'closed' if ($control->{state} // '') ne 'open';
   }
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
@@ -307,6 +309,15 @@ if ($options{command}) {
             }
             close(CLIENT);
             next;
+          }
+          # The camera was unreachable when the server started, or the module
+          # dropped its session after a failure. Nothing reopened it, so every
+          # later command failed until the server was restarted by hand.
+          if ( ($control->{state} // '') eq 'closed' ) {
+            Info("Control for monitor ${id} is closed, reopening it before '$command'");
+            if ( !eval { $control->open() } ) {
+              Warning("Failed to reopen control for monitor ${id}".($@ ? ": $@" : ''));
+            }
           }
           my $result = eval { $control->$command($params) };
           my $error = $@;

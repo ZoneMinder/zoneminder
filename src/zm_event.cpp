@@ -148,8 +148,10 @@ Event::Event(
                       monitor->Height(),
                       // Both come from outside the daemon: zone names (Monitors=Edit in the
                       // web UI) and the external trigger's cause and text. refs GHSA-hc5x-7jfw-r692
-                      zmDbEscapeString(cause).c_str(),
-                      zmDbEscapeString(notes).c_str(),
+                      // A trigger can cut either one in the middle of a UTF-8 character, and
+                      // MySQL refuses the insert, which the loop below would retry forever.
+                      zmDbEscapeString(Utf8Sanitize(cause)).c_str(),
+                      zmDbEscapeString(Utf8Sanitize(notes)).c_str(),
                       state_id,
                       monitor->getOrientation(),
                       0,

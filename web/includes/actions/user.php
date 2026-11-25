@@ -33,9 +33,11 @@ if ($action == 'Save') {
         unset($_REQUEST['redirect']);
         return;
       }
+      # Save and check the filtered name, not what was typed.
+      $_REQUEST['user']['Username'] = $username;
     }
     # Need to check for uniqueness of Username
-    $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username']));
+    $user_with_my_username = isset($_REQUEST['user']['Username']) ? ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username'])) : null;
     if ($user_with_my_username and 
       ( ( $uid and ($user_with_my_username->Id() != $uid) ) or !$uid)
     ) {

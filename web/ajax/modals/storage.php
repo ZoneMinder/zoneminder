@@ -67,7 +67,7 @@
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Url') ?></th>
-              <td><input type="text" name="newStorage[Url]" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
+              <td><input type="text" name="newStorage[Url]" maxlength="255" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Server') ?></th>

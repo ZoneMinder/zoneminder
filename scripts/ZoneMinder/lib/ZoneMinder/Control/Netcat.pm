@@ -137,6 +137,8 @@ sub open {
     $uri->port(80);
     $uri->path('');
     $address = $uri->host();
+    # URI returns an IPv6 host without the brackets a URL needs.
+    $address = '['.$address.']' if $address =~ /:/;
   }
 
   Debug("Using credentials for user $username");
@@ -219,7 +221,12 @@ sub parseControlAddress {
   }
   if (defined $addressport) {
     my $p;
-    ($address, $p) = split /:/, $addressport, 2;
+    if ($addressport =~ /^(\[[^\]]*\])(?::(.*))?$/) {
+      # An IPv6 literal keeps its brackets, as the url and Host header need them.
+      ($address, $p) = ($1, $2);
+    } else {
+      ($address, $p) = split /:/, $addressport, 2;
+    }
     $port = $p if defined $p && length $p;
   }
 }

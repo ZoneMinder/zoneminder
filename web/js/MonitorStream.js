@@ -2527,6 +2527,13 @@ function MonitorStream(monitorData) {
 
   this.resetCountStreamErrors = function(player) {
     if (!player) return;
+    // activePlayer is plain 'go2rtc' for every go2rtc mode, and no name below is contained in it.
+    if (player === 'go2rtc') {
+      for (const key in this.playerPriority) {
+        if (this.playerPriority[key]['name'].indexOf('go2rtc') === 0) this.playerPriority[key]['countErrors'] = 0;
+      }
+      return;
+    }
     for (const key in this.playerPriority) {
       if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
         this.playerPriority[key]['countErrors'] = 0;

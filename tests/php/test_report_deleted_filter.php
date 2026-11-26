@@ -18,6 +18,7 @@ namespace ZM {
     function StartDateTime() { return ''; }
     function EndDateTime() { return ''; }
     function Interval() { return ''; }
+    function canEdit() { return true; }
   }
   class Event {
     public $row;

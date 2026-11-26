@@ -51,6 +51,8 @@ void Zone::Setup(
 ) {
   type = p_type;
   polygon = p_polygon;
+  // LoadRow replaces this when the zone was scaled to the analysis resolution.
+  frame_polygon = p_polygon;
   alarm_rgb = p_alarm_rgb;
   check_method = p_check_method;
   min_pixel_threshold = p_min_pixel_threshold;
@@ -1121,6 +1123,29 @@ int Zone::PercentToPixels(double percent, int area) {
   return std::max(static_cast<int>(pixels), 1);
 }
 
+Polygon Zone::ScalePolygon(const Polygon &polygon, unsigned int from_width, unsigned int from_height,
+                           unsigned int to_width, unsigned int to_height) {
+  const double sx = static_cast<double>(to_width) / from_width;
+  const double sy = static_cast<double>(to_height) / from_height;
+  std::vector<Vector2> vertices;
+  vertices.reserve(polygon.GetVertices().size());
+  for (const Vector2 &vertex : polygon.GetVertices()) {
+    vertices.emplace_back(static_cast<int32>(std::lround(vertex.x_ * sx)),
+                          static_cast<int32>(std::lround(vertex.y_ * sy)));
+  }
+  // The last frame pixel scales to the analysis width itself, one past the end.
+  Polygon scaled(vertices);
+  ClampPolygon(scaled, to_width, to_height);
+  return scaled;
+}
+
+int Zone::ScalePixelCount(double pixels, double area_ratio) {
+  if (pixels <= 0) return 0;
+  const double scaled = pixels * area_ratio + 0.5;
+  if (scaled >= static_cast<double>(INT_MAX)) return INT_MAX;
+  return std::max(static_cast<int>(scaled), 1);
+}
+
 // Number of zones Load() would produce, without constructing them.
 size_t Zone::Count(const std::shared_ptr<Monitor> &monitor) {
   std::string sql = stringtf("SELECT Id,Name,Coords FROM Zones WHERE MonitorId = %d", monitor->Id());
@@ -1224,23 +1249,51 @@ bool Zone::LoadRow(const std::shared_ptr<Monitor> &monitor, const char *const *d
   AlarmRGB = rgb_convert(AlarmRGB, ZM_SUBPIX_ORDER_BGR);
 
   Debug(5, "Parsing polygon %s (Units=%s)", Coords, Units);
-  Polygon polygon;
+  const bool percent_coords = strchr(Coords, '.') != nullptr;
+  const unsigned int frame_width = monitor->Width();
+  const unsigned int frame_height = monitor->Height();
+  Polygon frame_polygon;
   bool clamped = false;
-  if (!ParseCoords(Coords, monitor->AnalysisWidth(), monitor->AnalysisHeight(), polygon, clamped)) {
+  if (!ParseCoords(Coords, frame_width, frame_height, frame_polygon, clamped)) {
     Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s, ignoring",
           Coords, Id, Name, monitor->Name());
     return false;
   }
   if (clamped) {
     Warning("Zone %d/%s for monitor %s has coordinates '%s' outside %ux%u, clamping",
-            Id, Name, monitor->Name(), Coords, monitor->AnalysisWidth(), monitor->AnalysisHeight());
+            Id, Name, monitor->Name(), Coords, frame_width, frame_height);
+  }
+
+  // Setup() rasterises the zone into an analysis-sized image, which is smaller
+  // than the frame when AnalysisSource=Secondary detects on the substream at
+  // its native size. Percentages are parsed again at that size, so they round
+  // as they would on a camera of that size. Pixel coordinates are in frame
+  // units and are scaled down; left at frame size they would fill past the end
+  // of the analysis-sized mask.
+  const unsigned int analysis_width = monitor->AnalysisWidth();
+  const unsigned int analysis_height = monitor->AnalysisHeight();
+  const bool scaled = (analysis_width != frame_width) || (analysis_height != frame_height);
+  Polygon polygon = frame_polygon;
+  if (scaled) {
+    if (percent_coords) {
+      if (!ParsePercentagePolygon(Coords, analysis_width, analysis_height, polygon)) {
+        Error("Unable to parse polygon string '%s' for zone %d/%s for monitor %s at %ux%u, ignoring",
+              Coords, Id, Name, monitor->Name(), analysis_width, analysis_height);
+        return false;
+      }
+    } else {
+      polygon = ScalePolygon(frame_polygon, frame_width, frame_height, analysis_width, analysis_height);
+    }
+    Debug(1, "Zone %d/%s for monitor %s scaled from %ux%u to %ux%u for analysis",
+          Id, Name, monitor->Name(), frame_width, frame_height, analysis_width, analysis_height);
   }
 
   // Convert threshold values from DB format to pixel counts for runtime use.
   // Percentage coordinates: thresholds are stored as % of zone area, convert to pixels.
-  // Legacy pixel coordinates: thresholds are already pixel counts.
+  // Legacy pixel coordinates: thresholds are pixel counts at frame size, so
+  // they shrink with the zone's area when it is scaled down.
   int MinAlarmPixels, MaxAlarmPixels, MinFilterPixels, MaxFilterPixels, MinBlobPixels, MaxBlobPixels;
-  const int zpa = strchr(Coords, '.') ? RasterArea(polygon, monitor->AnalysisWidth(), monitor->AnalysisHeight()) : 0;
+  const int zpa = percent_coords ? RasterArea(polygon, analysis_width, analysis_height) : 0;
   if (zpa > 0) {
     MinAlarmPixels = PercentToPixels(MinAlarmPixels_pct, zpa);
     MaxAlarmPixels = PercentToPixels(MaxAlarmPixels_pct, zpa);
@@ -1248,6 +1301,15 @@ bool Zone::LoadRow(const std::shared_ptr<Monitor> &monitor, const char *const *d
     MaxFilterPixels = PercentToPixels(MaxFilterPixels_pct, zpa);
     MinBlobPixels = PercentToPixels(MinBlobPixels_pct, zpa);
     MaxBlobPixels = PercentToPixels(MaxBlobPixels_pct, zpa);
+  } else if (scaled) {
+    const double area_ratio = (static_cast<double>(analysis_width) * analysis_height)
+                              / (static_cast<double>(frame_width) * frame_height);
+    MinAlarmPixels = ScalePixelCount(MinAlarmPixels_pct, area_ratio);
+    MaxAlarmPixels = ScalePixelCount(MaxAlarmPixels_pct, area_ratio);
+    MinFilterPixels = ScalePixelCount(MinFilterPixels_pct, area_ratio);
+    MaxFilterPixels = ScalePixelCount(MaxFilterPixels_pct, area_ratio);
+    MinBlobPixels = ScalePixelCount(MinBlobPixels_pct, area_ratio);
+    MaxBlobPixels = ScalePixelCount(MaxBlobPixels_pct, area_ratio);
   } else {
     MinAlarmPixels = static_cast<int>(MinAlarmPixels_pct);
     MaxAlarmPixels = static_cast<int>(MaxAlarmPixels_pct);
@@ -1270,6 +1332,7 @@ bool Zone::LoadRow(const std::shared_ptr<Monitor> &monitor, const char *const *d
       MinBlobPixels, MaxBlobPixels, MinBlobs, MaxBlobs,
       OverloadFrames, ExtendAlarmFrames);
   }
+  zones.back().frame_polygon = frame_polygon;
   return true;
 } // end Zone::LoadRow
 
@@ -1432,6 +1495,7 @@ Zone::Zone(const Zone &z) :
   label(z.label),
   type(z.type),
   polygon(z.polygon),
+  frame_polygon(z.frame_polygon),
   alarm_rgb(z.alarm_rgb),
   check_method(z.check_method),
   min_pixel_threshold(z.min_pixel_threshold),
@@ -1457,10 +1521,12 @@ Zone::Zone(const Zone &z) :
   pixel_area = z.pixel_area;
   std::copy(z.blob_stats, z.blob_stats+256, blob_stats);
   pg_image = z.pg_image ? new Image(*z.pg_image) : nullptr;
-  // ranges is sized to the analysis resolution (see Setup), which is what the
-  // source zone was built at - copying monitor->Height() here would over-read.
-  ranges = new Range[monitor->AnalysisHeight()];
-  std::copy(z.ranges, z.ranges+monitor->AnalysisHeight(), ranges);
+  // Setup sizes ranges to pg_image's height, the analysis resolution the source
+  // zone was built at. The monitor's current analysis size may since have
+  // changed (a substream resolution switch), so don't read it from there.
+  const unsigned int rows = z.pg_image ? z.pg_image->Height() : 0;
+  ranges = new Range[rows];
+  std::copy(z.ranges, z.ranges+rows, ranges);
   image = z.image ? new Image(*z.image) : nullptr;
   //z.stats.debug("Copy Source");
   stats.DumpToLog("Copy dest");

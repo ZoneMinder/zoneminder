@@ -123,6 +123,8 @@ sub find { return; }
 EOM
   write_file("$dir/lib/ZoneMinder/Event.pm", <<'EOM');
 package ZoneMinder::Event;
+sub FALLBACK_ID_MIN () { 1000000000000000 }
+sub is_fallback_id { 0 }
 sub new { my ($c, $id, $row) = @_; my $s = bless({}, $c); %$s = %$row if $row; $s->{Id} = $id if defined $id; return $s; }
 sub Close { shift; ZMALog::l('CLOSE '.join(' ', @_)); return ''; }
 sub find_one {

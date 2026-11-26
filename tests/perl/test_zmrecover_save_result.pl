@@ -67,6 +67,8 @@ sub Width { 1 } sub Height { 1 } sub Orientation { 1 }
 EOM
 write_file("$dir/lib/ZoneMinder/Event.pm", <<'EOM');
 package ZoneMinder::Event;
+sub FALLBACK_ID_MIN () { 1000000000000000 }
+sub is_fallback_id { 0 }
 sub new { return bless({}, 'ZoneMinder::Event'); }
 sub find_one { return 0; }
 sub MonitorId { $_[0]{MonitorId} = $_[1] if @_ > 1; $_[0]{MonitorId} }

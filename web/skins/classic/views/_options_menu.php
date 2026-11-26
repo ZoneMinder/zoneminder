@@ -68,14 +68,14 @@ $builtinKeys = array_keys(getMenuItemFunctions());
                   <?php echo htmlspecialchars(translate($item->MenuKey())) ?>
 <?php } else { ?>
                   <input type="text" name="items[<?php echo $id ?>][MenuKey]"
-                    value="<?php echo htmlspecialchars($item->MenuKey()) ?>"
+                    value="<?php echo htmlspecialchars($item->MenuKey()) ?>" maxlength="32"
                     <?php echo !$canEdit ? 'disabled' : '' ?>
                   />
 <?php } ?>
                 </td>
                 <td>
                   <input type="text" name="items[<?php echo $id ?>][Label]"
-                    value="<?php echo htmlspecialchars($item->Label() ?? '') ?>"
+                    value="<?php echo htmlspecialchars($item->Label() ?? '') ?>" maxlength="64"
                     placeholder="<?php echo htmlspecialchars(translate($item->MenuKey())) ?>"
                     <?php echo !$canEdit ? 'disabled' : '' ?>
                   />
@@ -85,7 +85,7 @@ $builtinKeys = array_keys(getMenuItemFunctions());
                   <span class="text-muted"><?php echo htmlspecialchars(menuItemEffectiveLink($item)) ?></span>
 <?php } else { ?>
                   <input type="text" name="items[<?php echo $id ?>][Link]"
-                    value="<?php echo htmlspecialchars($item->Link() ?? '') ?>"
+                    value="<?php echo htmlspecialchars($item->Link() ?? '') ?>" maxlength="255"
                     placeholder="<?php echo htmlspecialchars('?view='.$item->MenuKey()) ?>"
                     style="width:220px;"
                     <?php echo !$canEdit ? 'disabled' : '' ?>
@@ -116,7 +116,7 @@ $builtinKeys = array_keys(getMenuItemFunctions());
                     <input type="text" name="items[<?php echo $id ?>][Icon]" class="form-control form-control-sm iconNameInput"
                       id="iconName-<?php echo $id ?>"
                       data-default-icon="<?php echo htmlspecialchars(ZM\MenuItem::$defaultIcons[$item->MenuKey()] ?? 'menu') ?>"
-                      value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>"
+                      value="<?php echo htmlspecialchars($hasCustomIcon ? $item->Icon() : '') ?>" maxlength="128"
                       placeholder="<?php echo $effIconType == 'image' ? 'graphics/menu/icon.png' : htmlspecialchars($effIcon) ?>"
                       style="width:<?php echo $effIconType == 'image' ? '200' : '140' ?>px;<?php echo $effIconType == 'none' ? 'display:none;' : '' ?>"
                       <?php echo !$canEdit ? 'disabled' : '' ?>

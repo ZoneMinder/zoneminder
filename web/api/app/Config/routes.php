@@ -52,6 +52,16 @@
 	Router::mapResources('zones');
 	Router::mapResources('notifications');
 
+	// Send a PTZ command to a monitor. Both shapes reach ControlsController::command().
+	Router::connect('/monitors/:id/control',
+		array('controller' => 'controls', 'action' => 'command'),
+		array('id' => '[0-9]+', 'pass' => array('id'))
+	);
+	Router::connect('/controls/command/:id',
+		array('controller' => 'controls', 'action' => 'command'),
+		array('id' => '[0-9]+', 'pass' => array('id'))
+	);
+
 	Router::parseExtensions();
 
 /**

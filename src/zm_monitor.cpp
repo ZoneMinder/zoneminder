@@ -529,8 +529,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   // keep it across reload so we don't reset the analysis resolution - and force a
   // redundant zone rebuild / reference-image reset - on the next substream frame.
   bool keep_substream_res = (analysis_source == ANALYSIS_SECONDARY) && substream_width;
-  analysis_width = keep_substream_res ? substream_width : width;
-  analysis_height = keep_substream_res ? substream_height : height;
+  analysis_width = keep_substream_res ? substream_width : 0;
+  analysis_height = keep_substream_res ? substream_height : 0;
   deinterlacing = atoi(dbrow[col]);
   col++;
   deinterlacing_value = deinterlacing & 0xff;
@@ -4431,9 +4431,11 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
     const unsigned int native_w = secondary_image_native.Width();
     const unsigned int native_h = secondary_image_native.Height();
     if (native_w and native_h and
-        ((native_w != analysis_width) or (native_h != analysis_height))) {
+        ((native_w != AnalysisWidth()) or (native_h != AnalysisHeight()))) {
       const unsigned int prev_w = analysis_width;
       const unsigned int prev_h = analysis_height;
+      const unsigned int from_w = AnalysisWidth();
+      const unsigned int from_h = AnalysisHeight();
       // Zone::Load builds zones at AnalysisWidth()/Height(), so switch the analysis
       // resolution BEFORE loading. If the load comes back empty while we still have
       // usable zones (e.g. a transient DB error), revert and keep detecting at the
@@ -4453,7 +4455,7 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
         return nullptr;
       }
       Info("Monitor %d: motion detection resolution set to substream native %ux%u (was %ux%u); rebuilding zones",
-           id, native_w, native_h, prev_w, prev_h);
+           id, native_w, native_h, from_w, from_h);
       substream_width = native_w;
       substream_height = native_h;
       zones = std::move(new_zones);

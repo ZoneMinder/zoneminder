@@ -672,9 +672,12 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
-  unsigned int    analysis_width;     // Resolution motion detection runs at. Same as width/height
-  unsigned int    analysis_height;    // except in AnalysisSource=Secondary, where it is the substream's
-                                       // native size so zones/detection run cheaply at the substream res.
+  // Resolution motion detection runs at; 0 means width/height, which is what
+  // it is unless AnalysisSource=Secondary has set the substream's native size so
+  // zones and detection run cheaply at the substream res. Read it through
+  // AnalysisWidth()/AnalysisHeight().
+  unsigned int    analysis_width = 0;
+  unsigned int    analysis_height = 0;
   // Substream native size once discovered from its first decoded frame (0 until
   // then). Persisted across Load()/Reload() so a reload does not reset the
   // analysis resolution to the full frame and force a redundant zone rebuild +
@@ -1158,8 +1161,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   unsigned int Height() const { return height; }
   // Resolution motion detection / zones run at. Equals Width()/Height() except in
   // AnalysisSource=Secondary, where it tracks the substream's native size.
-  unsigned int AnalysisWidth() const { return analysis_width; }
-  unsigned int AnalysisHeight() const { return analysis_height; }
+  unsigned int AnalysisWidth() const { return analysis_width ? analysis_width : width; }
+  unsigned int AnalysisHeight() const { return analysis_height ? analysis_height : height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
 

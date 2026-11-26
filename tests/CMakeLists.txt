@@ -96,6 +96,7 @@ set(TEST_SOURCES
   zm_tag_row.cpp
   zm_eventstream_commands.cpp
   zm_eventstream_frame.cpp
+  zm_secondary_analysis.cpp
   zm_secondary_sync.cpp
   zm_time.cpp
   zm_user_default_password.cpp

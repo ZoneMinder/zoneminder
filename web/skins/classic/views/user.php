@@ -144,6 +144,11 @@ echo getNavBarHTML();
       'montagereview'=> translate('Montage Review'),
       'watch' => translate('Watch'),
     ];
+    // Keep a saved home view the list does not offer, or saving the form would reset it to Default.
+    $saved_home_view = $User->HomeView();
+    if ($saved_home_view and !isset($homeview_options[$saved_home_view])) {
+      $homeview_options[$saved_home_view] = $saved_home_view;
+    }
 echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'=>'form-control form-control-sm']);
 ?></td>
                     </tr>

@@ -474,6 +474,8 @@ console under Options.
                 The value should be given in seconds, but can be an expression
                 such as 24*60*60.
  --version      Output the version of ZoneMinder.
+ --dry_run      With --show, print the data and exit without uploading it.
+ --verbose      Accepted for compatibility; it has no effect.
  
 
 =cut

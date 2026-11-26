@@ -50,7 +50,7 @@ or as email attachments.
  -f<format>, --format=<format>            - What format to create the video in, default is mpg. For ffmpeg only.
  -r<rate>, --rate=<rate>                  - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
  -s<scale>, --scale=<scale>               - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
- -t<transforms>, --transform=<transforms> - Transform video.  Applies -vf option to ffmpeg.
+ -t<transforms>, --transforms=<transforms> - Transform video.  Applies -vf option to ffmpeg.
  -F<fps>, --fps=<fps>                     - Absolute frame rate, in frames per second
  -S<size>, --size=<size>                  - Absolute video size, WxH or other specification supported by ffmpeg
  -o, --overwrite                          - Whether to overwrite an existing file, off by default.

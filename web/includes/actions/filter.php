@@ -177,13 +177,17 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         }
       } # end if changes
 
+      // The outcome of Execute goes on the redirect, so the filter page can say
+      // whether it ran and a reload does not run the filter again.
+      $executed = '';
       if ($action == 'execute') {
         if ($filter->canEdit()) {
-          $filter->execute();
+          $status = $filter->execute();
           if (count($changes)) {
             $filter->delete();
             $filter->Id($_REQUEST['Id']);
           }
+          $executed = $status ? '&executed=0' : '&executed=1';
         } else {
           $error_message .= 'You do not have permission to execute this filter.<br/>';
         }
@@ -191,7 +195,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         $filter->control('start');
       }
       global $redirect;
-      $redirect = '?view=filter&Id='.$_REQUEST['Id'];
+      $redirect = '?view=filter&Id='.$_REQUEST['Id'].$executed;
 
     } else if ($action == 'control') {
       if (!$filter->Id() or !$filter->canEdit()) {

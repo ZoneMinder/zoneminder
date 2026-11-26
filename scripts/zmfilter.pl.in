@@ -171,6 +171,11 @@ if ( $daemon and !startedInteractively() ) {
 
 my @filters;
 my $last_reload = 0;
+# A single pass is someone asking for the result now; the daemon runs the same
+# filters every ExecuteInterval. A concurrent filter's child process has
+# --filter_id but no --daemon, so mark it as background through the environment.
+my $on_demand = (!$daemon and !$ENV{ZM_FILTER_BACKGROUND}
+  and (defined($filter_id) or $filter_name)) ? 1 : 0;
 
 while (!$zm_terminate) {
   my $delay;
@@ -194,9 +199,10 @@ while (!$zm_terminate) {
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
+      local $ENV{ZM_FILTER_BACKGROUND} = 1;
       system(qq`$proc --filter_id $id &`);
     } else {
-      checkFilter($filter);
+      checkFilter($filter, $on_demand);
       $$filter{last_ran} = $now;
     }
 
@@ -270,11 +276,10 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 } # end sub getFilters
 
 sub checkFilter {
-  my $filter = shift;
+  my ($filter, $on_demand) = @_;
 
   my @Events = $filter->Execute();
-  Debug(
-      join(' ',
+  my $summary = join(' ',
         'Checking filter', $filter->{Name},
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
@@ -292,7 +297,15 @@ sub checkFilter {
           ),
         'returned' , scalar @Events , 'events',
         "\n",
-        ) );
+        );
+  # A single pass is someone asking for the result now, so make it visible at
+  # Info. A daemon repeats this every ExecuteInterval; keeping that at Debug
+  # avoids filling the log.
+  if ($on_demand) {
+    Info($summary);
+  } else {
+    Debug($summary);
+  }
 
   my $send_summary = ($Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} && ($filter->{EmailFormat} eq 'Summary') && @Events) ? 1 : 0;
   # The summary links to and attaches the events, so send it before they are deleted

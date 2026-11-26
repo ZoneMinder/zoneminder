@@ -79,6 +79,14 @@ class Monitor extends AppModel {
       'rule' => array('rowExists', 'Storage'),
       'message' => 'StorageId does not match a storage area',
     ),
+    'ManufacturerId' => array(
+      'rule' => array('refExists', 'Manufacturer'),
+      'message' => 'ManufacturerId does not match a manufacturer',
+    ),
+    'ModelId' => array(
+      'rule' => array('refExists', 'CameraModel'),
+      'message' => 'ModelId does not match a camera model',
+    ),
     // These codec values mimic acceptable ones for FFMPEG
     // Edit this if the list in ZM changes
     'OutputCodec' => array (
@@ -105,6 +113,23 @@ class Monitor extends AppModel {
   public function rowExists($check, $model) {
     $value = reset($check);
     if ($value === null or $value === '' or $value == 0) {
+      return true;
+    }
+    return (bool)ClassRegistry::init($model)->find('first', array(
+      'conditions' => array($model.'.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
+
+  // Foreign keys: MySQL refuses an id that matches no row, so refuse it here instead of as a 500.
+  // Empty and null mean none.
+  public function refExists($check, $model) {
+    $value = reset($check);
+    if ($value === null or $value === '') {
+      return true;
+    }
+    // AppModel::beforeValidate() already refuses an array.
+    if (!is_scalar($value)) {
       return true;
     }
     return (bool)ClassRegistry::init($model)->find('first', array(

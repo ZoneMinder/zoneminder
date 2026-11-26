@@ -50,6 +50,7 @@ let pageMonitorId = null;
 // null while they are not hidden for that reason.
 let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
+var prevStateStarted = null;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -63,6 +64,8 @@ var currentScale = 100; // Temporarily, because need to put things in order with
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
+  // The image viewer (GLightbox) handles its own keys while it is open.
+  if (isLightboxOpen()) return;
   if (!$j(".tag-input").is(":focus")) {
     // Keys typed into a field, or used to pick from a select, are that
     // control's own and must not drive the player or the page.
@@ -553,6 +556,7 @@ function pauseClicked() {
 }
 
 function streamPause() {
+  if (!isLightboxOpen()) prevStateStarted = 'paused';
   $j('#modeValue').html('Paused');
 
   $j('#pauseBtn').hide();
@@ -599,6 +603,7 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay() {
+  if (!isLightboxOpen()) prevStateStarted = 'played';
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -2129,7 +2134,27 @@ function initPage() {
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
+
+  if (window.lightbox) {
+    bindLightboxEvents(window.lightbox);
+  } else {
+    document.addEventListener('zm:lightboxReady', (event) => {
+      bindLightboxEvents(event.detail);
+    }, {once: true});
+  }
 } // end initPage
+
+function bindLightboxEvents(lightbox) {
+  lightbox.on('open', () => {
+    // Viewer opened.
+    if (prevStateStarted == 'played') pauseClicked();
+  });
+
+  lightbox.on('close', () => {
+    // Viewer closed.
+    if (prevStateStarted == 'played') playClicked();
+  });
+}
 
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());

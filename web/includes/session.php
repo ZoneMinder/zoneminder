@@ -71,6 +71,23 @@ function zm_session_is_persistable() {
   return $zm_session_persist || !empty($_COOKIE[session_name()]);
 }
 
+// ZM_COOKIE_LIFETIME as the session code uses it. It is the session cookie
+// lifetime and sets when the session id is regenerated (half of it), so a value
+// under a minute, 0 included, would regenerate the id on nearly every request
+// and parallel ajax calls would race on the old one. Such a value is replaced
+// by the option's default, 3600, with one warning per request.
+function zmCookieLifetime($value = null) {
+  static $warned = false;
+  if ($value === null) $value = defined('ZM_COOKIE_LIFETIME') ? ZM_COOKIE_LIFETIME : 3600;
+  $value = intval($value);
+  if ($value >= 60) return $value;
+  if (!$warned) {
+    $warned = true;
+    ZM\Warning("ZM_COOKIE_LIFETIME is $value, less than 60 seconds. Using 3600.");
+  }
+  return 3600;
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
   if (ini_get('session.name') != 'ZMSESSID') {
@@ -82,7 +99,7 @@ function zm_session_start() {
     if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0' && empty($_COOKIE['ZM_REMEMBER_ME'])) {
       $currentCookieParams['lifetime'] = 0;
     } else {
-      $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+      $currentCookieParams['lifetime'] = zmCookieLifetime();
     }
     $currentCookieParams['httponly'] = true;
     if (zm_request_is_secure()) $currentCookieParams['secure'] = true;
@@ -103,8 +120,9 @@ function zm_session_start() {
     session_destroy();
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
-    if ( $_SESSION['generated_at']<($now-(ZM_COOKIE_LIFETIME/2)) ) {
-      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
+    $cookieLifetime = zmCookieLifetime();
+    if ( $_SESSION['generated_at']<($now-($cookieLifetime/2)) ) {
+      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.$cookieLifetime.'/2 = '.($now-$cookieLifetime/2));
       zm_session_regenerate_id();
     }
   }

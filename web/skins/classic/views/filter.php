@@ -414,7 +414,7 @@ if ( ZM_OPT_EMAIL ) {
 # show that as the placeholder rather than leaving the field looking unset.
 $default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
 ?>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
+                <input type="text" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>

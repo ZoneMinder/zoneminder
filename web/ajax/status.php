@@ -36,8 +36,9 @@ $statusData = array(
     'table' => 'Monitors',
     'limit' => 1,
     'elements' => array(
-      'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
+      // Deleted monitors keep their row, so they must not be counted
+      'MonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0,1,NULL))' ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0 and `Capturing` != \'None\',1,NULL))' ),
       'State' => array( 'func' => function() { return daemonCheck() ? translate('Running') : translate('Stopped'); } ),
       'Load' => array( 'func' => function() { return getLoad(); } ),
       'Disk' => array( 'func' => function() { return getDiskPercent(); } ),
@@ -151,6 +152,7 @@ $statusData = array(
   ),
   'event' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Events',
     'limit' => 1,
     'selector' => 'Events.Id',
@@ -193,10 +195,17 @@ $statusData = array(
       'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+      // The event view moves between events without a page load, so its Download
+      // link needs the server-built URL (right host, auth relay) for each event.
+      'DownloadUrl' => array( 'postFunction' => function($row) {
+        $Event = new ZM\Event($row['Id']);
+        return $Event->DefaultVideo() ? $Event->getStreamSrc(array('mode'=>'mp4'), '&') : '';
+      }),
     ),
   ),
   'frames' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'defaultLimit' => 100,
     'selector' => 'EventId',
@@ -213,6 +222,7 @@ $statusData = array(
   ),
   'frame' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'limit' => 1,
     'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
@@ -222,7 +232,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
+      'TimeStampShort' => array( 'sql' => 'date_format( Frames.TimeStamp, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -230,14 +240,17 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
+    'eventParam' => 'eid',
     'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearEvents'
   )
 );
@@ -255,6 +268,26 @@ function collectData() {
   if (isset($entitySpec['permission'])) {
     if (!canView($entitySpec['permission'])) {
       ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
+  }
+
+  # These entities name an event, so the monitor it belongs to must be viewable.
+  if (!empty($entitySpec['eventParam'])) {
+    if (!isset($_REQUEST[$entitySpec['eventParam']])) {
+      ajaxError('Event id required for '.$entity);
+      return;
+    }
+    $eventParam = $_REQUEST[$entitySpec['eventParam']];
+    if (is_array($eventParam)) $eventParam = reset($eventParam);
+    # Check the same cleaned id that the query binds (validInt).
+    $requestedEvent = new ZM\Event(validInt($eventParam));
+    if (!$requestedEvent->Id()) {
+      ajaxError('Event not found');
+      return;
+    }
+    if (!$requestedEvent->canView()) {
+      ajaxError('Insufficient permissions for event '.$requestedEvent->Id());
       return;
     }
   }
@@ -365,7 +398,7 @@ function collectData() {
     }
     if ( $groupSql )
       $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
-    if ( !empty($_REQUEST['sort']) ) {
+    if ( !empty($_REQUEST['sort']) && is_string($_REQUEST['sort']) ) {
       $sort_fields = explode(',', $_REQUEST['sort']);
       $order_clauses = array();
       foreach ( $sort_fields as $sort_field ) {
@@ -412,7 +445,8 @@ function collectData() {
       $limit_offset = validInt($_REQUEST['offset']) . ', ';
     if ( !empty($limit) )
       $sql .= ' limit '.$limit_offset.$limit;
-    if ( isset($limit) && ($limit == 1) ) {
+    $single = (isset($entitySpec['limit']) && $entitySpec['limit'] == 1);
+    if ( $single ) {
       if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
         if (isset($entitySpec['object'])) {
           ZM\Debug("Have object".$entitySpec['object']);
@@ -538,6 +572,29 @@ function getNearFrame() {
   return collectData();
 }
 
+# The WHERE part that picks the events on one side of the current one in the
+# (sort value, Id) ordering. MySQL sorts NULL before every other value, so a
+# NULL sort value (EndDateTime, DiskSpace or Frames of an event still recording)
+# counts as the smallest one here; a plain > or = against NULL matches nothing.
+function nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId) {
+  if ($sortColumn == 'E.Id') {
+    return ['E.Id '.$idCmp.' ?', [$eventId]];
+  }
+  $values = [];
+  if ($sortValue === null) {
+    $beyond = ($cmp == '>') ? $sortColumn.' IS NOT NULL' : '0';
+  } else if ($cmp == '>') {
+    $beyond = $sortColumn.' > ?';
+    $values[] = $sortValue;
+  } else {
+    $beyond = '('.$sortColumn.' < ? OR '.$sortColumn.' IS NULL)';
+    $values[] = $sortValue;
+  }
+  $values[] = $sortValue;
+  $values[] = $eventId;
+  return ['('.$beyond.' OR ('.$sortColumn.' <=> ? AND E.Id '.$idCmp.' ?))', $values];
+}
+
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
@@ -590,13 +647,8 @@ function getNearEvents() {
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
     LEFT JOIN Tags AS T ON T.Id = ET.TagId
     WHERE ';
-    if ($sortColumn == 'E.Id') {
-      $sql .= 'E.Id '.$idCmp.' ?';
-      $values = [$eventId];
-    } else {
-      $sql .= '('.$sortColumn.' '.$cmp.' ? OR ('.$sortColumn.' = ? AND E.Id '.$idCmp.' ?))';
-      $values = [$sortValue, $sortValue, $eventId];
-    }
+    list($where, $values) = nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId);
+    $sql .= $where;
     if ($filter->sql()) {
       $sql .= ' AND ('.$filter->sql().')';
     }

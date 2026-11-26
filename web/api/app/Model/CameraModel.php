@@ -40,6 +40,9 @@ class CameraModel extends AppModel {
 		'Name' => array(
 			'notBlank' => array(
 				'rule' => array('notBlank'),
+				// The column has no default, so a model added without a name is refused by MySQL.
+				'required' => 'create',
+				'message' => 'Name is required',
 				'last' => true),
 			'unique' => array(
 				'rule' => array('isUniquePerManufacturer'),
@@ -80,11 +83,10 @@ class CameraModel extends AppModel {
  *
  * @var array
  */
-	public $hasOne = array(
+	public $belongsTo = array(
 		'Manufacturer' => array(
 			'className' => 'Manufacturer',
-      'joinTable' =>  'Manufacturers',
-			'foreignKey' => 'Id',
+			'foreignKey' => 'ManufacturerId',
 		),
   );
   //var $actsAs = array( 'Containable' );

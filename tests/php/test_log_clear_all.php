@@ -16,7 +16,7 @@ if ($argc < 2) {
     'all-filtered-server', 'truncate-falls-back', 'filter-parity',
     'advsearch-all-invalid', 'advsearch-mixed',
     'unparseable-date', 'unknown-level', 'blank-date-is-no-filter', 'delete-fails',
-    'advsearch-pseudo-column',
+    'advsearch-pseudo-column', 'array-search', 'array-filter', 'array-date',
   );
   $failures = 0;
   foreach ($cases as $case) {
@@ -146,6 +146,15 @@ switch ($case) {
   case 'unknown-level':
     $_REQUEST = array('task' => 'delete', 'all' => 1, 'level' => array('NOPE'));
     break;
+  case 'array-search':
+    $_REQUEST = array('task' => 'delete', 'all' => 1, 'search' => array('x'));
+    break;
+  case 'array-filter':
+    $_REQUEST = array('task' => 'delete', 'all' => 1, 'filter' => array('Message' => 'x'));
+    break;
+  case 'array-date':
+    $_REQUEST = array('task' => 'delete', 'all' => 1, 'StartDateTime' => array('x'), 'EndDateTime' => array('y'));
+    break;
   case 'blank-date-is-no-filter':
     $_REQUEST = array('task' => 'delete', 'all' => 1, 'StartDateTime' => '', 'EndDateTime' => '');
     break;
@@ -216,9 +225,9 @@ switch ($case) {
   case 'all-filtered-dates':
     check('a date range deletes by filter', count($queries), 1);
     check('dates: bounded both ends',
-      $queries[0]['sql'], 'DELETE FROM Logs WHERE TimeKey >= ? AND TimeKey <= ?');
+      $queries[0]['sql'], 'DELETE FROM Logs WHERE TimeKey >= ? AND TimeKey < ?');
     check('dates: bound as timestamps', $queries[0]['params'],
-      array(strtotime('2026-01-01 00:00:00'), strtotime('2026-01-02 00:00:00')));
+      array(strtotime('2026-01-01 00:00:00'), strtotime('2026-01-02 00:00:00') + 1));
     break;
 
   case 'all-filtered-search':
@@ -268,6 +277,19 @@ switch ($case) {
 
   case 'unknown-level':
     check('an unrecognised level never truncates', count($queries), 0);
+    check('and reports it', count($GLOBALS['errors']), 1);
+    break;
+
+  case 'array-search':
+    check('an array search never truncates', count($queries), 0);
+    check('and reports it', count($GLOBALS['errors']), 1);
+    break;
+  case 'array-filter':
+    check('an array filter never truncates', count($queries), 0);
+    check('and reports it', count($GLOBALS['errors']), 1);
+    break;
+  case 'array-date':
+    check('an array date never truncates', count($queries), 0);
     check('and reports it', count($GLOBALS['errors']), 1);
     break;
 

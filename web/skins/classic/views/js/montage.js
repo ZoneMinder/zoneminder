@@ -19,6 +19,9 @@ var changedMonitors = []; //Monitor IDs that were changed in the DOM
 var scrollBarExists = null;
 var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving))
 var TimerHideShow = null;
+var webSiteReloadTimers = []; // intervals reloading WebSite monitors
+var waitingMonitorsPlacedInterval = null; // pending waitingMonitorsPlaced() poll
+var monitorsPaused = false; // whether the pause-all toolbar toggle has paused the streams
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -308,7 +311,12 @@ function setRatioForMonitor(objStream, id=null) {
     return;
   }
 
-  const value = getSelected(document.getElementById("ratio"+id));
+  const ratioSelect = document.getElementById("ratio"+id);
+  if (!ratioSelect) {
+    // A WebSite monitor is not wrapped in a grid item, so it has no ratio select
+    return;
+  }
+  const value = getSelected(ratioSelect);
   const currentMonitor = monitors.find((o) => {
     return parseInt(o["id"]) === id;
   });
@@ -327,7 +335,8 @@ function setRatioForMonitor(objStream, id=null) {
   }
 
   const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
-  if (!height) {
+  const numericHeight = Number(height);
+  if (!Number.isFinite(numericHeight) || numericHeight <= 0) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
     //console.log('good height', height, objStream);
@@ -469,6 +478,7 @@ function manageDelConfirmModalBtns() {
 }
 
 function startVisibleMonitors() {
+  startWebSiteRefresh();
   for (let i = 0, length = monitors.length; i < length; i++) {
     const monitor = monitors[i];
     const isOut = isOutOfViewport(monitor.getElement());
@@ -480,7 +490,29 @@ function startVisibleMonitors() {
 }
 
 function reloadWebSite(ndx) {
-  document.getElementById('imageFeed'+ndx).innerHTML = document.getElementById('imageFeed'+ndx).innerHTML;
+  const feed = document.getElementById('imageFeed'+ndx);
+  if (feed) {
+    feed.innerHTML = feed.innerHTML;
+    return;
+  }
+  // montage.php prints a WebSite monitor as a bare <object>, with no imageFeed wrapper
+  const obj = document.getElementById('liveStream'+ndx);
+  if (obj) obj.setAttribute('data', obj.getAttribute('data'));
+}
+
+function stopWebSiteRefresh() {
+  webSiteReloadTimers.forEach(clearInterval);
+  webSiteReloadTimers.length = 0;
+}
+
+function startWebSiteRefresh() {
+  stopWebSiteRefresh();
+  for (let i = 0, length = monitors.length; i < length; i++) {
+    const monitor = monitors[i];
+    if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
+      webSiteReloadTimers.push(setInterval(reloadWebSite, monitor.refresh*1000, monitor.id));
+    }
+  }
 }
 
 function takeSnapshot() {
@@ -506,11 +538,9 @@ function startMonitors() {
       monitor.setPlayer(monitor.player);
       monitor.start();
     }
-    if ((monitor.type == 'WebSite') && (monitor.refresh > 0)) {
-      setInterval(reloadWebSite, monitor.refresh*1000, monitor.id);
-    }
     monitor.setup_onclick(handleClick);
   }
+  startWebSiteRefresh();
 }
 
 function stopMonitors() { //Not working yet.
@@ -533,6 +563,25 @@ function playMonitors() {
   for (let i = 0, length = monitors.length; i < length; i++) {
     monitors[i].play();
   }
+}
+
+function setupPauseAllMonitors() {
+  const btn = document.getElementById('pauseAllBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    const icon = btn.querySelector('.material-icons');
+    if (monitorsPaused) {
+      playMonitors();
+      monitorsPaused = false;
+      if (icon) icon.textContent = 'pause';
+      btn.setAttribute('title', btn.getAttribute('data-title-pause-all') || 'Pause All');
+    } else {
+      pauseMonitors();
+      monitorsPaused = true;
+      if (icon) icon.textContent = 'play_arrow';
+      btn.setAttribute('title', btn.getAttribute('data-title-play-all') || 'Resume All');
+    }
+  });
 }
 
 function buildRatioSelect(objSelect) {
@@ -572,17 +621,14 @@ function fullscreenchanged(event) {
 } // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
-  //Let's calculate the average Ratio value for the displayed monitors
-  let total = 0;
-  for (let i = 0; i < arrRatioMonitors.length; i++) {
-    total += arrRatioMonitors[i];
-  }
-  const avg = total / arrRatioMonitors.length;
+  // Ignore monitors without a usable size (0, NaN, Infinity), e.g. WebSite monitors with no width/height
+  const valid = arrRatioMonitors.filter((r) => Number.isFinite(r) && r > 0);
+  const avg = valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 16 / 9;
 
-  // We create an array of aspect ratios from the basic set of objects and find the closest avg Ratio value in it
+  // Closest preset ratio; presets 'auto' and 'real' have an empty value and must be skipped
   const arr = [];
   presetRatio.forEach(function(value, key) {
-    arr.push(value);
+    if (value !== '') arr.push(value);
   });
   averageMonitorsRatio = arr.reduce(function(prev, curr) {
     return (Math.abs(curr - avg) < Math.abs(prev - avg) ? curr : prev);
@@ -605,6 +651,7 @@ function initPage() {
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
     setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down');
   });
+  setupPauseAllMonitors();
   if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");
@@ -681,6 +728,7 @@ function initPage() {
 
       function stopPlayback() {
         idleTimeoutTriggered = true;
+        stopWebSiteRefresh();
         for (let i=0, length = monitors.length; i < length; i++) {
           monitors[i].stop();
         }
@@ -712,32 +760,7 @@ function initPage() {
     inactivityTime();
   }
 
-  resizeInterval = setInterval(() => { //Updating GridStack resizeToContent, Scale & Ratio
-    if (changedMonitors.length > 0) {
-      changedMonitors.slice().reverse().forEach(function(item, index, object) {
-        if (item) {
-          const img = getStream(item);
-          const _imageFeed = document.getElementById('imageFeed'+item);
-          const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
-          if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
-            setRatioForMonitor(img, item);
-            if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
-            changedMonitors.splice(object.length - 1 - index, 1);
-          }
-          monitorsSetScale(item);
-          if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
-            // Experimental setting only if audio visualization is used. Blank spaces will be filled.
-            //objGridStack.column(1, 'compact');
-            //objGridStack.column(layoutColumns, 'compact');
-            objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
-            objGridStack.column(layoutColumns, 'list');
-          }
-        } else {
-          changedMonitors.splice(object.length - 1 - index, 1);
-        }
-      });
-    }
-  }, 200);
+  resizeInterval = setInterval(processChangedMonitors, 200);
 
   selectLayout();
   monitors_ul.removeClass('hidden-shift');
@@ -781,6 +804,38 @@ function initPage() {
   controlMute(null, 'on');
   window.addEventListener('resize', on_scroll);
 } // end initPage
+
+// Updating GridStack resizeToContent, Scale & Ratio
+function processChangedMonitors() {
+  if (changedMonitors.length > 0) {
+    const pending = changedMonitors.length;
+    changedMonitors.slice().reverse().forEach(function(item, index, object) {
+      if (item) {
+        const img = getStream(item);
+        const _imageFeed = document.getElementById('imageFeed'+item);
+        const noVideo = (_imageFeed && _imageFeed.getAttribute('data-not-display-video') === 'true') ? true : false;
+        if ((noVideo === true || img.offsetHeight > 20) && objGridStack) { //Required for initial page loading
+          setRatioForMonitor(img, item);
+          if (objGridStack) objGridStack.resizeToContent(document.getElementById('m'+item), true);
+          changedMonitors.splice(object.length - 1 - index, 1);
+        }
+        monitorsSetScale(item);
+        if (selectorWhatDisplay && -1 === selectorWhatDisplay.value.indexOf('OnlyVideo')) {
+          // Experimental setting only if audio visualization is used. Blank spaces will be filled.
+          //objGridStack.column(1, 'compact');
+          //objGridStack.column(layoutColumns, 'compact');
+          objGridStack.column(1, 'list'); // This is likely a bug or a GridStack feature. If this isn't called, the rebuild won't occur.
+          objGridStack.column(layoutColumns, 'list');
+        }
+      } else {
+        changedMonitors.splice(object.length - 1 - index, 1);
+      }
+    });
+    // Resized monitors may have moved into or out of the viewport without a scroll,
+    // so start the ones now visible and stop the ones that left.
+    if (changedMonitors.length < pending) setTimeout(on_scroll, 100);
+  }
+}
 
 function hideControlElementsOnStream(stream) {
   const id = stringToNumber(stream.id);
@@ -829,7 +884,8 @@ function isOutOfViewport(elem) {
   out.bottom = (out.bottomUp || out.bottomDown);
   out.right = (bounding.right > (window.innerWidth || document.documentElement.clientWidth) ) || (bounding.right < 0);
   out.any = out.top || out.left || out.bottom || out.right;
-  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (out.left && out.right);
+  // A monitor wider than the viewport has left < 0 and right > width, but still fills it
+  out.all = (out.topUp && out.bottomUp ) || (out.topDown && out.bottomDown ) || (bounding.right < 0) || (bounding.left > (window.innerWidth || document.documentElement.clientWidth));
   //console.log( 'top: ' + out.top + ' left: ' + out.left + ' bottom: '+out.bottom + ' right: '+out.right);
 
   return out;
@@ -992,39 +1048,47 @@ function checkEndMonitorsPlaced() {
 }
 
 function waitingMonitorsPlaced(action = null) {
-  const intervalWait = setInterval(() => {
-    if (checkEndMonitorsPlaced()) {
-      // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
-      //if (isPresetLayout(getCurrentNameLayout())) {
-      //  objGridStack.compact('list', true);
-      //}
-      if (action == 'startMonitors') {
-        startMonitors();
-        monitorInitComplete = true;
-      } else if (action == 'changeRatio') {
-        if (!isPresetLayout(getCurrentNameLayout())) {
-          clearInterval(intervalWait);
-          return;
-        }
-        if (objGridStack) {
-          objGridStack.destroy(false);
-        }
-
-        for (let i = 0, length = monitors.length; i < length; i++) {
-          const monitor = monitors[i];
-          // Need to clear the current positioning "X". Otherwise, the order of the monitors will be disrupted
-          const monitor_frame = $j('#monitor'+monitor.id);
-          if (!monitor_frame) {
-            console.log('Error finding frame for ' + monitor.id);
-            continue;
-          }
-          //monitor_wrapper
-          monitor_frame.closest('[gs-id="' + monitor.id + '"]').removeAttr('gs-x');
-        }
-        initGridStack();
-        // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
+  // Only one poll at a time: changeRatioForAll() calls this on every change.
+  clearInterval(waitingMonitorsPlacedInterval);
+  let attempts = 0;
+  waitingMonitorsPlacedInterval = setInterval(() => {
+    attempts++;
+    // A stream that never reports a width would poll forever, so after 10s
+    // (100 ticks) run the action anyway: the changeRatio step is what
+    // repositions the grid, and skipping it leaves the monitors misplaced.
+    if (!checkEndMonitorsPlaced() && attempts < 100) {
+      return;
+    }
+    clearInterval(waitingMonitorsPlacedInterval);
+    waitingMonitorsPlacedInterval = null;
+    // This code may not be executed, because when opening the page we still end up in "action == 'changeRatio'"
+    //if (isPresetLayout(getCurrentNameLayout())) {
+    //  objGridStack.compact('list', true);
+    //}
+    if (action == 'startMonitors') {
+      startMonitors();
+      monitorInitComplete = true;
+    } else if (action == 'changeRatio') {
+      if (!isPresetLayout(getCurrentNameLayout())) {
+        return;
       }
-      clearInterval(intervalWait);
+      if (objGridStack) {
+        objGridStack.destroy(false);
+      }
+
+      for (let i = 0, length = monitors.length; i < length; i++) {
+        const monitor = monitors[i];
+        // Need to clear the current positioning "X". Otherwise, the order of the monitors will be disrupted
+        const monitor_frame = $j('#monitor'+monitor.id);
+        if (!monitor_frame) {
+          console.log('Error finding frame for ' + monitor.id);
+          continue;
+        }
+        //monitor_wrapper
+        monitor_frame.closest('[gs-id="' + monitor.id + '"]').removeAttr('gs-x');
+      }
+      initGridStack();
+      // You could use "objGridStack.compact('list', true)" instead of all this code, but that would mess up the monitor sorting. Because The "compact" algorithm in GridStack is not perfect.
     }
   }, 100);
 }
@@ -1083,6 +1147,7 @@ document.onvisibilitychange = () => {
     TimerHideShow = setTimeout(function() {
       //Stop monitors when hiding page
       //closing should kill, hiding should stop/pause
+      stopWebSiteRefresh();
       for (let i = 0, length = monitors.length; i < length; i++) {
         // Stop instead of pause because we don't want buffering in zms
         monitors[i].stop();

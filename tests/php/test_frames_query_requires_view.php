@@ -178,6 +178,10 @@ namespace {
     check("advsearch that is $what is ignored", $r['outcome'], 'response');
   }
 
+  // An array order falls back to the default instead of throwing.
+  $r = run_query($view, true, true, array('order' => array('asc')));
+  check('array order is ignored', $r['outcome'], 'response');
+
   // Structural: the real file must route the event id through Event::canView()
   // before dispatching the query. Fails if the guard is reverted.
   $src = file_get_contents(__DIR__.'/../../web/ajax/frames.php');

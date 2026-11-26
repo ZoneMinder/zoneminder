@@ -143,28 +143,26 @@ class EventDataController extends AppController {
  * @return void
  */
 	public function add() {
-		if ($this->request->is('post')) {
-			global $user;
-			if ($user and (!$user->canEdit('Events'))) {
-				throw new UnauthorizedException(__('Insufficient Privileges'));
-			}
-			$this->requireRequestEventDataEdit(true);
-			$this->pinRequestId($this->EventData, null);
-			$this->EventData->create();
-			if ($this->EventData->save($this->request->data)) {
-				$message = 'Saved';
-			} else {
-				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
-			}
-			$this->set(array(
-				'message' => $message,
-				'id' => $this->EventData->id,
-				'_serialize' => array('message', 'id')
-			));
-			return;
+		if (!$this->request->is('post')) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
 		}
-		$events = $this->EventData->Event->find('list');
-		$this->set(compact('events'));
+		global $user;
+		if ($user and (!$user->canEdit('Events'))) {
+			throw new UnauthorizedException(__('Insufficient Privileges'));
+		}
+		$this->requireRequestEventDataEdit(true);
+		$this->pinRequestId($this->EventData, null);
+		$this->EventData->create();
+		if ($this->EventData->save($this->request->data)) {
+			$message = 'Saved';
+		} else {
+			$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
+		}
+		$this->set(array(
+			'message' => $message,
+			'id' => $this->EventData->id,
+			'_serialize' => array('message', 'id')
+		));
 	}
 
 /**
@@ -179,26 +177,19 @@ class EventDataController extends AppController {
 			throw new NotFoundException(__('Invalid event_data'));
 		}
 		$this->requireEventDataEdit($id);
-		if ($this->request->is(array('post', 'put'))) {
-			$this->pinRequestId($this->EventData, $id);
-			$this->requireRequestEventDataEdit(false);
-			if ($this->EventData->save($this->request->data)) {
-				$message = 'Saved';
-			} else {
-				$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
-			}
-			$this->set(array(
-				'message' => $message,
-				'event_data' => $this->EventData->findById($id),
-				'_serialize' => array('message', 'event_data')
-			));
-			return;
+		$this->request->allowMethod('post', 'put');
+		$this->pinRequestId($this->EventData, $id);
+		$this->requireRequestEventDataEdit(false);
+		if ($this->EventData->save($this->request->data)) {
+			$message = 'Saved';
 		} else {
-			$options = array('conditions' => array($this->EventData->alias.'.'.$this->EventData->primaryKey => $id));
-			$this->request->data = $this->EventData->find('first', $options);
+			$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
 		}
-		$events = $this->EventData->Event->find('list');
-		$this->set(compact('events'));
+		$this->set(array(
+			'message' => $message,
+			'event_data' => $this->EventData->findById($id),
+			'_serialize' => array('message', 'event_data')
+		));
 	}
 
 /**

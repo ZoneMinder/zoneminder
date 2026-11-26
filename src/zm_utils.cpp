@@ -39,6 +39,47 @@
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
+std::string Utf8Sanitize(const std::string &str) {
+  std::string out;
+  out.reserve(str.size());
+  size_t i = 0;
+  while (i < str.size()) {
+    unsigned char c = static_cast<unsigned char>(str[i]);
+    size_t len = 0;
+    unsigned int min_cp = 0;
+    unsigned int cp = 0;
+    if (c < 0x80) {
+      out += static_cast<char>(c);
+      i++;
+      continue;
+    } else if (c >= 0xC2 && c <= 0xDF) {
+      len = 2; cp = c & 0x1F; min_cp = 0x80;
+    } else if (c >= 0xE0 && c <= 0xEF) {
+      len = 3; cp = c & 0x0F; min_cp = 0x800;
+    } else if (c >= 0xF0 && c <= 0xF4) {
+      len = 4; cp = c & 0x07; min_cp = 0x10000;
+    }
+    bool ok = len != 0 && i + len <= str.size();
+    for (size_t j = 1; ok && j < len; j++) {
+      unsigned char cc = static_cast<unsigned char>(str[i + j]);
+      if ((cc & 0xC0) != 0x80) {
+        ok = false;
+      } else {
+        cp = (cp << 6) | (cc & 0x3F);
+      }
+    }
+    if (ok && (cp < min_cp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))) ok = false;
+    if (ok) {
+      out.append(str, i, len);
+      i += len;
+    } else {
+      out += '?';
+      i++;
+    }
+  }
+  return out;
+}
+
 // Trim Both leading and trailing sets
 std::string Trim(const std::string &str, const std::string &char_set) {
   size_t start_pos = str.find_first_not_of(char_set);
@@ -121,6 +162,12 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string UrlHost(const std::string &host) {
+  if (host.find(':') != std::string::npos && host[0] != '[')
+    return "[" + host + "]";
+  return host;
+}
+
 std::string ClientAddress(const std::string &remote_addr,
                           const std::string &forwarded_for,
                           const std::string &trusted_proxies) {
@@ -199,7 +246,7 @@ std::string Base64Encode(const std::string &str) {
   std::string outString;
   outString.reserve(2 * str.size());
 
-  const char *inPtr = str.c_str();
+  const unsigned char *inPtr = reinterpret_cast<const unsigned char *>(str.c_str());
   while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
@@ -459,6 +506,35 @@ std::string UriEncode(const std::string &value) {
   return retbuf;
 }
 
+// Where the userinfo of url ends: the last '@' before the path, query or
+// fragment, or npos if there is none. ffmpeg and cameras split the authority
+// at its last '@', so a password with a raw '@' in it works; ending at the
+// first one would leave the rest of that password in the masked url. An '@'
+// in the path or query is not userinfo.
+static std::size_t userinfo_end(const std::string &url) {
+  std::size_t scheme_at = url.find("://");
+  std::size_t start = (scheme_at == std::string::npos) ? 0 : scheme_at + 3;
+  std::size_t end = url.find_first_of("/?#", start);
+  if (end == std::string::npos) end = url.size();
+  if (end == start) return std::string::npos;
+  std::size_t at_at = url.rfind('@', end - 1);
+  if (at_at == std::string::npos or at_at < start) return std::string::npos;
+  return at_at;
+}
+
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass) {
+  // Reserved characters in the credentials would otherwise end the userinfo
+  // early and leave a broken url.
+  const std::string credentials = UriEncode(user) + ":" + UriEncode(pass) + "@";
+  size_t scheme_end = url.find("://");
+  if (scheme_end == std::string::npos) return "rtsp://" + credentials + url;
+  // A url that already has credentials keeps them; inserting a second
+  // userinfo would give something like rtsp://u:p@old:pw@cam/s.
+  if (userinfo_end(url) != std::string::npos) return url;
+  scheme_end += 3;
+  return url.substr(0, scheme_end) + credentials + url.substr(scheme_end);
+}
+
 QueryString::QueryString(std::istream &input) {
   while (!input.eof() && input.peek() > 0) {
     //Should eat "param1="
@@ -495,16 +571,17 @@ const QueryParameter *QueryString::get(const std::string &name) const {
 std::string QueryString::parseName(std::istream &input) {
   std::string name;
 
-  while (!input.eof() && input.peek() != '=') {
+  // A '&' ends a name that has no '=', and is left for parseValue to eat.
+  while (!input.eof() && input.peek() != '=' && input.peek() != '&') {
     name.push_back(input.get());
   }
 
   //Eat the '='
-  if (!input.eof()) {
+  if (!input.eof() && input.peek() == '=') {
     input.get();
   }
 
-  return name;
+  return UriDecode(name);
 }
 
 std::string QueryString::parseValue(std::istream &input) {
@@ -521,22 +598,6 @@ std::string QueryString::parseValue(std::istream &input) {
   }
 
   return UriDecode(url_encoded_value);
-}
-
-// Where the userinfo of url ends: the last '@' before the path, query or
-// fragment, or npos if there is none. ffmpeg and cameras split the authority
-// at its last '@', so a password with a raw '@' in it works; ending at the
-// first one would leave the rest of that password in the masked url. An '@'
-// in the path or query is not userinfo.
-static std::size_t userinfo_end(const std::string &url) {
-  std::size_t scheme_at = url.find("://");
-  std::size_t start = (scheme_at == std::string::npos) ? 0 : scheme_at + 3;
-  std::size_t end = url.find_first_of("/?#", start);
-  if (end == std::string::npos) end = url.size();
-  if (end == start) return std::string::npos;
-  std::size_t at_at = url.rfind('@', end - 1);
-  if (at_at == std::string::npos or at_at < start) return std::string::npos;
-  return at_at;
 }
 
 std::string mask_authentication(const std::string &url) {

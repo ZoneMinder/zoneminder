@@ -30,6 +30,18 @@ function videoStreamSignature($path) {
   return '';
 }
 
+# Exports are named by the user who asked for them, so every export name starts
+# with that user's id. download.php, archive.php and the existence check serve
+# only names that carry the prefix of the requesting user.
+function exportOwnerPrefix() {
+  global $user;
+  return 'u'.($user ? intval($user->Id()) : 0).'_';
+}
+
+function exportNameBelongsToUser($name) {
+  return strpos((string)$name, exportOwnerPrefix()) === 0;
+}
+
 # Remove what a failed downloadEvents() call created: its export directory and
 # the partial archive. The working directory is left first as it is about to go.
 function removeFailedDownload($export_dir, $archive_path) {
@@ -75,6 +87,8 @@ function downloadEvents(
   // DIR_EXPORTS_DOWNLOAD. Refuse a traversal component. refs GHSA-72h2-rvhv-wr5g
   $export_root = safeExportComponent($export_root);
   if ($export_root === '') $export_root = 'Export';
+  # Name the export after its owner so another user cannot reuse or fetch it.
+  $export_root = exportOwnerPrefix().$export_root;
 
   $export_dir = DIR_EXPORTS_DOWNLOAD.'/'.$export_root;
   define('DOWNLOAD_DIR_EXPORTS', $export_dir);
@@ -95,11 +109,16 @@ function downloadEvents(
   }
   $events_by_monitor_id = [];
   $generatedVideos = [];
+  $generated_dir = $export_dir.'/generated';
+  if (!(@mkdir($generated_dir) or is_dir($generated_dir))) {
+    ZM\Error("Can't create directory '$generated_dir' for generated videos");
+    return removeFailedDownload($export_dir, '');
+  }
   foreach ($eids as $eid) {
     $event = new ZM\Event($eid);
     if (!$event->canView()) {
       global $user;
-      ZM\Warning('User '.($user?$user['Username']:'').' cannot view event '.$event->Id());
+      ZM\Warning('User '.($user?$user->Username():'').' cannot view event '.$event->Id());
       continue;
     }
     if (!isset($events_by_monitor_id[$event->MonitorId()])) $events_by_monitor_id[$event->MonitorId()] = [];
@@ -107,10 +126,11 @@ function downloadEvents(
 
     if (!$event->DefaultVideo()) {
       # Only build a video from the images when the event has no usable one.
-      $existing = findVideoEventFile($event, 'mp4');
+      $existing = findVideoEventFile($event, '*');
       if ($existing === '' or !filesize($existing)) {
-        $generated = $event->GenerateVideo();
-        if ($generated) $generatedVideos[$event->Id()] = $event->Path().'/'.$generated;
+        # Written under the export directory, not the events' storage, which may be nearly full.
+        $generated = $event->GenerateVideo(0, 0, 0, 0, false, 'mp4', '', $generated_dir);
+        if ($generated) $generatedVideos[$event->Id()] = $generated_dir.'/'.$generated;
       }
     }
   }
@@ -121,6 +141,9 @@ function downloadEvents(
   if ($exportFormat == 'tar' || $exportFormat == 'zip') {
     $archiveFileName = $export_root.'.'.$exportFormat;
     $archive_path = DIR_EXPORTS_DOWNLOAD.'/'.$archiveFileName;
+    # tar --append and zip add to an existing archive, so an earlier download
+    # of the same name that was never fetched would bring its events along.
+    @unlink($archive_path);
   }
 
   foreach (array_keys($events_by_monitor_id) as $mid) {
@@ -138,12 +161,12 @@ function downloadEvents(
     # set of matching events is merged into a file of its own.
     $groups = [];
     foreach ($events_by_monitor_id[$mid] as $event) {
-      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, "mp4");
+      $filePath = isset($generatedVideos[$event->Id()]) ? $generatedVideos[$event->Id()] : findVideoEventFile($event, '*');
       if ($filePath ==='') {
         ZM\Warning('The file path for event '.$event->Id().' was not found.');
         continue;
       }
-      $signature = videoStreamSignature($event->Path().'/'.basename($filePath));
+      $signature = videoStreamSignature(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.basename($filePath));
       if ($signature === '') {
         ZM\Warning('The video file '.$filePath.' of event '.$event->Id().' is empty or unreadable, not exporting it.');
         continue;
@@ -171,7 +194,7 @@ function downloadEvents(
 
         $fileName = basename($filePath);
         if (strpos($fileName, 'incomplete') !== false && !$endSecs) $maxTime = date('Y-m-d H:i:s'); # Probably incomplete event.
-        $eventFileList .= 'file \''.$event->Path().'/'.$fileName.'\''.PHP_EOL;
+        $eventFileList .= 'file \''.(isset($generatedVideos[$event->Id()]) ? $filePath : $event->Path().'/'.$fileName).'\''.PHP_EOL;
       }
 
       if ($eventFileList === '') {
@@ -180,9 +203,11 @@ function downloadEvents(
       }
 
       if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
-      $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
+      # The monitor name is user-editable and must not carry a path into the output file name.
+      $monitorName = str_replace(['/', '\\', "\0"], '_', $monitor->Name());
+      $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.'.mp4';
       for ($n = 2; in_array($mergedFileName, $exportFileList); $n++) {
-        $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
+        $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
       }
       if (($fp = fopen('event_files.txt', 'w'))) {
         fwrite($fp, $eventFileList);
@@ -224,6 +249,8 @@ function downloadEvents(
       }
     } # end foreach group
   } # end foreach monitor
+
+  deletePath($generated_dir);
 
   if (count($exportFileList) === 0) {
    ZM\Warning('No events were found for export.');

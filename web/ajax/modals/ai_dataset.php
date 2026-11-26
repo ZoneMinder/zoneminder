@@ -47,11 +47,11 @@ if ( $did ) {
             <tbody>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newDataset[Name]" value="<?php echo validHtmlStr($dataset['Name']) ?>" required/></td>
+                <td><input type="text" name="newDataset[Name]" value="<?php echo validHtmlStr($dataset['Name']) ?>" maxlength="64" required/></td>
               </tr>
               <tr class="Version">
                 <th scope="row"><?php echo translate('Version') ?></th>
-                <td><input type="text" name="newDataset[Version]" value="<?php echo validHtmlStr($dataset['Version']) ?>"/></td>
+                <td><input type="text" name="newDataset[Version]" value="<?php echo validHtmlStr($dataset['Version']) ?>" maxlength="32"/></td>
               </tr>
               <tr class="NumClasses">
                 <th scope="row"><?php echo translate('Number of Classes') ?></th>

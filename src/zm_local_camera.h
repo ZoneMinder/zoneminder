@@ -26,6 +26,9 @@
 
 #include <linux/videodev2.h>
 
+_AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette);
+extern int (*zm_v4l2_ioctl)(int, unsigned long, void *);
+
 //
 // Class representing 'local' cameras, i.e. those which are
 // directly connect to the host machine and which are accessed

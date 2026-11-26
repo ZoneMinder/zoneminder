@@ -79,6 +79,9 @@ check('-i takes no value', $out =~ /storage find Id 5/ ? 'accepted' : $out, 'acc
 ($status, $out) = run('--interactive', '0', '-s', '5');
 check('--interactive 0 is still accepted', $out =~ /storage find Id 5/ ? 'accepted' : $out, 'accepted');
 
+($status, $out) = run('--nointeractive', '-s', '5');
+check('--nointeractive is accepted', $out =~ /storage find Id 5/ ? 'accepted' : $out, 'accepted');
+
 ($status, $out) = run('--report', '--interactive', '-s', '5');
 check('--report with --interactive is refused', $out =~ /only one option/ ? 'refused' : 'accepted', 'refused');
 

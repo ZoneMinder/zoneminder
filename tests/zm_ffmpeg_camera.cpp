@@ -19,6 +19,7 @@
 
 #include "zm_ffmpeg_camera.h"
 #include "zm_monitor.h"
+#include "zm_packet.h"
 #include "zm_time.h"
 #include "zm_utils.h"
 
@@ -189,4 +190,84 @@ TEST_CASE("FfmpegCamera: a failed secondary reopen leaves no audio stream behind
   REQUIRE(camera->getAudioStreamId() == -1);
 
   camera.reset();
+}
+
+TEST_CASE("FfmpegCamera: a re-prime onto a stream without audio drops the old audio stream") {
+  const std::string primary = "data/mp4/reprime-primary.mp4";
+  std::filesystem::copy_file(kWithAudio, primary, std::filesystem::copy_options::overwrite_existing);
+  SecondPathMonitor monitor("");
+  auto camera = std::make_unique<FfmpegCamera>(&monitor, primary, "", "", "", "", "",
+                                               160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+  REQUIRE(camera->getAudioStreamId() >= 0);
+
+  std::filesystem::copy_file(kVideoOnly, primary, std::filesystem::copy_options::overwrite_existing);
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  camera.reset();
+  std::filesystem::remove(primary);
+}
+
+TEST_CASE("FfmpegCamera: video packets from the secondary input are not delivered as video") {
+  // The secondary input is only there for its audio. Its video stream carries
+  // the same picture as the primary, and handing those packets on would queue
+  // every frame twice and feed a second video stream's timestamps into the
+  // primary's.
+  SecondPathMonitor monitor(kWithAudio);
+  auto camera = MakeCamera(&monitor, kWithAudio);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  int delivered = 0;
+  for (int i = 0; i < 400 and delivered < 100; i++) {
+    auto packet = std::make_shared<ZMPacket>();
+    int ret = camera->Capture(packet);
+    if (ret < 0) break;
+    if (ret == 0) continue;
+    delivered++;
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      REQUIRE(packet->stream == camera->getVideoStream());
+    }
+  }
+  REQUIRE(delivered > 0);
+}
+
+TEST_CASE("FfmpegCamera: priming a v4l2 path twice opens it as v4l2 both times") {
+  // The "v4l2://" scheme is only meaningful to us. Stripping it from the
+  // member leaves a bare device node on the next reconnect, which no longer
+  // matches the V4L2 check and is opened without the video4linux2 format.
+  SecondPathMonitor monitor("");
+  const std::string path = "v4l2:///dev/zm-no-such-video-device";
+  auto camera = std::make_unique<FfmpegCamera>(&monitor, path, "", "", "", "", "",
+                                               160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+  REQUIRE(camera->PrimeCapture() <= 0);
+  REQUIRE(static_cast<FfmpegCamera *>(camera.get())->Path() == path);
+  REQUIRE(camera->PrimeCapture() <= 0);
+  REQUIRE(static_cast<FfmpegCamera *>(camera.get())->Path() == path);
+}
+
+TEST_CASE("FindForcedInputFormat: input_format forces the demuxer and is consumed") {
+  AVDictionary *opts = nullptr;
+  av_dict_set(&opts, "input_format", "mjpeg", 0);
+  av_dict_set(&opts, "tls_verify", "0", 0);
+  auto format = FindForcedInputFormat(&opts);
+  REQUIRE(format != nullptr);
+  REQUIRE(std::string(format->name).find("mjpeg") != std::string::npos);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  REQUIRE(av_dict_get(opts, "tls_verify", nullptr, 0) != nullptr);
+  av_dict_free(&opts);
+}
+
+TEST_CASE("FindForcedInputFormat: unknown name or no key leaves ffmpeg to probe") {
+  AVDictionary *opts = nullptr;
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  av_dict_set(&opts, "input_format", "no-such-demuxer", 0);
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  av_dict_free(&opts);
 }

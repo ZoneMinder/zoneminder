@@ -95,7 +95,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-    my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+    my ($user, $password) = split(/:/, $self->{Monitor}->{ControlDevice} // '', 2);
 
     if ( !defined $password ) {
         # If value of "Control device" does not consist of two parts, then only password is given and we fallback to default user:
@@ -105,7 +105,7 @@ sub sendCmd
 
     $cmd .= "user=$user&pwd=$password";
 
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
@@ -134,6 +134,7 @@ sub moveConUp
 {
     my $self = shift;
     Debug( "Move Up" );
+    $self->{stop_command} = 1;
     $self->sendCmd( 'decoder_control.cgi?command=0&' );
 }
 
@@ -142,6 +143,7 @@ sub moveConDown
 {
     my $self = shift;
     Debug( "Move Down" );
+    $self->{stop_command} = 3;
     $self->sendCmd( 'decoder_control.cgi?command=2&' );
 }
 
@@ -150,6 +152,7 @@ sub moveConLeft
 {
     my $self = shift;
     Debug( "Move Left" );
+    $self->{stop_command} = 7;
     $self->sendCmd( 'decoder_control.cgi?command=6&' );
 }
 
@@ -158,6 +161,7 @@ sub moveConRight
 {
     my $self = shift;
     Debug( "Move Right" );
+    $self->{stop_command} = 5;
     $self->sendCmd( 'decoder_control.cgi?command=4&' );
 }
 
@@ -198,7 +202,7 @@ sub moveStop
 {
     my $self = shift;
     Debug( "Move Stop" );
-    $self->sendCmd( 'decoder_control.cgi?command=1&' );
+    $self->sendCmd( 'decoder_control.cgi?command=' . ($self->{stop_command} || 1) . '&' );
 }
 
 #Move Camera to Home Position

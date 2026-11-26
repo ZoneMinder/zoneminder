@@ -73,9 +73,9 @@ int SWScale::Convert(
   }
   zm_sws_set_ranges(swscale_ctx, orig_format, orig_out_format);
   /* Do the conversion */
-  if (!sws_scale(swscale_ctx,
+  if (sws_scale(swscale_ctx,
                  in_frame->data, in_frame->linesize, 0, in_frame->height,
-                 out_frame->data, out_frame->linesize)) {
+                 out_frame->data, out_frame->linesize) <= 0) {
     Error("swscale conversion failed");
     return -10;
   }
@@ -189,10 +189,10 @@ int SWScale::Convert(
   }
 
   /* Do the conversion */
-  if ( !sws_scale(swscale_ctx,
+  if ( sws_scale(swscale_ctx,
                   input_avframe->data, input_avframe->linesize,
                   0, height,
-                  output_avframe->data, output_avframe->linesize) ) {
+                  output_avframe->data, output_avframe->linesize) <= 0 ) {
     Error("swscale conversion failed");
     return -10;
   }

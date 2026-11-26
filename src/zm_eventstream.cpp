@@ -107,34 +107,21 @@ bool EventStream::seek(SystemTimePoint event_time) {
   }
 
   // Binary search: frames are sorted by timestamp (ascending).
-  // Find the first frame whose timestamp >= event_time.
-  auto it = std::lower_bound(
+  // Find the last frame whose timestamp <= event_time, as CMD_SEEK does for offsets.
+  // A frame's delta is the gap before it, so it says nothing about how long it is shown.
+  auto it = std::upper_bound(
     event_data->frames.begin(),
     event_data->frames.end(),
     event_time,
-    [](const FrameData &frame, const SystemTimePoint &t) {
-      return frame.timestamp < t;
+    [](const SystemTimePoint &t, const FrameData &frame) {
+      return t < frame.timestamp;
     });
 
-  // If event_time is past all frame timestamps (e.g. at event end_time),
-  // step back to the last frame so the delta check below can evaluate it.
-  if (it == event_data->frames.end() && it != event_data->frames.begin()) {
+  // upper_bound gives the first frame after event_time; step back one
+  if (it != event_data->frames.begin())
     --it;
-  }
 
-  // Check if the previous frame's time window covers event_time.
-  // Original logic: timestamp + delta >= event_time allows a frame whose
-  // timestamp is before the target to match if its display window extends
-  // past it.
-  if (it != event_data->frames.begin()) {
-    auto prev = std::prev(it);
-    if (prev->timestamp + prev->delta >= event_time) {
-      it = prev;
-    }
-  }
-
-  if (it != event_data->frames.end() &&
-      (it->timestamp >= event_time || it->timestamp + it->delta >= event_time)) {
+  if (it != event_data->frames.end()) {
     curr_frame_id = static_cast<int>(std::distance(event_data->frames.begin(), it)) + 1;
     curr_stream_time = event_time;
     Debug(3, "Set curr_stream_time: %.2f, curr_frame_id: %d",
@@ -158,14 +145,13 @@ bool EventStream::loadInitialEventData(
     if ( init_frame_id < 1 || init_frame_id > (int)event_data->frames.size() ) {
       Error("Invalid frame id specified. %d not in [1..%zu]", init_frame_id, event_data->frames.size());
       curr_stream_time = event_data->start_time;
-      curr_frame_id = 1;
     } else {
       curr_stream_time = event_data->frames[init_frame_id-1].timestamp;
-      curr_frame_id = init_frame_id;
     }
   } else {
     curr_stream_time = event_data->start_time;
   }
+  curr_frame_id = InitialFrameId(init_frame_id, event_data->frames.size());
 
   return true;
 }
@@ -354,7 +340,7 @@ bool EventStream::loadEventData(uint64_t event_id) {
     Microseconds delta;
     if (last_frame_idx < 0) {
       // There were no frames in db
-      delta = Microseconds( static_cast<int>(1000000 * base_fps / FPSeconds(event_data->duration).count()) );
+      delta = SyntheticFrameDelta(event_data->frame_count, event_data->duration);
       event_data->frames.emplace_back(
                      1,
                      event_data->start_time,
@@ -365,7 +351,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
       last_frame_idx = event_data->frames.size() - 1;
       last_id ++;
       last_timestamp = event_data->start_time;
-      event_data->frame_count ++;
     } else {
       delta = std::chrono::duration_cast<Microseconds>((event_data->end_time - last_timestamp)/(event_data->frame_count-last_id));
       Debug(1, "Setting delta from endtime %f - %f / frame_count %d - last_id %d", 
@@ -397,7 +382,6 @@ bool EventStream::loadEventData(uint64_t event_id) {
               FPSeconds(frame.offset).count(),
               FPSeconds(frame.delta).count(),
               frame.in_db);
-        event_data->frame_count ++;
       } // end while
     }
   } // end if have endtime
@@ -495,6 +479,20 @@ EventStream::NeighbourChoice EventStream::ChooseNeighbour(const EventHint &hint,
     return hint.event_id ? NeighbourChoice::kHint : NeighbourChoice::kBoundary;
   if (!ui_managed) return NeighbourChoice::kSameMonitor;
   return waited < kHintWait ? NeighbourChoice::kWait : NeighbourChoice::kTimedOut;
+}
+
+int EventStream::LoopedFrameId(int frame_id, int num_frames) {
+  // Below 1 is off the start, which only reverse playback reaches.
+  return frame_id < 1 ? num_frames : 1;
+}
+
+int EventStream::InitialFrameId(int requested, size_t num_frames) {
+  return (requested < 1 || requested > (int)num_frames) ? 1 : requested;
+}
+
+Microseconds EventStream::SyntheticFrameDelta(int frame_count, Microseconds duration) {
+  if (frame_count <= 0 || duration <= Microseconds(0)) return Microseconds(0);
+  return duration / frame_count;
 }
 
 bool EventStream::HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev) {
@@ -1021,8 +1019,11 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
     // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
     // dimensions match (every frame of a given event), eliminating a ~2MB
     // malloc/free per streamed frame.
-    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-    return &reuse_image_;
+    if (reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB))
+      return &reuse_image_;
+    // reuse_image_ still holds the last good frame, or nothing for the first one.
+    // Treat the unreadable file as missing and try the video.
+    reuse_filepath_.clear();
   }
   if (!ffmpeg_input) return nullptr;
 
@@ -1169,6 +1170,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
     bool send_raw = (type == STREAM_JPEG) && ((scale >= ZM_SCALE_BASE) && (zoom == ZM_SCALE_BASE)) && !reuse_filepath_.empty();
 
     if (send_raw) {
+      unzoomedFrameSent();
       fprintf(stdout, "--" BOUNDARY "\r\n");
       if (!send_file(reuse_filepath_)) {
         Error("Can't send %s: %s", reuse_filepath_.c_str(), strerror(errno));
@@ -1244,7 +1246,7 @@ void EventStream::runStream() {
 
   //checkInitialised();
 
-  if (type == STREAM_JPEG)
+  if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
     fputs("Content-Type: multipart/x-mixed-replace;boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   if (!event_data) {
@@ -1385,6 +1387,11 @@ void EventStream::runStream() {
           }
         }
         frame_count++;
+        // frames=N asks for N frames and then the end of the stream, as MonitorStream does.
+        if (frames_to_send > 0 && frame_count >= frames_to_send) {
+          zm_terminate = true;
+          break;
+        }
       }
 
       if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()
@@ -1403,8 +1410,8 @@ void EventStream::runStream() {
             )
            ) {
           Debug(2, "Have mode==MODE_SINGLE and at end of event, looping back to start");
-          curr_frame_id = 1;
-          advanced_to = 1;
+          curr_frame_id = LoopedFrameId(curr_frame_id, num_frames);
+          advanced_to = curr_frame_id;
         }
 
         if (curr_frame_id >= 1 && curr_frame_id <= num_frames) {
@@ -1524,6 +1531,7 @@ void EventStream::runStream() {
 
   if (type == STREAM_MPEG) {
     delete vid_stream;
+    vid_stream = nullptr;
   }
 
   if (connkey) {
@@ -1604,12 +1612,14 @@ void EventStream::setStreamStart(
   ) {
   // Load event data first, then seek to the specified time
   loadEventData(init_event_id);
-  if (event_time.time_since_epoch() != Seconds(0)) {
-    seek(event_time);
-  } else {
-    curr_stream_time = event_data->start_time;
-    curr_frame_id = 1;
-  }
+  startAtTime(event_time);
+}
+
+void EventStream::startAtTime(SystemTimePoint event_time) {
+  // seek() leaves these alone when the time is outside the event.
+  curr_stream_time = event_data->start_time;
+  curr_frame_id = 1;
+  if (event_time.time_since_epoch() != Seconds(0)) seek(event_time);
 }  // end void EventStream::setStreamStart(init_event_id, event_time)
 
 void EventStream::setStreamStart(int monitor_id, SystemTimePoint event_time) {

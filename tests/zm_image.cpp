@@ -28,8 +28,11 @@ extern "C" {
 #include <jpeglib.h>
 }
 
+#include <csignal>
 #include <cstdlib>
 #include <cstring>
+#include <sys/resource.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 namespace {
@@ -510,6 +513,36 @@ TEST_CASE("Image::ReadJpeg reallocates for a larger JPEG", "[image]") {
   CHECK(small.Size() > small_size);
 }
 
+// A failed write (a full disk) ends in zm_jpeg_error_exit, which longjmps to
+// jpg_err.setjmp_buffer; WriteJpeg set that only for fifo writes, so the jump
+// went to a frame that had already returned, or to a buffer never set.
+TEST_CASE("Image::WriteJpeg returns false when the file cannot be written", "[Image]") {
+  bootstrap_image_config();
+  Image image(64, 48, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  image.Clear();
+  char path[] = "/tmp/zm_jpeg_write_error_XXXXXX.jpg";
+  int fd = mkstemps(path, 4);
+  REQUIRE(fd >= 0);
+  close(fd);
+
+  pid_t child = fork();
+  REQUIRE(child >= 0);
+  if (child == 0) {
+    alarm(10);
+    // Any write to the file now fails (EFBIG), as on a full disk.
+    signal(SIGXFSZ, SIG_IGN);
+    struct rlimit no_size = {0, 0};
+    setrlimit(RLIMIT_FSIZE, &no_size);
+    _exit(image.WriteJpeg(path) ? 1 : 0);
+  }
+  int status = 0;
+  REQUIRE(waitpid(child, &status, 0) == child);
+  unlink(path);
+  INFO("wait status " << status);
+  CHECK(WIFEXITED(status));
+  CHECK(WEXITSTATUS(status) == 0);
+}
+
 
 static std::vector<JOCTET> reference_encode_yuv(const Image &image, int quality) {
   const int w = static_cast<int>(image.Width());
@@ -692,6 +725,46 @@ TEST_CASE("Image::EncodeJpeg cached struct no raw leak", "[Image]") {
   REQUIRE(actual == expected);
 }
 
+namespace {
+class JpegCacheProbe : public Image {
+ public:
+  static bool WriteCached(int quality) { return writejpg_ccinfo[quality] != nullptr; }
+  static bool EncodeCached(int quality) { return encodejpg_ccinfo[quality] != nullptr; }
+};
+}  // namespace
+
+// The quality options accept any integer, but a compressor is cached only for
+// each quality 0-100; a quality outside that indexed past the cache arrays.
+TEST_CASE("Image::WriteJpeg and EncodeJpeg clamp an out of range quality", "[Image]") {
+  Image::Deinitialise();  // empties the caches
+  bootstrap_image_config();
+  Image image(32, 24, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  image.Clear();
+  char path[] = "/tmp/zm_jpeg_quality_XXXXXX.jpg";
+  int fd = mkstemps(path, 4);
+  REQUIRE(fd >= 0);
+  close(fd);
+  std::vector<JOCTET> buf(1 << 20);
+  size_t size = 0;
+
+  const int file_quality = config.jpeg_file_quality;
+  const int stream_quality = config.jpeg_stream_quality;
+  config.jpeg_file_quality = 101;
+  config.jpeg_stream_quality = 101;
+  CHECK(image.WriteJpeg(path));
+  CHECK(image.EncodeJpeg(buf.data(), &size));
+  CHECK(JpegCacheProbe::WriteCached(100));
+  CHECK(JpegCacheProbe::EncodeCached(100));
+  config.jpeg_file_quality = file_quality;
+  config.jpeg_stream_quality = stream_quality;
+
+  CHECK(image.WriteJpeg(path, -1));
+  CHECK(image.EncodeJpeg(buf.data(), &size, -1));
+  CHECK(JpegCacheProbe::WriteCached(0));
+  CHECK(JpegCacheProbe::EncodeCached(0));
+  unlink(path);
+}
+
 TEST_CASE("Image::Fill polygon writes the expected pixels for each density", "[image]") {
   bootstrap_image_config();
   const int w = 16, h = 12;
@@ -768,4 +841,39 @@ TEST_CASE("Image::Blend YUV420P blends only luma", "[image]") {
       REQUIRE(p.data[1][y * p.stride[1] + x] == 0x33);
       REQUIRE(p.data[2][y * p.stride[2] + x] == 0x44);
     }
+}
+
+// A fill box that reaches past the image is cut to the image. It used to write past the end of
+// the row, which with no row padding lands on the start of the next row.
+TEST_CASE("Image::Fill with a box past the right edge stays inside the image", "[image]") {
+  bootstrap_image_config();
+  for (int density : {1, 2}) {
+    Image image(8, 8, 8, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    REQUIRE(image.LineSize() == 8u);
+    memset(image.Buffer(), 0, image.Size());
+    Box limits(Vector2(2, 2), Vector2(20, 3));
+    if (density == 1) {
+      image.Fill(0xFF, &limits);
+    } else {
+      image.Fill(0xFF, density, &limits);
+    }
+    REQUIRE(*image.Buffer(7, 2) == 0xFF);
+    REQUIRE(*image.Buffer(2, 3) == 0xFF);
+    // Outside the box: the left of rows 3 and 4, and the rows below the box.
+    REQUIRE(*image.Buffer(0, 3) == 0);
+    REQUIRE(*image.Buffer(1, 3) == 0);
+    REQUIRE(*image.Buffer(0, 4) == 0);
+    REQUIRE(*image.Buffer(4, 4) == 0);
+  }
+}
+
+TEST_CASE("Image::Fill with a box wholly outside the image changes nothing", "[image]") {
+  bootstrap_image_config();
+  Image image(8, 8, 8, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  memset(image.Buffer(), 0, image.Size());
+  Box limits(Vector2(10, 2), Vector2(12, 3));
+  image.Fill(0xFF, &limits);
+  for (unsigned int i = 0; i < image.Size(); i++) {
+    REQUIRE(image.Buffer()[i] == 0);
+  }
 }

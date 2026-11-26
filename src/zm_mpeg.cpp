@@ -234,6 +234,10 @@ bool VideoStream::OpenStream( ) {
                            tmp_opicture->linesize, tmp_opicture->buf[0]->data, pf,
                            codec_context->width, codec_context->height, 1);
     }
+  } else {
+    // SetupCodec found no video encoder for this format
+    Error("No video stream to open for format %s", format);
+    return false;
   } // end if ost
 
   /* open the output file, if needed */
@@ -364,18 +368,13 @@ VideoStream::~VideoStream( ) {
     av_write_trailer( ofc );
   }
 
-  /* free the streams */
-  for ( unsigned int i = 0; i < ofc->nb_streams; i++ ) {
-    av_freep( &ofc->streams[i] );
-  }
-
   if ( !(of->flags & AVFMT_NOFILE) ) {
     /* close the output file */
     avio_close( ofc->pb );
   }
 
-  /* free the stream */
-  av_free( ofc );
+  /* free the context and its streams */
+  avformat_free_context( ofc );
 
   /* free format and codec_name data. */
   if ( codec_and_format ) {
@@ -504,7 +503,13 @@ bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int
           fit_width, fit_height, av_get_pix_fmt_name(pf));
     return false;
   }
-  sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data, dst_linesize);
+  if (sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data,
+                dst_linesize) < 0) {
+    Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
+          fit_width, fit_height, av_get_pix_fmt_name(pf));
+    return false;
+  }
   return true;
 }
 
@@ -529,6 +534,14 @@ double VideoStream::EncodeImage(const Image &image, bool p_add_timestamp, unsign
   return EncodeFrame(packed_image.data(), packed_image.size(), p_add_timestamp, p_timestamp);
 }
 
+// A raw video packet is the picture itself, sized for the frame's own format.
+// The frame struct is not picture data, and the caller's buffer_size is for the
+// input format, which can be larger than the frame's.
+void VideoStream::SetRawPacket(AVPacket *pkt, const AVFrame *frame) {
+  pkt->data = frame->data[0];
+  pkt->size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 1);
+}
+
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {
   if ( codec_context->pix_fmt != pf ) {
     static struct SwsContext *img_convert_ctx = nullptr;
@@ -538,7 +551,10 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       if ( !img_convert_ctx )
         Panic( "Unable to initialise image scaling context" );
     }
-    sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize );
+    if ( sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize ) < 0 ) {
+      Error( "Error converting frame for the video stream" );
+      return 0;
+    }
   } else {
     memcpy( opicture->data[0], buffer, buffer_size );
   }
@@ -550,8 +566,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
     pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->stream_index = ost->index;
-    pkt->data = (uint8_t *)opicture_ptr;
-    pkt->size = buffer_size;
+    SetRawPacket(pkt, opicture_ptr);
   } else {
 #if LIBAVCODEC_VERSION_CHECK(60, 2, 0, 2, 100)
     opicture_ptr->pts = codec_context->frame_num;

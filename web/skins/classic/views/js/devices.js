@@ -40,6 +40,7 @@ function manageDelConfirmModalBtns() {
 
   $j.getJSON(thisUrl + '?request=devices&action=delete&markDids[]='+selections.join('&markDids[]='))
       .done( function(data) {
+        if (data.result == 'Error') alert(data.message);
         $j('#devicesTable').bootstrapTable('refresh');
         window.location.reload(true);
       })
@@ -57,10 +58,14 @@ function getIdSelections() {
 function processClicks(event, field, value, row, $element) {
   if ( field == 'On' || field == 'Off' ) {
     var key = row.KeyString.replace(/(<([^>]+)>)/gi, '');
-    var url = '?request=device&action=device&command=' + field + '&key=' + key;
+    var url = '?request=device&action=device&command=' + field + '&key=' + encodeURIComponent(key);
     console.log('Url sent to device: ' + url);
     $j.getJSON(thisUrl + url)
         .done(function(data) {
+          if (data.result == 'Error') {
+            alert(data.message);
+            return;
+          }
           // TODO - verify if either of these are needed
           $j('#devicesTable').bootstrapTable('refresh');
           window.location.reload(true);

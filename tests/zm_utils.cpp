@@ -173,6 +173,8 @@ TEST_CASE("Base64Encode") {
   REQUIRE(Base64Encode("foob") == "Zm9vYg==");
   REQUIRE(Base64Encode("fooba") == "Zm9vYmE=");
   REQUIRE(Base64Encode("foobar") == "Zm9vYmFy");
+  REQUIRE(Base64Encode("\xc3\xa9") == "w6k=");
+  REQUIRE(Base64Encode("\xff\xfe\xfd") == "//79");
 }
 
 TEST_CASE("ZM::clamp") {
@@ -565,6 +567,14 @@ TEST_CASE("url_for_log") {
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?auth=0123456789abcdef") == "rtsp://127.0.0.1:8554/cam?...");
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam?username=u&password=p") == "rtsp://127.0.0.1:8554/cam?...");
   }
+  SECTION("a streaming server API endpoint (go2rtc, Janus, RTSP2Web)") {
+    REQUIRE(url_for_log("http://admin:pa!ss@10.0.0.2:1984/api/streams?src=29")
+            == "http://10.0.0.2:1984/api/streams?...");
+    REQUIRE(url_for_log("http://admin:pa!ss@10.0.0.2:1984/api/streams?name=29&src=rtsp%3A%2F%2Fu%3Apw%4010.0.0.3")
+            == "http://10.0.0.2:1984/api/streams?...");
+    // The default go2rtc endpoint has no scheme.
+    REQUIRE(url_for_log("demo:demo@127.0.0.1:1984/streams?src=1") == "127.0.0.1:1984/streams?...");
+  }
   SECTION("an @ in the query does not cut the host") {
     REQUIRE(url_for_log("http://host/x?token=a@b") == "http://host/x?...");
   }
@@ -631,4 +641,46 @@ TEST_CASE("zm_parse_leb128", "[utils]") {
     n = zm_parse_leb128(data, 0, value);
     REQUIRE(n == 0);
   }
+}
+
+TEST_CASE("QueryString names", "[utils]") {
+  SECTION("a name without a value ends at the ampersand") {
+    std::stringstream str("flag&token=abc");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("flag"));
+    REQUIRE(qs.has("token"));
+    REQUIRE(qs.get("token")->firstValue() == "abc");
+  }
+
+  SECTION("a url encoded name is decoded") {
+    std::stringstream str("a%5B%5D=1");
+    QueryString qs(str);
+
+    REQUIRE(qs.has("a[]"));
+    REQUIRE(qs.get("a[]")->firstValue() == "1");
+  }
+}
+
+TEST_CASE("UrlHost") {
+  REQUIRE(UrlHost("fd00::5") == "[fd00::5]");
+  REQUIRE(UrlHost("[fd00::5]") == "[fd00::5]");
+  REQUIRE(UrlHost("192.168.1.5") == "192.168.1.5");
+  REQUIRE(UrlHost("zm.example.com") == "zm.example.com");
+  REQUIRE(UrlHost("") == "");
+}
+
+TEST_CASE("Utf8Sanitize") {
+  REQUIRE(Utf8Sanitize(std::string("")) == std::string(""));
+  REQUIRE(Utf8Sanitize(std::string("abc")) == std::string("abc"));
+  REQUIRE(Utf8Sanitize(std::string("caf" "\xC3\xA9")) == std::string("caf" "\xC3\xA9"));
+  REQUIRE(Utf8Sanitize(std::string("\xE2\x82\xAC")) == std::string("\xE2\x82\xAC"));
+  REQUIRE(Utf8Sanitize(std::string("\xF0\x9F\x98\x80")) == std::string("\xF0\x9F\x98\x80"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2\x82")) == std::string("ab??"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2")) == std::string("ab?"));
+  REQUIRE(Utf8Sanitize(std::string("a\x80" "z")) == std::string("a?z"));
+  REQUIRE(Utf8Sanitize(std::string("caf\xE9")) == std::string("caf?"));
+  REQUIRE(Utf8Sanitize(std::string("\xC0\x80")) == std::string("??"));
+  REQUIRE(Utf8Sanitize(std::string("\xED\xA0\x80")) == std::string("???"));
+  REQUIRE(Utf8Sanitize(std::string("\xFF")) == std::string("?"));
 }

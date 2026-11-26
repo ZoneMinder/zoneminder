@@ -26,6 +26,7 @@
 #include <map>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 #define ZM_MAX_IMAGE_WIDTH    2048        // The largest image we imagine ever handling
 #define ZM_MAX_IMAGE_HEIGHT    1536        // The largest image we imagine ever handling
@@ -126,7 +127,9 @@ class Config {
 
  private:
   std::unordered_map<std::string, MemberBinding> bindings_;
-  std::unordered_map<std::string, ConfigItem> items_;
+  // Every value a string member has held. Never shrunk, so a string another
+  // thread is reading stays valid through a reload.
+  std::unordered_set<std::string> strings_;
 
   void RegisterBinding(const char *name, MemberBinding::Type type, void *ptr);
   void ApplyItem(const char *name, const char *value, const char *type);

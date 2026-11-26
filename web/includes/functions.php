@@ -22,26 +22,6 @@ require_once('Filter.php');
 require_once('FilterTerm.php');
 require_once('Network.php');
 
-// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
-// guard each use. ZoneMinder still supports PHP 7.x in some distros.
-if (!function_exists('str_starts_with')) {
-  function str_starts_with(string $haystack, string $needle): bool {
-    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
-  }
-}
-if (!function_exists('str_ends_with')) {
-  function str_ends_with(string $haystack, string $needle): bool {
-    if ($needle === '' || $needle === $haystack) return true;
-    $nlen = strlen($needle);
-    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
-  }
-}
-if (!function_exists('str_contains')) {
-  function str_contains(string $haystack, string $needle): bool {
-    return $needle === '' || strpos($haystack, $needle) !== false;
-  }
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -275,7 +255,7 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
         ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
-  return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+  return '<object id="'.validHtmlStr($id).'" data="'.validHtmlStr($src).'" alt="'.validHtmlStr($title).'" width="'.validHtmlStr($width).'" height="'.validHtmlStr($height).'"></object>';
 }
 
 function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
@@ -337,26 +317,26 @@ function deletePath( $path ) {
 function deleteEvent($event) {
   if (empty($event)) {
     ZM\Error('Empty event passed to deleteEvent.');
-    return;
+    return false;
   }
 
   if (!($event instanceof ZM\Event)) {
     # $event could be an eid, so load the event
     $event = new ZM\Event($event);
   }
-  if (!$event->Id()) return;
+  if (!$event->Id()) return false;
 
   if ($event->Archived()) {
     ZM\Info('Cannot delete Archived event.');
-    return;
+    return false;
   } # end if Archived
 
   # Needs Events edit and access to the event's monitor, not just the global permission.
   if ($event->canEdit()) {
-    $event->delete();
-  } else {
-    ZM\Warning('No permission to delete event '.$event->Id());
+    return (bool)$event->delete();
   }
+  ZM\Warning('No permission to delete event '.$event->Id());
+  return false;
 }
 
 /**
@@ -393,9 +373,7 @@ function htmlSelect($name, $contents, $values, $behaviours=false) {
   $behaviourText = '';
   if ( !empty($behaviours) ) {
     if ( is_array($behaviours) ) {
-      foreach ( $behaviours as $event=>$action ) {
-        $behaviourText .= ' '.$event.'="'.$action.'"';
-      }
+      $behaviourText = htmlAttributes($behaviours);
     } else {
       $behaviourText = ' onchange="'.$behaviours.'"';
     }
@@ -409,7 +387,7 @@ function htmlOptions($options, $values) {
   $has_selected = false;
   foreach ( $options as $value=>$option ) {
     $disabled = 0;
-    $text = $class = '';
+    $text = $class = $extraAttrs = '';
     if ( is_array($option) ) {
 
       if ( isset($option['Name']) )
@@ -423,6 +401,7 @@ function htmlOptions($options, $values) {
       if ( isset($option['class']) ) {
         $class = $option['class'];
       }
+      $extraAttrs = htmlAttributes($option, ['Name', 'text', 'disabled', 'class']);
     } else if ( is_object($option) ) {
       $text = $option->Name();
     } else {
@@ -439,6 +418,7 @@ function htmlOptions($options, $values) {
       ($selected?' selected="selected"':'').
       ($disabled?' disabled="disabled"':'').
       ($class?' class="'.htmlspecialchars($class, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"':'').
+      $extraAttrs.
       '>'.htmlspecialchars($text, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'</option>'.PHP_EOL;
   } # end foreach options
   if ( $values and ((!is_array($values)) or count($values) ) and ! $has_selected ) {
@@ -447,6 +427,26 @@ function htmlOptions($options, $values) {
   }
   return $options_html;
 } # end function htmlOptions
+
+// Build an HTML attribute string from an associative array, supporting boolean attributes and key exclusions
+function htmlAttributes($attributes, $exclude=[]) {
+  $html = '';
+  if ( !is_array($attributes) ) {
+    return $html;
+  }
+  foreach ( $attributes as $key=>$val ) {
+    if ( in_array($key, $exclude, true) || $val === null || $val === false ) {
+      continue;
+    }
+    $safeKey = htmlspecialchars($key, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false);
+    if ( $val === true ) {
+      $html .= ' '.$safeKey;
+    } else {
+      $html .= ' '.$safeKey.'="'.htmlspecialchars((string)$val, ENT_COMPAT | ENT_HTML401, ini_get('default_charset'), false).'"';
+    }
+  }
+  return $html;
+} # end function htmlAttributes
 
 function truncText($text, $length, $deslash=1) {
   return preg_replace('/^(.{'.$length.',}?)\b.*$/', '\\1&hellip;', ($deslash?stripslashes($text):$text));
@@ -867,10 +867,13 @@ function deScale($dimension, $dummy) {
 
 function monitorLimitSql() {
   global $user;
-  if ( count($user->unviewableMonitorIds()) )
-    $midSql = ' AND MonitorId IN ('.join(',', $user->viewableMonitorIds()).')';
-  else
+  if ( count($user->unviewableMonitorIds()) ) {
+    // IN () is a syntax error, so a user who can view no monitor matches nothing
+    $viewableMonitorIds = $user->viewableMonitorIds();
+    $midSql = ' AND MonitorId IN ('.(count($viewableMonitorIds) ? join(',', $viewableMonitorIds) : '0').')';
+  } else {
     $midSql = '';
+  }
   return $midSql;
 }
 
@@ -1107,8 +1110,15 @@ function getPagination($pages, $page, $maxShortcuts, $query, $querySep='&amp;') 
   return $pageText;
 }
 
-function sortHeader($field, $querySep='&amp;') {
+// parseSort() rewrites these legacy names in $_REQUEST, so compare against the new ones.
+function currentSortField($field) {
+  $legacy = array('StartTime'=>'StartDateTime', 'DateTime'=>'StartDateTime', 'EndTime'=>'EndDateTime');
+  return isset($legacy[$field]) ? $legacy[$field] : $field;
+}
+
+function sortHeader($field, $querySep='&amp;', $extra='') {
   global $view;
+  $field = currentSortField($field);
   return implode($querySep, array(
     '?view='.$view,
     'page=1'.((isset($_REQUEST['filter']) and isset($_REQUEST['filter']['query'])) ? validHtmlStr($_REQUEST['filter']['query']) : ''),
@@ -1116,10 +1126,12 @@ function sortHeader($field, $querySep='&amp;') {
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
     (isset($_REQUEST['eid']) ? 'eid='.validCardinal($_REQUEST['eid']) : '' ),
+    $extra,
   ));
 }
 
 function sortTag($field) {
+  $field = currentSortField($field);
   if ( isset($_REQUEST['sort_field']) ) {
     if ( $_REQUEST['sort_field'] == $field )
       if ( $_REQUEST['sort_asc'] )
@@ -1239,10 +1251,7 @@ function verNum($version) {
     $vFields[] = 0;
   }
   foreach ( $vFields as $vField ) {
-    $vField = sprintf('%02d', $vField);
-    while ( strlen($vField) < 2 ) {
-      $vField = '0'.$vField;
-    }
+    $vField = sprintf('%04d', $vField);
     $vNum .= $vField;
   }
   return $vNum;
@@ -1485,9 +1494,11 @@ function limitPoints(&$points, $min_x, $min_y, $max_x, $max_y) {
   } // end foreach point
 } // end function limitPoints( $points, $min_x, $min_y, $max_x, $max_y )
 
-function convertPixelPointsToPercent(&$points, $width, $height) {
+// $force is for coordinates known to be pixels (no decimal point, as zmc reads them),
+// which cannot be told from percentages by their values when all are 100 or less.
+function convertPixelPointsToPercent(&$points, $width, $height, $force=false) {
   if (!$width || !$height) return false;
-  $isPixel = false;
+  $isPixel = $force;
   foreach ($points as $point) {
     if ($point['x'] > 100 || $point['y'] > 100) {
       $isPixel = true;
@@ -1502,6 +1513,17 @@ function convertPixelPointsToPercent(&$points, $width, $height) {
     unset($point);
   }
   return $isPixel;
+}
+
+// Thresholds are shown as percentages of the zone area. Those of a legacy pixel
+// zone are pixel counts whatever their size; otherwise a value over 100 is one.
+function convertZoneThresholdsToPercent(&$zone, $zonePixelArea, $legacyPixels=false) {
+  if ($zonePixelArea <= 0) return;
+  foreach (array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels') as $field) {
+    if (isset($zone[$field]) && $zone[$field] !== '' && ($legacyPixels || $zone[$field] > 100)) {
+      $zone[$field] = min(100, round($zone[$field] / $zonePixelArea * 100, 2));
+    }
+  }
 }
 
 function scalePoints(&$points, $scale) {
@@ -1595,6 +1617,11 @@ function getDeviceStatusX10($key) {
 }
 
 function setDeviceStatusX10($key, $status) {
+  # The socket message is "status;key", so a ';' in either would add fields to it.
+  if (!is_scalar($key) or !is_scalar($status) or preg_match('/[;\x00-\x1f]/', $key.$status)) {
+    ZM\Warning('Refused X10 command, key and command may not contain ; or control characters');
+    return 'unknown';
+  }
   $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
   if ( $socket < 0 ) {
     ZM\Fatal('socket_create() failed: '.socket_strerror($socket));
@@ -1615,7 +1642,7 @@ function setDeviceStatusX10($key, $status) {
     //$command .= " 2>/dev/null >&- <&- >/dev/null";
     $x10Response = exec($command);
   }
-  if ( preg_match('/^'.$key.'\s+(.*)/', $x10Response, $matches) )
+  if ( preg_match('/^'.preg_quote($key, '/').'\s+(.*)/', $x10Response, $matches) )
     $status = $matches[1];
   else
     $status = 'unknown';
@@ -1951,6 +1978,54 @@ function validNum( $input ) {
   return preg_replace('/[^\d.-]/', '', $input);
 }
 
+// Monitor form fields a browser leaves out of the post when they are unticked
+// or have nothing selected, with the value that absence means.
+function monitorFormUncheckedDefaults() {
+  $types = array(
+      'Triggers' => array(),
+      'Controllable' => 0,
+      'TrackMotion' => 0,
+      'ModectDuringPTZ' =>  0,
+      'RTSP2WebEnabled' => 0,
+      'Go2RTCEnabled' => 0,
+      'Go2RTCDisableBackChannel' => 0,
+      'JanusEnabled' => 0,
+      'JanusAudioEnabled' => 0,
+      'Restream' => 0,
+      'Exif' => 0,
+      'V4LMultiBuffer'  => '',
+      'WallClockTimestamps' => 0,
+      'RecordAudio' => 0,
+      'AudioDetection' => 0,
+      'Method' => 'raw',
+      'GroupIds'  =>  array(),
+      'LinkedMonitors'  => array(),
+      'MQTT_Enabled'  =>  0,
+      'RTSPServer' => 0,
+      'SectionLengthWarn' => 0,
+      'SOAP_wsa_compl' => 0
+      );
+
+  # The Control tab is only drawn with ZM_OPT_CONTROL and View permission on
+  # Control. Without it these checkboxes are absent, not unchecked.
+  if (!ZM_OPT_CONTROL or !canView('Control')) {
+    unset($types['Controllable'], $types['TrackMotion'], $types['ModectDuringPTZ']);
+  }
+  return $types;
+}
+
+// For a monitor form posted back to the view to redraw it: a checkbox or
+// multiple select left empty is missing from the post, so give those the off
+// value rather than letting the stored one show through.
+function monitorFillUncheckedFields($posted) {
+  foreach (monitorFormUncheckedDefaults() as $field => $value) {
+    # Method and V4LMultiBuffer have values of their own, not an off state.
+    if (!is_array($value) and $value !== 0) continue;
+    if (!isset($posted[$field])) $posted[$field] = $value;
+  }
+  return $posted;
+}
+
 // For device path strings - must be a valid Unix device path
 function validDevicePath($input) {
   if (is_null($input) || $input === '') return '';
@@ -2245,7 +2320,7 @@ function html_input($name, $type='text', $value='', $options=array()) {
   $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
 
   foreach (array_keys($options) as $k) {
-    $attributes[] = $k.'="'.$options[$k].'"';
+    $attributes[] = $k.'="'.validHtmlStr($options[$k]).'"';
   }
   $html .= join(' ', $attributes);
   $html .= '/>';
@@ -2299,23 +2374,21 @@ function zm_random_bytes($length = 32) {
   if ( !isset($length) || intval($length) <= 8 ) {
     $length = 32;
   }
-  if ( function_exists('random_bytes') ) {
-    return random_bytes($length);
-  }
-  if ( function_exists('mcrypt_create_iv') ) {
-    return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
-  }
-  if ( function_exists('openssl_random_pseudo_bytes') ) {
-    return openssl_random_pseudo_bytes($length);
-  }
-  ZM\Error('No random_bytes function found.');
+  return random_bytes($length);
 }
 
 function i18n() {
-  $string = explode('_', ZM_LANG_DEFAULT, 2);
-  $string[1] = strtoupper($string[1]);
+  global $user;
+  $lang = ZM_LANG_DEFAULT;
+  # Follow the language the page was translated into, see loadLanguage()
+  if ($user and $user->Language()) {
+    $userLang = preg_replace('/[^[:alnum:]_]+/', '', $user->Language());
+    if (file_exists('lang/'.$userLang.'.php')) $lang = $userLang;
+  }
+  $string = explode('_', $lang, 2);
+  $string[1] = isset($string[1]) ? strtoupper($string[1]) : '';
 
-  return implode('-', $string);
+  return implode('-', array_filter($string));
 }
 
 function get_networks() {
@@ -2411,11 +2484,33 @@ function extract_auth_values_from_url($url) {
   if ($protocolPrefixPos === false)
     return array();
 
-  $authSeparatorPos = strpos($url, '@', $protocolPrefixPos+3);
-  if ($authSeparatorPos === false)
-    return array();
+  $start = $protocolPrefixPos+3;
+  $segmentEnd = $start + strcspn($url, '/?#', $start);
+  $segment = substr($url, $start, $segmentEnd-$start);
 
-  $fieldsSeparatorPos = strpos($url, ':', $protocolPrefixPos+3);
+  $at = strrpos($segment, '@');
+  if ($at !== false) {
+    // Credentials end at the last @ of the authority (a raw @ in the password works).
+    $authSeparatorPos = $start + $at;
+  } else {
+    // No @ in the authority. Raw / ? # in a password (user:pa#ss@host) put the @
+    // after the first delimiter, so accept it only if the authority looks like
+    // user:pass and not host:port, [ipv6] or a bare host. That keeps an @ in the
+    // path or query (rtsp://h:554/live?token=a@b) from being read as credentials.
+    if ($segment === '' || $segment[0] === '[')
+      return array();
+    $colon = strpos($segment, ':');
+    if ($colon === false)
+      return array();
+    $afterColon = substr($segment, $colon+1);
+    if ($afterColon === '' || ctype_digit($afterColon))
+      return array();
+    $authSeparatorPos = strpos($url, '@', $segmentEnd);
+    if ($authSeparatorPos === false)
+      return array();
+  }
+
+  $fieldsSeparatorPos = strpos($url, ':', $start);
   if ($fieldsSeparatorPos === false || $authSeparatorPos < $fieldsSeparatorPos)
     return array();
 
@@ -2423,9 +2518,9 @@ function extract_auth_values_from_url($url) {
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
 
   // URL decode the credentials since they may contain encoded special characters
-  // from ONVIF probe or manual URL entry
-  $username = urldecode($username);
-  $password = urldecode($password);
+  // from ONVIF probe or manual URL entry. rawurldecode keeps a literal + as +.
+  $username = rawurldecode($username);
+  $password = rawurldecode($password);
 
   return array( $username, $password );
 }
@@ -2611,5 +2706,60 @@ function findVideoEventFile ($Event, $ext="*") {
     }
   }
   return $path;
+}
+
+# Builds the dnsmasq configuration text from the posted config[] array.
+# Returns false when a directive or value could run a program, include another file or start a new line.
+function dnsmasqConfText($config) {
+  if (!is_array($config)) return false;
+  $denied = [
+    'dhcp-script', 'conf-script', 'dumpfile', 'dhcp-luascript', 'conf-file', 'conf-dir', 'servers-file', 'addn-hosts',
+    'hostsdir', 'dhcp-hostsfile', 'dhcp-optsfile', 'dhcp-hostsdir', 'dhcp-optsdir', 'dhcp-leasefile',
+    'user', 'group', 'pid-file', 'log-facility', 'tftp-root',
+  ];
+  $unsafe = function($text) { return preg_match('/[\r\n\0]/', (string)$text); };
+  foreach ($config as $name=>$value) {
+    if (!preg_match('/^[a-z0-9-]+$/', (string)$name) or in_array($name, $denied)) return false;
+    if (is_array($value)) {
+      foreach ($value as $k=>$v) {
+        if ($unsafe($k) or (is_array($v) ? true : $unsafe($v))) return false;
+      }
+    } else if ($unsafe($value)) {
+      return false;
+    }
+  }
+  $conf = '';
+  foreach ($config as $name=>$value) {
+    if ($name == 'dhcp-host') {
+      foreach ($value as $mac=>$ip) {
+        $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-option') {
+      foreach ($value as $option_name=>$option_value) {
+        $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
+      }
+    } else if (
+        ($name == 'bind-interfaces')
+        or
+        ($name == 'dhcp-authoritative')
+        ) {
+      if ($value=='yes') {
+        $conf .= $name.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-range') {
+      $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
+    } else {
+      if (is_array($value)) {
+        foreach ($value as $v) {
+        }
+      } else if ($value === '') {
+        # an option without a value, e.g. no-resolv
+        $conf .= $name.PHP_EOL;
+      } else {
+        $conf .= $name.'='.$value.PHP_EOL;
+      }
+    }
+  }
+  return $conf;
 }
 ?>

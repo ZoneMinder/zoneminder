@@ -91,6 +91,8 @@ AutoMove
 AutoMoveTo
 AutoCopy
 AutoCopyTo
+AutoTag
+AutoTagId
 UpdateDiskSpace
 UserId
 Background
@@ -179,6 +181,13 @@ sub Sql {
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
+        # Checked before anything is appended: skipping the term afterwards left
+        # its conjunction and opening bracket in the statement.
+        if (!$term->{attr}) {
+          Error("Invalid term in filter $$self{Id}. Empty attr, skipping filter '$$self{Name}'");
+          return;
+        }
+
         # See getFilterQueryConjunctionTypes()
         if ( exists($term->{cnj}) and $term->{cnj} =~ /^(and|or)$/ ) {
           $self->{Sql} .= ' '.$term->{cnj};
@@ -186,10 +195,6 @@ sub Sql {
         $self->{Sql} .= ' ';
         if ( exists($term->{obr}) ) {
           $self->{Sql} .= str_repeat('(', $term->{obr}).' ';
-        }
-        if (!$term->{attr}) {
-          Error("Invalid term in filter $$self{Id}. Empty attr");
-          next;
         }
 
         # Date attrs (Date/StartDate/EndDate) emit sargable range queries
@@ -244,6 +249,10 @@ sub Sql {
         my $attr_start = length($self->{Sql});
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
+        } elsif ( $term->{attr} eq 'Group' ) {
+          # As in FilterTerm.php: a group stands for the monitors in it
+          $term->{op} = ($term->{op} =~ /^(?:!=|!\[\]|NOT IN)$/) ? 'NOT IN' : 'IN';
+          $self->{Sql} .= 'E.MonitorId';
         } elsif ( $term->{attr} eq 'Tags' ) {
           $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags' if $fields !~ /As Tags/;
           # Comparing the joined tag row gets "is not" wrong and repeats events with several tags.
@@ -348,7 +357,11 @@ sub Sql {
           @temp_values = ('') if !@temp_values;
           foreach my $temp_value ( @temp_values ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
-              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($value).')';
+              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($temp_value).')';
+            } elsif ( $term->{attr} eq 'Group' ) {
+              # No monitors in the group must still leave a valid list that matches nothing
+              push @value_list, _groupMonitorIds($temp_value);
+              next;
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
@@ -395,7 +408,7 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
-              } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+              } elsif ( uc($temp_value) eq 'CURDATE()' or uc($temp_value) eq 'NOW()' ) {
                 # For Date/StartDate/EndDate the value is consumed by
                 # _dateRangeSQL below; leave it raw.  For CurrentDate
                 # (left side is to_days(NOW()), a constant), preserve
@@ -436,6 +449,7 @@ sub Sql {
             }
             push @value_list, $value;
           } # end foreach temp_value
+          @value_list = (0) if $term->{attr} eq 'Group' and !@value_list;
 
           if ( $term->{op} ) {
             # Date attrs: emit a sargable range expression covering the
@@ -501,7 +515,11 @@ sub Sql {
                 $self->{Sql} .= ' IS '.$value;
               }
             } elsif ( $term->{op} eq 'EXISTS' ) {
-              $self->{Sql} .= ' EXISTS '.$value;
+              if ( @value_list > 1 ) {
+                substr($self->{Sql}, $attr_start) = '('.join(' OR ', map { 'EXISTS '.$_ } @value_list).')';
+              } else {
+                $self->{Sql} .= ' EXISTS '.$value;
+              }
             } elsif ( $term->{op} eq 'IS NOT' ) {
               if ( $value eq 'Odd' or $value eq "'Odd'" ) {
                 $self->{Sql} .= ' % 2 = 0';
@@ -536,16 +554,19 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
-    if ( ($filter_expr->{sort_field} || '') eq 'MonitorName' ) {
+    if ( ($filter_expr->{sort_field} || '') =~ /(?:^|,)\s*MonitorName\b/ ) {
       $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
       $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
     }
 
     my $sql = ' SELECT '.$fields. ' FROM ' . $from;
+    # A filter with no terms has no WHERE clause for the conditions below to continue
+    my $has_where = 0;
     if ( $self->{Sql} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
       $sql .= ' WHERE ( '.$self->{Sql}.' )';
+      $has_where = 1;
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
@@ -571,8 +592,13 @@ sub Sql {
     if ( $self->{AutoExecute} ) {
       push @auto_terms, 'E.Executed = 0';
     }
+    # The tag id goes into the SQL, so only ever as digits
+    if ( $self->{AutoTag} and ($self->{AutoTagId} // '') =~ /^\s*([1-9]\d*)\s*$/ ) {
+      push @auto_terms, 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$1.')';
+    }
     if ( @auto_terms ) {
-      $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
+      $sql .= ($has_where ? ' AND' : ' WHERE').' ( '.join(' or ', @auto_terms).' )';
+      $has_where = 1;
     }
 
     # Leave out events another filter is already working on, so that our LIMIT
@@ -581,7 +607,7 @@ sub Sql {
     # claim time because a filter whose whole result set is held elsewhere would
     # otherwise make no progress at all.
     if ($$self{LockRows} and $filter_expr->{skip_locked}) {
-      $sql .= ' AND NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
+      $sql .= ($has_where ? ' AND' : ' WHERE').' NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
     }
 
     my $sort_column = '';
@@ -619,15 +645,39 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
         # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
         $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
-      } elsif ( $filter_expr->{sort_field} ne '' ) {
-        $sort_column = 'E.'.$filter_expr->{sort_field};
+      } else {
+        # sort_field may be a comma separated list of parts, each
+        # '<Column> [IS [NOT] NULL] [ASC|DESC]' (web/includes/Filter.php
+        # SORT_PART_RE).  Prefix every part's column with E. and keep the
+        # rest of the part, so 'EndDateTime IS NOT NULL, EndDateTime'
+        # becomes 'E.EndDateTime IS NOT NULL, E.EndDateTime'.
+        my @sort_parts = split /,/, $filter_expr->{sort_field}, -1;
+        my @sort_columns;
+        my $sort_valid = 1;
+        foreach my $sort_part ( @sort_parts ) {
+          $sort_part =~ s/^\s+|\s+$//g;
+          if ( $sort_part !~ /^([A-Za-z]\w*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?$/i ) {
+            $sort_valid = 0;
+            last;
+          }
+          my ($sort_name, $sort_rest) = $sort_part =~ /^(\w+)(.*)$/;
+          my %sort_column_map = (
+            MonitorName => 'M.Name',
+            Tags => '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))',
+            StartTime => 'E.StartDateTime',
+            EndTime => 'E.EndDateTime',
+            Secs => 'E.Length',
+          );
+          push @sort_columns, ($sort_column_map{$sort_name} || 'E.'.$sort_name).$sort_rest;
+        }
+        $sort_column = join(', ', @sort_columns) if $sort_valid;
       }
     }
     #$sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }
-    if ($filter_expr->{limit}) {
+    if ($filter_expr->{limit} and $filter_expr->{limit} =~ /^\d+$/) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole
@@ -649,6 +699,20 @@ sub skip_locked {
   return 0 if !$$self{Query_json};
   my $filter_expr = ZoneMinder::General::jsonDecode($$self{Query_json});
   return $filter_expr->{skip_locked} ? 1 : 0;
+}
+
+# The monitors in a group and in the groups below it, as FilterTerm.php lists them
+sub _groupMonitorIds {
+  my ($group_id, $seen) = @_;
+  $seen ||= {};
+  return () if !defined($group_id) or $group_id !~ /^\d+$/ or $seen->{$group_id}++;
+  my $dbh = $ZoneMinder::Database::dbh;
+  my @ids = @{$dbh->selectcol_arrayref('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', undef, $group_id) || []};
+  foreach my $child ( @{$dbh->selectcol_arrayref('SELECT `Id` FROM `Groups` WHERE `ParentId`=?', undef, $group_id) || []} ) {
+    push @ids, _groupMonitorIds($child, $seen);
+  }
+  my %unique;
+  return grep { !$unique{$_}++ } @ids;
 }
 
 sub getDiskPercent {
@@ -675,8 +739,9 @@ sub getLoad {
   my $command = 'uptime';
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load averages?:\s+([\d.]+)/ms ) {
-    $load = $1;
+  # Locales with a decimal comma print "load average: 2,52, 1,58, 0,59"
+  if ( $uptime =~ /load averages?:\s+(\d+(?:[.,]\d+)?)/ms ) {
+    ($load = $1) =~ tr/,/./;
     Info("Load: $load");
   }
   return $load;
@@ -707,8 +772,9 @@ sub str_repeat {
 # $value is either 'YYYY-MM-DD HH:MM:SS' (quoted), or CURDATE()/NOW().
 sub _dateBounds {
   my $value = shift;
-  if ( $value eq 'CURDATE()' or $value eq 'NOW()' ) {
-    return ($value, "$value + INTERVAL 1 DAY");
+  # NOW() is the current day, so its bounds are midnight like CURDATE()'s
+  if ( uc($value) eq 'CURDATE()' or uc($value) eq 'NOW()' ) {
+    return ('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
   }
   my $stripped = $value;
   $stripped =~ s/^'(.+)'$/$1/;

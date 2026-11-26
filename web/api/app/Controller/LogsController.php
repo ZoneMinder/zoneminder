@@ -78,16 +78,25 @@ class LogsController extends AppController {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
+		if (!$this->request->is('post')) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ($this->request->is('post')) {
 			// ZM_LOG_INJECT lets non-admins add entries; never let one overwrite an existing entry.
 			$this->pinRequestId($this->Log, null);
 			$this->Log->create();
 			if ($this->Log->save($this->request->data)) {
-				return $this->flash(__('The log has been saved.'), array('action' => 'index'));
+				$this->set(array(
+					'message' => 'Saved',
+					'id' => $this->Log->id,
+					'_serialize' => array('message', 'id')
+				));
+				return;
 			}
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
-				'_serialize' => array('message')
+				'id' => null,
+				'_serialize' => array('message', 'id')
 			));
 		}
 	}
@@ -113,15 +122,18 @@ class LogsController extends AppController {
 		if ($this->request->is(array('post', 'put'))) {
 			$this->pinRequestId($this->Log, $id);
 			if ($this->Log->save($this->request->data)) {
-				return $this->flash(__('The log has been saved.'), array('action' => 'index'));
+				$this->set(array(
+					'message' => 'Saved',
+					'_serialize' => array('message')
+				));
+				return;
 			}
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
 				'_serialize' => array('message')
 			));
 		} else {
-			$options = array('conditions' => array('Log.' . $this->Log->primaryKey => $id));
-			$this->request->data = $this->Log->find('first', $options);
+			throw new BadRequestException(__('Invalid method. Should be post or put'));
 		}
 	}
 

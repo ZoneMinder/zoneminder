@@ -14,6 +14,9 @@ class Monitor extends ZM_Object {
   protected static $setters = array('User', 'ViewWidth', 'ViewHeight', 'Storage', 'Groups', 'connKey', 'Model', 'Manufacturer');
   private $shm_id = null;
   private $connected = false;
+  // The Id each cached Control, Server and Storage object was loaded for, so a
+  // later change to ControlId, ServerId or StorageId does not keep serving the old one.
+  private $loaded_ids = array();
 
   // These offsets are the REAL (naturally-aligned) byte offsets of the C++
   // SharedData/TriggerData structs, not the packed-layout ideal implied by the
@@ -72,6 +75,7 @@ class Monitor extends ZM_Object {
     'last_analysis_index'  => [ 'type'=>'int32', 'offset'=>872, 'size'=>4 ],
     'analysis_image_count' => [ 'type'=>'int32', 'offset'=>876, 'size'=>4 ],
     'audio_level_until' => [ 'type'=>'uint32', 'offset'=>880, 'size'=>4 ],
+    'onvif_status' => [ 'type'=>'uint32', 'offset'=>884, 'size'=>4 ], // 0 not in use, 1 not subscribed, 2 subscribed
   ],
   'TriggerData' => [
     'size'     => [ 'type'=>'uint32', 'offset'=>888, 'size'=>4 ],
@@ -429,7 +433,16 @@ class Monitor extends ZM_Object {
     }
   }
 
+  // Forget a cached related object when the Id it was loaded for no longer matches.
+  private function dropStale($name, $id) {
+    if (array_key_exists($name, $this->loaded_ids) and ($this->loaded_ids[$name] != $id)) {
+      unset($this->{$name});
+    }
+    $this->loaded_ids[$name] = $id;
+  }
+
   public function Control() {
+    $this->dropStale('Control', $this->ControlId());
     if (!property_exists($this, 'Control')) {
       if ($this->ControlId())
         $this->{'Control'} = Control::find_one(array('Id'=>$this->{'ControlId'}));
@@ -441,6 +454,7 @@ class Monitor extends ZM_Object {
   }
 
   public function Server() {
+    $this->dropStale('Server', $this->ServerId());
     if (!property_exists($this, 'Server')) {
       if ($this->ServerId()) {
         $this->{'Server'} = Server::find_one(array('Id'=>$this->{'ServerId'}));
@@ -582,7 +596,7 @@ class Monitor extends ZM_Object {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
       } elseif ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
     if (ZM_RAND_STREAM) {
@@ -667,6 +681,10 @@ class Monitor extends ZM_Object {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
+    if ($mode != 'stop' and $this->Deleted()) {
+      Warning('Attempt to control deleted monitor '.$this->{'Id'});
+      return;
+    }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
         $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
@@ -692,6 +710,38 @@ class Monitor extends ZM_Object {
       Error('Server not assigned to Monitor '.$this->{'Id'}.' in a multi-server setup. Please assign a server to the Monitor.');
     }
   } // end function zmcControl
+
+  // zmtrack.pl aims the camera at motion. zmpkg.pl starts it only for a
+  // controllable monitor that is capturing, analysing and has TrackMotion set,
+  // so start under those same conditions and stop otherwise.
+  public function zmtrackControl($mode=false) {
+    if (!(property_exists($this,'Id') and $this->{'Id'})) {
+      Warning('Attempt to control a monitor with no Id');
+      return;
+    }
+    if (($mode != 'stop') and (
+        (!defined('ZM_OPT_CONTROL') or !ZM_OPT_CONTROL)
+        or ($this->Type() == 'WebSite')
+        or ($this->Capturing() == 'None')
+        or !$this->Controllable()
+        or !$this->TrackMotion()
+        or ($this->Analysing() == 'None'))) {
+      $mode = 'stop';
+    }
+    if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
+      // Most monitors do not track motion, so zmdc.pl would log "Can't find
+      // process" on every save/delete if we asked it to stop something that was
+      // never started. Only stop a local zmtrack.pl that is actually running.
+      if (($mode == 'stop') and !daemonStatus('zmtrack.pl', '-m '.$this->{'Id'})) {
+        return;
+      }
+      daemonControl($mode, 'zmtrack.pl', '-m '.$this->{'Id'});
+    } else if ($this->ServerId()) {
+      $result = $this->Server()->SendToApi('/monitors/daemonControl/'.$this->{'Id'}.'/'.$mode.'/zmtrack.pl.json');
+    } else {
+      Error('Server not assigned to Monitor '.$this->{'Id'}.' in a multi-server setup. Please assign a server to the Monitor.');
+    }
+  } // end function zmtrackControl
 
   public function GroupIds($new='') {
     if ($new != '') {
@@ -720,6 +770,7 @@ class Monitor extends ZM_Object {
       if ($this->Controllable()) {
         $this->sendControlCommand('stop');
       }
+      $this->zmtrackControl('stop');
     }
     // Hand back whether it actually saved. This is a soft delete, so a failing
     // UPDATE (an out of range Importance, for one) leaves the monitor in place,
@@ -740,6 +791,7 @@ class Monitor extends ZM_Object {
     if ($this->Controllable()) {
       $this->sendControlCommand('stop');
     }
+    $this->zmtrackControl('stop');
 
     // With lots of events this step may well time out before completing, in
     // which case zmaudit will still tidy up
@@ -772,7 +824,9 @@ class Monitor extends ZM_Object {
   public function Storage($new = null) {
     if ($new) {
       $this->{'Storage'} = $new;
+      $this->loaded_ids['Storage'] = $this->{'StorageId'} ?? null;
     }
+    $this->dropStale('Storage', $this->{'StorageId'} ?? null);
     if (!(property_exists($this, 'Storage') and $this->{'Storage'})) {
       $this->{'Storage'} = isset($this->{'StorageId'}) ?
         Storage::find_one(array('Id'=>$this->{'StorageId'})) :
@@ -880,13 +934,19 @@ class Monitor extends ZM_Object {
       if (@socket_connect($socket, $sockFile)) {
         if (!socket_write($socket, $optionString)) {
           Error('Can\'t write to control socket: '.socket_strerror(socket_last_error($socket)));
+          socket_close($socket);
           return false;
         }
       } else if ($command != 'quit') {
         $command = ZM_PATH_BIN.'/zmcontrol.pl '.$command.' --id '.$this->{'Id'};
 
         // Can't connect so use script
-        $ctrlOutput = exec(escapeshellcmd($command));
+        exec(escapeshellcmd($command), $output, $rc);
+        if ($rc != 0) {
+          socket_close($socket);
+          Error('zmcontrol.pl exited with status '.$rc.' for command: '.$command);
+          return false;
+        }
       }
       socket_close($socket);
     } else if ($this->ServerId()) {
@@ -1009,13 +1069,17 @@ class Monitor extends ZM_Object {
 
     $group_permissions = $u->Group_Permissions();
 
-    # If denied view in any group, then can't view it.
+    # If denied in any group, then can't edit it.
+    $group_edit = false;
     foreach ($group_permissions as $permission) {
-      if (!$permission->canEditMonitor($this->{'Id'})) {
-        Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      $value = $permission->MonitorPermission($this->{'Id'});
+      if ($value == 'None') {
+        Debug("Can't edit monitor ".$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$value);
         return false;
       }
+      if ($value == 'Edit') $group_edit = true;
     }
+    if ($group_edit) return true;
     return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
@@ -1029,6 +1093,8 @@ class Monitor extends ZM_Object {
       Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
+    # The user's own View or Edit on this monitor decides before groups and role, as visibleMonitor() does.
+    if ($monitor_permission and in_array($monitor_permission->Permission(), array('View', 'Edit'))) return true;
 
     $group_permissions = $u->Group_Permissions();
 
@@ -1431,8 +1497,8 @@ class Monitor extends ZM_Object {
       }
       $gp_permissions[$gp->Permission()] = 1;
     }
-    if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
+    if (isset($gp_permissions['View'])) return 'View';
 
     // Same order as visibleMonitor() and editableMonitor(): the role's monitor permission,
     // its groups, then the higher of the user's and the role's Monitors permission.
@@ -1450,8 +1516,8 @@ class Monitor extends ZM_Object {
         }
         $role_gp_permissions[$gp->Permission()] = 1;
       }
-      if (isset($role_gp_permissions['View'])) return 'View';
       if (isset($role_gp_permissions['Edit'])) return 'Edit';
+      if (isset($role_gp_permissions['View'])) return 'View';
       $levels = array('None'=>0, 'View'=>1, 'Edit'=>2, 'Create'=>3);
       return ($levels[$role->Monitors()] > $levels[$u->Monitors()]) ? $role->Monitors() : $u->Monitors();
     }
@@ -1561,6 +1627,10 @@ class Monitor extends ZM_Object {
       $packed_value = pack('q', $value);
     } else if ($this->shm_offsets[$section][$var]['type'] == 'uint64') {
       $packed_value = pack('Q', $value);
+    } else if (preg_match('/^u?int8\[(\d+)\]$/', $this->shm_offsets[$section][$var]['type'], $matches)) {
+      // A C string field: always NUL terminated and padded, so a short value
+      // replaces the old one instead of overwriting its first bytes.
+      $packed_value = str_pad(substr((string)$value, 0, $matches[1] - 1), $matches[1], "\0");
     }
     Debug("Writing $value=>$packed_value at ".$this->shm_offsets[$section][$var]['offset']);
     fseek($this->shm_id, $this->shm_offsets[$section][$var]['offset']);
@@ -1586,6 +1656,14 @@ class Monitor extends ZM_Object {
   public function audioLevel() {
     if (!$this->connect()) return null;
     return $this->shared_read('SharedData', 'audio_level');
+  }
+
+  // State of the ONVIF event subscription as zmc last published it: 0 not in
+  // use, 1 enabled but not subscribed, 2 subscribed. Null when there is no
+  // shared memory to read (zmc not running).
+  public function OnvifStatus() {
+    if (!$this->connect()) return null;
+    return intval($this->shared_read('SharedData', 'onvif_status'));
   }
 
   public function audioAlarm() {

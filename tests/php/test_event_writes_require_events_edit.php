@@ -35,6 +35,7 @@ namespace ZM {
     public function DefaultScale() { return 100; }
   }
   class Event {
+    public function Archived() { return 0; }
     // Object::__construct() takes an array as the row itself, without loading it.
     private $row = null;
     public function __construct($id) { if (is_array($id)) $this->row = $id; }
@@ -49,9 +50,11 @@ namespace ZM {
     }
     public function MonitorId() { return ($this->row !== null) ? ($this->row['MonitorId'] ?? null) : 1; }
     public function Monitor() { return new Monitor(); }
+    // The video view refuses an event it cannot view. This test's events exist.
+    public function canView($u = null) { return true; }
     public function Path() { return $GLOBALS['event_path']; }
     public function DefaultVideo() { return $GLOBALS['default_video'] ?? ''; }
-    public function delete() { $GLOBALS['queries'][] = 'Event::delete'; }
+    public function delete() { $GLOBALS['queries'][] = 'Event::delete'; return true; }
   }
 }
 

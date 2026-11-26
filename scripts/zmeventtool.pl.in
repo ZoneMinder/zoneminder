@@ -108,6 +108,7 @@ my $dbh = zmDbConnect();
 foreach my $event_id (@ARGV) {
   if ( $event_id =~ /\D/ ) {
     # Assume path to event, strip it
+    $event_id =~ s/\/+$//;
     $event_id =~ s/.*\/(\d+)/$1/; 
   }
   my $event = ZoneMinder::Event->find_one(Id=>$event_id);
@@ -130,6 +131,11 @@ foreach my $event_id (@ARGV) {
     my $old_path = $event->Path();
     if (! -e $old_path) {
       Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
+      next;
+    }
+    if ($event->Scheme() eq 'Deep') {
+      # The new row would share the old one's directory, and deleting either would remove both
+      Warning("Event $event_id uses Deep storage, where the path does not depend on the id. Skipping renumbering.");
       next;
     }
 

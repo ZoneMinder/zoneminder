@@ -99,7 +99,7 @@ sub sendCmd
 	my $self = shift;
 	my $cmd = shift;
 	my $result = undef;
-	printMsg( $cmd, "Tx" );
+	$self->printMsg( $cmd, "Tx" );
  
 	# PP Old cameras also support onstep=1 but it is too granular. Instead using moveCon and stop after interval
 	# PP - cleaned up URL to take it properly from Control device
@@ -136,6 +136,7 @@ sub moveConUp
 {
 	my $self = shift;
 	Debug( "Move Up" );
+	$stop_command = 1;
 	my $cmd = "decoder_control.cgi?command=0";
 	$self->sendCmd( $cmd );
 	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
@@ -146,6 +147,7 @@ sub moveConDown
 {
 	my $self = shift;
 	Debug( "Move Down" );
+	$stop_command = 3;
 	my $cmd = "decoder_control.cgi?command=2";
 	$self->sendCmd( $cmd );
 	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
@@ -156,6 +158,7 @@ sub moveConLeft
 {
 	my $self = shift;
 	Debug( "Move Left" );
+	$stop_command = 7;
 	my $cmd = "decoder_control.cgi?command=6";
 	$self->sendCmd( $cmd );
 	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
@@ -166,6 +169,7 @@ sub moveConRight
 {
 	my $self = shift;
 	Debug( "Move Right" );
+	$stop_command = 5;
 	my $cmd = "decoder_control.cgi?command=4";
 	$self->sendCmd( $cmd );
 	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
@@ -217,7 +221,7 @@ sub moveStop
 {
 	my $self = shift;
 	Debug( "Move Stop" );
-	my $cmd = "decoder_control.cgi?command=1";
+	my $cmd = "decoder_control.cgi?command=" . ($stop_command || 1);
 	$self->sendCmd( $cmd );
 }
 
@@ -230,7 +234,7 @@ sub autoStop
     {
        Debug( "Auto Stop" );
        usleep( $autostop );
-	my $cmd = "decoder_control.cgi?command=1";
+	my $cmd = "decoder_control.cgi?command=" . ($stop_command || 1);
        $self->sendCmd( $cmd );
     }
 }
@@ -273,7 +277,7 @@ sub wake
 {
 	my $self = shift;
 	Debug( "Wake - IR on" );
-	my $cmd = "decoder_control.cgi?command=95";
+	my $cmd = "decoder_control.cgi?command=94";
 	$self->sendCmd( $cmd );
 }
  
@@ -282,7 +286,7 @@ sub sleep
 {
 	my $self = shift;
 	Debug( "Sleep - IR off" );
-	my $cmd = "decoder_control.cgi?command=94";
+	my $cmd = "decoder_control.cgi?command=95";
 	$self->sendCmd( $cmd );
 }
  

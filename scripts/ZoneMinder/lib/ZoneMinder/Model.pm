@@ -45,12 +45,22 @@ $serial = $primary_key = 'Id';
   Name                => '',
 );
 
+sub Manufacturer {
+  my $self = shift;
+  $$self{Manufacturer} = shift if @_;
+  if (!$$self{Manufacturer} and $$self{ManufacturerId}) {
+    require ZoneMinder::Manufacturer;
+    $$self{Manufacturer} = new ZoneMinder::Manufacturer($$self{ManufacturerId});
+  }
+  return $$self{Manufacturer};
+}
+
 sub save {
   my $self = shift;
 
   my $manufacturer = $self->Manufacturer();
 
-  if ($manufacturer->Name() and !$self->ManufacturerId()) {
+  if ($manufacturer and $manufacturer->Name() and !$self->ManufacturerId()) {
     # save() returns the error string on failure, '' on success.
     if (my $error = $manufacturer->save()) {
       Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
@@ -59,7 +69,7 @@ sub save {
     }
   }
 
-  my $error = $self->SUPER::save( );
+  my $error = $self->SUPER::save(@_);
   return $error;
 } # end sub save
 

@@ -35,7 +35,7 @@ if ( $message ) {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
@@ -45,28 +45,28 @@ $advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'FrameId';
-if ( isset($_REQUEST['sort']) ) {
+if ( isset($_REQUEST['sort']) and is_string($_REQUEST['sort']) ) {
   $sort = $_REQUEST['sort'];
 }
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if ( !is_scalar($_REQUEST['offset']) or ( !is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']) ) ) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
 }
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 $limit = 0;
 if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if ( !is_scalar($_REQUEST['limit']) or ( !is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']) ) ) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -132,7 +132,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
     } else if ( $search != '' ) {
-      $search = '%' .$search. '%';
+      // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+      $search = '%' .str_replace(',', '_', $search). '%';
       $terms = array();
       foreach ( $columns as $col ) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
@@ -170,9 +171,19 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       if ( $hasAnalysisImage ) $base_img_src .= '&amp;show=analyse';
 
       # Build the subcomponents needed for the image source
-      $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
-      $thmb_height = 'height='.(int)round(ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor);
+      # The ratio is only needed when the height has to be derived from the
+      # width. An event whose monitor row was deleted has an empty Monitor, so
+      # ViewWidth() is null and dividing by it would be a DivisionByZeroError.
+      # Fall back to the event's own dimensions, or leave the height out.
+      if ( ZM_WEB_LIST_THUMB_HEIGHT ) {
+        $thmb_height = 'height='.(int)round(ZM_WEB_LIST_THUMB_HEIGHT);
+      } else {
+        $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 0;
+        if ( !$ratio_factor and $Event->Width() )
+          $ratio_factor = $Event->Height() / $Event->Width();
+        $thmb_height = $ratio_factor ? 'height='.(int)round(ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor) : '';
+      }
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$row['EventId']. '_' .$row['FrameId']. '.jpg';
 
       # Assemble the scaled and unscaled image source image source components

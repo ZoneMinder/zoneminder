@@ -60,18 +60,21 @@ $heights = array(
 );
 
 
+// The legacy Function column is no longer maintained, Capturing says whether
+// a monitor is disabled.
+function cycleSkipsMonitor($row) {
+  return $row['Capturing'] == 'None';
+}
+
 $monIdx = 0;
 $monitors = array();
 $monitor = NULL;
 foreach( $displayMonitors as &$row ) {
-  if ( $row['Function'] == 'None' )
+  if ( cycleSkipsMonitor($row) )
     continue;
   if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
     $monIdx = count($monitors);
 
-  $row['ScaledWidth'] = reScale($row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['ScaledHeight'] = reScale($row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
    if ( !isset($widths[$row['Width'].'px']) ) {
     $widths[$row['Width'].'px'] = $row['Width'].'px';
   }
@@ -93,12 +96,20 @@ if ( !$monitor ) {
 
 zm_session_start();
 
+$sanitizeScale = function($scale) {
+  if ( is_array($scale) ) {
+    return '0';
+  }
+  $scale = (string)$scale;
+  return preg_match('/^\d+$/', $scale) ? $scale : '0';
+};
+
 if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
+  $options['scale'] = $sanitizeScale($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = validInt($_COOKIE['zmCycleScale']);
+  $options['scale'] = $sanitizeScale($_COOKIE['zmCycleScale']);
 } else if ( $monitor ) {
-  $options['scale'] = validInt($monitor->DefaultScale());
+  $options['scale'] = $sanitizeScale($monitor->DefaultScale());
 }
 
 if ( !isset($options['scale']) )
@@ -165,7 +176,7 @@ echo $navbar = getNavBarHTML();
           <ul class="nav nav-pills flex-column h-100">
   <?php
   foreach ( $monitors as $m ) {
-            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.validHtmlStr($m->Name()).'</a></li>';
   }
   ?>
           </ul>

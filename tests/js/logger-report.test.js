@@ -21,7 +21,7 @@ function test(name, fn) {
   }
 }
 
-function loadLogger() {
+function loadLogger(config = {}) {
   const posts = [];
   const $j = {
     ajaxSetup: () => {},
@@ -39,6 +39,7 @@ function loadLogger() {
     console: {log() {}, warn() {}, error() {}, debug() {}},
     posts: posts,
   };
+  Object.assign(sandbox, config);
   sandbox.window = sandbox;
   vm.createContext(sandbox);
   vm.runInContext(src, sandbox, {filename: 'logger.js'});
@@ -52,6 +53,32 @@ test('the message is posted as typed, jQuery does the URL encoding', () => {
   assert.strictEqual(sandbox.posts.length, 1);
   assert.strictEqual(sandbox.posts[0].message, 'TypeError: x is undefined 100% done');
   assert.strictEqual(sandbox.posts[0].level, 'ERR');
+});
+
+// skin.js.php writes a boolean option that is off as '' (PHP empty('0')), not '0'.
+console.log('boolean options switched off');
+test('ZM_LOG_INJECT off does not post for a user without System edit', () => {
+  const sandbox = loadLogger({ZM_LOG_INJECT: ''});
+  sandbox.logReport('ERR', 'boom', 'a.js', 1);
+  assert.strictEqual(sandbox.posts.length, 0);
+});
+
+test('ZM_LOG_INJECT off still posts for a user with System edit', () => {
+  const sandbox = loadLogger({ZM_LOG_INJECT: '', canEdit: {System: true}});
+  sandbox.logReport('ERR', 'boom', 'a.js', 1);
+  assert.strictEqual(sandbox.posts.length, 1);
+});
+
+test('ZM_LOG_BROWSER_EXTENSIONS off drops errors from an extension', () => {
+  const sandbox = loadLogger({ZM_LOG_BROWSER_EXTENSIONS: ''});
+  sandbox.onerror('boom', 'chrome-extension://abc/content.js', 1, 1, null);
+  assert.strictEqual(sandbox.posts.length, 0);
+});
+
+test('ZM_LOG_BROWSER_EXTENSIONS on logs errors from an extension', () => {
+  const sandbox = loadLogger({ZM_LOG_BROWSER_EXTENSIONS: '1'});
+  sandbox.onerror('boom', 'chrome-extension://abc/content.js', 1, 1, null);
+  assert.strictEqual(sandbox.posts.length, 1);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

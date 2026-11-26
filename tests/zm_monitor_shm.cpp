@@ -21,6 +21,7 @@
 #include "zm_monitor.h"
 
 #include <chrono>
+#include <sys/mman.h>
 
 // Monitor::connect() returns false with shared_data still null on every one of
 // its failure paths: the mmap file cannot be opened (wrong ownership after a
@@ -75,3 +76,40 @@ TEST_CASE("Monitor shm time accessors are safe before connect()", "[Monitor]") {
     REQUIRE_NOTHROW(monitor.GetStartupTime());
   }
 }
+
+#if ZM_MEM_MAPPED
+namespace {
+
+// A Monitor whose shared memory is an anonymous mapping, so disconnect() can unmap it.
+class MappedMonitor : public Monitor {
+ public:
+  MappedMonitor() : Monitor() {}
+  bool MapAnonymous() {
+    mem_size = 4096;
+    void *p = mmap(nullptr, mem_size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
+    if (p == MAP_FAILED) return false;
+    mem_ptr = static_cast<unsigned char *>(p);
+    shared_data = reinterpret_cast<SharedData *>(mem_ptr);
+    trigger_data = reinterpret_cast<TriggerData *>(mem_ptr + 1024);
+    trigger_data->trigger_state = TRIGGER_ON;
+    return true;
+  }
+  bool HasTriggerData() const { return trigger_data != nullptr; }
+  bool TriggerIsOn() const { return GetTriggerState() == TRIGGER_ON; }
+  bool TriggerIsCancel() const { return GetTriggerState() == TRIGGER_CANCEL; }
+};
+
+}  // namespace
+
+// disconnect() unmapped the segment but left trigger_data (and the other pointers into it)
+// set, so GetTriggerState() read unmapped memory afterwards.
+TEST_CASE("Monitor::disconnect clears the pointers into the unmapped shared memory", "[Monitor]") {
+  EnsureConfig();
+  MappedMonitor monitor;
+  REQUIRE(monitor.MapAnonymous());
+  REQUIRE(monitor.TriggerIsOn());
+  REQUIRE(monitor.disconnect());
+  REQUIRE_FALSE(monitor.HasTriggerData());
+  REQUIRE(monitor.TriggerIsCancel());
+}
+#endif

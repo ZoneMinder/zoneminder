@@ -336,6 +336,16 @@ TEST_CASE("zm_die_handler sends the crash report to syslog", "[signal]") {
   REQUIRE(message.back() != '\n');
 }
 
+TEST_CASE("zmSetCrashSyslog publishes a target only when the ident or path changes", "[signal]") {
+  REQUIRE(zmSetCrashSyslog("zmtest-a", "/tmp/zm-test-log-a"));
+  REQUIRE_FALSE(zmSetCrashSyslog("zmtest-a", "/tmp/zm-test-log-a"));
+  REQUIRE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-a"));
+  REQUIRE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-b"));
+  REQUIRE_FALSE(zmSetCrashSyslog("zmtest-b", "/tmp/zm-test-log-b"));
+  REQUIRE(zmSetCrashSyslog(nullptr, "/tmp/zm-test-log-b"));
+  REQUIRE_FALSE(zmSetCrashSyslog("", "/tmp/zm-test-log-b"));
+}
+
 TEST_CASE("zm_die_handler reaches a syslog daemon that made a new socket", "[signal]") {
   SyslogListener syslogd;
   int ready[2], go[2];

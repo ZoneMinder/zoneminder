@@ -23,6 +23,7 @@
 #include "zm_monitor.h"
 #include "zm_zone.h"
 
+#include <climits>
 #include <cstdio>
 #include <fstream>
 #include <iterator>
@@ -117,6 +118,15 @@ class TestMonitorStream : public MonitorStream {
   void setMonitor(const std::shared_ptr<Monitor> &p_monitor) {
     monitor = p_monitor;
   }
+  void setView(int p_scale, int p_zoom) {
+    scale = p_scale;
+    zoom = p_zoom;
+  }
+  void setClick(unsigned short p_x, unsigned short p_y) {
+    x = p_x;
+    y = p_y;
+  }
+  const Box &crop() const { return last_crop; }
 };
 
 // What a call writes to stdout, through a temporary file.
@@ -191,4 +201,70 @@ TEST_CASE("MonitorStream sends stored JPEGs as multipart parts", "[Stream]") {
                            std::to_string(jpeg.size()) + "\r\n";
   REQUIRE(out.compare(0, head.size(), head) == 0);
   REQUIRE(out.find(jpeg) != std::string::npos);
+}
+
+TEST_CASE("MonitorStream starts a new zoom from the whole frame after stored JPEGs", "[Stream]") {
+  // Buffered playback at scale 100 without zoom sends the swap files as they
+  // are, without prepareImage. Zooming out there must still drop the crop of
+  // the earlier zoom, or the next zoom-in click is mapped through it.
+  EnsureConfig();
+  config.timestamp_on_capture = true;
+  const SystemTimePoint timestamp(Seconds(1700000000));
+  Image frame(640, 480, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+  frame.Clear();
+
+  char jpeg_path[] = "/tmp/zm_test_swap_XXXXXX";
+  int fd = mkstemp(jpeg_path);
+  REQUIRE(fd >= 0);
+  const std::string jpeg = "\xff\xd8not really a jpeg\xff\xd9";
+  REQUIRE(write(fd, jpeg.data(), jpeg.size()) == static_cast<ssize_t>(jpeg.size()));
+  close(fd);
+
+  TestMonitorStream fresh;
+  fresh.setStreamType(StreamBase::STREAM_JPEG);
+  fresh.setView(ZM_SCALE_BASE, 110);
+  fresh.setClick(320, 240);
+  CaptureStdout([&] { fresh.sendFrame(&frame, timestamp); });
+
+  TestMonitorStream used;
+  used.setStreamType(StreamBase::STREAM_JPEG);
+  bool sent = false;
+  CaptureStdout([&] {
+    used.setView(ZM_SCALE_BASE, 110);
+    used.setClick(600, 440);
+    used.sendFrame(&frame, timestamp);
+    used.setView(ZM_SCALE_BASE, ZM_SCALE_BASE);
+    sent = used.sendFrame(std::string(jpeg_path), timestamp);
+    used.setView(ZM_SCALE_BASE, 110);
+    used.setClick(320, 240);
+    used.sendFrame(&frame, timestamp);
+  });
+  unlink(jpeg_path);
+
+  REQUIRE(sent);
+  CHECK(used.crop().Lo().x_ == fresh.crop().Lo().x_);
+  CHECK(used.crop().Lo().y_ == fresh.crop().Lo().y_);
+  CHECK(used.crop().Hi().x_ == fresh.crop().Hi().x_);
+  CHECK(used.crop().Hi().y_ == fresh.crop().Hi().y_);
+}
+
+TEST_CASE("MonitorStreamClampBuffer") {
+  SECTION("a request above the monitor's replay buffer is cut to it") {
+    REQUIRE(MonitorStreamClampBuffer(20000000, 100) == 100);
+    REQUIRE(MonitorStreamClampBuffer(2000000000, 25) == 25);
+  }
+
+  SECTION("a request within the replay buffer is kept") {
+    REQUIRE(MonitorStreamClampBuffer(50, 100) == 50);
+    REQUIRE(MonitorStreamClampBuffer(100, 100) == 100);
+  }
+
+  SECTION("no buffer when either value is not positive") {
+    REQUIRE(MonitorStreamClampBuffer(0, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(-5, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(INT_MIN, 100) == 0);
+    REQUIRE(MonitorStreamClampBuffer(50, 0) == 0);
+    REQUIRE(MonitorStreamClampBuffer(50, -1) == 0);
+    REQUIRE(MonitorStreamClampBuffer(2000000000, 0) == 0);
+  }
 }

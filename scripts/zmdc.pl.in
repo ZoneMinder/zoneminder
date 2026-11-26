@@ -226,16 +226,28 @@ CLIENT->autoflush();
 my $message = join(';', $command, ( $daemon ? $daemon : () ), @args);
 print(CLIENT  $message);
 shutdown(CLIENT, 1);
-# Read response with timeout to avoid hanging indefinitely
+# Read response with timeout to avoid hanging indefinitely. shutdown answers
+# once every daemon has exited or been sent KILL, which happens after KILL_DELAY.
+my $client_timeout = ( $command eq 'shutdown' ) ? ZMServer->KILL_DELAY + 10 : 30;
+# Read unbuffered: select() can't see lines already sitting in a PerlIO buffer.
+binmode(CLIENT, ':pop');
 my $client_rin = '';
 vec($client_rin, fileno(CLIENT), 1) = 1;
-while ( select(my $rout = $client_rin, undef, undef, 30) > 0 ) {
+my $timed_out = 1;
+while ( select(my $rout = $client_rin, undef, undef, $client_timeout) > 0 ) {
   my $line = <CLIENT>;
-  last if !defined($line);
+  if ( !defined($line) ) {
+    $timed_out = 0;
+    last;
+  }
   chomp($line);
   print("$line\n");
 }
 close(CLIENT);
+if ( $timed_out ) {
+  print("Timed out after $client_timeout seconds waiting for zmdc.pl server to answer '$command'\n");
+  exit(-1);
+}
 
 exit;
 
@@ -323,7 +335,8 @@ sub run {
   setpgrp();
 
   # dbh got closed with the rest of the fd's above, so need to reconnect.
-  my $dbh = zmDbConnect(1);
+  # Assign the file-level $dbh: start() replaces it after it reconnects.
+  $dbh = zmDbConnect(1);
   logInit();
 
   dPrint(ZoneMinder::Logger::INFO, 'Server starting at '
@@ -385,9 +398,12 @@ sub run {
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = readClientCommand(\*CLIENT, 5);
 
-        next if !$message;
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my ( $command, $daemon, @args ) = split(';', $message);
 
@@ -460,8 +476,29 @@ sub run {
 sub cPrint {
   # One thought here, if no client exists to read these... does it block?
   if ( fileno(CLIENT) ) {
-    print CLIENT @_
+    # A client that gave up (zmdc.pl's own reader stops after 30s idle, a web
+    # request can time out) has closed its end, and writing to it would kill
+    # zmdc with SIGPIPE in the middle of e.g. a shutdown.
+    # If the write fails the client is gone: close it here, or the unwritten
+    # reply stays buffered and closing CLIENT later raises SIGPIPE anyway.
+    # CLIENT is not autoflushed, so flush here too or print only buffers.
+    local $SIG{PIPE} = 'IGNORE';
+    close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
+}
+
+# Reads one command line from a client. A client that connects and sends nothing must not
+# block the control loop, so give up after $timeout seconds.
+sub readClientCommand {
+  my ($fh, $timeout) = @_;
+  my $message = '';
+  my $deadline = time() + $timeout;
+  while ( $message !~ /\n/ and (my $wait = $deadline - time()) > 0 ) {
+    vec(my $in = '', fileno($fh), 1) = 1;
+    last if select(my $out = $in, undef, undef, $wait) <= 0;
+    last if !sysread($fh, $message, 4096, length($message));
+  }
+  return $message;
 }
 
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
@@ -501,9 +538,10 @@ sub start {
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{term_sent_at}))
         .", pid = $process->{pid}\n"
       );
+      # Keep it in %terminating_processes: the TERM is still on its way, and a
+      # daemon that ignores it must still be sent KILL so the reaper can restart it.
       $process->{keepalive} = !undef;
       $process->{delay} = 0;
-      delete $terminating_processes{$command};
     } else {
       dPrint(ZoneMinder::Logger::INFO, "'$process->{command}' already running at "
         .strftime('%y/%m/%d %H:%M:%S', localtime($process->{started}))
@@ -691,7 +729,7 @@ sub stop {
   my $command = join(' ', $daemon, @args);
   my $process = $cmd_hash{$command};
   if ( !$process ) {
-    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'");
+    dPrint(ZoneMinder::Logger::WARNING, "Can't find process with command of '$command'\n");
     return;
   }
 
@@ -798,6 +836,7 @@ sub reaper {
     my $exit_signal = $status&0x7f;
     my $core_dumped = $status&0x80;
 
+    my $crashed = 0;
     my $out_str = "'$process->{command}' ";
     if ( $exit_signal ) {
       # 15 == TERM, 14 == ALARM
@@ -805,6 +844,7 @@ sub reaper {
         $out_str .= 'exited';
       } else {
         $out_str .= 'crashed';
+        $crashed = 1;
       }
       $out_str .= ", signal $exit_signal";
     } else {
@@ -816,21 +856,25 @@ sub reaper {
       }
     }
 #print( ", core dumped" ) if ( $core_dumped );
-    $out_str .= "\n";
 
-    if ( $exit_status == 0 ) {
-      Info($out_str);
-    } else {
-      Error($out_str);
-    }
+    my $abnormal = ( $exit_status != 0 or $crashed ) ? 1 : 0;
 
     if ( $process->{keepalive} ) {
+      $process->{failures} = 0 if !defined $process->{failures};
+      if ( $abnormal ) {
+        $process->{failures}++;
+      } else {
+        $process->{failures} = 0;
+      }
+
 # Schedule for immediate restart
       $cmd_hash{$process->{command}} = $process;
       if ( !$process->{delay} || ($process->{runtime} > $Config{ZM_MAX_RESTART_DELAY} ) ) {
 #start( $process->{daemon}, @{$process->{args}} );
         $process->{pending} = $process->{stopped};
         $process->{delay} = 5;
+        # A fresh start (or a run longer than the max delay) begins a new streak.
+        $process->{failures} = 1 if $abnormal;
       } else {
         $process->{pending} = $process->{stopped}+$process->{delay};
         $process->{delay} *= 2;
@@ -839,9 +883,25 @@ sub reaper {
           $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
         }
       }
+      if ( $abnormal ) {
+        # pending is when it will really be started again; delay is the wait for the next failure.
+        my $wait = $process->{pending} - $process->{stopped};
+        $out_str .= $wait > 0 ? "; restarting in ${wait}s" : '; restarting now';
+        $out_str .= " (failure $process->{failures} in a row";
+        $out_str .= ", retry delay at its $Config{ZM_MAX_RESTART_DELAY}s maximum"
+          if $process->{delay} >= $Config{ZM_MAX_RESTART_DELAY};
+        $out_str .= ')';
+      }
       #Debug("Delay for $$process{command} is now $$process{delay}");
     } else {
       delete $cmd_hash{$$process{command}};
+    }
+    $out_str .= "\n";
+
+    if ( $exit_status == 0 and !$crashed ) {
+      Info($out_str);
+    } else {
+      Error($out_str);
     }
   } # end foreach pid_to_reap
 } # end sub reaper

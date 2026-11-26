@@ -167,6 +167,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'file_existence_check' :
+    require_once('includes/download_functions.php');
     $fileNameArray = $_REQUEST['file_name_array'] ?? [];
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
     if (count($fileNameArray) > 100) ajaxError('Too many files requested');
@@ -178,7 +179,8 @@ if ( canView('Events') or canView('Snapshots') ) {
       $fileName = ltrim($fileName, "/\\");
       if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
       $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
-      $result[] = [$fileName, file_exists($path)];
+      $first = explode(DIRECTORY_SEPARATOR, str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName))[0];
+      $result[] = [$fileName, exportNameBelongsToUser($first) and file_exists($path)];
     }
     ajaxResponse(array('response'=>$result));
     break;
@@ -204,26 +206,38 @@ if ( canEdit('Events') ) {
 
   switch ( $_REQUEST['action'] ) {
   case 'rename' :
-    if ( !empty($_REQUEST['eventName']) and is_scalar($_REQUEST['eventName']) )
-      dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($_REQUEST['eventName'], $Event->Id()));
-    else
+    // Events.Name is varchar(64), so reject anything that would not fit (in
+    // characters, not bytes) rather than let strict SQL mode fail the UPDATE
+    // silently and still report success.
+    $eventName = is_scalar($_REQUEST['eventName'] ?? null) ? (string)$_REQUEST['eventName'] : '';
+    if (trim($eventName) === '')
       ajaxError('No new event name supplied');
+    if (function_exists('mb_strlen') ? mb_strlen($eventName, 'UTF-8') > 64 : strlen($eventName) > 64)
+      ajaxError('Event name must be 64 characters or fewer');
+    if (!dbQuery('UPDATE Events SET Name = ? WHERE Id = ?', array($eventName, $Event->Id())))
+      ajaxError('Failed to rename event');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
     break;
   case 'eventdetail' :
-    dbQuery(
+    $newEvent = (isset($_REQUEST['newEvent']) and is_array($_REQUEST['newEvent'])) ? $_REQUEST['newEvent'] : null;
+    if (!$newEvent or !array_key_exists('Cause', $newEvent) or !array_key_exists('Notes', $newEvent)
+      or !is_scalar($newEvent['Cause']) or !is_scalar($newEvent['Notes']))
+      ajaxError('No event detail supplied');
+    if (!dbQuery(
       'UPDATE Events SET Cause = ?, Notes = ? WHERE Id = ?',
-      array($_REQUEST['newEvent']['Cause'], $_REQUEST['newEvent']['Notes'], $Event->Id())
-    );
+      array($newEvent['Cause'], $newEvent['Notes'], $Event->Id())
+    ))
+      ajaxError('Failed to save event detail');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>true));
     break;
   case 'archive' :
   case 'unarchive' :
     $archiveVal = ($_REQUEST['action'] == 'archive')?1:0;
-    dbQuery(
+    if (!dbQuery(
       'UPDATE Events SET Archived = ? WHERE Id = ?',
       array($archiveVal, $Event->Id())
-    );
+    ))
+      ajaxError('Failed to '.$_REQUEST['action'].' event');
     ajaxResponse(array('refreshEvent'=>true, 'refreshParent'=>false));
     break;
   // Tagging changes the event's metadata, and filters select events by tag (a
@@ -242,11 +256,12 @@ if ( canEdit('Events') ) {
 
     $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
+    $response = array();
 
     $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
     $values = array($tagId);
-    dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
 
     // Record this tag against the user's personal recency order so it
     // sorts to the top of THEIR dropdown next time, on any device.
@@ -259,7 +274,8 @@ if ( canEdit('Events') ) {
     $tagId = is_scalar($_REQUEST['tid'] ?? null) ? validCardinal($_REQUEST['tid']) : '';
     if ($tagId === '') ajaxError('removetag requires a numeric tid and id');
     $eventId = $Event->Id();
-    dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $eventId));
+    if (!dbQuery('DELETE FROM Events_Tags WHERE TagId = ? AND EventId = ?', array($tagId, $eventId)))
+      ajaxError('Failed to remove tag');
     $rowCount = dbNumRows('SELECT * FROM Events_Tags WHERE TagId=?', [ $tagId ]);
     if ($rowCount < 1) {
       $response = dbNumRows('DELETE FROM Tags WHERE Id=?', [$tagId]);

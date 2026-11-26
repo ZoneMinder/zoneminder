@@ -60,7 +60,7 @@ if ($result) {
               </tr>
               <tr class="ClassName">
                 <th scope="row"><?php echo translate('Class Name') ?></th>
-                <td><input type="text" name="newClass[ClassName]" value="<?php echo validHtmlStr($class['ClassName']) ?>" required/></td>
+                <td><input type="text" name="newClass[ClassName]" value="<?php echo validHtmlStr($class['ClassName']) ?>" maxlength="64" required/></td>
               </tr>
               <tr class="ClassIndex">
                 <th scope="row"><?php echo translate('Class Index') ?></th>

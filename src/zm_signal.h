@@ -50,11 +50,12 @@ extern std::atomic<bool> zm_terminate;
 void zmSetCrashLogFile(int fd);
 // Syslog, sending to the socket at path as ident, with the Logger's facility.
 // _PATH_LOG is the platform's socket: /dev/log on Linux, /var/run/syslog on
-// macOS, /var/run/log on FreeBSD.
+// macOS, /var/run/log on FreeBSD. Returns false, and publishes nothing, when
+// the ident and path are those of the target already published.
 #ifndef _PATH_LOG
 #define _PATH_LOG "/dev/log"
 #endif
-void zmSetCrashSyslog(const char *ident, const char *path = _PATH_LOG);
+bool zmSetCrashSyslog(const char *ident, const char *path = _PATH_LOG);
 // Give the calling thread its own stack for the die handler, so a stack
 // overflow on that thread is reported too. Call at the start of a thread.
 void zmSetThreadAltStack();

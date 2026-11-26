@@ -56,10 +56,11 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     // Accept the server address as well as its /api path; the requests below
     // append /streams to the API base.
     Go2RTC_endpoint = Go2RTCApiEndpoint(config.go2rtc_path);
-    Debug(1, "Go2RTC: Using configured endpoint: %s", Go2RTC_endpoint.c_str());
+    Debug(1, "Go2RTC: Using configured endpoint: %s", url_for_log(Go2RTC_endpoint).c_str());
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
-    Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s", Go2RTC_endpoint.c_str());
+    Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s",
+            url_for_log(Go2RTC_endpoint).c_str());
   }
 
   // ZoneMinder's RTSP server only runs when ZM_MIN_RTSP_PORT is set, so without it
@@ -72,7 +73,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_restream_base_path = "rtsp://"+server.Hostname();
+      rtsp_restream_base_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_restream_base_path = "rtsp://127.0.0.1";
     }
@@ -83,6 +84,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
         User *rtsp_user = User::find(parent->rtsp_user);
         if (rtsp_user) {
           std::string auth_key = rtsp_user->getAuthHash();
+          delete rtsp_user;
           rtsp_restream_path += "?auth=" + auth_key;
           last_auth_refresh = std::chrono::system_clock::now();
         } else {
@@ -104,65 +106,63 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     // backslash reached go2rtc doubled.
     rtsp_username = parent->user;
     rtsp_password = parent->pass;
-    if (rtsp_path.find("rtsp://") == 0) {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path.substr(7, std::string::npos);
-    } else {
-      rtsp_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_path;
-    }
+    rtsp_path = UrlWithCredentials(rtsp_path, rtsp_username, rtsp_password);
     if (!rtsp_second_path.empty()) {
-      if (rtsp_second_path.find("rtsp://") == 0) {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path.substr(7, std::string::npos);
-      } else {
-        rtsp_second_path = "rtsp://" + rtsp_username + ":" + rtsp_password + "@" + rtsp_second_path;
-      }
-    }
-    // Helper to add or update a Go2RTC URL option while preserving other options.
-    // For cameras, disable RTSP backchannel by default to prevent issues with
-    // Dahua cameras, such as events not being recorded and ONVIF not working
-    // when viewing the camera on the Watch page using go2rtc.
-    // Unlike simply appending "#backchannel=0", this helper updates an existing
-    // backchannel option without adding a duplicate, and preserves other Go2RTC
-    // options such as "#media=" or "#video=" in the URL.
-    // The Go2RTC_disable_backchannel setting controls this behavior:
-    // when enabled, set backchannel=0, adding the option if it does not exist;
-    // when disabled, set an existing backchannel option to 1, but do not add
-    // the option if it is absent from the RTSP path.
-    auto set_rtsp_param = [](std::string& path,
-                             const std::string& name,
-                             const std::string& value) {
-      const std::string param = "#" + name + "=";
-      size_t pos = path.find(param);
-
-      if (pos != std::string::npos) {
-        size_t value_start = pos + param.size();
-        size_t value_end = path.find('#', value_start);
-        path.replace(value_start,
-                     value_end == std::string::npos ? std::string::npos : value_end - value_start,
-                     value);
-      } else {
-        path += param + value;
-      }
-    };
-
-    if (parent->device_class == "Camera") {
-      if (parent->Go2RTC_disable_backchannel) {
-        // Disable backchannel for both RTSP stream paths.
-        set_rtsp_param(rtsp_path, "backchannel", "0");
-
-        if (!rtsp_second_path.empty())
-          set_rtsp_param(rtsp_second_path, "backchannel", "0");
-      } else {
-        // Re-enable backchannel only if explicitly configured in the RTSP path.
-        // Do not add the option when absent, as backchannel is enabled by default.
-        if (rtsp_path.find("#backchannel=") != std::string::npos)
-          set_rtsp_param(rtsp_path, "backchannel", "1");
-
-        if (!rtsp_second_path.empty() &&
-            rtsp_second_path.find("#backchannel=") != std::string::npos)
-          set_rtsp_param(rtsp_second_path, "backchannel", "1");
-      }
+      rtsp_second_path = UrlWithCredentials(rtsp_second_path, rtsp_username, rtsp_password);
     }
   }  // end if !user.empty
+
+  // Helper to add or update a Go2RTC URL option while preserving other options.
+  // For cameras, disable RTSP backchannel by default to prevent issues with
+  // Dahua cameras, such as events not being recorded and ONVIF not working
+  // when viewing the camera on the Watch page using go2rtc.
+  // Unlike simply appending "#backchannel=0", this helper updates an existing
+  // backchannel option without adding a duplicate, and preserves other Go2RTC
+  // options such as "#media=" or "#video=" in the URL.
+  // The Go2RTC_disable_backchannel setting controls this behavior:
+  // when enabled, set backchannel=0, adding the option if it does not exist;
+  // when disabled, set an existing backchannel option to 1, but do not add
+  // the option if it is absent from the RTSP path.
+  auto set_rtsp_param = [](std::string& path,
+                           const std::string& name,
+                           const std::string& value) {
+    const std::string param = "#" + name + "=";
+    size_t pos = path.find(param);
+
+    if (pos != std::string::npos) {
+      size_t value_start = pos + param.size();
+      size_t value_end = path.find('#', value_start);
+      path.replace(value_start,
+                   value_end == std::string::npos ? std::string::npos : value_end - value_start,
+                   value);
+    } else {
+      path += param + value;
+    }
+  };
+
+  // The credentials may be in the path itself rather than in the monitor's
+  // User field, so this does not depend on the latter; only RTSP sources
+  // have a backchannel.
+  const auto is_rtsp = [](const std::string &path) { return path.compare(0, 4, "rtsp") == 0; };
+  if (parent->device_class == "Camera") {
+    if (parent->Go2RTC_disable_backchannel) {
+      // Disable backchannel for both RTSP stream paths.
+      if (is_rtsp(rtsp_path))
+        set_rtsp_param(rtsp_path, "backchannel", "0");
+
+      if (is_rtsp(rtsp_second_path))
+        set_rtsp_param(rtsp_second_path, "backchannel", "0");
+    } else {
+      // Re-enable backchannel only if explicitly configured in the RTSP path.
+      // Do not add the option when absent, as backchannel is enabled by default.
+      if (rtsp_path.find("#backchannel=") != std::string::npos)
+        set_rtsp_param(rtsp_path, "backchannel", "1");
+
+      if (!rtsp_second_path.empty() &&
+          rtsp_second_path.find("#backchannel=") != std::string::npos)
+        set_rtsp_param(rtsp_second_path, "backchannel", "1");
+    }
+  }  // end if Camera
 
   Debug(1, "Go2RTC: Primary RTSP path: %s", url_for_log(rtsp_path).c_str());
   if (!rtsp_second_path.empty()) {
@@ -195,7 +195,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   std::string endpoint = Go2RTC_endpoint + "/streams?src=" + std::to_string(parent->id);
   std::string response;
 
-  Debug(2, "Go2RTC: Checking endpoint: %s", endpoint.c_str());
+  Debug(2, "Go2RTC: Checking endpoint: %s", url_for_log(endpoint).c_str());
 
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -214,7 +214,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -230,7 +230,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
   response = remove_newlines(response);
   if (res != CURLE_OK) {
-    Warning("Go2RTC: Check failed - attempted %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Check failed - attempted %s and got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -257,11 +257,16 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
     return false;
   }
 
-  // Check if auth hash is older than 50 minutes (refresh before 1-hour timeout)
+  // Auth hashes are tied to the clock hour: refresh at the top of the hour,
+  // TTL-1 hours (at least 1) after the hour the current hash was made in.
   auto now = std::chrono::system_clock::now();
   auto age = std::chrono::duration_cast<std::chrono::minutes>(now - last_auth_refresh);
+  time_t minted_t = std::chrono::system_clock::to_time_t(last_auth_refresh);
+  tm minted_tm = {};
+  localtime_r(&minted_t, &minted_tm);
 
-  if (age.count() < 50) {
+  if (now - last_auth_refresh + Minutes(minted_tm.tm_min) + Seconds(minted_tm.tm_sec)
+      < Hours(std::max(config.auth_hash_ttl - 1, 1))) {
     Debug(3, "Go2RTC: Auth hash is %jd minutes old, no refresh needed", static_cast<intmax_t>(age.count()));
     return false;
   }
@@ -275,6 +280,7 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
   }
 
   std::string auth_key = rtsp_user->getAuthHash();
+  delete rtsp_user;
   std::string old_path = rtsp_restream_path;
   rtsp_restream_path = rtsp_restream_base_path + "?auth=" + auth_key;
   last_auth_refresh = now;
@@ -381,10 +387,25 @@ int Monitor::Go2RTCManager::add_to_Go2RTC() {
 int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   Debug(1, "Go2RTC: remove_from_Go2RTC called for monitor %s (%d)", parent->Name(), parent->Id());
 
-  std::string endpoint = Go2RTC_endpoint + "/streams?src="+std::to_string(parent->Id());
+  // add_to_Go2RTC() registers these names; deleting only the monitor id left the
+  // others, and the camera URLs they hold, behind in go2rtc.
+  const std::string id_str = std::to_string(parent->Id());
+  const std::vector<std::string> names = {
+    id_str + "_h264", id_str + "_ZoneMinderPrimary", id_str + "_CameraDirectPrimary",
+    id_str + "_CameraDirectSecondary", id_str};
+
+  int result = 0;
+  for (const std::string &name : names) {
+    if (delete_stream(name) < 0) result = -1;
+  }
+  return result == 0 ? 0 : -1;
+}
+
+int Monitor::Go2RTCManager::delete_stream(const std::string &name) {
+  std::string endpoint = Go2RTC_endpoint + "/streams?src=" + name;
   std::string response;
 
-  Debug(2, "Go2RTC: DELETE request to: %s", endpoint.c_str());
+  Debug(2, "Go2RTC: DELETE request to: %s", url_for_log(endpoint).c_str());
 
   CURL *curl = curl_easy_init();
   if (!curl) {
@@ -411,7 +432,7 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -426,7 +447,7 @@ int Monitor::Go2RTCManager::remove_from_Go2RTC() {
   }
   
   if (res != CURLE_OK) {
-    Warning("Go2RTC: Delete failed - attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Delete failed - attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
   } else {
     Debug(1, "Go2RTC: Successfully removed stream, response: %s", response.c_str());
   }
@@ -483,7 +504,7 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);

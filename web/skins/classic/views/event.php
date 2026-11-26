@@ -34,7 +34,7 @@ $fid = !empty($_REQUEST['fid']) ? validInt($_REQUEST['fid']) : 1;
 $Event = new ZM\Event($eid);
 $monitor = $Event->Monitor();
 
-if (!$monitor->canView()) {
+if (!$Event->canView()) {
   $view = 'error';
   return;
 }
@@ -143,7 +143,7 @@ if (isset($_REQUEST['replayMode']) and is_string($_REQUEST['replayMode'])) {
     $replayMode = $_COOKIE['replayMode'];
   } else {
     ZM\Warning('Invalid value for replayMode in cookies. Removing.');
-    zm_setcookie('replayMode', '', time()-86400);
+    zm_setcookie('replayMode', '', array('expires'=>time()-86400));
   }
 } else {
   $preference = $user->Preference('replayMode');
@@ -160,36 +160,8 @@ if ((!$replayMode) or !$replayModes[$replayMode]) {
   $replayMode = 'none';
 }
 
-# Player selection.  The three explicit codec choices force a specific player
-# server-side; 'auto' emits no player here and lets JavaScript pick one after
-# the page renders, based on whether the browser can natively decode this
-# event's codec (PHP cannot know that).  See js/EventStream.js chooseEventPlayer().
-$force_native = ($codec == 'MP4') || ($codec == 'MP4HLS'); # native <video>
-$force_zms    = ($codec == 'MJPEG');                       # zms re-stream
-$auto         = !$force_native && !$force_zms;             # JS decides
-# Kept for the downstream uses that only care whether a <video> is server-rendered
-# (the stream-quality control at ~255 and the fps span at ~559).  For 'auto' both
-# render in their zms form and the JS hides them if it picks the native player.
-$video_tag = $force_native;
-
-# HLS is a native-playback source.  Compute it once here so both the force-native
-# branch and the 'auto' data emitted to JS can reference it.
-$has_hls = file_exists($Event->Path() . '/index.m3u8')
-  && (($codec == 'MP4HLS') || ($codec == 'auto'));
-$hlsSrc = '';
-if ($has_hls) {
-  $hlsServer = $Event->Server();
-  $hlsSrc = $hlsServer->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
-  if (ZM_OPT_USE_AUTH) {
-    if (ZM_AUTH_RELAY == 'hashed') {
-      $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
-    } else if (ZM_AUTH_RELAY == 'plain') {
-      $hlsSrc .= '&amp;user=' . $_SESSION['username'] . '&amp;pass=' . $_SESSION['password'];
-    } else if (ZM_AUTH_RELAY == 'none') {
-      $hlsSrc .= '&amp;user=' . $_SESSION['username'];
-    }
-  }
-}
+$video_tag = ($codec == 'MP4') || ($codec == 'MP4HLS') ||
+  ((false !== strpos($Event->DefaultVideo(), 'h264') || false !== strpos($Event->DefaultVideo(), 'av1')) && ($codec === 'auto'));
 
 
 // These are here to figure out the next/prev event, however if there is no filter, then default to one that specifies the Monitor
@@ -234,7 +206,7 @@ if ( !$Event->Id() ) {
 }
 
 if ( $Event->Id() and !file_exists($Event->Path()) )
-  echo '<div class="error">Event was not found at '.$Event->Path().'.  It is unlikely that playback will be possible.</div>';
+  echo '<div class="error">Event was not found at '.validHtmlStr($Event->Path()).'.  It is unlikely that playback will be possible.</div>';
 ?>
 
 <!-- BEGIN HEADER -->
@@ -364,21 +336,21 @@ if (defined('ZM_OPT_USE_GEOLOCATION') and ZM_OPT_USE_GEOLOCATION) {
 <?php 
 if (file_exists($Event->Path().'/alarm.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=alarm" class="glightbox">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=alarm&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="First alarmed frame" title="First alarmed frame"/>
 </a>    
 ';
 }
 if (file_exists($Event->Path().'/snapshot.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=snapshot" class="glightbox">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=snapshot&width='.ZM_WEB_LIST_THUMB_WIDTH.'" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Frame with the most motion" title="Frame with the most motion"/>
 </a>
 ';
 }
 if (file_exists($Event->Path().'/objdetect.jpg')) {
   echo '
-<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect">
+<a href="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" class="glightbox">
   <img src="?view=image&eid='. $Event->Id().'&amp;fid=objdetect" width="'.ZM_WEB_LIST_THUMB_WIDTH.'" alt="Detected Objects" title="Detected Objects"/>
 </a>
 ';
@@ -403,10 +375,26 @@ if (file_exists($Event->Path().'/objdetect.jpg')) {
                   <div id="videoFeedStream<?php echo $Event->MonitorId()?>" data-not-display-video="<?php echo $dataNotDisplayVideo?>">
                     <div id="zoompan" class="zoompan">
 <?php
-if ($force_native) {
-  // Explicit MP4 / MP4HLS: render the native <video> server-side.  $has_hls /
-  // $hlsSrc were computed above.  Explicit MJPEG renders the zms branch below;
-  // 'auto' renders neither and lets JavaScript choose after load.
+if ($video_tag) {
+  // Prefer HLS byte-range playback when the manifest exists on disk and the
+  // user picked MP4HLS / auto. Explicit MP4 must stay native ("play the mp4
+  // file directly"); explicit MJPEG never reaches here because $video_tag is
+  // false for it.
+  $has_hls = file_exists($Event->Path() . '/index.m3u8')
+    && (($codec == 'MP4HLS') || ($codec == 'auto'));
+  if ($has_hls) {
+    $Server = $Event->Server();
+    $hlsSrc = $Server->PathToIndex() . '?view=view_hls&amp;eid=' . $Event->Id();
+    if (ZM_OPT_USE_AUTH) {
+      if (ZM_AUTH_RELAY == 'hashed') {
+        $hlsSrc .= '&amp;auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
+      } else if (ZM_AUTH_RELAY == 'plain') {
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '') . '&amp;pass=' . ($_SESSION['password'] ?? '');
+      } else if (ZM_AUTH_RELAY == 'none') {
+        $hlsSrc .= '&amp;user=' . ($_SESSION['username'] ?? '');
+      }
+    }
+  }
 ?>
                   <video id="videoobj" class="video-js"<?php echo $videoSizeStyle ?>
                    <?php echo $scale ? 'width="'.reScale($Event->Width(), $scale).'"' : '' ?>
@@ -478,7 +466,7 @@ if ($force_native) {
                     });
                   </script>
 <?php
-} elseif ($force_zms) {
+} else {
   if ( (ZM_WEB_STREAM_METHOD == 'mpeg') && ZM_MPEG_LIVE_FORMAT ) {
     $streamSrc = $Event->getStreamSrc(array('mode'=>'mpeg', 'scale'=>($scale > 0 ? $scale : 100), 'rate'=>$rate, 'bitrate'=>ZM_WEB_VIDEO_BITRATE, 'maxfps'=>ZM_WEB_VIDEO_MAXFPS, 'format'=>ZM_MPEG_REPLAY_FORMAT, 'replay'=>$replayMode),'&amp;');
     outputVideoStream('evtStream', $streamSrc, reScale( $Event->Width(), $scale ).'px', reScale( $Event->Height(), $scale ).'px', ZM_MPEG_LIVE_FORMAT );
@@ -492,15 +480,7 @@ if ($force_native) {
       ($scale ? reScale($Event->Height(), $scale).'px' : 'auto'),
       validHtmlStr($Event->Name()));
   } // end if stream method
-} else {
-  // codec == 'auto': commit to no player server-side.  Show a single frame as a
-  // placeholder; js/EventStream.js chooseEventPlayer() (called from initPage)
-  // builds the native <video> or the zms <img> after load and removes this.
-  $placeholder_fid = file_exists($Event->Path().'/snapshot.jpg') ? 'snapshot' : $fid;
-?>
-                  <img id="eventPlaceholder" class="eventPlaceholder"<?php echo $videoSizeStyle ?> src="?view=image&amp;eid=<?php echo $Event->Id() ?>&amp;fid=<?php echo $placeholder_fid ?>" alt="<?php echo validHtmlStr($Event->Name()) ?>"/>
-<?php
-} /*end player choice*/
+} /*end if !DefaultVideo*/
 ?>
                     </div><!--".zoompan"-->
                   </div><!--"#videoFeedStream"-->
@@ -615,7 +595,6 @@ if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) echo '
   <script src="skins/<?php echo $skin ?>/js/video.min.js"></script>
   <script src="./js/videojs.zoomrotate.js"></script>
   <script src="<?php echo cache_bust('skins/classic/views/js/event-zms-hints.js') ?>"></script>
-  <script src="<?php echo cache_bust('js/EventStream.js') ?>"></script>
 <?php
   echo output_link_if_exists(array('css/base/zones.css'));
   echo output_script_if_exists(array('js/leaflet/leaflet.js'), false);

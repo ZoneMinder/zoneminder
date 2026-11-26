@@ -33,7 +33,7 @@ var params =
 // The query fields that filter the table, as opposed to paging and sorting. A
 // clear all repeats them so the backend deletes the rows that were on screen.
 const LOGPANEL_FILTER_KEYS = ['search', 'filter', 'ServerId', 'level', 'Component',
-  'StartDateTime', 'EndDateTime'];
+  'MonitorId', 'StartDateTime', 'EndDateTime'];
 
 function logPanelFilterOf(data) {
   const filter = {};
@@ -74,6 +74,7 @@ function initLogPanel(panel) {
   let requestMissed = false; // AJAX request was skipped.
   let btnAutoRefresh = null;
   let autoRefresh = null;
+  let lastQuery = null; // The query of the last request sent, to tell a refresh from a new search
   let deleteProgressBar = null;
   let idsLength = 0;
   // The filter the table last queried with, so a clear all matches what is on
@@ -126,7 +127,8 @@ function initLogPanel(panel) {
   function processRows(rows) {
     $j.each(rows, function(ndx, row) {
       try {
-        row.Message = decodeURIComponent(row.Message.replace(/%(?![0-9A-Fa-f]{2})/g, '%25'))
+        // Messages are stored as logged, not percent-encoded, so show them as they are.
+        row.Message = row.Message
             .replace(/</g, "&lt;").replace(/>/g, "&gt;") // Replace link tags
             .replace(/event (\d+)/g, "<a href=\"?view=event&eid=$1\">event $1</a>");
       } catch (e) {
@@ -140,7 +142,11 @@ function initLogPanel(panel) {
   // Called by bootstrap-table to retrieve zm log data
   function ajaxRequest(params) {
     if (deferTableRequestWhileHidden(table)) return;
-    if (allowRequest !== true && autoRefresh === false) return;
+    // With auto-refresh paused only drop the scheduled refreshes, which repeat the
+    // last query. A search or advanced search changes it, and fires no event before
+    // bootstrap-table asks for data, so it would have been dropped too.
+    const query = JSON.stringify(params.data);
+    if (allowRequest !== true && autoRefresh === false && query === lastQuery) return;
     if (getIdSelections().length && allowRequest === false) {
       // We won't automatically refresh to avoid disturbing the user who has selected rows.
       console.debug("The user selected rows in the table, and the AJAX request was rejected.");
@@ -163,6 +169,10 @@ function initLogPanel(panel) {
     const serverId = $panel.find('.logPanel-server').val();
     if (serverId) {
       params.data.ServerId = serverId;
+    }
+    const monitorId = $panel.find('.logPanel-monitor').val();
+    if (monitorId) {
+      params.data.MonitorId = monitorId;
     }
     // The level and component controls are multi-selects; val() returns an array
     // of chosen values (or null when nothing is selected, which the server
@@ -187,6 +197,7 @@ function initLogPanel(panel) {
       params.data.EndDateTime = $panel.find('.logPanel-end').val();
     }
 
+    lastQuery = query;
     currentFilter = logPanelFilterOf(params.data);
 
     const startTime = Date.now();
@@ -199,6 +210,14 @@ function initLogPanel(panel) {
       data: params.data,
       timeout: 600000,
       success: function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so without this the
+          // header showed NaN and data.rows.length threw on every refresh.
+          updateRequestStatus("error");
+          table.bootstrapTable('hideLoading');
+          zmAlert(data.message, i18n.AJAXRequestError);
+          return;
+        }
         updateRequestStatus(secsToTime((Date.now() - startTime)/1000, 1));
         updateHeaderStats(data);
         table.bootstrapTable('hideLoading');
@@ -267,7 +286,9 @@ function initLogPanel(panel) {
     manageClearButtonAvailability(false);
     allowRequest = true;
 
-    table.bootstrapTable('refresh');
+    // A different filter is a different result set, so start at its first page
+    // rather than the offset of the page the user was on.
+    table.bootstrapTable('refresh', {pageNumber: 1});
     table.bootstrapTable('showLoading');
   }
 

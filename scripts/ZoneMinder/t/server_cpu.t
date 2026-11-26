@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 16;
+use Test::More tests => 32;
 
 require_ok('ZoneMinder::Server');
 
@@ -34,6 +34,32 @@ is($r[3], 100, 'a three-digit idle still matches despite the narrower padding');
 
 @r = $parse->("CPU0 states:\t5.0%\tuser,\t0.0%\tnice,\t5.0%\tsys,\t0.0%\tspin,\t0.0%\tintr,\t90.0%\tidle");
 is($r[0], 5, 'tab-separated fields still match');
+
+# --- Linux top: a 100.0 value is glued to the previous field -----------------
+
+my $parse_linux = ZoneMinder::Server->can('parse_linux_top_cpu');
+ok($parse_linux, 'parse_linux_top_cpu is available');
+
+@r = $parse_linux->('%Cpu(s):  0.0 us,  0.0 sy,  0.0 ni,100.0 id,  0.0 wa');
+is(scalar(@r), 4, 'fully idle Linux line yields four values');
+is($r[0], 0, 'fully idle user is 0, not 100');
+is($r[1], 0, 'fully idle nice is 0');
+is($r[2], 0, 'fully idle system is 0');
+is($r[3], 100, 'idle is 100 despite the missing space after the comma');
+
+@r = $parse_linux->('%Cpu(s):100.0 us,  0.0 sy,  0.0 ni,  0.0 id,  0.0 wa');
+is(scalar(@r), 4, 'fully busy Linux line yields four values');
+is($r[0], 100, 'user is 100 despite the missing space after the colon');
+is($r[1], 0, 'fully busy nice is 0');
+is($r[2], 0, 'fully busy system is 0');
+is($r[3], 0, 'fully busy idle is 0');
+
+@r = $parse_linux->('%Cpu(s):  2.1 us,  1.0 sy,  0.0 ni, 96.9 id,  0.0 wa');
+is(scalar(@r), 4, 'normal Linux line yields four values');
+is($r[0], 2.1, 'user read from the us label');
+is($r[1], 0, 'nice read from the ni label');
+is($r[2], 1.0, 'system read from the sy label');
+is($r[3], 96.9, 'idle read from the id label');
 
 # --- no match -> empty list, so the caller can warn --------------------------
 

@@ -65,3 +65,35 @@ TEST_CASE("MonitorLinkExpression rejects malformed syntax and unconsumed tokens 
     REQUIRE_FALSE(expression.result().success);
   }
 }
+
+// Non numeric ids load no monitor (no database) and score 0, but still count
+// as links, so a well formed expression of them evaluates successfully.
+TEST_CASE("MonitorLinkExpression ignores empty comma separated terms", "[MonitorLink]") {
+  const std::string linked = GENERATE(
+      std::string("a,b,"),
+      std::string("a,,b"),
+      std::string(",a,b"),
+      std::string("a,b,,"),
+      std::string("(a,),b"),
+      std::string("a,b"));
+  CAPTURE(linked);
+  MonitorLinkExpression expression(linked);
+  REQUIRE(expression.parse());
+  REQUIRE(expression.result().success);
+}
+
+// Spaces typed around operators and brackets are not part of a link. Before,
+// the space between ")" and "|" was read as a link token and the leftover
+// token discarded the whole tree, so the expression never triggered.
+TEST_CASE("MonitorLinkExpression ignores spaces around operators and brackets", "[MonitorLink]") {
+  const std::string linked = GENERATE(
+      std::string("(a) | (b)"),
+      std::string("(a | b) & c"),
+      std::string(" a , b "),
+      std::string("a & (b)\t"),
+      std::string("( a )"));
+  CAPTURE(linked);
+  MonitorLinkExpression expression(linked);
+  REQUIRE(expression.parse());
+  REQUIRE(expression.result().success);
+}

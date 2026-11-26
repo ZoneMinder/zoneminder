@@ -22,7 +22,11 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
-var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+// Seconds per frame for video.js frame stepping, from the event as it is now. Without a usable frame count (an event still recording has none) assume 25 fps.
+function frameSeconds() {
+  const spf = parseFloat(eventData.Length) / parseFloat(eventData.Frames);
+  return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
+}
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
@@ -36,6 +40,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
+var addingTagIds = {}; // tags with an addtag request in flight, so a second Enter or click can't add one twice
 var realEventWidth = 0;
 // The monitor the page's elements (stream, zoom buttons, zones, PanZoom) were
 // built for. On the zms path eventData can move on to another monitor's event
@@ -45,6 +50,7 @@ let pageMonitorId = null;
 // null while they are not hidden for that reason.
 let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
+var prevStateStarted = null;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -58,9 +64,16 @@ var currentScale = 100; // Temporarily, because need to put things in order with
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
+  // The image viewer (GLightbox) handles its own keys while it is open.
+  if (isLightboxOpen()) return;
   if (!$j(".tag-input").is(":focus")) {
+    // Keys typed into a field, or used to pick from a select, are that
+    // control's own and must not drive the player or the page.
+    const typing = !!(e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName));
     if ( $j(".modal").is(":visible") ) {
       if (e.key === "Enter") {
+        // Enter in the notes textarea is a new line, not Save.
+        if (e.target && e.target.tagName === 'TEXTAREA') return;
         if ( $j("#deleteConfirm").is(":visible") ) {
           $j("#delConfirmBtn").click();
         } else if ( $j("#eventDetailModal").is(":visible") ) {
@@ -71,7 +84,7 @@ $j(document).on("keydown", "", function(e) {
       } else {
         console.log('Modal is visible: key not implemented: ', e.key, '  keyCode: ', e.keyCode);
       }
-    } else {
+    } else if (!typing) {
       if (e.key === "ArrowLeft" && !e.altKey) {
         prevEvent();
       } else if (e.key === "ArrowRight" && !e.altKey) {
@@ -116,6 +129,14 @@ function streamReq(data) {
       .fail(logAjaxFail);
 }
 
+// hh:mm:ss for a number of milliseconds. The hours do not wrap at 24, as a
+// gap between two events can be longer than a day.
+function formatCountdown(ms) {
+  const total = Math.floor(Math.max(ms, 0) / 1000);
+  const pad = (n) => (n < 10 ? '0' : '') + n;
+  return pad(Math.floor(total / 3600)) + ':' + pad(Math.floor(total % 3600 / 60)) + ':' + pad(total % 60);
+}
+
 // Function called when video.js hits the end of the video
 function vjsReplay() {
   switch ( replayMode.value ) {
@@ -157,7 +178,7 @@ function vjsReplay() {
               streamNext(true);
               return;
             }
-            messageP.html(new Date(remainder).toISOString().substr(11, 8) + ' to next event.');
+            messageP.html(formatCountdown(remainder) + ' to next event.');
           }, 1000);
         } // end if valid date object
       } // end if have nextEventId
@@ -384,6 +405,18 @@ function changeReplayMode() {
   refreshWindow();
 }
 
+// rate is in % so 100 would be 1x. The rate the page opened with is the cookie's
+// or the request's. A native player cannot start in reverse or stopped, so for
+// those the select says what is actually playing rather than the saved rate.
+function applyInitialRate() {
+  if (rate > 0) {
+    vid.playbackRate(rate/100);
+  } else {
+    $j('select[name="rate"]').val(100);
+    setCookie('zmEventRate', 100);
+  }
+}
+
 function changeRate() {
   const rate = parseInt($j('select[name="rate"]').val());
 
@@ -400,7 +433,8 @@ function changeRate() {
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
-          clearInterval(intervalRewind);
+          // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+          stopFastRev();
           vid.pause();
         } else {
           vid.playbackRate(0);
@@ -522,6 +556,7 @@ function pauseClicked() {
 }
 
 function streamPause() {
+  if (!isLightboxOpen()) prevStateStarted = 'paused';
   $j('#modeValue').html('Paused');
 
   $j('#pauseBtn').hide();
@@ -568,6 +603,7 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay() {
+  if (!isLightboxOpen()) prevStateStarted = 'played';
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -624,7 +660,7 @@ function streamFastFwd(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
-    if (revSpeed != .5) stopFastRev();
+    if (intervalRewind) stopFastRev();
     const next = stepRate(rates, vid.playbackRate()*100, 1);
     if (next === null) {
       // Already at the fastest rate. streamPlay() re-enables this button
@@ -647,7 +683,7 @@ function streamFastFwd(action) {
 
 function streamSlowFwd(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + frameSeconds());
   } else {
     streamReq({command: CMD_SLOWFWD});
   }
@@ -655,7 +691,7 @@ function streamSlowFwd(action) {
 
 function streamSlowRev(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() - spf);
+    vid.currentTime(vid.currentTime() - frameSeconds());
   } else {
     streamReq({command: CMD_SLOWREV});
   }
@@ -707,7 +743,8 @@ function streamFastRev(action) {
     setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
-        clearInterval(intervalRewind);
+        // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+        stopFastRev();
         vid.pause();
       } else {
         vid.playbackRate(0);
@@ -787,6 +824,15 @@ function streamNext(action) {
     streamPlay();
   }
 } // end function streamNext(action)
+
+// The event is gone: show the next one, or the previous one when it was the last.
+function eventDeleted() {
+  if (nextEventId == 0 && prevEventId != 0) {
+    streamPrev(true);
+    return;
+  }
+  streamNext(true);
+}
 
 function tagAndNext(action) {
   addTag(availableTags[0]);
@@ -913,6 +959,12 @@ function restartZmsStream(onReady) {
   img.onload = function() {
     img.onload = null;
     zmsBroke = false;
+    if (!vid) {
+      // streamQuery cleared the interval while zms was broke; re-arm it so the
+      // progress bar and status readouts resume.
+      clearInterval(streamCmdInterval);
+      streamCmdInterval = setInterval(streamQuery, streamTimeout);
+    }
     // The new zms has none of the next/prev hints; resend them with its first
     // status reply.
     zmsHints.reset();
@@ -951,13 +1003,17 @@ function getEventResponse(respObj, respText) {
 
   const previousEvent = eventData;
   eventData = respObj.event;
+  const eventChanged = previousEvent && previousEvent.Id != eventData.Id;
   getStat();
   currEventId = eventData.Id;
   $j('#eventTitle').html('Event '+currEventId); // FIXME should translate Event
 
-  // Refresh the status of the archive buttons
-  archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
-  unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
+  // Refresh the status of the archive and delete buttons
+  setArchiveButtons();
+  if (eventChanged) {
+    setDownloadLink();
+    refreshSelectedTags();
+  }
 
   history.replaceState(null, null, '?view=event&eid=' + eventData.Id + filterQuery + sortQuery); //if popup removed, check if this allows forward
   if ( vid && CurEventDefVideoPath ) {
@@ -966,13 +1022,29 @@ function getEventResponse(respObj, respText) {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
-    $j('#zoomValue').html('1');
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
     zmsEventChanged(previousEvent);
   }
 } // end function getEventResponse
+
+// The archive, unarchive and delete buttons follow the event being shown. An
+// archived event cannot be deleted.
+function setArchiveButtons() {
+  archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
+  unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
+  deleteBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
+  deleteBtn.prop('title', eventData.Archived ? "You cannot delete an archived event." : "");
+}
+
+// event.php renders the Download link for the page's event; point it at the
+// event now shown. An empty DownloadUrl means no video, so hide it as event.php does.
+function setDownloadLink() {
+  const url = eventData.DownloadUrl;
+  downloadBtn.attr('href', url || '');
+  if (url) downloadBtn.show(); else downloadBtn.hide();
+}
 
 // zms moved on to eventData by itself, possibly to another monitor's event.
 function zmsEventChanged(previousEvent) {
@@ -1184,19 +1256,54 @@ function updateProgressBar() {
   $j('#currentTimeValue').html(progressDate.toLocaleTimeString());
 } // end function updateProgressBar()
 
-// Handles seeking when clicking on the progress bar.
+// Scrubbing the progress bar. zms is only sent a seek every scrubInterval ms
+// while dragging so a fast mouse does not flood the command socket; the final
+// position on release is always sent.
+const scrubInterval = 100;
+let scrubbing = false;
+let scrubLastSent = 0;
+
+// Seconds into the event for a pointer at pageX, clamped to the bar.
+function scrubSeekTime(pageX, barLeft, barWidth, length) {
+  if (!(barWidth > 0)) return 0;
+  const x = Math.min(Math.max(pageX - barLeft, 0), barWidth);
+  return (x / barWidth) * length;
+}
+
+// Whether a seek should be sent now. force is set on press and release.
+function scrubShouldSend(now, lastSent, force) {
+  return force || (now - lastSent >= scrubInterval);
+}
+
+function scrubTo(pageX, force) {
+  const bar = $j('#progressBar');
+  const seekTime = scrubSeekTime(pageX, bar.offset().left, bar.width(), parseFloat(eventData.Length));
+  const now = Date.now();
+  if (!scrubShouldSend(now, scrubLastSent, force)) return;
+  scrubLastSent = now;
+  streamSeek(seekTime);
+}
+
+// Handles seeking and scrubbing on the progress bar.
 function progressBarNav() {
   console.log('progress');
   const progressBar = $j('#progressBar');
-  progressBar.click(function(e) {
-    let x = e.pageX - $j(this).offset().left;
-    if (x<0) x=0;
-    const seekTime = (x / $j('#progressBar').width()) * parseFloat(eventData.Length);
-
-    const date = new Date(eventData.StartDateTime);
-    date.setTime(date.getTime() + (seekTime*1000));
-    console.log("clicked at ", x, seekTime, date.toLocaleTimeString(), "from pageX", e.pageX, "offsetleft", $j(this).offset().left );
-    streamSeek(seekTime);
+  // Pressing on the bar seeks, and dragging scrubs: the position follows the
+  // pointer until it is released, even if it leaves the bar. See #4851.
+  progressBar.on('pointerdown', function(e) {
+    if (e.button) return; // primary button or touch only
+    e.preventDefault();
+    scrubbing = true;
+    scrubLastSent = 0;
+    scrubTo(e.pageX, true);
+  });
+  $j(document).on('pointermove', function(e) {
+    if (scrubbing) scrubTo(e.pageX, false);
+  });
+  $j(document).on('pointerup pointercancel', function(e) {
+    if (!scrubbing) return;
+    scrubTo(e.pageX, true);
+    scrubbing = false;
   });
   progressBar.mouseover(function(e) {
     let x = e.pageX - $j(this).offset().left;
@@ -1365,6 +1472,17 @@ function handleMove(event) {
 */
 }
 
+// A delete that was refused (archived since the page loaded, no permission, the
+// files could not be removed) is answered with HTTP 200 and result=Error, so
+// done() runs for it too. Says whether the event is gone.
+function deleteAnswered(data) {
+  if (data && data.result == 'Ok') return true;
+  const message = (data && data.message) ? data.message : 'The event was not deleted';
+  console.error('delete refused', message);
+  alert(message);
+  return false;
+}
+
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById("delConfirmBtn").addEventListener("click", function onDelConfirmClick(evt) {
@@ -1384,7 +1502,12 @@ function manageDelConfirmModalBtns() {
     $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
         .done(function(data) {
           $j('#deleteConfirm').modal('hide');
-          streamNext(true);
+          if (!deleteAnswered(data)) {
+            // The stream was stopped before asking; bring it back.
+            if (!vid) restartZmsStream();
+            return;
+          }
+          eventDeleted();
         })
         .fail(logAjaxFail);
   });
@@ -1421,8 +1544,8 @@ function getStat() {
         tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
+        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData[key] ?? 0) + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData['AlarmFrames'] ?? 0) + '</a>';
         break;
       //case 'AlarmFrames':
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1453,7 +1576,7 @@ function getStat() {
       //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
       //  break;
       case 'Score':
-        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
+        tdString = 'Total:' + (eventData['TotScore'] ?? 0) + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + (eventData['MaxScore'] ?? 0) + '</a>' + ' Avg:' + (eventData['AvgScore'] ?? 0);
         break;
       case 'n/a':
         tdString = 'n/a';
@@ -1462,9 +1585,12 @@ function getStat() {
         tdString = eventData.Width + 'x' + eventData.Height;
         break;
       case 'DiskSpace':
-        tdString = escapeHTML(eventData[key]) + ' on ' + escapeHTML(eventData['Storage']);
+        // The page prints a formatted size; the status request answers with bytes.
+        tdString = escapeHTML(/^\d+$/.test(String(eventData[key])) ? human_filesize(parseInt(eventData[key])) : eventData[key]) + ' on ' + escapeHTML(eventData['Storage']);
         break;
       case 'Path':
+        // The status request does not carry the path of an event zms moved on to.
+        if (!eventData.Path) return true;
         tdString = '<a href="?view=files&amp;path='+encodeURIComponent(eventData.Path)+'">'+escapeHTML(eventData.Path)+'</a>';
         break;
       //case 'Archived':
@@ -1560,26 +1686,8 @@ function initPage() {
   } else {
     showEventStats(true);
   }
-  // codec=auto rendered no player (event.php) — choose one now based on whether
-  // this browser can natively decode the recording's codec. Build it before the
-  // #videoobj lookup below so the existing native/zms setup runs unchanged. vid
-  // must be assigned synchronously here: it is the dispatch switch for every
-  // control (play/seek/rate/...). autoChosePlayer also tells the changeScale()
-  // guard below to size an auto-built native player, which the DOMContentLoaded
-  // sizer could not (it ran before this built the <video>).
-  let autoChosePlayer = false;
-  if (typeof eventCodec !== 'undefined' && eventCodec === 'auto'
-      && typeof EventStream !== 'undefined'
-      && typeof zmPlayerData !== 'undefined' && zmPlayerData
-      && !document.getElementById('videoobj') && !document.getElementById('evtStream')) {
-    autoChosePlayer = true;
-    const choice = EventStream.chooseEventPlayer(zmPlayerData, eventData);
-    if (choice.mode === 'video') {
-      vid = choice.vid;
-      // The native player replaces the zms-form controls event.php rendered for auto.
-      $j('#streamQualityControl').hide();
-      $j('#fps').hide();
-    }
+  if (eventData.DefaultVideo) {
+    canPlayCodec(eventData.DefaultVideo);
   }
 
   //FIXME prevent blocking...not sure what is happening or best way to unblock
@@ -1644,11 +1752,7 @@ function initPage() {
       setCookie('zmEventRate', rate);
     });
 
-    // rate is in % so 100 would be 1x
-    if (rate > 0) {
-      // rate should be 100 = 1x, etc.
-      vid.playbackRate(rate/100);
-    }
+    applyInitialRate();
   } else {
     streamCmdInterval = setInterval(streamQuery, streamTimeout); //Timeout is refresh rate for progressBox and time display
     if (canStreamNative) {
@@ -1677,25 +1781,22 @@ function initPage() {
   });
   console.log('progress');
   progressBarNav();
-  // For a server-rendered video.js player, changeScale() already ran from the
-  // 'DOMContentLoaded' listener, so skip it here. The zms path (no vid) still
-  // needs it, and so does an auto-built native player: its <video> did not exist
-  // when DOMContentLoaded fired, so the sizer there found no player.
-  if (!vid || autoChosePlayer) {
+  // For video.js, we are already calling changeScale() from the 'DOMContentLoaded' event listener; we shouldn't duplicate these calls.
+  if (!vid) {
     console.log('changescale');
     changeScale();
   }
+  // Now that the player has its size, put back the zoom remembered for this
+  // monitor.
+  restoreEventZoom();
   console.log('changeStreamQality');
   changeStreamQuality();
 
   // enable or disable buttons based on current selection and user rights
-  archiveBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
-  unarchiveBtn.prop('disabled', !(eventData.Archived && canEdit.Events));
+  setArchiveButtons();
   editBtn.prop('disabled', !canEdit.Events);
   exportBtn.prop('disabled', !canView.Events);
   downloadBtn.prop('disabled', !canView.Events);
-  deleteBtn.prop('disabled', !(!eventData.Archived && canEdit.Events));
-  deleteBtn.prop('title', eventData.Archived ? "You cannot delete an archived event." : "");
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -1717,6 +1818,11 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=archive&eids[]='+eventData.Id)
         .done( function(data) {
+          // ajaxError() answers 200 with result=Error, so done() runs for a refusal too.
+          if (data.result == 'Error') {
+            alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+            return;
+          }
           //FIXME: update the status of the archive button reather than reload the whole page
           window.location.reload(true);
         })
@@ -1732,6 +1838,11 @@ function initPage() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=unarchive&eids[]='+eventData.Id)
         .done( function(data) {
+          // ajaxError() answers 200 with result=Error, so done() runs for a refusal too.
+          if (data.result == 'Error') {
+            alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+            return;
+          }
           //FIXME: update the status of the unarchive button rather than reload the whole page
           window.location.reload(true);
         })
@@ -1771,23 +1882,23 @@ function initPage() {
     videoEvent();
   });
 
-  // Manage the generate Live button
-  bindButton('#eventLiveBtn', 'click', null, function onLiveClick(evt) {
+  // Manage the generate Live, Edit and All Events buttons. getStat() rebuilds
+  // them on every event change, so they are handled by delegation on the table.
+  eventStatsTable.on('click', '#eventLiveBtn', function onLiveClick(evt) {
     evt.preventDefault();
     eventLive();
   });
 
-  // Manage the generate Edit button
-  bindButton('#eventEditBtn', 'click', null, function onEditClick(evt) {
+  eventStatsTable.on('click', '#eventEditBtn', function onEditClick(evt) {
     evt.preventDefault();
     eventEdit();
   });
 
-  // Manage the generate All Events button
-  bindButton('#eventAllEvents', 'click', null, function onAllEventsClick(evt) {
+  eventStatsTable.on('click', '#eventAllEvents', function onAllEventsClick(evt) {
     evt.preventDefault();
     viewAllEvents();
   });
+
   // Manage the Event STATISTICS Button
   bindButton('#statsBtn', 'click', null, function onStatsClick(evt) {
     evt.preventDefault();
@@ -1823,7 +1934,7 @@ function initPage() {
     if (window.event.shiftKey) {
       $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
           .done(function(data) {
-            streamNext(true);
+            if (deleteAnswered(data)) eventDeleted();
           })
           .fail(logAjaxFail);
     } else {
@@ -2023,7 +2134,27 @@ function initPage() {
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
+
+  if (window.lightbox) {
+    bindLightboxEvents(window.lightbox);
+  } else {
+    document.addEventListener('zm:lightboxReady', (event) => {
+      bindLightboxEvents(event.detail);
+    }, {once: true});
+  }
 } // end initPage
+
+function bindLightboxEvents(lightbox) {
+  lightbox.on('open', () => {
+    // Viewer opened.
+    if (prevStateStarted == 'played') pauseClicked();
+  });
+
+  lightbox.on('close', () => {
+    // Viewer closed.
+    if (prevStateStarted == 'played') playClicked();
+  });
+}
 
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
@@ -2087,7 +2218,8 @@ function formatTag(tag) {
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name) && !addingTagIds[tag.Id]) {
+    addingTagIds[tag.Id] = true;
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           if (data.result != 'Ok') {
@@ -2102,7 +2234,10 @@ function addTag(tag, buttonPressed = null) {
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
           if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
-        .fail(logAjaxFail);
+        .fail(logAjaxFail)
+        .always(function() {
+          delete addingTagIds[tag.Id];
+        });
   } else {
     $j('.tag-dropdown-content').hide();
   }
@@ -2134,6 +2269,7 @@ function createTag(tagName, buttonPressed = null) {
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);
+          alert(data.message);
           return;
         }
         if (data.response.length > 0) {
@@ -2151,14 +2287,24 @@ function createTag(tagName, buttonPressed = null) {
 function getAvailableTags() {
   $j.getJSON(thisUrl + '?request=tags&action=getavailabletags')
       .done(function(data) {
-        availableTags = data.response;
+        // An error reply has no response; keep a list so the tag input still works.
+        availableTags = Array.isArray(data.response) ? data.response : [];
       })
       .fail(logAjaxFail);
 }
 
+// zms moved on to another event: show its tags, not the last event's.
+function refreshSelectedTags() {
+  $j('.tags-container .tag').remove();
+  selectedTags = [];
+  getSelectedTags();
+}
+
 function getSelectedTags() {
-  $j.getJSON(thisUrl + '?request=event&action=getselectedtags&id=' + eventData.Id)
+  const eventId = eventData.Id;
+  $j.getJSON(thisUrl + '?request=event&action=getselectedtags&id=' + eventId)
       .done(function(data) {
+        if (eventData.Id != eventId) return; // zms moved on again
         selectedTags = data.response;
         if (!selectedTags) {
           console.log(data);
@@ -2207,6 +2353,34 @@ function fullscreenClicked() {
     console.log(content);
     openFullscreen(content);
   }
+}
+
+// The PanZoom zoom level is remembered per monitor, like the video scale, so
+// reviewing the same detail across a camera's events does not mean zooming in
+// again on every event. Only the scale is kept, never the pan position.
+// Panning fires panzoomchange too, so only write the cookie when the level changes.
+let storedEventZoom = null;
+function storeEventZoom(scale) {
+  const value = scale.toFixed(1);
+  if (value === storedEventZoom) return;
+  storedEventZoom = value;
+  setCookie('zmEventZoom' + domMonitorId(), value);
+}
+
+function restoreEventZoom() {
+  if (typeof panZoomEnabled === 'undefined' || !panZoomEnabled) return;
+  const stored = parseFloat(getCookie('zmEventZoom' + domMonitorId()));
+  if (!(stored > 1)) return;
+  const panZoom = zmPanZoom.panZoom && zmPanZoom.panZoom[domMonitorId()];
+  if (panZoom) panZoom.zoom(stored, {animate: false});
+}
+
+// Keeps the Zoom readout on the PanZoom scale, including for video.js events
+// where no zms status arrives to refresh it. Every zoom path (buttons, wheel,
+// pinch) ends in a panzoomchange, so this is also where the level is stored.
+function panZoomEventPanzoomchange(event) {
+  $j('#zoomValue').html(event.detail.scale.toFixed(1));
+  storeEventZoom(event.detail.scale);
 }
 
 function panZoomIn(el) {

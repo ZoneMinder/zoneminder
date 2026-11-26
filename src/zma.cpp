@@ -30,6 +30,7 @@ zma - The ZoneMinder Event Re-Analysis utility
  zma -e <event_id> -m <monitor_id>
  zma -e <event_id> --create-events
  zma -e <event_id> --save-analysis
+ zma -e <event_id> --dry-run --json [-z <zone_id> -s <Column>=<value> ...]
  zma -h
  zma --help
  zma -v
@@ -54,6 +55,15 @@ without needing live cameras.
  -m, --monitor <monitor_id>       - Override monitor ID (use a different monitor's zone config)
  -c, --create-events              - Create new events instead of updating the original
  -a, --save-analysis              - Write analysis JPEGs showing zone alarm overlays
+ -n, --dry-run                    - Change no events or scores and create none (zma's own log is still written)
+ -j, --json                       - Print zone thresholds and per-frame zone stats as JSON lines
+ -z, --zone <zone_id>             - Analyse only this zone, as an Active zone, with
+                                    --set applied: a test of one zone's settings
+ -s, --set <Column>=<value>       - Replace a saved detection setting of that zone for this
+                                    run only, as stored in the Zones table (thresholds in
+                                    percent), but CheckMethod as its number (1 AlarmedPixels,
+                                    2 FilteredPixels, 3 Blobs). Values are not checked.
+                                    Id, Name, Type and Units cannot be set. Repeatable.
  -v, --verbose                    - Increase verbosity
  -h, --help                       - Display usage information
  -V, --version                    - Print the installed version of ZoneMinder
@@ -77,7 +87,9 @@ without needing live cameras.
 
 #include <filesystem>
 #include <getopt.h>
+#include <cstring>
 #include <iostream>
+#include <map>
 #include <unistd.h>
 
 void Usage() {
@@ -87,10 +99,128 @@ void Usage() {
   fprintf(stderr, "  -m, --monitor <monitor_id>   : Override monitor ID for zone config\n");
   fprintf(stderr, "  -c, --create-events          : Create new events instead of updating the original\n");
   fprintf(stderr, "  -a, --save-analysis          : Write analysis JPEGs showing zone alarm overlays\n");
+  fprintf(stderr, "  -n, --dry-run                : Change no events or scores and create none\n");
+  fprintf(stderr, "  -j, --json                   : Print zone thresholds and per-frame zone stats as JSON lines\n");
+  fprintf(stderr, "  -z, --zone <zone_id>         : Analyse only this zone, as an Active zone, with --set\n");
+  fprintf(stderr, "  -s, --set <Column>=<value>   : Replace a detection setting of that zone for this run;\n"
+                  "                                 not Id/Name/Type/Units (repeatable, needs --zone)\n");
   fprintf(stderr, "  -v, --verbose                : Increase debug verbosity\n");
   fprintf(stderr, "  -h, --help                   : This screen\n");
   fprintf(stderr, "  -V, --version                : Report the installed version of ZoneMinder\n");
   exit(0);
+}
+
+// Minimal JSON string escaping for zone names.
+static std::string JsonString(const std::string &in) {
+  std::string out = "\"";
+  for (unsigned char c : in) {
+    if (c == '"' || c == '\\') {
+      out += '\\';
+      out += c;
+    } else if (c < 0x20) {
+      out += stringtf("\\u%04x", c);
+    } else {
+      out += c;
+    }
+  }
+  return out + "\"";
+}
+
+// Rebuild zone_id from its saved row with the given columns replaced, using the
+// same parsing as Zone::Load so percentages and coordinates are read exactly as
+// zmc would read them after a save. An empty value is NULL. The zone is then
+// analysed alone, as an Active zone: with the others gone, no Inclusive,
+// Exclusive or Preclusive rule decides whether it is checked at all, so every
+// frame measures it - what a test of one zone's settings needs.
+static bool OverrideZone(const std::shared_ptr<Monitor> &monitor, unsigned int zone_id,
+                         const std::map<std::string, std::string> &overrides) {
+  zmDbRow dbrow;
+  if (!dbrow.fetch(stringtf("SELECT %s FROM Zones WHERE MonitorId = %u AND Id = %u",
+                            Zone::LoadColumnsSql().c_str(), monitor->Id(), zone_id))) {
+    Error("Zone %u not found on monitor %u", zone_id, monitor->Id());
+    return false;
+  }
+  const StringVector &cols = Zone::kLoadColumns;
+  std::vector<const char *> row(dbrow.mysql_row(), dbrow.mysql_row() + cols.size());
+
+  for (const auto &kv : overrides) {
+    // Type and CheckMethod are selected as Type+0 and CheckMethod+0. Id, Name,
+    // Type and Units say which zone this is - and a Type change would skip
+    // ReloadZones' privacy handling - so only the detection settings change.
+    const auto col = std::find_if(cols.begin(), cols.end(), [&kv](const std::string &c) {
+      return c == kv.first || c == kv.first + "+0";
+    });
+    if (col == cols.end() || *col == "Id" || *col == "Name" || *col == "Type+0" || *col == "Units") {
+      Error("Unknown or read-only zone column '%s'", kv.first.c_str());
+      return false;
+    }
+    if (kv.second.empty() && *col == "Coords") {
+      Error("Coords cannot be empty");
+      return false;
+    }
+    row[col - cols.begin()] = kv.second.empty() ? nullptr : kv.second.c_str();
+  }
+  const std::string active = std::to_string(Zone::ACTIVE);
+  row[std::find(cols.begin(), cols.end(), "Type+0") - cols.begin()] = active.c_str();
+
+  std::vector<Zone> rebuilt;
+  if (!Zone::LoadRow(monitor, row.data(), rebuilt)) return false;
+
+  if (std::none_of(monitor->Zones().begin(), monitor->Zones().end(),
+                   [zone_id](const Zone &z) { return z.Id() == zone_id; })) {
+    Error("Zone %u is not loaded on monitor %u", zone_id, monitor->Id());
+    return false;
+  }
+  std::vector<Zone> zones;
+  zones.push_back(rebuilt[0]);
+  monitor->SetZones(std::move(zones));
+  return true;
+}
+
+// The zones line: each detecting zone's thresholds in pixels, as CheckAlarms
+// compares them.
+static void PrintZonesJson(const Monitor &monitor, uint64_t event_id) {
+  std::string line = stringtf("{\"type\":\"zones\",\"event\":%" PRIu64 ",\"zones\":[", event_id);
+  bool first = true;
+  for (const Zone &zone : monitor.Zones()) {
+    if (zone.IsInactive() || zone.IsPrivacy()) continue;
+    line += stringtf("%s{\"id\":%u,\"name\":%s,\"checkMethod\":%d,\"area\":%d,"
+                     "\"minAlarm\":%d,\"minFilter\":%d,\"minBlob\":%d,\"minBlobs\":%d}",
+                     first ? "" : ",", zone.Id(), JsonString(zone.Name()).c_str(),
+                     static_cast<int>(zone.GetCheckMethod()), zone.GetPolygon().Area(),
+                     zone.MinAlarmPixels(), zone.MinFilterPixels(),
+                     zone.MinBlobPixels(), zone.MinBlobs());
+    first = false;
+  }
+  printf("%s]}\n", line.c_str());
+  fflush(stdout);
+}
+
+static std::string BoxJson(const Box &b) {
+  return stringtf("[%d,%d,%d,%d]", b.Lo().x_, b.Lo().y_, b.Hi().x_, b.Hi().y_);
+}
+
+// A frame line for every frame where some zone saw change, so near misses show
+// up too. t: seconds into the event, where zma decoded the frame from, so a
+// player can seek to the same frame.
+static void PrintFrameJson(const Monitor &monitor, int frame_id, double t, unsigned int score) {
+  std::string zones_json;
+  for (const Zone &zone : monitor.Zones()) {
+    const ZoneStats &st = zone.GetStats();
+    if (!st.alarm_pixels_) continue;
+    const ZoneDiagnostics &d = zone.Diagnostics();
+    zones_json += stringtf("%s{\"id\":%u,\"alarm\":%u,\"filter\":%d,\"blob\":%d,"
+                           "\"blobs\":%d,\"maxBlob\":%d,\"largestBlob\":%d,\"score\":%u,"
+                           "\"alarmBox\":%s,\"filterBox\":%s,\"blobBox\":%s}",
+                           zones_json.empty() ? "" : ",", zone.Id(), st.alarm_pixels_,
+                           st.alarm_filter_pixels_, st.alarm_blob_pixels_, st.alarm_blobs_,
+                           st.max_blob_size_, d.largest_blob, zone.Score(),
+                           BoxJson(d.alarmed_box).c_str(), BoxJson(d.filtered_box).c_str(),
+                           BoxJson(d.largest_blob_box).c_str());
+  }
+  if (zones_json.empty()) return;
+  printf("{\"type\":\"frame\",\"frame\":%d,\"t\":%.3f,\"score\":%u,\"zones\":[%s]}\n",
+         frame_id, t, score, zones_json.c_str());
 }
 
 struct ReanalysisEvent {
@@ -248,12 +378,20 @@ int main(int argc, char *argv[]) {
   int verbose = 0;
   bool create_events = false;
   bool save_analysis = false;
+  bool dry_run = false;
+  bool json = false;
+  unsigned int override_zone_id = 0;
+  std::map<std::string, std::string> overrides;
 
   static struct option long_options[] = {
     {"event",         1, nullptr, 'e'},
     {"monitor",       1, nullptr, 'm'},
     {"create-events", 0, nullptr, 'c'},
     {"save-analysis", 0, nullptr, 'a'},
+    {"dry-run",       0, nullptr, 'n'},
+    {"json",          0, nullptr, 'j'},
+    {"zone",          1, nullptr, 'z'},
+    {"set",           1, nullptr, 's'},
     {"verbose",       0, nullptr, 'v'},
     {"help",          0, nullptr, 'h'},
     {"version",       0, nullptr, 'V'},
@@ -262,7 +400,7 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     int option_index = 0;
-    int c = getopt_long(argc, argv, "e:m:cavhV", long_options, &option_index);
+    int c = getopt_long(argc, argv, "e:m:canjz:s:vhV", long_options, &option_index);
     if (c == -1)
       break;
 
@@ -279,6 +417,28 @@ int main(int argc, char *argv[]) {
     case 'a':
       save_analysis = true;
       break;
+    case 'n':
+      dry_run = true;
+      break;
+    case 'j':
+      json = true;
+      break;
+    case 'z':
+      override_zone_id = strtoul(optarg, nullptr, 10);
+      if (!override_zone_id) {
+        fprintf(stderr, "--zone expects a zone id, got '%s'\n", optarg);
+        Usage();
+      }
+      break;
+    case 's': {
+      const auto kv = PairSplit(optarg, '=');
+      if (kv.first.empty()) {
+        fprintf(stderr, "--set expects <Column>=<value>, got '%s'\n", optarg);
+        Usage();
+      }
+      overrides[kv.first] = kv.second;
+      break;
+    }
     case 'v':
       verbose++;
       break;
@@ -306,6 +466,14 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Event ID is required (-e <event_id>)\n");
     Usage();
   }
+  if (dry_run && (create_events || save_analysis)) {
+    fprintf(stderr, "--dry-run cannot be combined with --create-events or --save-analysis\n");
+    Usage();
+  }
+  if (overrides.empty() != !override_zone_id) {
+    fprintf(stderr, "--set and --zone go together\n");
+    Usage();
+  }
 
   char log_id_string[32] = "";
   snprintf(log_id_string, sizeof(log_id_string), "zma_e%" PRIu64, event_id);
@@ -318,6 +486,10 @@ int main(int argc, char *argv[]) {
 
   if (verbose) {
     Logger::fetch()->level(static_cast<Logger::Level>(Logger::DEBUG1 + verbose - 1));
+  }
+  // Terminal logging goes to stdout, which --json owns.
+  if (json) {
+    Logger::fetch()->terminalLevel(Logger::NOLOG);
   }
 
   HwCapsDetect();
@@ -488,7 +660,17 @@ int main(int argc, char *argv[]) {
   // For offline analysis we load zones directly.
   monitor->ReloadZones();
 
+  if (override_zone_id && !overrides.empty()) {
+    if (!OverrideZone(monitor, override_zone_id, overrides)) {
+      if (json) printf("{\"type\":\"error\",\"message\":\"zone override failed\"}\n");
+      Fatal("Failed to apply overrides to zone %u", override_zone_id);
+    }
+    Info("Applied %zu override(s) to zone %u", overrides.size(), override_zone_id);
+  }
+
   Info("Loaded monitor %u '%s' with zones for analysis", monitor->Id(), monitor->Name());
+
+  if (json) PrintZonesJson(*monitor, event_id);
 
   // Step 5: Open frame source
   bool use_video = !video_file.empty();
@@ -516,6 +698,7 @@ int main(int argc, char *argv[]) {
   int alarm_frame_count = 0;     // consecutive alarm frames counter
   int last_alarm_frame_idx = 0;  // index of last alarmed frame in our loop
   int analysis_count = 0;
+  int alarm_starts = 0;
 
   // Score tracking for update-existing mode
   int total_alarm_frames = 0;
@@ -581,12 +764,14 @@ int main(int argc, char *argv[]) {
       continue;
     }
 
-    // Run motion detection
+    // Run motion detection.
     Event::StringSet zoneSet;
     Image analysis_image;
     unsigned int score = monitor->AnalyseFrame(*frame_image, zoneSet,
                                                save_analysis ? &analysis_image : nullptr);
     analysis_count++;
+
+    if (json) PrintFrameJson(*monitor, fd.id, FPSeconds(fd.offset).count(), score);
 
     // Build zone string for logging
     std::string zone_str;
@@ -621,6 +806,7 @@ int main(int argc, char *argv[]) {
         if (alarm_frame_count >= monitor_alarm_frame_count) {
           Info("Frame %d: ALARM (score=%u, zones=%s)", fd.id, score, zone_str.c_str());
           state = Monitor::ALARM;
+          alarm_starts++;
 
           if (create_events) {
             new_events.emplace_back();
@@ -730,23 +916,35 @@ int main(int argc, char *argv[]) {
     // Update the original event with re-analysed scores
     unsigned int avg_score = total_alarm_frames > 0 ? total_tot_score / total_alarm_frames : 0;
 
-    sql = stringtf(
-      "UPDATE `Events` SET "
-      "`AlarmFrames` = %d, "
-      "`TotScore` = %u, "
-      "`AvgScore` = %u, "
-      "`MaxScore` = %u "
-      "WHERE `Id` = %" PRIu64,
-      total_alarm_frames,
-      total_tot_score,
-      avg_score,
-      total_max_score,
-      event_id);
-    zmDbDo(sql);
+    if (!dry_run) {
+      sql = stringtf(
+        "UPDATE `Events` SET "
+        "`AlarmFrames` = %d, "
+        "`TotScore` = %u, "
+        "`AvgScore` = %u, "
+        "`MaxScore` = %u "
+        "WHERE `Id` = %" PRIu64,
+        total_alarm_frames,
+        total_tot_score,
+        avg_score,
+        total_max_score,
+        event_id);
+      zmDbDo(sql);
+    }
 
     Info("Re-analysis complete: analysed %d frames, alarm_frames=%d, tot_score=%u, avg_score=%u, max_score=%u",
          analysis_count, total_alarm_frames, total_tot_score, avg_score, total_max_score);
-    Info("Updated event %" PRIu64 " with new scores", event_id);
+    if (!dry_run) Info("Updated event %" PRIu64 " with new scores", event_id);
+  }
+
+  if (json) {
+    // alarms counts entries into ALARM, which needs alarmFrameCount scored
+    // frames in a row - a scored frame alone does not raise an event.
+    printf("{\"type\":\"done\",\"frames\":%d,\"scoredFrames\":%d,\"alarms\":%d,"
+           "\"maxScore\":%u,\"alarmFrameCount\":%d}\n",
+           analysis_count, total_alarm_frames, alarm_starts, total_max_score,
+           monitor_alarm_frame_count);
+    fflush(stdout);
   }
 
   // Cleanup

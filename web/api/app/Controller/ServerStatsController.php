@@ -87,24 +87,32 @@ class ServerStatsController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if (!$canEdit) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->pinRequestId($this->ServerStat, null);
-      $this->ServerStat->create();
-      if ( $this->ServerStat->save($this->request->data) ) {
-        return $this->flash(__('The server stat has been saved.'), array('action' => 'index'));
-      }
-      $this->set(array(
-        'message' => $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error',
-        '_serialize' => array('message')
-      ));
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if (!$canEdit) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->ServerStat, null);
+    $this->ServerStat->create();
+    if ( $this->ServerStat->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->ServerStat->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->response->statusCode(400);
+    $this->set(array(
+      'message' => $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**
@@ -127,11 +135,13 @@ class ServerStatsController extends AppController {
     if ( !$this->ServerStat->exists($id) ) {
       throw new NotFoundException(__('Invalid server stat'));
     }
+    $this->request->allowMethod('post', 'put');
     $this->pinRequestId($this->ServerStat, $id);
     if ( $this->ServerStat->save($this->request->data) ) {
       $message = 'Saved';
     } else {
       $message = $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

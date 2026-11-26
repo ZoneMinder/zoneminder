@@ -50,6 +50,25 @@ use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;
 use ZoneMinder::Trigger::Connection;
 
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+my $help = 0;
+my $version = 0;
+
+GetOptions(
+  'help|h'    => \$help,
+  'version|v' => \$version
+  ) or pod2usage(-exitstatus => -1);
+
+if ( $help ) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ( $version ) {
+  print ZoneMinder::Base::ZM_VERSION."\n";
+  exit(0);
+}
+
 my @connections;
 push( @connections,
     ZoneMinder::Trigger::Connection->new(
@@ -97,6 +116,8 @@ sub TermHandler {
 }
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
+# A client that disconnects before a reply is written must not kill the daemon
+$SIG{PIPE} = 'IGNORE';
 
 Info('Trigger daemon starting');
 
@@ -217,12 +238,16 @@ while (!$zm_terminate) {
  # The same one as last time, so ignore it
 # Do nothing
       }
-    } elsif ( 
-        (($state == STATE_IDLE) and ($monitor->{LastState} != STATE_IDLE))
+    } elsif (
+        defined($monitor->{LastState})
+        and (
+          (($state == STATE_IDLE)
+            and ($monitor->{LastState} == STATE_ALARM or $monitor->{LastState} == STATE_ALERT))
           or
-        (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
-        ) {
-# Out of alarm state
+          (($state == STATE_TAPE) and ($monitor->{LastState} != STATE_TAPE))
+        )) {
+# Out of alarm state. Prealarm going back to idle, or a monitor we had no
+# state for yet, never sent an on so must not send an off.
       push @out_messages, $monitor->{Id}.'|off|'.time().'|'.$last_event;
     } elsif (
         defined($monitor->{LastEvent})
@@ -271,7 +296,7 @@ while (!$zm_terminate) {
   } elsif (@needsReload) { 
     foreach my $monitor (@needsReload) {
       my $id = $monitor->Id();
-      $monitor = $monitors{$id} = ZoneMinder::Monitor->find_one(Id=>$id);
+      $monitor = $monitors{$id} = ZoneMinder::Monitor->find_one(Id=>$id, Deleted=>0);
       if (!$monitor) {
         # Deleted from the database
         delete $monitors{$id};
@@ -298,14 +323,22 @@ exit;
 sub loadMonitors {
   $monitor_reload_time = time();
 
+  my %old_monitors = %monitors; # Keep prior state/event so alarms that started or ended since the last poll are not swallowed
   %monitors = ();
   foreach my $monitor ( ZoneMinder::Monitor->find(
+    Deleted=>0,
     'Capturing !=' => 'None',
     ($Config{ZM_SERVER_ID} ? (ServerId=>$Config{ZM_SERVER_ID}) : ()),
     )) {
     if ($monitor->connect()) { # This will re-init shared memory
-      $monitor->{LastState} = zmGetMonitorState($monitor);
-      $monitor->{LastEvent} = zmGetLastEvent($monitor);
+      my $old = $old_monitors{$monitor->{Id}};
+      if ($old and defined($old->{LastState})) {
+        $monitor->{LastState} = $old->{LastState};
+        $monitor->{LastEvent} = $old->{LastEvent};
+      } else {
+        $monitor->{LastState} = zmGetMonitorState($monitor);
+        $monitor->{LastEvent} = zmGetLastEvent($monitor);
+      }
     }
     $monitors{$monitor->{Id}} = $monitor;
   } # end while fetchrow
@@ -345,6 +378,8 @@ sub handleMessage {
   if ( $action =~ /^(enable|disable)(?:[\+ ](\d+))?$/ ) {
     my $state = $1;
     my $delay = $2;
+    dropActions($id.'|enable');
+    dropActions($id.'|disable');
     if ( $state eq 'enable' ) {
       zmMonitorEnable($monitor);
     } else {
@@ -375,6 +410,7 @@ sub handleMessage {
         return;
       }
       dropActions($id.'|cancel');
+      dropActionsWithPrefix($id.'|off|');
       zmTriggerEventOn($monitor, $score, $cause, $text);
       zmTriggerShowtext($monitor, $showtext) if defined($showtext);
       Info("Trigger '$trigger' '$cause'");
@@ -406,6 +442,7 @@ sub handleMessage {
     } # end if trigger is on or off
   } elsif ( $action eq 'cancel' ) {
     dropActions($id.'|cancel');
+    dropActionsWithPrefix($id.'|off|');
     zmTriggerEventCancel($monitor);
     zmTriggerShowtext($monitor, $showtext) if defined($showtext);
     Info('Cancelled event');
@@ -423,6 +460,16 @@ sub dropActions {
 
   foreach my $a_time ( keys %actions ) {
     @{$actions{$a_time}} = grep { $_->{message} ne $action_text } @{$actions{$a_time}};
+    delete $actions{$a_time} if !@{$actions{$a_time}};
+  }
+}
+
+# Forget pending timed actions whose message starts with this prefix
+sub dropActionsWithPrefix {
+  my $prefix = shift;
+
+  foreach my $a_time ( keys %actions ) {
+    @{$actions{$a_time}} = grep { index($_->{message}, $prefix) != 0 } @{$actions{$a_time}};
     delete $actions{$a_time} if !@{$actions{$a_time}};
   }
 }
@@ -462,6 +509,24 @@ __END__
 =head1 NAME
 
 zmtrigger.pl - ZoneMinder External Trigger Script
+
+=head1 SYNOPSIS
+
+ zmtrigger.pl [--help|-h] [--version|-v]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h>, B<--help>
+
+Print this help and exit.
+
+=item B<-v>, B<--version>
+
+Print the ZoneMinder version and exit.
+
+=back
 
 =head1 DESCRIPTION
 

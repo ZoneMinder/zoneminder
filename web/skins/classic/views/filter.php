@@ -48,6 +48,8 @@ if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
 
 # Build filter names list for dropdown
 foreach (ZM\Filter::find(null, array('order'=>'lower(Name)')) as $Filter) {
+  # Another user's filter, with its command and email address, is not for this user to see.
+  if (!$Filter->canView()) continue;
   $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
   if ($Filter->Background()) $filterNames[$Filter->Id()] .= '*';
   if ($Filter->Concurrent()) $filterNames[$Filter->Id()] .= '&';
@@ -68,6 +70,12 @@ if ($have_query_params) {
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else if ($fid) {
+  // A filter deleted since the link was made, or not this user's to see. The
+  // blank form shown here before would have been saved as a new filter.
+  ZM\Warning("Filter $fid not found");
+  $view = 'error';
+  return;
 } else {
   ZM\Debug('Creating new empty filter');
   $filter = new ZM\Filter();
@@ -105,10 +113,27 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
+
+// Set by the execute action's redirect.
+if (isset($_REQUEST['executed'])) {
+  if ($_REQUEST['executed'] === '1') {
+    $info_message = translate('FilterExecuted');
+  } else {
+    $error_message .= translate('FilterExecuteFailed').'<br/>';
+  }
+}
 
 $focusWindow = true;
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+
+// Tags the AutoTag action can add; htmlSelect escapes the names
+$autoTagOptions = array();
+foreach (dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') as $tag) {
+  $autoTagOptions[$tag['Id']] = $tag['Name'];
+}
+$autoTagId = isset($autoTagOptions[$filter->AutoTagId()]) ? $filter->AutoTagId() : null;
 
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
@@ -188,7 +213,7 @@ if (ZM_OPT_USE_AUTH) {
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user->Id(),
-  ['Id'=>'filter[UserId]', 'class'=>'chosen']
+  ['Id'=>'filter[UserId]', 'class'=>'chosen', 'data-on-change-this'=>'updateButtons']
   );
   echo '</p>'.PHP_EOL;
 }
@@ -307,7 +332,7 @@ if ( canEdit('System') ) {
 ?>
             <p>
               <label for="filter[AutoExecute]"><?php echo translate('FilterExecuteEvents') ?></label>
-              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
 <?php
@@ -327,6 +352,13 @@ if ( canEdit('System') ) {
               <input type="checkbox" id="filter[AutoCopy]" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
               <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
             </p>
+<?php if (count($autoTagOptions)) { ?>
+            <p>
+              <label for="filter[AutoTag]"><?php echo translate('FilterTagEvents') ?></label>
+              <input type="checkbox" id="filter[AutoTag]" name="filter[AutoTag]" value="1"<?php if ( $filter->AutoTag() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autotag"/>
+              <?php echo htmlSelect('filter[AutoTagId]', $autoTagOptions, $autoTagId, $filter->AutoTag() ? null : array('style'=>'display:none;')); ?>
+            </p>
+<?php } ?>
             <p>
               <label for="filter[AutoMove]"><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" id="filter[AutoMove]" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>

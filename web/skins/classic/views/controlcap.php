@@ -46,6 +46,15 @@ if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
       $view = 'error';
       return;
     }
+  } else if ( !empty($_REQUEST['dupId']) ) {
+    // Clone: start from an existing control, saved as a new one since cid stays empty
+    $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['dupId']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+    unset($Control['Id']);
+    $Control['Name'] = mb_substr('Clone of '.$Control['Name'], 0, 64);
   } else {
     $Control = array(
       'Name' => translate('New'),
@@ -81,6 +90,7 @@ if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
       'HasTurboTilt' => '',
       'TurboTiltSpeed' => '',
       'CanZoom' => '',
+      'CanAutoZoom' => '',
       'CanZoomAbs' => '',
       'CanZoomRel' => '',
       'CanZoomCon' => '',
@@ -382,6 +392,10 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoom') ?></th>
               <td><input type="checkbox" name="Control[CanZoom]" value="1"<?php if ( !empty($Control['CanZoom']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoZoom') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoZoom]" value="1"<?php if ( !empty($Control['CanAutoZoom']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomAbs') ?></th>

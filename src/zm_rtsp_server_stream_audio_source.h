@@ -40,6 +40,8 @@ class ZoneMinderStreamAudioSource : public ZoneMinderStreamSource {
     samplingFrequencyIndex = getFrequencyIndex();
     m_timeBase = {1, frequency};
   };
+  // RTP timestamp for a pts in AV_TIME_BASE_Q
+  static int64_t RtpTimestamp(int64_t pts, AVRational timeBase);
   int getFrequency() { return frequency; };
   int getFrequencyIndex();
   const char *configStr() const { return config.c_str(); };

@@ -25,6 +25,7 @@
 #include "zm_config.h"
 #include "zm_poly.h"
 #include "zm_rgb.h"
+#include "zm_utils.h"
 #include "zm_zone_stats.h"
 #include "zm_vector2.h"
 
@@ -40,6 +41,18 @@ class Monitor;
 // This describes a 'zone', or an area of an image that has certain
 // detection characteristics.
 //
+
+// What CheckAlarms saw in the last frame, whether or not it scored, for zma's
+// --json report. Kept on the Zone rather than in ZoneStats, which is copied
+// into every packet and event frame.
+struct ZoneDiagnostics {
+  Box alarmed_box;        // the alarmed pixels
+  Box filtered_box;       // those left after the filter
+  int largest_blob = 0;   // before Min/MaxBlobPixels removed any
+  Box largest_blob_box;
+
+  void Reset() { *this = ZoneDiagnostics(); }
+};
 
 class Zone {
  protected:
@@ -89,11 +102,13 @@ class Zone {
 
   int         overload_frames;
   int         extend_alarm_frames;
+  int         pixel_area;  // pixels the rasterised polygon covers
 
   // Outputs/Statistics
   bool        alarmed;
   bool        was_alarmed;
   ZoneStats   stats;
+  ZoneDiagnostics diag;
   Image      *pg_image;
   Range      *ranges;
   Image      *image;
@@ -196,12 +211,22 @@ class Zone {
   inline void ClearAlarm() { was_alarmed = alarmed; alarmed = false; }
   inline Vector2 GetAlarmCentre() const { return stats.alarm_centre_; }
   inline unsigned int Score() const { return stats.score_; }
+  inline CheckMethod GetCheckMethod() const { return check_method; }
+  inline int MinAlarmPixels() const { return min_alarm_pixels; }
+  inline int MinFilterPixels() const { return min_filter_pixels; }
+  inline int MinBlobPixels() const { return min_blob_pixels; }
+  inline int MinBlobs() const { return min_blobs; }
+
+  // Drop the scores and boxes of a zone that is not checked this frame.
+  inline void ClearStats() { stats.Reset(); }
 
   inline void ResetStats() {
     alarmed = false;
     was_alarmed = false;
     stats.Reset();
+    diag.Reset();
   }
+  const ZoneDiagnostics &Diagnostics() const { return diag; }
   void RecordStats( const Event *event );
   ZoneStats const &GetStats() const {
     stats.DumpToLog("GetStats");
@@ -216,8 +241,16 @@ class Zone {
   static bool ClampPolygon(Polygon &polygon, unsigned int width, unsigned int height);
   static bool ParseZoneString( const char *zone_string, unsigned int &zone_id, int &colour, Polygon &polygon );
   static bool ParseCoords(const char *Coords, unsigned int width, unsigned int height, Polygon &polygon, bool &clamped);
+  static int RasterArea(const Polygon &polygon, unsigned int width, unsigned int height);
+  static int PercentToPixels(double percent, int area);
   static size_t Count(const std::shared_ptr<Monitor> &monitor);
   static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
+  // The columns Load selects, in the order LoadRow reads them. zma uses these
+  // to rebuild a zone from its saved row with some values replaced.
+  static const StringVector kLoadColumns;
+  static std::string LoadColumnsSql() { return Join(kLoadColumns); }
+  static bool LoadRow(const std::shared_ptr<Monitor> &monitor, const char *const *dbrow,
+                      std::vector<Zone> &zones);
   //=================================================
   bool CheckOverloadCount();
   int GetOverloadCount();

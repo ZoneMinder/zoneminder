@@ -68,7 +68,7 @@ $framework_options = array(
             <tbody>
               <tr class="Name">
                 <th scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newModel[Name]" value="<?php echo validHtmlStr($model['Name']) ?>" required/></td>
+                <td><input type="text" name="newModel[Name]" value="<?php echo validHtmlStr($model['Name']) ?>" maxlength="64" required/></td>
               </tr>
               <tr class="Framework">
                 <th scope="row"><?php echo translate('Framework') ?></th>
@@ -76,7 +76,7 @@ $framework_options = array(
               </tr>
               <tr class="Version">
                 <th scope="row"><?php echo translate('Version') ?></th>
-                <td><input type="text" name="newModel[Version]" value="<?php echo validHtmlStr($model['Version']) ?>"/></td>
+                <td><input type="text" name="newModel[Version]" value="<?php echo validHtmlStr($model['Version']) ?>" maxlength="32"/></td>
               </tr>
               <tr class="Dataset">
                 <th scope="row"><?php echo translate('Dataset') ?></th>
@@ -84,7 +84,7 @@ $framework_options = array(
               </tr>
               <tr class="ModelPath">
                 <th scope="row"><?php echo translate('Model Path') ?></th>
-                <td><input type="text" name="newModel[ModelPath]" value="<?php echo validHtmlStr($model['ModelPath']) ?>"/></td>
+                <td><input type="text" name="newModel[ModelPath]" value="<?php echo validHtmlStr($model['ModelPath']) ?>" maxlength="255"/></td>
               </tr>
               <tr class="Enabled">
                 <th scope="row"><?php echo translate('Enabled') ?></th>

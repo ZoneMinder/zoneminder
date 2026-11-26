@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+require_once(__DIR__.'/../../../includes/download_functions.php');
+
 function exportHeader($title) {
 ?>
 <!DOCTYPE html>
@@ -238,7 +240,7 @@ function exportEventImages($event, $exportDetail, $exportFrames, $myfilelist) {
         <track id="monitorCaption" kind="captions" label="English" srclang="en" src='data:plain/text;charset=utf-8,"WEBVTT\n\n 00:00:00.000 --> 00:00:01.000 ZoneMinder"' default>
         Your browser does not support the video tag.
       </video>
-      <script nonce="<?php echo $cspNonce; ?>">
+      <script>
         document.addEventListener('DOMContentLoaded', function() {
           if (typeof videojs === 'undefined') {
             console.error('videojs is not loaded');
@@ -617,6 +619,8 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStr
 <h2><?php echo translate('Images') ?> Master</h2>
 <?php
   $events = ZM\Event::find(array('Id'=>$eids));
+  $eventMonitorId = array();
+  $eventPath = array();
 
 	foreach ($events as $event) {
 		//get monitor id and event id
@@ -866,6 +870,8 @@ function exportFileList(
 
   if ($exportMisc) {
     foreach ($files as $file) {
+      // Pages left behind by an earlier export link to files that are not in this one
+      if (preg_match('/^zmEvent(?:Detail|Frames|Images)\.html$/', $file)) continue;
       $exportFileList[$file] = $file;
     }
     $files = array();
@@ -907,6 +913,8 @@ function exportEvents(
   if (empty($export_root) or $export_root === '.' or $export_root === '..') $export_root = 'zmExport';
   $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
   if ($connkey === '.' or $connkey === '..') $connkey = '';
+  // Name the archive after its owner so archive.php serves it only to that user.
+  $export_root = exportOwnerPrefix().$export_root;
 
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");
@@ -1034,7 +1042,7 @@ function exportEvents(
     return false;
   }
   foreach ($exportFileList as $exportFile) {
-    $exportFile = $export_root.$connkey.'/'.$exportFile;
+    $exportFile = $export_root.($connkey?'_'.$connkey:'').'/'.$exportFile;
     fwrite($fp, $exportFile.PHP_EOL);
   }
   fwrite($fp, $listFile.PHP_EOL);

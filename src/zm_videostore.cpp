@@ -32,6 +32,7 @@ extern "C" {
 #include <libavutil/display.h>
 }
 
+#include <algorithm>
 #include <fcntl.h>
 #include <string>
 #include <unistd.h>
@@ -819,6 +820,8 @@ void VideoStore::flush_codecs() {
       if (zm_add_samples_to_fifo(fifo, out_frame.get())) {
         // Should probably set the frame size to what is reported FIXME
         if (zm_get_samples_from_fifo(fifo, out_frame.get())) {
+          out_frame->pts = audio_next_pts;
+          audio_next_pts += out_frame->nb_samples;
           if (zm_send_frame_receive_packet(audio_out_ctx, out_frame.get(), *pkt) > 0) {
             av_packet_guard pkt_guard{pkt};
             av_packet_rescale_ts(pkt.get(),
@@ -839,8 +842,12 @@ void VideoStore::flush_codecs() {
             frame_size, av_audio_fifo_size(fifo));
 
       // SHould probably set the frame size to what is reported FIXME also deprecate zm_send_frame_receive_packet
-      if (av_audio_fifo_read(fifo, (void **)out_frame->data, frame_size)) {
-        if (zm_send_frame_receive_packet(audio_out_ctx, out_frame.get(), *pkt)) {
+      // The last frame is usually short, and must not be padded with stale samples
+      out_frame->nb_samples = std::min(frame_size, av_audio_fifo_size(fifo));
+      if (av_audio_fifo_read(fifo, (void **)out_frame->data, out_frame->nb_samples) > 0) {
+        out_frame->pts = audio_next_pts;
+        audio_next_pts += out_frame->nb_samples;
+        if (zm_send_frame_receive_packet(audio_out_ctx, out_frame.get(), *pkt) > 0) {
           av_packet_guard pkt_guard{pkt};
           pkt->stream_index = audio_out_stream->index;
 
@@ -856,7 +863,8 @@ void VideoStore::flush_codecs() {
     avcodec_send_frame(audio_out_ctx, nullptr);
 
     while (true) {
-      if (0 >= zm_receive_packet(audio_out_ctx, *pkt)) {
+      // 0 is success, only an error or EOF means the encoder has nothing more
+      if (zm_receive_packet(audio_out_ctx, *pkt) < 0) {
         Debug(1, "No more packets");
         break;
       }
@@ -1067,7 +1075,7 @@ bool VideoStore::setup_resampler() {
     Error("could not open codec (%d) (%s)",
           ret, av_make_error_string(ret).c_str());
     audio_out_codec = nullptr;
-    audio_out_ctx = nullptr;
+    avcodec_free_context(&audio_out_ctx);
     audio_out_stream = nullptr;
     return false;
   }
@@ -1196,15 +1204,19 @@ bool VideoStore::setup_resampler() {
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
-  unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-                                          nullptr,
+  int audioSampleBuffer_size = av_samples_get_buffer_size(
+                                 nullptr,
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-                                          audio_out_ctx->ch_layout.nb_channels,
+                                 audio_out_ctx->ch_layout.nb_channels,
 #else
-                                          audio_out_ctx->channels,
+                                 audio_out_ctx->channels,
 #endif
-                                          audio_out_ctx->frame_size,
-                                          audio_out_ctx->sample_fmt, 0);
+                                 audio_out_ctx->frame_size,
+                                 audio_out_ctx->sample_fmt, 0);
+  if (audioSampleBuffer_size < 0) {
+    Error("Could not get the audio sample buffer size (%s)", av_make_error_string(audioSampleBuffer_size).c_str());
+    return false;
+  }
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
 
   if (!converted_in_samples) {
@@ -1308,7 +1320,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     av_frame_ptr frame(av_frame_alloc());
 
     if (zm_packet->out_frame) {
-      av_frame_ref(frame.get(), zm_packet->out_frame.get());
+      if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+        Error("Could not reference frame");
+        return 0;
+      }
     } else {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
@@ -1332,7 +1347,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         } else {
           Debug(2, "converting");
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
 
           // The destination is out_frame's buffer, which get_out_frame laid
           // out at alignment (width % 32 ? 1 : 32) — mirror that choice here
@@ -1357,10 +1375,16 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          av_frame_ref(frame.get(), zm_packet->in_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->in_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
         } else {
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
           // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->in_frame.get(), frame.get());
           av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
@@ -1515,7 +1539,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     AVPacket *ipkt = zm_packet->packet.get();
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
-    av_packet_ref(opkt.get(), ipkt);
+    if (av_packet_ref(opkt.get(), ipkt) < 0) {
+      Error("Could not reference packet");
+      return 0;
+    }
     pkt_guard.acquire(opkt);
 
     if (monitor->WallClockTimestamps()) {
@@ -1531,19 +1558,22 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
           FPSeconds(zm_packet->timestamp.time_since_epoch()).count(),
           video_first_dts, ts - video_first_dts);
     } else {
+      if (video_first_dts == AV_NOPTS_VALUE) {
+        // The first timestamp we see is zero, whichever of dts or pts it is
+        video_first_dts = (ipkt->dts != AV_NOPTS_VALUE) ? ipkt->dts : ipkt->pts;
+        if (video_first_dts != AV_NOPTS_VALUE)
+          Debug(2, "Starting video first_dts will become %" PRId64, video_first_dts);
+      }
       if (ipkt->dts != AV_NOPTS_VALUE) {
-        if (video_first_dts == AV_NOPTS_VALUE) {
-          Debug(2, "Starting video first_dts will become %" PRId64, ipkt->dts);
-          video_first_dts = ipkt->dts;
-        }
         opkt->dts = ipkt->dts - video_first_dts;
       }
       if (ipkt->pts != AV_NOPTS_VALUE) {
         opkt->pts = ipkt->pts - video_first_dts;
       }
-      if ((ipkt->pts != AV_NOPTS_VALUE) and (ipkt->dts != AV_NOPTS_VALUE)) {
-        av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
-      } else if ((ipkt->pts == AV_NOPTS_VALUE) and (ipkt->dts == AV_NOPTS_VALUE)) {
+      // av_packet_rescale_ts leaves an undefined pts or dts alone, so a packet
+      // with only one of them is still moved to the stream's time base.
+      av_packet_rescale_ts(opkt.get(), video_in_stream->time_base, video_out_stream->time_base);
+      if ((ipkt->pts == AV_NOPTS_VALUE) and (ipkt->dts == AV_NOPTS_VALUE)) {
         // Both undefined — use last_dts+1 as minimal monotonic increment
         if (last_dts[video_out_stream->index] != AV_NOPTS_VALUE) {
           opkt->dts = last_dts[video_out_stream->index] + 1;
@@ -1668,7 +1698,8 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
         WarningEvery(Seconds(1), stream->index, "non increasing dts, fixing. our dts %" PRId64 " stream %d last_dts %" PRId64 " last_duration %" PRId64 " (%.3f seconds back). reorder_queue_size=%zu",
             pkt->dts, stream->index, last_dts[stream->index], last_duration[stream->index],
             (last_dts[stream->index] - pkt->dts) * av_q2d(stream->time_base), reorder_queue_size);
-        pkt->dts = last_dts[stream->index]+last_duration[stream->index];
+        // A packet with no duration must still move dts forward, the muxer refuses equal values.
+        pkt->dts = last_dts[stream->index]+std::max<int64_t>(last_duration[stream->index], 1);
         if (pkt->dts > pkt->pts) pkt->pts = pkt->dts; // Do it here to avoid warning below
       } else if (pkt->dts == last_dts[stream->index]) {
         // Commonly seen

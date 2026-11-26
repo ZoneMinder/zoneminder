@@ -47,6 +47,19 @@ class Storage extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		// Only the characters the web console keeps in a storage Name and Path.
+		'Name' => array(
+			'characters' => array(
+				'rule' => array('custom', '/^[\w\-\.\(\)\:\/ ]*$/uD'),
+				'message' => 'Name may only hold letters, digits, space and - . ( ) : /',
+			),
+		),
+		'Path' => array(
+			'characters' => array(
+				'rule' => array('custom', '/^[\w\-\.\(\)\:\/ ]*$/uD'),
+				'message' => 'Path may only hold letters, digits, space and - . ( ) : /',
+			),
+		),
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

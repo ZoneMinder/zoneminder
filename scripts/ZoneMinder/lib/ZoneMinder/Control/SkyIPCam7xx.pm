@@ -170,26 +170,16 @@ sub moveRelLeft {
   my $params = shift;
   my $step = $self->getParam($params, 'panstep');
 
-  if ( $self->{Monitor}->{Orientation} eq 'FLIP_HORI' ) {
-    Debug('Stepping Right because flipped horizontally');
-    $self->sendCmd('/admin/ptctl.cgi?move=right');
-  } else {
-    Debug('Step Left');
-    $self->sendCmd('/admin/ptctl.cgi?move=left');
-  }
+  Debug('Step Left');
+  $self->sendCmd('/admin/ptctl.cgi?move=left');
 }
 
 sub moveRelRight {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'panstep');
-  if ( $self->{Monitor}->{Orientation} eq 'FLIP_HORI' ) {
-    Debug('Stepping Left because flipped horizontally');
-    $self->sendCmd('/admin/ptctl.cgi?move=left');
-  } else {
-    Debug('Step Right');
-    $self->sendCmd('/admin/ptctl.cgi?move=right');
-  }
+  Debug('Step Right');
+  $self->sendCmd('/admin/ptctl.cgi?move=right');
 }
 
 sub presetClear {

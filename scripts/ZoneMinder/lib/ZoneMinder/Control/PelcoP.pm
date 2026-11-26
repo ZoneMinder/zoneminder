@@ -468,7 +468,7 @@ sub focusConNear
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -486,7 +486,7 @@ sub focusConFar
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -534,7 +534,7 @@ sub irisConClose
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 
@@ -549,7 +549,7 @@ sub irisConOpen
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 

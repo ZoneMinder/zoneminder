@@ -108,6 +108,13 @@ sub cameraReset
 	my $cmd = "reboot.cgi?";
 	$self->sendCmd( $cmd );
 }
+
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset();
+}
  
 #Up Arrow
 sub moveConUp
@@ -244,6 +251,65 @@ sub moveStop
 	Debug( "Move Stop" );
 	my $cmd = "decoder_control.cgi?command=1&onestep=1&";
 	$self->sendCmd( $cmd );
+}
+
+# The Controls row selects relative moves, and the commands above are the
+# camera's one step moves (onestep=1), so the moveRel names the ui uses call
+# them unchanged.
+sub moveRelUp
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUp( $params );
+}
+
+sub moveRelDown
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDown( $params );
+}
+
+sub moveRelLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConLeft( $params );
+}
+
+sub moveRelRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConRight( $params );
+}
+
+sub moveRelUpRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpRight( $params );
+}
+
+sub moveRelDownRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownRight( $params );
+}
+
+sub moveRelUpLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpLeft( $params );
+}
+
+sub moveRelDownLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownLeft( $params );
 }
  
 #Move Camera to Home Position

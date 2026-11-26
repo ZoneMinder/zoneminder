@@ -23,6 +23,7 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -114,7 +115,9 @@ void StreamBase::updateFrameRate(double fps) {
   if (max_fps > 0.0) {
     // Min frame repeat?
     // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.
-    while ( (int)effective_fps > (int)max_fps ) {
+    // Compare as doubles: casting an infinite or huge maxfps to int is undefined and
+    // wraps to INT_MIN, which never lets this loop finish.
+    while (std::floor(effective_fps) > std::floor(max_fps)) {
       effective_fps /= 2.0;
       frame_mod *= 2;
       Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
@@ -202,7 +205,7 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     // last_crop in the wrong units for every later frame. refs #3681
     Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
     last_scale = pre_scaled_by;
-    last_zoom = ZM_SCALE_BASE;
+    unzoomedFrameSent();
     return image;
   }
 
@@ -219,6 +222,12 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
   const int cur_scale = scale.load();
   const unsigned short cur_x = x.load();
   const unsigned short cur_y = y.load();
+
+  if (cur_zoom == ZM_SCALE_BASE) {
+    // Not zoomed, so a later zoom-in starts from the whole frame
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
 
   if (cur_zoom != 100) {
     int base_image_width = image->Width(),
@@ -242,8 +251,9 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
                        last_crop.Hi().y_ * base_image_height / last_crop_height});
     }
 
-    double x_percent = static_cast<double>(cur_x * ZM_SCALE_BASE) / base_image_width;
-    double y_percent = static_cast<double>(cur_y * ZM_SCALE_BASE) / base_image_height;
+    // A click sent before a change of resolution can lie outside this frame.
+    double x_percent = static_cast<double>(std::min<int>(cur_x, base_image_width) * ZM_SCALE_BASE) / base_image_width;
+    double y_percent = static_cast<double>(std::min<int>(cur_y, base_image_height) * ZM_SCALE_BASE) / base_image_height;
     Debug(2, "click percent %dx%d => %.2fx%.2f", cur_x, cur_y, x_percent, y_percent);
 
     // If we were previously zoomed in, then the coordinate percentages are into the crop, so calculate the click coordinates in base image
@@ -300,10 +310,17 @@ Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
     }
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
-    // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    // Scaled back to base_image dimensions; kept while the view is unchanged, since redoing it rounds towards 0,0.
+    if ((cur_zoom != last_zoom) || (cur_x != last_x) || (cur_y != last_y))
+      last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
     last_crop_width = base_image_width;
     last_crop_height = base_image_height;
+    // Zooming in and out at an edge shrinks the crop a little each time, until it
+    // leaves the frame or turns inside out. Keep it in the frame, else use the whole frame.
+    last_crop = Box({std::max(last_crop.Lo().x_, 0), std::max(last_crop.Lo().y_, 0)},
+                    {std::min(last_crop.Hi().x_, base_image_width - 1), std::min(last_crop.Hi().y_, base_image_height - 1)});
+    if ((last_crop.Lo().x_ >= last_crop.Hi().x_) || (last_crop.Lo().y_ >= last_crop.Hi().y_))
+      last_crop = Box({0, 0}, {base_image_width - 1, base_image_height - 1});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -387,7 +404,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    if (type == STREAM_JPEG) {
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP) {
       if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {
         Debug(1, "Error sending  --" BOUNDARY "\r\n");
         return false;

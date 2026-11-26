@@ -122,6 +122,13 @@ class EventStream : public StreamBase {
   // that arrived just too late, still plays.
   static bool HintResumes(const SetEventCommand &command, bool end_stop, bool end_prev);
 
+  // Where MODE_SINGLE playback goes when it runs off either end of the event.
+  static int LoopedFrameId(int frame_id, int num_frames);
+  // The 1-based frame a stream starts on for a requested frame id.
+  static int InitialFrameId(int requested, size_t num_frames);
+  // Spacing of the frames made up for an event that has none in the Frames table.
+  static Microseconds SyntheticFrameDelta(int frame_count, Microseconds duration);
+
  protected:
   static constexpr Milliseconds STREAM_PAUSE_WAIT = Milliseconds(250);
 
@@ -175,6 +182,8 @@ class EventStream : public StreamBase {
   bool loadInitialEventData(int monitor_id, SystemTimePoint event_time);
 
   bool checkEventLoaded();
+  // Start at the beginning of the loaded event, or at event_time if it is inside it.
+  void startAtTime(SystemTimePoint event_time);
   bool waitingForHint() const { return hint_wait_start != TimePoint(); }
   void processCommand(const CmdMsg *msg) override;
   bool sendFrame(Microseconds delta);

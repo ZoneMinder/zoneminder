@@ -14,6 +14,12 @@ if (!$monitor) {
   ZM\Warning("Monitor $mid not found.");
   return;
 }
+
+if (!$monitor->canView()) {
+  ZM\Warning("No permission to view monitor $mid for the settings modal.");
+  return;
+}
+
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($mid).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
 if ($zmuOutput) {
@@ -84,6 +90,8 @@ $ctls = explode("\n", $ctls);
 
 foreach ($ctls as $line) {
   $ctl = explode(':', $line);
+  // Skip blank lines and the control class headings ("User Controls") v4l2-ctl prints
+  if (count($ctl) < 2) continue;
   $type_info = explode(' ', trim($ctl[0]));
 
   $setting = trim($type_info[0]);

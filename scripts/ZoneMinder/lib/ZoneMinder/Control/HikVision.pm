@@ -33,6 +33,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # HiKVision ISAPI Control Protocol
@@ -51,6 +55,7 @@ use LWP::UserAgent;
 use HTTP::Cookies;
 use URI;
 use URI::Encode qw(uri_encode);
+use URI::Escape qw(uri_unescape);
 use Data::Dumper;
 use XML::LibXML;
 #use Crypt::Mode::CBC;
@@ -68,7 +73,7 @@ sub open {
   $$self{port} = 80;
 
   # Create a UserAgent for the requests
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
 
   # Extract the username/password host/port from ControlAddress
@@ -84,7 +89,10 @@ sub open {
     $$self{host} = $uri->host();
     $$self{port} = $uri->port() if $uri->port();
     if ( $uri->userinfo()) {
-      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+      # userinfo is percent-encoded when the password holds @ or :
+      # split on the first colon only, so a raw colon in the password is kept
+      my ( $user, $pass ) = split( /:/, $uri->userinfo(), 2 );
+      @$self{'username','password'} = ( uri_unescape($user), defined($pass) ? uri_unescape($pass) : undef );
     } else {
       $$self{username} = $self->{Monitor}->{User};
       $$self{password} = $self->{Monitor}->{Pass};
@@ -98,8 +106,9 @@ sub open {
     Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}));
     if (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>[^:\/]+)/)) {
 Debug("Have " . $+{USERNAME});
-      $$self{username} = $+{USERNAME} if $+{USERNAME} and !$$self{username};
-      $$self{password} = $+{PASSWORD} if $+{PASSWORD} and !$$self{password};
+      my ($user, $pass) = ($+{USERNAME}, $+{PASSWORD});
+      $$self{username} = uri_unescape($user) if $user and !$$self{username};
+      $$self{password} = uri_unescape($pass) if $pass and !$$self{password};
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
     } elsif (($self->{Monitor}->{Path} =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<ADDRESS>[^:\/]+)/)) {
       $$self{host} = $+{ADDRESS} if $+{ADDRESS};
@@ -169,7 +178,7 @@ sub PutCmd {
     # Apparently it is necessary to create a new ua
     
     if ( $res->code == 401 ) {
-      $self->{ua} = LWP::UserAgent->new();
+      $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
       $self->{ua}->cookie_jar( {} );
       $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
 
@@ -223,9 +232,15 @@ sub moveVector {
   my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
   # Create the XML
   my $xml = '<PTZData>';
-  $xml .= "<pan>$x</pan>" if $x;
-  $xml .= "<tilt>$y</tilt>" if $y;
-  $xml .= "<zoom>$z</zoom>" if $z;
+  if ($x or $y or $z) {
+    $xml .= "<pan>$x</pan>" if $x;
+    $xml .= "<tilt>$y</tilt>" if $y;
+    $xml .= "<zoom>$z</zoom>" if $z;
+  } else {
+    # A stop must say so explicitly. An empty PTZData is ignored by some
+    # cameras, which then keep moving.
+    $xml .= '<pan>0</pan><tilt>0</tilt><zoom>0</zoom>';
+  }
   $xml .= $momentxml.'</PTZData>';
   # Send it to the camera
   $self->PutCmd($command, $xml);
@@ -431,8 +446,17 @@ sub irisRelOpen {
   $self->Iris($speed);
 }
 #
-# reset (reboot) the device
+# reset and reboot the device
 #
+# ISAPI has no "reset PTZ to defaults" command. The Controls row advertises
+# CanReset, so map it to the reboot endpoint.
+sub reset {
+  my $self = shift;
+
+  Debug('Camera reset (reboot)');
+  $self->reboot();
+}
+
 sub reboot {
   my $self = shift;
 
@@ -506,7 +530,7 @@ sub GetWithRetry {
   my ($self, $url) = @_;
   my $r = $self->get($url);
   if ($r and !$r->is_success and $r->code == 401) {
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
     $r = $self->get($url);
@@ -545,7 +569,7 @@ sub PutXML {
   $req->content($content);
   my $res = $self->{ua}->request($req);
   if (!$res->is_success and $res->code == 401) {
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
     $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
     $res = $self->{ua}->request($req);
@@ -760,7 +784,7 @@ sub probe {
   my $self = new ZoneMinder::Control::HikVision();
   $self->set_credentials($username, $password);
   # Create a UserAgent for the requests
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
 
   foreach ( '80','443' ) {

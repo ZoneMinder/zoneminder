@@ -18,6 +18,11 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+if (!canView('Events')) {
+  $view = 'error';
+  return;
+}
+
 $navbar = getNavBarHTML();
 include('_monitor_filters.php');
 $resultMonitorFilters = buildMonitorsFilters();
@@ -47,20 +52,20 @@ if ( isset($_REQUEST['maxTime']) ) {
 $group_id = isset($_SESSION['GroupId']) ? $_SESSION['GroupId'] : null;
 
 $filter = new ZM\Filter();
-$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'>=', 'val'=>$minTime, 'obr'=>'1'));
-$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<=', 'val'=>$maxTime, 'cnj'=>'and', 'cbr'=>'1'));
+$filter->addTerm(array('attr'=>'EndDateTime', 'op'=>'IS', 'val'=>'NULL', 'obr'=>'1'));
+$filter->addTerm(array('attr'=>'EndDateTime', 'op'=>'>', 'val'=>$minTime, 'cnj'=>'or', 'cbr'=>'1'));
+$filter->addTerm(array('attr'=>'StartDateTime', 'op'=>'<', 'val'=>$maxTime, 'cnj'=>'and'));
 if ( count($selected_monitor_ids) ) {
   $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=[]', 'val'=>implode(',', $selected_monitor_ids), 'cnj'=>'and'));
 } else if ( ( $group_id != 0 || isset($_SESSION['ServerId']) || isset($_SESSION['StorageId']) || isset($_SESSION['Status']) ) ) {
 # this should be redundant
   for ( $i=0; $i < count($displayMonitors); $i++ ) {
-    if ( $i == 0 ) {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'and', 'obr'=>'1'));
-    } else if ( $i == count($displayMonitors)-1 ) {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or', 'cbr'=>'1'));
-    } else {
-      $filter->addTerm(array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>'or'));
-    }
+    $term = array('attr'=>'MonitorId', 'op'=>'=', 'val'=>$displayMonitors[$i]['Id'], 'cnj'=>( $i == 0 ? 'and' : 'or' ));
+    if ( $i == 0 )
+      $term['obr'] = '1';
+    if ( $i == count($displayMonitors)-1 )
+      $term['cbr'] = '1';
+    $filter->addTerm($term);
   }
 }
 $filterQuery = $filter->querystring();
@@ -73,7 +78,8 @@ $eventsSql = 'SELECT *,
   WHERE 1 > 0 
 ';
 if ( count($user->unviewableMonitorIds()) ) {
-  $eventsSql .= ' AND MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
+  // IN () is a syntax error, so a user who can view no monitor matches no event
+  $eventsSql .= ' AND MonitorId IN ('.(count($user->viewableMonitorIds()) ? implode(',', array_map('intval', $user->viewableMonitorIds())) : '0').')';
 }
 if ( count($selected_monitor_ids) ) {
   $eventsSql .= ' AND MonitorId IN ('.implode(',', array_map('intval', $selected_monitor_ids)).')';

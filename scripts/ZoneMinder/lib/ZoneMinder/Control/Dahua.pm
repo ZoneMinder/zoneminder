@@ -69,7 +69,7 @@ sub open
     # channel "0", here.
     $self->{dahua_channel_number} = "0";
 
-    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/ ) ) {
         $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
         $USERNAME = $+{USERNAME} if $+{USERNAME};
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
@@ -79,7 +79,7 @@ sub open
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
-        $ADDRESS .= ':80';
+        $ADDRESS .= ($PROTOCOL eq 'https://') ? ':443' : ':80';
     }
 
     use LWP::UserAgent;
@@ -458,10 +458,13 @@ sub presetSet
     my $res = $sth->execute($self->{Monitor}->{Id}, $preset_id)
         or Fatal("Can't execute sql '$sql': " . $sth->errstr());
     my $control_preset_row = $sth->fetchrow_hashref();
-    my $new_label_name = $control_preset_row->{'Label'};
+    my $new_label_name = $control_preset_row ? $control_preset_row->{'Label'} : undef;
 
     $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
+    # An empty name would go out as arg2=0 and the camera would name the preset "0".
+    if (defined($new_label_name) and length($new_label_name)) {
+        $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
+    }
 }
 
 sub presetGoto
@@ -484,7 +487,7 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    $self->_sendPtzCommand("Reset", 0, 0, 0, 0);
+    return $self->reboot();
 }
 
 sub reboot

@@ -39,6 +39,7 @@ class JsonMonitor : public Monitor {
     user = "admin";
     pass = "p\"w";
   }
+  void SetProfileOverride(const std::string &profile) { janus_profile_override = profile; }
   void CreateRTSP2Web() { rtsp2web.reset(new RTSP2WebManager(this)); }
   int AddRTSP2Web() { return rtsp2web->add_to_RTSP2Web(); }
   void CreateJanus() { janus.reset(new JanusManager(this)); }
@@ -83,9 +84,10 @@ TEST_CASE("RTSP2WebManager: the stream name and URLs are escaped in the request"
 
   std::string body = BodyOf(server, "POST", "\"channels\"");
   INFO("body: " << body);
-  // Each of these is the JSON form of the raw value, escaped exactly once.
+  // Each of these is the JSON form of the raw value, escaped exactly once. The
+  // password is percent-encoded into the URL first, so its quote is %22.
   REQUIRE(body.find("\"name\" : \"Fr\\\"ont\\\\door\"") != std::string::npos);
-  REQUIRE(body.find("\"url\" : \"rtsp://admin:p\\\"w@192.168.1.10/stream?x=\\\"1\\\"\"") != std::string::npos);
+  REQUIRE(body.find("\"url\" : \"rtsp://admin:p%22w@192.168.1.10/stream?x=\\\"1\\\"\"") != std::string::npos);
 }
 
 TEST_CASE("JanusManager: the camera URL is escaped in the create request", "[Janus]") {
@@ -106,6 +108,32 @@ TEST_CASE("JanusManager: the camera URL is escaped in the create request", "[Jan
   std::string body = BodyOf(server, "POST", "\"request\" : \"create\"");
   INFO("body: " << body);
   REQUIRE(body.find("\"url\" : \"rtsp://192.168.1.10/stream?x=\\\"1\\\"\"") != std::string::npos);
+}
+
+TEST_CASE("JanusManager: the secret and profile override are escaped in the create request", "[Janus]") {
+  FakeHttpServer server([](const FakeHttpServer::Request &request) {
+    if (request.target == "/janus") return JanusReply("1234567890123456");
+    if (request.target == "/janus/1234567890123456") return JanusReply("6543210987654321");
+    return std::string("{\"janus\": \"success\"}");
+  });
+  g_endpoint = server.Url() + "/janus";
+  config.janus_path = g_endpoint.c_str();
+  const char *saved_secret = config.janus_secret;
+  config.janus_secret = "s\"e\\cret";
+
+  JsonMonitor monitor;
+  monitor.SetProfileOverride("pr\"of\\ile");
+  monitor.CreateJanus();
+  REQUIRE(monitor.AddJanus() == 0);
+  monitor.Destroy();
+  config.janus_secret = saved_secret;
+
+  std::string body = BodyOf(server, "POST", "\"request\" : \"create\"");
+  INFO("body: " << body);
+  // Both values are the JSON form of the raw secret and profile, escaped once.
+  REQUIRE(body.find("\"admin_key\" : \"s\\\"e\\\\cret\"") != std::string::npos);
+  REQUIRE(body.find("\"secret\" : \"s\\\"e\\\\cret\"") != std::string::npos);
+  REQUIRE(body.find("\"videofmtp\" : \"pr\\\"of\\\\ile\"") != std::string::npos);
 }
 
 #endif  // HAVE_LIBCURL

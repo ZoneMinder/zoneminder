@@ -341,7 +341,11 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
      * Carved out of analysis_pad rather than appended, so neither the 888-byte
      * total nor any existing offset moves. */
     SharedValue<uint32_t> audio_level_until;   /* +880 */
-    uint32_t analysis_pad;         /* +884   keep 16-byte multiple */
+    /* State of the ONVIF event subscription, published by the ONVIF poll
+     * thread for the web interface: 0 ONVIF events not in use, 1 enabled but
+     * not subscribed (connecting, retrying or failing), 2 subscribed and
+     * polling. Carved out of analysis_pad, so no offset or size moves. */
+    SharedValue<uint32_t> onvif_status;        /* +884   keep 16-byte multiple */
     /* 888 total */
   } SharedData;
   // Cross-process ABI guard: zmc/zma/zms plus the Perl (Memory.pm) and PHP
@@ -363,6 +367,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   static_assert(offsetof(SharedData, startup_time) == 120, "startup_time offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, control_state) == 168, "control_state offset changed; update Memory.pm and Monitor.php");
   static_assert(offsetof(SharedData, audio_level_until) == 880, "audio_level_until offset changed; update Memory.pm and Monitor.php");
+  static_assert(offsetof(SharedData, onvif_status) == 884, "onvif_status offset changed; update Memory.pm and Monitor.php");
 
   enum TriggerState : uint32 {
     TRIGGER_CANCEL,
@@ -550,6 +555,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
       int add_to_Go2RTC();
       int check_Go2RTC();
       int remove_from_Go2RTC();
+      int delete_stream(const std::string &name);
       bool refresh_auth_if_needed();        // Refresh auth_hash if expired
 #else
     public:
@@ -734,6 +740,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        post_event_count;    // How many unalarmed images must occur before the alarm state is reset
   int        stream_replay_buffer;   // How many frames to store to support DVR functions, IGNORED from this object, passed directly into zms now
   Seconds    section_length;      // How long events should last in continuous modes
+  bool        no_zones_warned = false;  // Whether the no-zones warning was already logged for the current no-zones state
   bool        section_length_warn;  // Whether to log a warning when a motion event exceeds desired section_length
   Seconds    min_section_length;   // Minimum event length when using event_close_mode == ALARM
   bool       startstop_on_section_length; // Whether to start/stop events on time % section_length
@@ -781,6 +788,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        ready_count;
   int        first_alarm_count;
   int        last_alarm_count;
+  int        pre_alarm_count_ = 0;     // Alarmed frames seen while in PREALARM
+  int64_t    last_section_sec_ = -1;   // Timestamp (s) of the previous packet, for CLOSE_TIME
   bool       last_signal;
   // Capture assumes signal on the first packet after connect() cleared it,
   // even when the decoder measures it, so Analyse doesn't see a signal loss
@@ -1188,6 +1197,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
+  int GetStreamReplayBuffer() const { return stream_replay_buffer; }
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
@@ -1282,6 +1292,26 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // for the packets it decodes; Capture then leaves the flag to it, so the
   // two threads don't overwrite each other's value. Pure, for tests.
   static bool DecoderChecksSignal(DecodingOption decoding, int signal_check_points, bool has_viewers);
+  // WHERE fragment (starting with " AND") for zmc -H: only the parts given on the
+  // command line are matched. Pure, for tests.
+  static std::string RemoteMonitorFilter(const char *protocol, const char *host, const char *port, const char *path,
+                                         const std::function<std::string(const std::string &)> &escape);
+  // Frames analysis skips between motion detections so that analysis runs at
+  // about analysis_fps_limit when the camera captures at capture_fps. Pure.
+  static int AnalysisFrameSkip(double capture_fps, double analysis_fps_limit);
+  // True when the section_length boundary lies between two packet timestamps
+  // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
+  static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
+  // The reference image must be re-seeded when signal returns whenever analysis is on, whatever the recording mode.
+  static bool ReacquireNeedsRefReset(int analysing) { return analysing != ANALYSING_NONE; }
+  // Alarm frames counted while in PREALARM. Per monitor: one zmc process can
+  // run several monitors, whose analysis threads must not share the count.
+  int PreAlarmCount() const { return pre_alarm_count_; }
+  void AddPreAlarmFrame() { pre_alarm_count_++; }
+  void EmptyPreAlarmFrames() { pre_alarm_count_ = 0; }
+  // Forget partial alarm progress when analysis is interrupted (trigger off,
+  // signal loss) so it cannot be completed later by an unrelated frame.
+  void ClearAlarmTracking();
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
   // Write capture_image into image_buffer[index] without conversion and
@@ -1314,6 +1344,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void Reload();
   void ReloadZones();
+  const std::vector<Zone> &Zones() const { return zones; }
+  // Zone has a const member and cannot be assigned, so a zone is replaced by
+  // swapping in a whole new list.
+  void SetZones(std::vector<Zone> &&new_zones) { zones = std::move(new_zones); }
   void ReloadLinkedMonitors();
 
   void LoadActions();

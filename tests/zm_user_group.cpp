@@ -22,6 +22,7 @@
 #include "zm_user.h"
 
 #include <cstring>
+#include <new>
 #include <string>
 
 namespace {
@@ -32,6 +33,22 @@ class TestUser : public User {
   using User::group_permissions_loaded;
   using User::role_monitor_permissions_loaded;
   using User::role_group_permissions_loaded;
+  using User::group_permissions;
+  using User::monitor_permissions;
+  using User::role_id;
+  using User::role_group_permissions;
+};
+
+class TestGroupPermission : public Group_Permission {
+ public:
+  TestGroupPermission(Group_Permission::Permission p, int monitor_id) {
+    id = 0;
+    group_id = 1;
+    user_id = 1;
+    permission = p;
+    monitor_ids = {monitor_id};
+    monitor_ids_loaded = true;
+  }
 };
 
 }  // namespace
@@ -76,6 +93,21 @@ TEST_CASE("User load permissions marks flags as loaded") {
   REQUIRE(user.group_permissions_loaded == true);
 }
 
+TEST_CASE("User keeps the whole Username column") {
+  // Users.Username is latin1 (cp1252) varchar(64); over a utf8mb4 connection that is up to 3 bytes a character.
+  std::string name;
+  for (int i = 0; i < 64; i++) name += "\xe2\x82\xac";
+  const char *row[] = {"3", name.c_str(), "$2y$10$hash", "1", "1", "1", "1", "1", "1", "0"};
+  // Dirty storage, so a missing terminator shows up.
+  alignas(User) unsigned char storage[sizeof(User)];
+  memset(storage, 'x', sizeof(storage));
+  User *user = new (storage) User(const_cast<char **>(row));
+
+  REQUIRE(std::strlen(user->getUsername()) == name.size());
+  REQUIRE(std::memcmp(user->getUsername(), name.data(), name.size()) == 0);
+  user->~User();
+}
+
 TEST_CASE("Group_Permission parsing from dbrow") {
   const char *row[] = {"5", "12", "3", "3"};  // id=5, user_id=12, group_id=3, perm=PERM_VIEW
   Group_Permission gp(const_cast<char **>(row));
@@ -84,4 +116,76 @@ TEST_CASE("Group_Permission parsing from dbrow") {
   REQUIRE(gp.UserId() == 12);
   REQUIRE(gp.GroupId() == 3);
   REQUIRE(gp.getPermission() == Group_Permission::PERM_VIEW);
+}
+
+TEST_CASE("checkUser accepts every name the Username column holds") {
+  // Users.Username is latin1 varchar(64); over a utf8mb4 connection that is up to 3 bytes a character.
+  std::string euro;
+  for (int i = 0; i < 64; i++) euro += "\xe2\x82\xac";
+
+  REQUIRE(checkUser(std::string(33, 'a')));
+  REQUIRE(checkUser(std::string(64, 'a')));
+  REQUIRE(checkUser(euro));
+
+  REQUIRE_FALSE(checkUser(""));
+  REQUIRE_FALSE(checkUser(euro + "a"));
+}
+
+TEST_CASE("User canAccess denies when any group says None, whatever the order") {
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 0;
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 6));
+    user.group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+
+    REQUIRE(user.canAccess(5));
+  }
+
+  {
+    TestUser user;
+    user.monitor_permissions_loaded = true;
+    user.group_permissions_loaded = true;
+    user.role_id = 1;
+    user.role_monitor_permissions_loaded = true;
+    user.role_group_permissions_loaded = true;
+    user.group_permissions.clear();
+    user.role_group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_VIEW, 5));
+    user.role_group_permissions.push_back(TestGroupPermission(Group_Permission::PERM_NONE, 5));
+
+    REQUIRE_FALSE(user.canAccess(5));
+  }
 }

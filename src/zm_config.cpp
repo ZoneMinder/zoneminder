@@ -374,17 +374,7 @@ void Config::ApplyItem(const char *name, const char *value, const char *type) {
     return;
   }
 
-  // Store ConfigItem to own the string memory for const char* members
-  auto [item_it, inserted] = items_.emplace(
-      std::piecewise_construct,
-      std::forward_as_tuple(name),
-      std::forward_as_tuple(name, value, type));
-  if (!inserted) {
-    // Replace existing item
-    item_it->second = ConfigItem(name, value, type);
-  }
-
-  const ConfigItem &item = item_it->second;
+  const ConfigItem item(name, value, type);
   const MemberBinding &binding = bind_it->second;
 
   switch (binding.type) {
@@ -398,7 +388,7 @@ void Config::ApplyItem(const char *name, const char *value, const char *type) {
       *static_cast<double*>(binding.ptr) = item.DecimalValue();
       break;
     case MemberBinding::STRING:
-      *static_cast<const char**>(binding.ptr) = item.StringValue();
+      *static_cast<const char**>(binding.ptr) = strings_.insert(item.StringValue()).first->c_str();
       break;
   }
 }
@@ -417,11 +407,16 @@ void Config::Load() {
     return;
   }
 
+  // Start over from the defaults, so that a reload drops a value set back to
+  // its default, but in a separate Config: other threads keep reading the
+  // members during a reload and must not see a default the database overrides.
+  Config fresh;
+
   int loaded = 0;
   while (MYSQL_ROW dbrow = mysql_fetch_row(result)) {
     if (dbrow[0] && dbrow[1] && dbrow[2]) {
       if (bindings_.count(dbrow[0])) {
-        ApplyItem(dbrow[0], dbrow[1], dbrow[2]);
+        fresh.ApplyItem(dbrow[0], dbrow[1], dbrow[2]);
         loaded++;
       }
     }
@@ -430,7 +425,27 @@ void Config::Load() {
 
   Debug(1, "Config loaded: %d items overriding compiled-in defaults (%zu registered)",
         loaded, bindings_.size());
-  ApplyFileOptions();
+  fresh.ApplyFileOptions();
+
+  for (const auto &entry : bindings_) {
+    const MemberBinding &to = entry.second;
+    const MemberBinding &from = fresh.bindings_.at(entry.first);
+    switch (to.type) {
+      case MemberBinding::BOOL:
+        *static_cast<bool*>(to.ptr) = *static_cast<bool*>(from.ptr);
+        break;
+      case MemberBinding::INT:
+        *static_cast<int*>(to.ptr) = *static_cast<int*>(from.ptr);
+        break;
+      case MemberBinding::DOUBLE:
+        *static_cast<double*>(to.ptr) = *static_cast<double*>(from.ptr);
+        break;
+      case MemberBinding::STRING:
+        *static_cast<const char**>(to.ptr) =
+          strings_.insert(*static_cast<const char**>(from.ptr)).first->c_str();
+        break;
+    }
+  }
 }
 
 std::string ConfigFileValue(const std::string &value, const char *type) {
@@ -456,7 +471,11 @@ void Config::ApplyFileOptions() {
     const char *type = "string";
     switch (bind_it->second.type) {
       case MemberBinding::BOOL: type = "boolean"; break;
-      case MemberBinding::INT: type = "integer"; break;
+      case MemberBinding::INT:
+        // A hexadecimal option such as ZM_SHM_KEY is an int member too.
+        type = (option.second.compare(0, 2, "0x") == 0 or option.second.compare(0, 2, "0X") == 0)
+               ? "hexadecimal" : "integer";
+        break;
       case MemberBinding::DOUBLE: type = "decimal"; break;
       case MemberBinding::STRING: break;
     }

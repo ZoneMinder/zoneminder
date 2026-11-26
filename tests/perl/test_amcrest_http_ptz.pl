@@ -17,9 +17,12 @@ use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
 BEGIN {
   # Optional CPAN modules that are only used by the config helpers.
   if (!eval { require URI::Encode; 1 }) {
-    $INC{'URI/Encode.pm'} = 1;
-    package URI::Encode;
-    sub uri_encode { return $_[0]; }
+    # Not installed here: define a pass-through at run time, so the stub
+    # cannot collide with the real module where it is installed.
+    delete $INC{'URI/Encode.pm'};
+    $INC{'URI/Encode.pm'} = __FILE__;
+    no strict 'refs';
+    *{'URI::Encode::uri_encode'} = sub { return $_[0]; };
   }
 }
 
@@ -50,6 +53,11 @@ package FakeMonitor;
 sub new { return bless {ModectDuringPTZ => 1, ControlAddress => 'x'}, $_[0]; }
 sub suspendMotionDetection {}
 sub resumeMotionDetection {}
+
+package CountingMonitor;
+sub new { return bless {ModectDuringPTZ => 0, ControlAddress => 'x', calls => $_[1]}, $_[0]; }
+sub suspendMotionDetection { $_[0]->{calls}{suspend}++ }
+sub resumeMotionDetection { $_[0]->{calls}{resume}++ }
 
 package main;
 
@@ -99,6 +107,22 @@ check('moveConUpLeft: arg1 is the vertical, arg2 the horizontal speed',
   $c->moveStop();
   check('moveStop stops the code that was started',
     $urls[-1], 'cgi-bin/ptz.cgi?action=stop&code=Right&channel=0&arg1=0&arg2=3&arg3=0');
+}
+
+# The zoom and focus stops give motion detection back after the move
+# suspended it; they clear LastCmd, so a later moveStop cannot.
+foreach my $pair (['zoomConTele', 'zoomStop'], ['focusConNear', 'focusStop']) {
+  my ($start, $stop) = @$pair;
+  @urls = ();
+  @replies = (1);
+  my %calls;
+  my $c = control();
+  $c->{Monitor} = CountingMonitor->new(\%calls);
+  $c->$start({});
+  $c->$stop();
+  $c->moveStop();
+  check("$start suspends motion detection", $calls{suspend}, 1);
+  check("$stop resumes motion detection", $calls{resume}, 1);
 }
 
 # sendCmd result when the first try fails and the retry works

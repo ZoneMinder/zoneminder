@@ -18,6 +18,7 @@
 #include "zm_catch2.h"
 
 #include "zm_time.h"
+#include "zm_utils.h"
 
 #include <chrono>
 #include <cstdlib>
@@ -111,4 +112,54 @@ TEST_CASE("StringToSystemTimePoint: reads daylight saving time wall clock times 
   // 2026-01-15 10:00:00 America/New_York is EST (UTC-5), so 15:00:00 UTC.
   SystemTimePoint winter = StringToSystemTimePoint("2026-01-15 10:00:00");
   REQUIRE(std::chrono::system_clock::to_time_t(winter) == 1768489200);
+}
+
+TEST_CASE("StringToSystemTimePoint: an empty or unparseable string is the epoch") {
+  // Tag and Event_Tag read nullable DATETIME columns through this and test the
+  // result against Seconds(0) to decide whether a date was ever set.
+  REQUIRE(StringToSystemTimePoint("") == SystemTimePoint());
+  REQUIRE(StringToSystemTimePoint("garbage") == SystemTimePoint());
+  REQUIRE(StringToSystemTimePoint("0000-00-00 00:00:00") == SystemTimePoint());
+}
+
+TEST_CASE("SystemTimePointToString: returns the formatted text, not an empty string") {
+  ScopedTimezone tz("UTC");
+  SystemTimePoint tp = std::chrono::system_clock::from_time_t(1764623999) + Microseconds(123456);
+  std::string s = SystemTimePointToString(tp);
+  REQUIRE_FALSE(s.empty());
+  REQUIRE(s.size() == strlen(s.c_str()));
+  REQUIRE(s.find("21:19:59.123456") != std::string::npos);
+}
+
+TEST_CASE("TimePointToString: the fraction belongs to the printed time", "[time]") {
+  // TimePointToString() translates the steady clock point into wall clock time
+  // for the seconds, so the printed microseconds must be taken from that same
+  // wall clock value. Reading them from time_since_epoch() instead gives the
+  // fraction of the time since boot, which has nothing to do with the seconds
+  // printed next to it.
+  TimePoint tp = std::chrono::steady_clock::now();
+  std::string a = TimePointToString(tp);
+  std::string b = SystemTimePointToString(std::chrono::system_clock::now());
+
+  size_t a_dot = a.rfind('.');
+  size_t b_dot = b.rfind('.');
+  REQUIRE(a_dot != std::string::npos);
+  REQUIRE(b_dot != std::string::npos);
+
+  int64_t a_frac = std::stoll(a.substr(a_dot + 1, 6));
+  int64_t b_frac = std::stoll(b.substr(b_dot + 1, 6));
+
+  // Circular difference: the two calls straddle a second boundary when one
+  // reads e.g. .999998 and the other .000001.
+  int64_t diff = ((a_frac - b_frac) % 1000000 + 1000000) % 1000000;
+  if (diff > 500000) diff = 1000000 - diff;
+  REQUIRE(diff < 200000);
+}
+
+TEST_CASE("StringToSystemTimePoint: reads a URL decoded zms datetime parameter") {
+  // zms decodes datetime=2026-07-15%2010:00:00 (or +) before parsing it.
+  ScopedTimezone tz("America/New_York");
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15%2010:00:00"))) == 1784124000);
+  REQUIRE(std::chrono::system_clock::to_time_t(StringToSystemTimePoint(UriDecode("2026-07-15+10:00:00"))) == 1784124000);
+  REQUIRE(StringToSystemTimePoint(UriDecode("2026-07-15")).time_since_epoch().count() == 0);
 }

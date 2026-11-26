@@ -222,13 +222,37 @@ sub moveStop
 	$self->sendCmd( $cmd );
 }
 
+sub zoomStop
+{
+	my $self = shift;
+	Debug( "Zoom Stop" );
+	my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";
+	$self->sendCmd( $cmd );
+}
+
+sub focusStop
+{
+	my $self = shift;
+	Debug( "Focus Stop" );
+	my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";
+	$self->sendCmd( $cmd );
+}
+
+sub irisStop
+{
+	my $self = shift;
+	Debug( "Iris Stop" );
+	my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";
+	$self->sendCmd( $cmd );
+}
+
  
 sub zoomConTele
 {
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Zoom=1";
         $self->sendCmd( $cmd );
-        $self->autoStop();        
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 
@@ -237,7 +261,7 @@ sub zoomConWide
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Zoom=0";
         $self->sendCmd( $cmd );
-        $self->autoStop();
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
  
 
@@ -246,7 +270,7 @@ sub focusConNear
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Focus=1";
         $self->sendCmd( $cmd );
-        $self->autoStop();
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 } 
 
 
@@ -255,7 +279,7 @@ sub focusConFar
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Focus=0";
         $self->sendCmd( $cmd );
-        $self->autoStop();
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
 
 
@@ -264,7 +288,7 @@ sub irisConOpen
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Iris=1";
         $self->sendCmd( $cmd );
-        $self->autoStop();
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 } 
 
 
@@ -273,8 +297,8 @@ sub irisConClose
 	my $self = shift;
         my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Iris=0";
         $self->sendCmd( $cmd );
-        $self->autoStop();
-} 
+        $self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
+}
 
 
 #Set preset
@@ -309,10 +333,10 @@ sub autoStop
 		if ($timeout > 1) {
 			usleep(100000*$timeout);
 		}
+		Debug( "Auto Stop" );
+		my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";
+		$self->sendCmd( $cmd );
 	}
-        Debug( "Auto Stop" );
-        my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";
-        $self->sendCmd( $cmd );
 }
  
 1;

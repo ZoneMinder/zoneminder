@@ -41,6 +41,10 @@ require ZoneMinder::Control::FoscamHD;
 # of the HD Foscams, and leaves the PTZ below alone.
 our @ISA = qw(ZoneMinder::Control::FoscamHD);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ===================================================================================================================================
 #
 # FI9821 FOSCAM PT H264 Control Protocol
@@ -94,7 +98,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
@@ -112,7 +116,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice}, 2;
 	if ( ! $password ) {
 		$password = $user;
 		$user = 'admin';
@@ -172,6 +176,26 @@ sub moveStop
         $self->sendCmd( $cmd );
    $cmd = "setOSDSetting%26isEnableDevName%3D1";
    $self->sendCmd( $cmd );
+}
+
+# The web ui sends zoomStop, focusStop and irisStop when a continuous zoom, focus
+# or iris button is released. The camera has one stop command for the whole ptz head.
+sub zoomStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub focusStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub irisStop
+{
+   my $self = shift;
+   $self->moveStop();
 }
 
 sub autoStop

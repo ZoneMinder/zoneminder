@@ -51,7 +51,7 @@ class Event extends AppModel {
     'StartTimeSecs' => 'UNIX_TIMESTAMP(StartDateTime)',
     'EndTimeSecs' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(Event.EndDateTime) WHEN Event.Length > 0 THEN UNIX_TIMESTAMP(Event.StartDateTime) + Event.Length ELSE UNIX_TIMESTAMP(Event.StartDateTime) END)',
     'StartTime' => 'StartDateTime',
-    'EndTime' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND) ELSE NOW() END)'
+    'EndTime' => '(CASE WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND) ELSE Event.StartDateTime END)'
   );
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
@@ -191,6 +191,20 @@ class Event extends AppModel {
     if (!$event['DefaultVideo']) return 0;
     $path = $this->Path().'/'.basename($event['DefaultVideo']);
     return file_exists($path) ? filesize($path) : 0;
+  }
+
+  // Events.StateId has no default, so MySQL refuses a new event without one. zmc records the
+  // active run state there.
+  public function beforeSave($options = array()) {
+    if (!$this->id and !isset($this->data[$this->alias]['StateId'])) {
+      $state = ClassRegistry::init('State')->find('first', array(
+        'fields' => array('Id'),
+        'conditions' => array('IsActive' => 1),
+        'recursive' => -1,
+      ));
+      $this->data[$this->alias]['StateId'] = $state ? $state['State']['Id'] : 0;
+    }
+    return true;
   }
 
   public function beforeDelete($cascade=true) {

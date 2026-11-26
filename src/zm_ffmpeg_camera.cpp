@@ -187,6 +187,25 @@ int FfmpegCamera::readFrameWithLoop(AVFormatContext *ctx, AVPacket *pkt) {
   return ret;
 }
 
+decltype(av_find_input_format(nullptr)) FindForcedInputFormat(AVDictionary **opts) {
+  AVDictionaryEntry *entry = av_dict_get(*opts, "input_format", nullptr, 0);
+  if (!entry) return nullptr;
+
+  decltype(av_find_input_format(nullptr)) format = nullptr;
+  if (entry->value && *entry->value) {
+    format = av_find_input_format(entry->value);
+    if (format) {
+      Debug(1, "Forcing input format %s from options", entry->value);
+    } else {
+      Warning("Could not find input format '%s' from options, letting ffmpeg probe", entry->value);
+    }
+  } else {
+    Warning("input_format option has no value, letting ffmpeg probe");
+  }
+  av_dict_set(opts, "input_format", nullptr, 0);
+  return format;
+}
+
 RealtimePaceDecision ComputeRealtimePace(
     int64_t ts_us, int64_t anchor_ts_us, Microseconds elapsed, Microseconds cap) {
   // Backward movement (e.g. a discontinuity the jump checks let through):
@@ -279,6 +298,13 @@ int FfmpegCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
             packet->stream_index, ret, av_make_error_string(ret).c_str());
       }
       return -1;
+    }
+    if (packet->stream_index != mAudioStreamId) {
+      // The secondary input is only read for its audio; its video is the same
+      // picture as the primary's and must not be queued as a second video.
+      Debug(4, "Dropping packet for stream %d from secondary input, audio is stream %d",
+            packet->stream_index, mAudioStreamId);
+      return 0;
     }
   } else {
     formatContextPtr = mFormatContext;
@@ -461,6 +487,10 @@ int FfmpegCamera::OpenFfmpeg() {
       av_dict_set(&opts, "re", nullptr, 0);
       Debug(1, "Real-time pacing %s from options", mRealtime ? "enabled" : "disabled");
     }
+
+    // "input_format=mjpeg" forces the demuxer like ffmpeg's -f flag. Not
+    // applied to v4l2, which always uses its own device format below.
+    input_format = FindForcedInputFormat(&opts);
   }
 
   // Fresh prime: drop any real-time anchor so pacing restarts cleanly, and
@@ -468,6 +498,10 @@ int FfmpegCamera::OpenFfmpeg() {
   mRealtimeAnchored = false;
   mLoopVideoOffset = 0;
   mLoopAudioOffset = 0;
+
+  // What ffmpeg is given. For v4l2 it is the path without the scheme, which
+  // must not be written back to mPath or the next prime no longer sees v4l2.
+  std::string openPath = mPath;
 
   // Set transport method as specified by method field, rtpUni is default
   std::string protocol = mPath.substr(0, 4);
@@ -489,13 +523,17 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    if (!zm_load_avdevice()) return -1;
+    if (!zm_load_avdevice()) {
+      av_dict_free(&opts);
+      return -1;
+    }
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");
+      av_dict_free(&opts);
       return -1;
     }
-    mPath = mPath.substr(7);
+    openPath = mPath.substr(7);
   }  // end if RTSP
 
   Debug(1, "Calling avformat_open_input for %s", mMaskedPath.c_str());
@@ -512,10 +550,10 @@ int FfmpegCamera::OpenFfmpeg() {
 
   if (mUser.length() > 0) {
     try {
-      Url url(mPath);
+      Url url(openPath);
       if (url.user_info().empty()) {
         url.user_info(mUser + ":" + mPass);
-        mPath = url.str();
+        openPath = url.str();
         Debug(1, "Rebuilt URI with encoded parameters: '%s'", mMaskedPath.c_str());
       }
     } catch (const Url::parse_error &e) {
@@ -523,7 +561,7 @@ int FfmpegCamera::OpenFfmpeg() {
     }
   }
 
-  ret = avformat_open_input(&mFormatContext, mPath.c_str(), input_format, &opts);
+  ret = avformat_open_input(&mFormatContext, openPath.c_str(), input_format, &opts);
   if (ret != 0) {
     logPrintf(Logger::ERROR + monitor->Importance(),
               "Unable to open input %s due to: %s", mMaskedPath.c_str(),
@@ -680,9 +718,10 @@ int FfmpegCamera::Close() {
 
   if ( mSecondFormatContext ) {
     mSecondFormatContext = nullptr;
-    mAudioStream = nullptr;
-    mAudioStreamId = -1;
   }
+  // The stream pointers point into the contexts just closed.
+  mAudioStream = nullptr;
+  mAudioStreamId = -1;
   mSecondInput.reset();
 
   return 0;

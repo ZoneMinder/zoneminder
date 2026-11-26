@@ -19,6 +19,7 @@
 
 #include "zm_remote_camera.h"
 
+#include "zm_monitor.h"
 #include "zm_utils.h"
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -29,7 +30,7 @@ bool SplitUserInfo(std::string &host, std::string &user, std::string &pass) {
   if (authIndex == std::string::npos) return false;
   std::string auth = host.substr(0, authIndex);
   host.erase(0, authIndex+1);
-  authIndex = auth.rfind(':');
+  authIndex = auth.find(':');
   user = auth.substr(0, authIndex);
   pass = (authIndex == std::string::npos) ? std::string() : auth.substr(authIndex+1);
   return true;
@@ -129,7 +130,12 @@ int RemoteCamera::Read( int fd, char *buf, int size ) {
 //Debug(3, "Aiming to receive %d of %d bytes", bytes_to_recv, size );
     int bytes = recv(fd, &buf[ReceivedBytes], bytes_to_recv, 0); //socket, buffer, len, flags
     if ( bytes <= 0 ) {
-      Error("RemoteCamera::Read Recv error. Closing Socket\n");
+      if (bytes == 0)
+        Error("Monitor %u: the camera at %s port %s closed the connection, closing socket",
+            monitor->Id(), host.c_str(), port.c_str());
+      else
+        Error("Monitor %u: receive from the camera at %s port %s failed: %s, closing socket",
+            monitor->Id(), host.c_str(), port.c_str(), strerror(errno));
       return -1;
     }
     ReceivedBytes += bytes;

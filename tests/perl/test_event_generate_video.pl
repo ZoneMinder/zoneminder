@@ -84,6 +84,17 @@ sub frame_rate {
   return $args[$i+1];
 }
 
+# A new video is part of the event, so its DiskSpace and the storage's follow.
+{
+  package FakeStorage;
+  our @adjust;
+  sub adjust_diskspace { push @adjust, $_[1]; }
+}
+{
+  no warnings qw(redefine once);
+  *ZoneMinder::Database::zmDbDo = sub { $main::saved = $_[1] if $_[0] =~ /^UPDATE Events SET DiskSpace/; return 1; };
+  *ZoneMinder::Event::Storage = sub { return bless {}, 'FakeStorage'; };
+}
 my $cwd = Cwd::getcwd();
 check('frame rate comes from the span of the frames',
   frame_rate(Frames => 10, FullLength => 5, Length => 5), '2.00');
@@ -91,6 +102,20 @@ check('an event with one frame does not die',
   frame_rate(Frames => 1, FullLength => 0, Length => 0), '1');
 check('an event with no Frames rows falls back to the event length',
   frame_rate(Frames => 20, FullLength => undef, Length => 10), '2.00');
+open($fh, '>', $ffmpeg) or die "Can't write $ffmpeg: $!";
+print $fh "#!/bin/sh\nfor a; do f=\$a; done\nhead -c 50 /dev/zero > \"\$f\"\n";
+close($fh);
+open($fh, '>', "$event_dir/00001-capture.jpg") or die;
+print $fh 'x' x 100;
+close($fh);
+my $event = bless {
+  Id => 2, Name => 'Event-2', Path => $event_dir, Width => 640, Height => 480,
+  DefaultVideo => '', Frames => 10, FullLength => 5, Length => 5, DiskSpace => 100,
+}, 'ZoneMinder::Event';
+$event->GenerateVideo(0, 0, 0, 0, 1, 'mp4', '');
+check('event DiskSpace includes the new video', $event->{DiskSpace}, 150);
+check('event DiskSpace is saved', $main::saved, 150);
+check('storage DiskSpace adjusted by the video size', join(',', @FakeStorage::adjust), 50);
 chdir($cwd);
 
 print "\n$passes passed, $failures failed\n";

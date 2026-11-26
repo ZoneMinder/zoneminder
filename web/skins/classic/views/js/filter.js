@@ -1,4 +1,7 @@
 "use strict";
+// The Events table's per-event action flags; their value widget is stateTypes.
+const stateAttrs = ['Videoed', 'Uploaded', 'Emailed', 'Messaged', 'Executed'];
+
 function selectFilter(element) {
   element.form.submit();
 }
@@ -57,12 +60,14 @@ function validateForm(form) {
       form.elements['filter[AutoArchive]'].checked ||
       form.elements['filter[AutoUnarchive]'].checked ||
       form.elements['filter[UpdateDiskSpace]'].checked ||
-      form.elements['filter[AutoVideo]'].checked ||
+      (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
+      (form.elements['filter[AutoUpload]'] && form.elements['filter[AutoUpload]'].checked) ||
       (form.elements['filter[AutoEmail]'] && form.elements['filter[AutoEmail]'].checked) ||
       (form.elements['filter[AutoMessage]'] && form.elements['filter[AutoMessage]'].checked) ||
       form.elements['filter[AutoExecute]'].checked ||
       form.elements['filter[AutoDelete]'].checked ||
       form.elements['filter[AutoCopy]'].checked ||
+      (form.elements['filter[AutoTag]'] && form.elements['filter[AutoTag]'].checked) ||
       form.elements['filter[AutoMove]'].checked
     ) ) {
       alert('You have chosen to run this filter in the background but not selected any actions.');
@@ -81,6 +86,7 @@ function updateButtons(element) {
       (form.elements['filter[AutoArchive]'] && form.elements['filter[AutoArchive]'].checked) ||
       (form.elements['filter[AutoUnarchive]'] && form.elements['filter[AutoUnarchive]'].checked) ||
       (form.elements['filter[AutoCopy]'] && form.elements['filter[AutoCopy]'].checked) ||
+      (form.elements['filter[AutoTag]'] && form.elements['filter[AutoTag]'].checked) ||
       (form.elements['filter[AutoMove]'] && form.elements['filter[AutoMove]'].checked) ||
       (form.elements['filter[AutoVideo]'] && form.elements['filter[AutoVideo]'].checked) ||
       (form.elements['filter[AutoExecute]'].checked && form.elements['filter[AutoExecuteCmd]'].value != '') ||
@@ -130,6 +136,15 @@ function click_automove(element) {
   }
 }
 
+function click_autotag(element) {
+  updateButtons(element);
+  if ( element.checked ) {
+    $j(element.form.elements['filter[AutoTagId]']).css('display', 'inline');
+  } else {
+    $j(element.form.elements['filter[AutoTagId]']).hide();
+  }
+}
+
 function click_autocopy(element) {
   updateButtons(element);
   if ( element.checked ) {
@@ -150,8 +165,9 @@ function clearValue( element ) {
 }
 
 function resetFilter( element ) {
-  element.form.reset();
-  $j('#contentForm')[0].reset();
+  // form.reset() cannot restore term cells that parseRows replaced, nor the
+  // chosen widgets and the Execute/Save button state, so reload the saved filter.
+  window.location.assign(element.form.getAttribute('action'));
 }
 
 function serializeFormExcludingCsrf(form) {
@@ -186,7 +202,13 @@ function submitToExport(element) {
 function submitAction(button) {
   const form = button.form;
   form.elements['action'].value = button.value;
-  form.submit();
+  // submit() skips the submit event, and with it validateForm and the
+  // browser's own input checks.
+  if (form.requestSubmit) {
+    form.requestSubmit();
+  } else {
+    form.submit();
+  }
 }
 
 function deleteFilter(element) {
@@ -308,13 +330,14 @@ function parseRows(rows) {
       });
       const tagVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(tagSelect).children().val(tagVal).addClass('chosen chosen-full-width');
-    } else if ( attr == 'ExistsInFileSystem' ) {
+    } else if ( attr == 'ExistsInFileSystem' || stateAttrs.includes(attr) ) {
+      const values = (attr == 'ExistsInFileSystem') ? booleanValues : stateTypes;
       const select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]').addClass('chosen');
-      for (const booleanVal in booleanValues ) {
-        select.append('<option value="' + booleanVal + '">' + escapeHTML(booleanValues[booleanVal]) + '</option>');
+      for (const valueKey in values ) {
+        select.append('<option value="' + valueKey + '">' + escapeHTML(values[valueKey]) + '</option>');
       }
       let val = inputTds.eq(4).children().val();
-      if ( ! val ) val = 'false'; // default to the first option false
+      if ( ! val ) val = (attr == 'ExistsInFileSystem') ? 'false' : '0'; // default to the first option
       inputTds.eq(4).html(select).children().val(val);
     } else if ( attr == 'DiskPercent' ) {
       const textInput = $j('<input></input>').attr('type', 'number').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]').attr('min', '0').attr('step', '1');
@@ -329,7 +352,7 @@ function parseRows(rows) {
     // Validate the operator
     const opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
     let opVal = inputTds.eq(3).children().val();
-    if ( attr == 'ExistsInFileSystem' ) {
+    if ( attr == 'ExistsInFileSystem' || stateAttrs.includes(attr) ) {
       if ( ! opVal ) {
         // Default to equals so that something gets selected
         opVal = 'IS';

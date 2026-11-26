@@ -44,7 +44,11 @@ function validInt($v) { return (int)$v; }
 function validJsStr($v) { return addslashes($v); }
 function validHtmlStr($v) { return htmlspecialchars($v); }
 
-require_once __DIR__.'/../../web/includes/control_functions.php';
+// The path to control_functions.php can be overridden (e.g. to test the
+// pre-fix version) via the ZM_TEST_CONTROL_FUNCTIONS environment variable.
+$zm_control_functions = getenv('ZM_TEST_CONTROL_FUNCTIONS');
+if (!$zm_control_functions) $zm_control_functions = __DIR__.'/../../web/includes/control_functions.php';
+require_once $zm_control_functions;
 require_once __DIR__.'/../../web/includes/Object.php';
 require_once __DIR__.'/../../web/includes/Control.php';
 
@@ -78,19 +82,24 @@ class MockMonitor {
   public function Orientation() { return $this->orientation; }
   public function Width() { return $this->width; }
   public function Height() { return $this->height; }
+  // The size of the image the user clicks on: width and height swap when rotated 90 or 270.
+  private function rotated() { return in_array($this->orientation, array('ROTATE_90', 'ROTATE_270')); }
+  public function ViewWidth() { return $this->rotated() ? $this->height : $this->width; }
+  public function ViewHeight() { return $this->rotated() ? $this->width : $this->height; }
   public function AutoStopTimeout() { return 0; }
 }
 
 // ----------------------------------------------------------------------------
 // Test 1: movePseudoMap coordinate factor rotation (ROTATE_90 and ROTATE_270)
 // ----------------------------------------------------------------------------
-// Monitor 640x480, halfWidth=320, halfHeight=240.
-// Click at x=240, y=120:
-// unrotated xFactor = (240 - 320)/320 = -0.25, yFactor = (120 - 240)/240 = -0.5
+// Monitor 640x480 rotated 90 or 270 is displayed 480x640, so the click is read against
+// halfWidth=240, halfHeight=320 (ViewWidth/ViewHeight).
+// Click at x=120, y=160:
+// unrotated xFactor = (120 - 240)/240 = -0.5, yFactor = (160 - 320)/320 = -0.5
 // ROTATE_90:
-// Correct: yFactor = -(-0.25) = 0.25, xFactor = -0.5 -> dirn = 'DownLeft'
+// Correct: yFactor = -(-0.5) = 0.5, xFactor = -0.5 -> dirn = 'DownLeft'
 // Pan step (using |xFactor|=0.5): MinPanStep(1) + (MaxPanStep(10)-1)*0.5 = 1 + 4.5 = 6 (<= 10)
-// With bug: $tempYFactor = $y = 120, $xFactor = 120! Pan step becomes 1 + 9*120 = 1081!
+// With bug: $tempYFactor = $y = 160, $xFactor = 160! Pan step becomes 1 + 9*160 = 1441!
 $ctrl = new MockControl(array(
   'HasPanSpeed' => 1, 'MinPanSpeed' => 1, 'MaxPanSpeed' => 10, 'HasTurboPan' => 0,
   'HasTiltSpeed' => 1, 'MinTiltSpeed' => 1, 'MaxTiltSpeed' => 10, 'HasTurboTilt' => 0,
@@ -98,7 +107,7 @@ $ctrl = new MockControl(array(
   'MinTiltStep' => 1, 'MaxTiltStep' => 10,
 ));
 $mon90 = new MockMonitor('ROTATE_90', $ctrl, 640, 480);
-$_REQUEST = array('control' => 'movePseudoMap', 'x' => 240, 'y' => 120, 'scale' => 100);
+$_REQUEST = array('control' => 'movePseudoMap', 'x' => 120, 'y' => 160, 'scale' => 100);
 $cmd = buildControlCommand($mon90);
 
 preg_match('/--panstep=(\d+)/', $cmd, $mPan);
@@ -107,11 +116,11 @@ check('movePseudoMap ROTATE_90 panstep is within max bounds', ($panStep >= 1 && 
 check('movePseudoMap ROTATE_90 command is moveRelDownLeft', $_REQUEST['control'], 'moveRelDownLeft');
 
 // ROTATE_270:
-// Correct: xFactor = -(-0.5) = 0.5, yFactor = -0.25 -> dirn = 'UpRight'
-// Tilt step (using |yFactor|=0.25): MinTiltStep(1) + 9*0.25 = 3 (<= 10)
-// With bug: $tempXFactor = $x = 240, $yFactor = 240! Tilt step becomes 1 + 9*240 = 2161!
+// Correct: xFactor = -(-0.5) = 0.5, yFactor = -0.5 -> dirn = 'UpRight'
+// Tilt step (using |yFactor|=0.5): MinTiltStep(1) + 9*0.5 = 5 (<= 10)
+// With bug: $tempXFactor = $x = 120, $yFactor = 120! Tilt step becomes 1 + 9*120 = 1081!
 $mon270 = new MockMonitor('ROTATE_270', $ctrl, 640, 480);
-$_REQUEST = array('control' => 'movePseudoMap', 'x' => 240, 'y' => 120, 'scale' => 100);
+$_REQUEST = array('control' => 'movePseudoMap', 'x' => 120, 'y' => 160, 'scale' => 100);
 $cmd = buildControlCommand($mon270);
 preg_match('/--tiltstep=(\d+)/', $cmd, $mTilt);
 $tiltStep = isset($mTilt[1]) ? (int)$mTilt[1] : 0;
@@ -122,7 +131,7 @@ check('movePseudoMap ROTATE_270 command is moveRelUpRight', $_REQUEST['control']
 // Test 2: moveConMap coordinate factor rotation (ROTATE_90 and ROTATE_270)
 // ----------------------------------------------------------------------------
 $mon90 = new MockMonitor('ROTATE_90', $ctrl, 640, 480);
-$_REQUEST = array('control' => 'moveConMap', 'x' => 240, 'y' => 120, 'scale' => 100);
+$_REQUEST = array('control' => 'moveConMap', 'x' => 120, 'y' => 160, 'scale' => 100);
 $cmd = buildControlCommand($mon90);
 preg_match('/--panspeed=(\d+)/', $cmd, $mPanSpeed);
 $panSpeed = isset($mPanSpeed[1]) ? (int)$mPanSpeed[1] : 0;
@@ -130,7 +139,7 @@ check('moveConMap ROTATE_90 panspeed is within max bounds', ($panSpeed >= 1 && $
 check('moveConMap ROTATE_90 command is moveConDownLeft', $_REQUEST['control'], 'moveConDownLeft');
 
 $mon270 = new MockMonitor('ROTATE_270', $ctrl, 640, 480);
-$_REQUEST = array('control' => 'moveConMap', 'x' => 240, 'y' => 120, 'scale' => 100);
+$_REQUEST = array('control' => 'moveConMap', 'x' => 120, 'y' => 160, 'scale' => 100);
 $cmd = buildControlCommand($mon270);
 preg_match('/--tiltspeed=(\d+)/', $cmd, $mTiltSpeed);
 $tiltSpeed = isset($mTiltSpeed[1]) ? (int)$mTiltSpeed[1] : 0;
@@ -211,6 +220,49 @@ check('CanAutoZoom() returns default 0', $autoZoom, 0);
 // ----------------------------------------------------------------------------
 $skinFuncs = file_get_contents(__DIR__.'/../../web/skins/classic/includes/control_functions.php');
 check('controlWhite does not have typo data-ytell="1)"', strpos($skinFuncs, 'data-ytell="1)"'), false);
+
+// ----------------------------------------------------------------------------
+// Test 9: moveMap sends the point in the camera's own frame
+// ----------------------------------------------------------------------------
+// A 640x480 camera rotated 90 or 270 is shown 480x640. Image::Rotate(90) puts camera
+// pixel 160,360 at 119,160 of the rotated image, and Rotate(270) puts 480,120 at 120,159.
+$map = array(
+  'ROTATE_0' => '--xcoord=120 --ycoord=160',
+  'ROTATE_90' => '--xcoord=160 --ycoord=360',
+  'ROTATE_180' => '--xcoord=520 --ycoord=320',
+  'ROTATE_270' => '--xcoord=480 --ycoord=120',
+  'FLIP_HORI' => '--xcoord=520 --ycoord=160',
+  'FLIP_VERT' => '--xcoord=120 --ycoord=320',
+);
+foreach ($map as $orientation => $want) {
+  $_REQUEST = array('control' => 'moveMap', 'x' => 120, 'y' => 160, 'scale' => 100);
+  $cmd = buildControlCommand(new MockMonitor($orientation, $ctrl, 640, 480));
+  preg_match('/--xcoord=\S+ --ycoord=\S+/', $cmd, $m);
+  check("moveMap $orientation sends $want", isset($m[0]) ? $m[0] : $cmd, $want);
+}
+
+// ----------------------------------------------------------------------------
+// Test 10: movePseudoMap & moveConMap with a monitor of zero size must not
+// divide by zero (DivisionByZeroError on PHP 8), but log and return ''
+// ----------------------------------------------------------------------------
+$monZero = new MockMonitor('ROTATE_0', $ctrl, 0, 0);
+foreach (array('movePseudoMap', 'moveConMap') as $mapControl) {
+  $_REQUEST = array('control' => $mapControl, 'x' => 120, 'y' => 160, 'scale' => 100);
+  $threw = '';
+  $cmd = null;
+  try {
+    $cmd = buildControlCommand($monZero);
+  } catch ( Throwable $e ) {
+    $threw = get_class($e).': '.$e->getMessage();
+  }
+  check("$mapControl with zero ViewWidth/ViewHeight does not throw", $threw, '');
+  check("$mapControl with zero ViewWidth/ViewHeight returns empty command", $cmd, '');
+}
+
+// Control case: a monitor with non-zero size still builds a real command.
+$_REQUEST = array('control' => 'movePseudoMap', 'x' => 120, 'y' => 160, 'scale' => 100);
+$cmd = buildControlCommand(new MockMonitor('ROTATE_0', $ctrl, 640, 480));
+check('movePseudoMap with non-zero ViewWidth/ViewHeight still returns a command', strpos($cmd, '--command=') !== false, true);
 
 echo "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

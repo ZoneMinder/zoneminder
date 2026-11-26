@@ -1,8 +1,9 @@
 <?php
 ini_set('display_errors', '0');
 
-if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' && canView('Monitors', $_REQUEST['mid'])) ) {
-  $mid = isset($_REQUEST['mid']) ? $_REQUEST['mid'] : null;
+$mid = isset($_REQUEST['mid']) ? validCardinal($_REQUEST['mid']) : null;
+
+if ( canView('Monitors') || ($mid !== null && $mid !== '' && canView('Monitors', $mid)) ) {
   if ($mid === null || $mid === '') {
     ajaxError(translate('RequestMissing') . ' "mid".');
   }
@@ -21,7 +22,7 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
     $badChars = [];
     $message = '';
 
-    if (isset($_REQUEST['monitorName']) && is_string($_REQUEST['monitorName']) && $_REQUEST['monitorName'] !== '') {
+    if (isset($_REQUEST['monitorName']) && is_string($_REQUEST['monitorName']) && trim($_REQUEST['monitorName']) !== '') {
       $monitorName = $_REQUEST['monitorName'];
       $trimmedMonitorName = trim($monitorName);
       $cleanedMonitorName = preg_replace($filterRegexp, '', $trimmedMonitorName);
@@ -61,6 +62,20 @@ if ( canView('Monitors') || (isset($_REQUEST['mid']) && $_REQUEST['mid'] !== '' 
       'threshold' => intval($monitor->AudioThreshold()),
       'detection' => $monitor->AudioDetection() ? true : false,
     ));
+    break;
+  case 'onvifStatus' :
+    // Whether zmc currently holds an ONVIF event subscription for the monitor
+    require_once('includes/Monitor.php');
+    $monitor = new ZM\Monitor($mid);
+    if (!$monitor->Id()) {
+      ajaxError('Not found: monitor id '.validHtmlStr($mid));
+      break;
+    }
+    if (!$monitor->canView()) {
+      ajaxError(translate('insufficientPermissionsUser').' "'.validHtmlStr($user->Username()).'"');
+      break;
+    }
+    ajaxResponse(array('status' => $monitor->OnvifStatus()));
     break;
   } // end switch action
 } // end if canView('Monitors')

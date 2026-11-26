@@ -75,7 +75,9 @@ sub open {
   my ( $username, $password );
   my $realm = 'Login to ' . $self->{Monitor}->{ControlDevice};
   if ( $self->{Monitor}->{ControlAddress} ) {
-    ( $username, $password ) = $uri->authority() =~ /^(.*):(.*)@(.*)$/;
+    if ( my $userinfo = $uri->userinfo() ) {
+      ( $username, $password ) = split( /:/, $userinfo, 2 );
+    }
 
     $$self{address} = $uri->host_port();
     $self->{ua}->credentials($uri->host_port(), $realm, $username, $password);
@@ -88,7 +90,7 @@ sub open {
   my $res = $self->{ua}->get($$self{base_url}.'param.cgi?cmd=get_instar_guest&-index=13&cmd=get_instar_guest&-index=47&cmd=get_instar_guest&-index=48');
   if ( $res->is_success ) {
     $self->{state} = 'open';
-    return;
+    return 1;
   }
 
   if ( $res->status_line() eq '401 Unauthorized' ) {
@@ -108,11 +110,11 @@ sub open {
           $res = $self->{ua}->get($$self{base_url}.'param.cgi?cmd=getuserinfo');
           if ( $res->is_success() ) {
             $self->{state} = 'open';
-            return;
+            return 1;
           } elsif ( $res->status_line eq '400 Bad Request' ) {
           # In testing, this second request fails with Bad Request, I assume because we didn't actually give it a command.
             $self->{state} = 'open';
-            return;
+            return 1;
           } else {
             Error('Authentication still failed after updating REALM: ' . $res->status_line);
             $headers = $res->headers();
@@ -135,6 +137,7 @@ sub open {
   } # end if $res->status_line() eq '401 Unauthorized'
 
   $self->{state} = 'closed';
+  return 0;
 }
 
 sub close {
@@ -156,11 +159,11 @@ sub sendCmd {
     # Try again
     $res = $self->{ua}->get($$self{base_url}.$cmd);
     if ( $res->is_success ) {
+      $result = !undef;
       # Command to camera appears successful, write Info item to log
       Info('Camera control 2: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
     } else {
       Error('Camera control command FAILED: \''.$res->status_line().'\' for URL '.urlForLog($$self{base_url}.$cmd));
-      $res = $self->{ua}->get('http://'.$self->{Monitor}->{ControlAddress}.'/'.$cmd);
     }
   }
 
@@ -177,7 +180,12 @@ sub getCamParams {
     # Parse results setting values in %FCParams
     my $content = $res->decoded_content;
     while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-      $CamParams{$1} = $2;
+      my $key = $1;
+      my $val = $2;
+      $key =~ s/^\s+|\s+$//g;
+      $val =~ s/^\s+|\s+$//g;
+      $val =~ s/^["']|["']$//g;
+      $CamParams{$key} = $val;
     }
   }
   else {
@@ -218,28 +226,24 @@ sub reset {
 sub up {
   my $self = shift;
   Debug('Move Up');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=up');
 }
 
 sub down {
   my $self = shift;
   Debug('Move Down');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=down');
 }
 
 sub left {
   my $self = shift;
   Debug('Move Left');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=left');
 }
 
 sub right {
   my $self = shift;
   Debug('Move Right');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=1&-act=right');
 }
 
@@ -328,7 +332,6 @@ sub moveStop {
 sub presetHome {
   my $self = shift;
   Debug('Home Preset');
-  $$self{Monitor}->suspendMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   $self->sendCmd('ptzctrl.cgi?-step=0&-act=home');
 }
 
@@ -365,12 +368,11 @@ sub irisAbsOpen {
 #  Error('asa ');
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'brightness'});
+  $self->getCamParams() unless(defined($CamParams{'brightness'}));
   my $step = $self->getParam( $params, 'step' );
-  Info('asa '.$step);
+  $step //= 1;
   $CamParams{'brightness'} += $step;
   $CamParams{'brightness'} = 6 if ($CamParams{'brightness'} > 6);
-  Info(%CamParams);
   Debug( "Increase Brightness" );
   $self->sendCmd("param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'});
 }
@@ -379,9 +381,10 @@ sub irisAbsOpen {
 sub irisAbsClose {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'brightness'});
+  $self->getCamParams() unless(defined($CamParams{'brightness'}));
   my $step = $self->getParam( $params, 'step' );
-   $CamParams{'brightness'} -= $step;
+  $step //= 1;
+  $CamParams{'brightness'} -= $step;
   $CamParams{'brightness'} = 0 if ($CamParams{'brightness'} < 0);
   Debug( "Decrease Brightness" );
   $self->sendCmd("param.cgi?cmd=setimageattr&-brightness=".$CamParams{'brightness'});
@@ -391,8 +394,9 @@ sub irisAbsClose {
 sub whiteAbsIn {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'contrast'});
+  $self->getCamParams() unless(defined($CamParams{'contrast'}));
   my $step = $self->getParam( $params, 'step' );
+  $step //= 1;
   $CamParams{'contrast'} += $step;
   $CamParams{'contrast'} = 7 if ($CamParams{'contrast'} > 7);
   Debug( "Increase Contrast" );
@@ -403,8 +407,9 @@ sub whiteAbsIn {
 sub whiteAbsOut {
   my $self = shift;
   my $params = shift;
-  $self->getCamParams() unless($CamParams{'contrast'});
+  $self->getCamParams() unless(defined($CamParams{'contrast'}));
   my $step = $self->getParam( $params, 'step' );
+  $step //= 1;
   $CamParams{'contrast'} -= $step;
   $CamParams{'contrast'} = 0 if ($CamParams{'contrast'} < 0);
   Debug( "Decrease Contrast" );

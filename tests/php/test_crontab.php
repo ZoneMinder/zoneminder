@@ -254,6 +254,8 @@ check('a crontab is returned', cronRead(), "0 1 * * * /bin/x\n# note");
 stubCrontab('[ "$LC_ALL" = C ] || exit 3; echo "no crontab for u" >&2; exit 1');
 check('no crontab, read in the C locale, is empty', cronRead(), '');
 check('and is not an error', $errors, array());
+stubCrontab('echo "crontab: no crontab for u" >&2; exit 1');
+check('no crontab, as BSD crontab words it, is empty', cronRead(), '');
 stubCrontab('echo "crontab: cannot open /var/spool/cron: Permission denied" >&2; exit 1');
 check('exit 1 with another message is a failure', cronRead(), false);
 stubCrontab('echo "no crontab for u" >&2; exit 2');

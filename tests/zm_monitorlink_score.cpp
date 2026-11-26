@@ -20,7 +20,12 @@
 #include "zm_config.h"
 #include "zm_monitor.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <memory>
+#include <unistd.h>
+#include <vector>
 
 namespace {
 
@@ -33,6 +38,7 @@ void EnsureConfig() {
 class SourceMonitor : public Monitor {
  public:
   using Data = SharedData;
+  using Trigger = TriggerData;
 };
 
 class TestLink : public Monitor::MonitorLink {
@@ -57,6 +63,32 @@ class TestZoneLink : public Monitor::MonitorLink {
   }
 };
 
+#if ZM_MEM_MAPPED
+class FileZoneLink : public Monitor::MonitorLink {
+ public:
+  FileZoneLink(const std::shared_ptr<Monitor> &source, int zindex, const std::string &file)
+    : MonitorLink(source, 0) {
+    zone_index = zindex;
+    mem_file = file;
+  }
+  bool Connected() const { return connected; }
+};
+
+// Writes a mapped file the size of the shared data, trigger data and `scores` ints, marked valid with a fresh heartbeat. Returns its path.
+std::string WriteLinkFile(size_t scores) {
+  char path[] = "/tmp/zm_link_test_XXXXXX";
+  int fd = mkstemp(path);
+  REQUIRE(fd >= 0);
+  std::vector<char> buf(sizeof(SourceMonitor::Data) + sizeof(SourceMonitor::Trigger) + scores * sizeof(int), 0);
+  auto *data = reinterpret_cast<SourceMonitor::Data *>(buf.data());
+  data->valid = 1;
+  data->heartbeat_time = time(nullptr);
+  REQUIRE(write(fd, buf.data(), buf.size()) == static_cast<ssize_t>(buf.size()));
+  close(fd);
+  return path;
+}
+#endif
+
 }  // namespace
 
 // A link reports the source monitor's alarm status: its frame score while it
@@ -79,6 +111,14 @@ TEST_CASE("MonitorLink score follows the source's alarm state", "[MonitorLink]")
     data.state = Monitor::ALARM;
     data.last_frame_score = 42;
     REQUIRE(link.score() == 42);
+    REQUIRE(link.hasAlarmed());
+  }
+  SECTION("alarm: a packet with no score still counts as alarmed") {
+    // Audio packets and frames skipped by motion detection leave
+    // last_frame_score at 0 while the source stays in ALARM.
+    data.state = Monitor::ALARM;
+    data.last_frame_score = 0;
+    REQUIRE(link.score() == 1);
     REQUIRE(link.hasAlarmed());
   }
   SECTION("alert: keeps the linked event open") {
@@ -151,4 +191,31 @@ TEST_CASE("MonitorLink zone score follows source monitor state and zone id", "[M
     data.state = Monitor::ALERT;
     REQUIRE(link.score() == 1);
   }
+
+  SECTION("zone that can't be found in ALERT returns 0 like ALARM") {
+    TestZoneLink link(std::make_shared<SourceMonitor>(), 999, -1);
+    link.Attach(&data, mock_zone_scores);
+
+    data.state = Monitor::ALERT;
+    REQUIRE(link.score() == 0);
+  }
 }
+
+#if ZM_MEM_MAPPED
+TEST_CASE("MonitorLink does not connect to memory too small for its zone score", "[MonitorLink]") {
+  EnsureConfig();
+  auto source = std::make_shared<SourceMonitor>();
+  std::string small = WriteLinkFile(0);
+  std::string large = WriteLinkFile(3);
+  {
+    FileZoneLink link(source, 2, small);
+    REQUIRE_FALSE(link.connect());
+  }
+  {
+    FileZoneLink link(source, 2, large);
+    REQUIRE(link.connect());
+  }
+  unlink(small.c_str());
+  unlink(large.c_str());
+}
+#endif

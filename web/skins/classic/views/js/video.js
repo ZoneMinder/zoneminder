@@ -22,8 +22,14 @@ function generateVideo() {
   var form = $j('#videoForm').serialize();
   $j.getJSON(thisUrl + '?view=request&request=event&action=video', form)
       .done(generateVideoResponse)
-      .fail(logAjaxFail);
-  $j('#videoProgress').removeClass('invisible');
+      .fail(function(jqxhr, textStatus, error) {
+        generateVideoResponse({result: 'Error'});
+        logAjaxFail(jqxhr, textStatus, error);
+      });
+  // A previous result replaced the spinner and message, so put them back.
+  $j('#videoProgress').removeClass('invisible text-success text-danger').addClass('text-warning')
+      .html('<span class="spinner-grow" role="status" aria-hidden="true"></span> ')
+      .append(document.createTextNode(videoGenProgressString));
 }
 
 function initPage() {

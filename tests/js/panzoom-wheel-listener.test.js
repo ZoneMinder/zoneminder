@@ -85,10 +85,15 @@ test('one shift+wheel zooms once after several enable cycles', () => {
     zm.action('disable', {id: 5});
   }
   zm.action('enable', {obj});
-  zm.shifted = true;
-  zm.alted = false;
-  for (const fn of parent.listeners.wheel) fn({preventDefault() {}});
+  for (const fn of parent.listeners.wheel) fn({shiftKey: true, altKey: false, preventDefault() {}});
   assert.strictEqual(state.wheelZooms, 1);
+});
+
+test('disable removes the wheel listener', () => {
+  const {zm, parent, obj} = load();
+  zm.action('enable', {obj});
+  zm.action('disable', {id: 5});
+  assert.strictEqual(parent.listeners.wheel.size, 0);
 });
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');

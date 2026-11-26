@@ -166,6 +166,8 @@ use Socket;
 use X10::ActiveHome;
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+use constant CLIENT_READ_TIMEOUT => 5;
+
 our $dbh;
 our $x10;
 
@@ -213,7 +215,19 @@ sub runServer {
       Debug(2, "Nfound $nfound");
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = '';
+        my $deadline = time() + CLIENT_READ_TIMEOUT;
+        while ( (my $wait = $deadline - time()) > 0 ) {
+          vec(my $cin = '', fileno(CLIENT), 1) = 1;
+          last if select(my $cout = $cin, undef, undef, $wait) <= 0;
+          last if !sysread(CLIENT, $message, 4096, length($message));
+          last if $message =~ /\n/;
+        }
+
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my ($command, $unit_code) = split(';', $message);
 
@@ -289,21 +303,24 @@ sub runServer {
       # Check for state changes
       foreach my $monitor_id ( sort(keys(%monitor_hash) ) ) {
         my $monitor = $monitor_hash{$monitor_id};
-        my $state = zmGetMonitorState($monitor);
+        # loadTasks detaches each monitor once it has checked it, and zmc may have
+        # restarted since, so verify (and attach) before every read.
+        my $state = zmMemVerify($monitor) ? zmGetMonitorState($monitor) : undef;
         if ( !defined($state) ) {
           $reload = !undef;
           next;
         }
         if ( defined( $monitor->{LastState} ) ) {
           my $task_list;
-          if ( ($state == STATE_ALARM || $state == STATE_ALERT)
-            && ($monitor->{LastState} == STATE_IDLE )
-          ) # Gone into alarm state
-          {
+          my $in_alarm = ($state == STATE_ALARM || $state == STATE_ALERT);
+          my $was_in_alarm = ($monitor->{LastState} == STATE_ALARM
+            || $monitor->{LastState} == STATE_ALERT);
+          if ( $in_alarm && !$was_in_alarm ) {
+            # Gone into alarm state, possibly via PREALARM
             Debug("Applying ON_list for $monitor_id");
             $task_list = $monitor->{ON_list};
-          } elsif ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE) {
-           # Come out of alarm state
+          } elsif ( !$in_alarm && $was_in_alarm ) {
+            # Come out of alarm state
             Debug("Applying OFF_list for $monitor_id");
             $task_list = $monitor->{OFF_list};
           }
@@ -410,6 +427,8 @@ sub addToMonitorList {
 } # end sub addToMonitorList
 
 sub loadTasks {
+  # The poll keeps monitors attached; detach them before dropping them.
+  zmMemInvalidate($_) foreach values(%monitor_hash);
   %monitor_hash = ();
 
   Debug('Loading tasks');
@@ -525,27 +544,47 @@ sub loadTasks {
 sub addPendingTask {
   my $task = shift;
 
+  # The task that will end this one, e.g. start_alarm -> stop_alarm,
+  # and the reverse, e.g. stop_alarm -> start_alarm
+  my $pending_task;
+  if ( $task->{type} eq 'device' ) {
+    $pending_task = {
+      type=>$task->{type},
+      monitor=>$task->{monitor},
+      function=>$task->{function}
+    };
+    $pending_task->{function} =~ s/^start_/stop_/
+      or $pending_task->{function} =~ s/^stop_/start_/;
+  } elsif ( $task->{type} eq 'monitor' ) {
+    $pending_task = {
+      type=>$task->{type},
+      device=>$task->{device},
+      function=>$task->{function}
+    };
+    $pending_task->{function} = ($pending_task->{function} eq 'on') ? 'off' : 'on';
+  }
+
   # Check whether we are just extending a previous pending task
   # and remove it if it's there
   foreach my $activation_time ( sort keys(%pending_tasks) ) {
     my $pending_list = $pending_tasks{$activation_time};
     my $new_pending_list = [];
-    foreach my $pending_task ( @$pending_list ) {
-      if ( $task->{type} ne $pending_task->{type} ) {
-        push( @$new_pending_list, $pending_task )
-      } elsif ( $task->{type} eq 'device' ) {
-        if (( $task->{monitor}->{Id} != $pending_task->{monitor}->{Id} )
-          || ( $task->{function} ne $pending_task->{function} ))
+    foreach my $old_task ( @$pending_list ) {
+      if ( $pending_task->{type} ne $old_task->{type} ) {
+        push( @$new_pending_list, $old_task )
+      } elsif ( $pending_task->{type} eq 'device' ) {
+        if (( $pending_task->{monitor}->{Id} != $old_task->{monitor}->{Id} )
+          || ( $pending_task->{function} ne $old_task->{function} ))
         {
-          push @$new_pending_list, $pending_task;
+          push @$new_pending_list, $old_task;
         }
-      } elsif ( $task->{type} eq 'monitor' ) {
-        if (( $task->{device}->{appliance}->unit_code()
-            != $pending_task->{device}->{appliance}->unit_code()
+      } elsif ( $pending_task->{type} eq 'monitor' ) {
+        if (( $pending_task->{device}->{appliance}->unit_code()
+            != $old_task->{device}->{appliance}->unit_code()
           )
-          || ( $task->{function} ne $pending_task->{function} )
+          || ( $pending_task->{function} ne $old_task->{function} )
         ) {
-          push @$new_pending_list, $pending_task;
+          push @$new_pending_list, $old_task;
         }
       } # end switch task->type
     } # end foreach pending_task
@@ -561,22 +600,6 @@ sub addPendingTask {
   my $pending_list = $pending_tasks{$end_time};
   if ( !$pending_list ) {
     $pending_list = $pending_tasks{$end_time} = [];
-  }
-  my $pending_task;
-  if ( $task->{type} eq 'device' ) {
-    $pending_task = {
-      type=>$task->{type},
-      monitor=>$task->{monitor},
-      function=>$task->{function}
-    };
-    $pending_task->{function} =~ s/start/stop/;
-  } elsif ( $task->{type} eq 'monitor' ) {
-    $pending_task = {
-      type=>$task->{type},
-      device=>$task->{device},
-      function=>$task->{function}
-    };
-    $pending_task->{function} =~ s/on/off/;
   }
   push @$pending_list, $pending_task;
 } # end sub addPendingTask
@@ -595,6 +618,9 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmMonitorDisable($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } elsif( $class eq 'alarm' ) {
       if ( $instruction eq 'start' ) {
@@ -609,6 +635,9 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmTriggerEventCancel($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } # end switch class
   } elsif( $task->{type} eq 'monitor' ) {
@@ -619,6 +648,9 @@ sub processTask {
       }
     } elsif ( $task->{function} eq 'off' ) {
       $task->{device}->{appliance}->off();
+      if ( $task->{limit} ) {
+        addPendingTask($task);
+      }
     }
   }
 }

@@ -28,15 +28,32 @@ if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
     setDeviceStatusX10($_REQUEST['key'], $_REQUEST['command']);
   } else if ( isset($_REQUEST['newDevice']) ) {
-    if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
-      dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
+    $newDevice = is_array($_REQUEST['newDevice']) ? $_REQUEST['newDevice'] : array();
+    $saved = true;
+    $name = $newDevice['Name'] ?? null;
+    $keyString = $newDevice['KeyString'] ?? null;
+    if ( !is_scalar($name) or !is_scalar($keyString) ) {
+      $error_message .= 'A device needs a Name and a KeyString<br/>';
+    } else if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
+      if ( !dbFetchOne('SELECT Id FROM Devices WHERE Id=?', 'Id', array($_REQUEST['did'])) ) {
+        // Deleted in another tab: the UPDATE would match no row and still report a save
+        $error_message .= 'Device not found<br/>';
+      } else {
+        $saved = (dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
+          array($name, $keyString, $_REQUEST['did']) ) !== null);
+      }
     } else {
-
-      dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString']) );
+      $saved = (dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
+        array($name, $keyString) ) !== null);
     }
-    $redirect = '?view=devices';
+    if ( !$saved )
+      $error_message .= 'Error saving device: '.htmlspecialchars(dbLastError()).'<br/>';
+    if ( !$error_message ) {
+      $redirect = '?view=devices';
+    } else {
+      // The modal posts view=device, which has no view file, so show the error on Devices.
+      $view = 'devices';
+    }
   }
 } else {
   ZM\Error('Unknown action in device');

@@ -21,6 +21,7 @@ monitorData[monitorData.length] = {
   'width': <?php echo $monitor->ViewWidth() ?>,
   'height':<?php echo $monitor->ViewHeight() ?>,
   'url': '<?php echo validJsStr($monitor->UrlToIndex()) ?>',
+  'url_to_zms': '<?php echo validJsStr($monitor->UrlToZMS()) ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
   'type': '<?php echo validJsStr($monitor->Type()) ?>',
   'capturing': '<?php echo validJsStr($monitor->Capturing()) ?>',

@@ -4,6 +4,7 @@ namespace ZM {
   function Debug($s) {}
   class Monitor {
     public static function find_one($a) { return new Monitor(); }
+    public function canView() { return true; }
     public function Device() { return '/dev/video0'; }
     public function Name() { return 'cam'; }
     public function Brightness($v = null) {}
@@ -31,11 +32,18 @@ namespace {
   file_put_contents($dir.'/v4l2-ctl', <<<'CTL'
 #!/bin/sh
 cat <<'X'
+
+User Controls
+
                      brightness 0x00980900 (int)    : min=-64 max=64 step=1 default=0 value=0
                             hue 0x00980903 (int)    : min=-40 max=40 step=1 default=0 value=0
         white_balance_automatic 0x0098090c (bool)   : default=1 value=1
                            gain 0x00980913 (int)    : min=0 max=100 step=1 default=0 value=7
            power_line_frequency 0x00980918 (menu)   : min=0 max=2 default=1 value=1 (50 Hz)
+
+Camera Controls
+
+                  auto_exposure 0x009a0901 (menu)   : min=0 max=3 default=3 value=3 (Aperture Priority Mode)
 X
 CTL
   );
@@ -72,6 +80,8 @@ CTL
   check('a bool control is shown as radios', strpos($html, '<radio newWhite_balance_automatic 1,0 1 disabled>') !== false, true);
   check('an int control is shown as a read only slider', strpos($html, '<input type="range" min="0" max="100" step="1" value="7" disabled="disabled"/>') !== false, true);
   check('a menu control shows its value', strpos($html, '<td></td><td>1</td><td></td>') !== false, true);
+  check('control class headings are not shown as controls', preg_match('/<th scope="row">(User|Camera|)<\/th>/', $html), 0);
+  check('controls after a heading are still shown', strpos($html, '<th scope="row">Auto Exposure</th>') !== false, true);
 
   echo "$passed passed, $failed failed\n";
   exit($failed ? 1 : 0);

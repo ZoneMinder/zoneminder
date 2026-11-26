@@ -114,7 +114,7 @@ ZoneMinder user base.
 Summary: Common files for ZoneMinder, not tied to a specific web server
 
 Requires: php-mysqli
-Requires: php-common
+Requires: php-common >= 8.0
 Requires: php-gd
 Requires: php-intl
 Requires: php-mbstring

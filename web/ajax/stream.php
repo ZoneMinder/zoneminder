@@ -2,7 +2,7 @@
 ini_set('display_errors', '');
 
 $start_time = microtime(true);
-$connkey = sprintf('%06d', $_REQUEST['connkey']);
+$connkey = sprintf('%06d', $_REQUEST['connkey'] ?? 0);
 
 define('MSG_TIMEOUT', ZM_WEB_AJAX_TIMEOUT/2);
 define('MSG_DATA_SIZE', 4+256);
@@ -25,7 +25,7 @@ define('STREAM_ERR_TIMEOUT', 'timeout');
 define('STREAM_ERR_TRANSIENT', 'transient');
 define('STREAM_ERR_INVALID', 'invalid');
 
-if ( !($_REQUEST['connkey'] && $_REQUEST['command']) ) {
+if ( empty($_REQUEST['connkey']) or empty($_REQUEST['command']) ) {
   ajaxError('No connkey or no command in stream ajax', HTTP_STATUS_OK, STREAM_ERR_INVALID);
 }
 
@@ -91,18 +91,14 @@ case CMD_SCALE :
   $msg = pack('lcn', MSG_CMD, $_REQUEST['command'], $_REQUEST['scale']);
   break;
 case CMD_SEEK :
-  # Pack int two 32 bit integers instead of trying to deal with floats
-  $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
-    intval($_REQUEST['offset']),
-    1000000*( $_REQUEST['offset']-intval($_REQUEST['offset'])));
+  require_once('includes/stream_set_event.php');
+  $msg = packSecondsMessage(MSG_CMD, $_REQUEST['command'], $_REQUEST['offset'] ?? 0);
   break;
 case CMD_MAXFPS :
   if (!floatval($_REQUEST['maxfps'])) $_REQUEST['maxfps'] = 0;
   ZM\Debug('Maxfps to '.$_REQUEST['maxfps']);
-  # Pack int two 32 bit integers instead of trying to deal with floats
-  $msg = pack('lcNN', MSG_CMD, $_REQUEST['command'],
-    intval($_REQUEST['maxfps']),
-    1000000*( $_REQUEST['maxfps']-intval($_REQUEST['maxfps'])));
+  require_once('includes/stream_set_event.php');
+  $msg = packSecondsMessage(MSG_CMD, $_REQUEST['command'], $_REQUEST['maxfps']);
   break;
 case CMD_SET_EVENT :
   # Tell zms which event is next (dir=0) or prev (dir=1) in the UI's filter/sort
@@ -238,7 +234,7 @@ case MSG_DATA_WATCH :
   ajaxResponse(array('status'=>$data));
   break;
 case MSG_DATA_EVENT :
-  if ( PHP_INT_SIZE===4 || version_compare( phpversion(), '5.6.0', '<') ) {
+  if ( PHP_INT_SIZE===4 ) {
     ZM\Debug('Using old unpack methods to handle 64bit event id');
     $data = unpack('ltype/ieventlow/ieventhigh/dduration/dprogress/dfps/irate/izoom/iscale/Cpaused/Cstopped', $msg);
     $data['event'] = $data['eventhigh'] << 32 | $data['eventlow'];

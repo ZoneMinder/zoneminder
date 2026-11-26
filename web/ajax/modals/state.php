@@ -39,6 +39,34 @@ foreach ( $states as $state ) {
   $content .= '</option>'.PHP_EOL;
 }
 
+// Monitors that are down, by the same rule the console uses to mark one in
+// red: its capture daemon is not running, or it should be capturing all the
+// time and reports no capture fps. An on-demand monitor with no viewer
+// captures nothing, which is normal.
+$downMonitors = array();
+if ( $running ) {
+  $monitors = dbFetchAll('SELECT M.Id, M.Name, M.Type, M.Enabled, M.Capturing, M.Deleted, S.Status, S.CaptureFPS
+    FROM Monitors AS M
+    LEFT JOIN Monitor_Status AS S ON S.MonitorId=M.Id
+    ORDER BY M.Name');
+  foreach ( $monitors as $monitor ) {
+    if ( $monitor['Deleted'] or !$monitor['Enabled'] or ($monitor['Capturing'] == 'None') )
+      continue;
+    if ( $monitor['Type'] == 'WebSite' )
+      continue;
+    if ( !canView('Monitors', $monitor['Id']) )
+      continue;
+    if ( !$monitor['Status'] or ($monitor['Status'] == 'NotRunning') ) {
+      $monitor['Reason'] = 'Not Running';
+    } else if ( ($monitor['Capturing'] != 'Ondemand') and !(float)$monitor['CaptureFPS'] ) {
+      $monitor['Reason'] = 'No capture FPS';
+    } else {
+      continue;
+    }
+    $downMonitors[] = $monitor;
+  }
+}
+
 ?>
 <div id="modalState" class="modal fade" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -63,9 +91,22 @@ foreach ( $states as $state ) {
                 <?php echo $content ?>
               </select>
           </div><!--form-group-->
+<?php if ( count($downMonitors) ) { ?>
+          <div class="form-group">
+            <label><?php echo translate('Monitors') ?></label>
+            <ul class="list-unstyled mb-0">
+<?php foreach ( $downMonitors as $monitor ) {
+  $statusText = $monitor['Reason'];
+  $href = (canView('Stream', $monitor['Id']) ? '?view=watch&mid=' : '?view=monitor&mid=').validCardinal($monitor['Id']);
+?>
+              <li><a href="<?php echo $href ?>"><?php echo validHtmlStr($monitor['Name']) ?></a> <span class="text-danger"><?php echo validHtmlStr($statusText) ?></span></li>
+<?php } ?>
+            </ul>
+          </div><!--form-group-->
+<?php } ?>
           <div class="form-group">
             <label for="newState"><?php echo translate('NewState') ?></label>
-              <input class="form-control" type="text" id="newState"/>
+              <input class="form-control" type="text" id="newState" maxlength="64"/>
           </div>
         </div>
         <div class="modal-footer">

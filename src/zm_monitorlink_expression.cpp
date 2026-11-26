@@ -20,9 +20,15 @@ bool MonitorLinkExpression::parse() {
                              std::distance(std::begin(expression_), first),
                              std::distance(first, second)
                            );
-      Debug(1, "Have a token %s", std::string(t).c_str());
-
-      tokens.emplace_back(t);
+      // Spaces around an operator or bracket ("(2) | (3)") are not part of a
+      // link; a token of only spaces would otherwise be read as a link.
+      const char *blanks = " \t\r\n";
+      t.remove_prefix(std::min(t.find_first_not_of(blanks), t.size()));
+      if (!t.empty()) t.remove_suffix(t.size() - 1 - t.find_last_not_of(blanks));
+      if (!t.empty()) {
+        Debug(1, "Have a token %s", std::string(t).c_str());
+        tokens.emplace_back(t);
+      }
     }
 
     if (std::end(expression_) == second) {
@@ -37,6 +43,23 @@ bool MonitorLinkExpression::parse() {
     }
     first = std::next(second);
   }
+
+  // A comma with nothing on one side ("1,2," or "1,,2") separates nothing, so
+  // drop it rather than leave a missing operand that disables every link.
+  Tokens cleaned;
+  for (std::size_t i = 0; i < tokens.size(); i++) {
+    if (tokens[i].is(Token::TokenType::logical_comma)) {
+      const bool nothing_before = cleaned.empty()
+                                  or cleaned.back().is(Token::TokenType::lp)
+                                  or cleaned.back().is(Token::TokenType::logical_comma);
+      const bool nothing_after = (i + 1 == tokens.size())
+                                 or tokens[i + 1].is(Token::TokenType::rp)
+                                 or tokens[i + 1].is(Token::TokenType::logical_comma);
+      if (nothing_before or nothing_after) continue;
+    }
+    cleaned.push_back(tokens[i]);
+  }
+  tokens = std::move(cleaned);
 
   if (tokens.empty()) {
     Debug(1, "No tokens?");

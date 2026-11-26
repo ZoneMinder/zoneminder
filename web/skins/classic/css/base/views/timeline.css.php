@@ -83,11 +83,11 @@ if ( $mode == 'overlay' ) {
     foreach ( array_keys($monitors) as $monitorId ) {
 ?>
 #chartPanel .activityPos<?php echo $monitorId ?> {
-    top: <?php echo $char['activityBars'][$monitorId]['top'] ?>px;
+    top: <?php echo $chart['activityBars'][$monitorId]['top'] ?>px;
 }
 
 #chartPanel .eventsPos<?php echo $monitorId ?> {
-    top: <?php echo $char['eventBars'][$monitorId]['top'] ?>px;
+    top: <?php echo $chart['eventBars'][$monitorId]['top'] ?>px;
 }
 <?php
     }

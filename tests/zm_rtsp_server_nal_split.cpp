@@ -20,11 +20,16 @@
 #include "zm_config.h"
 
 #if HAVE_RTSP_SERVER
+#include "zm_rtsp_server_session.h"
+#include "zm_rtsp_server_stream_adts_source.h"
 #include "zm_rtsp_server_stream_h264_source.h"
+#include "net/EventLoop.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace {
@@ -56,6 +61,19 @@ class CapturingH264Source : public H264_ZoneMinderStreamSource {
   std::vector<std::vector<uint8_t>> pushed;
 };
 
+// Lets a test hold the mutex the write thread waits with
+class MutexExposedSource : public ZoneMinderStreamSource {
+ public:
+  explicit MutexExposedSource(std::shared_ptr<xop::RtspServer> &server) :
+    ZoneMinderStreamSource(server, 0, xop::channel_0) {}
+  ~MutexExposedSource() override { StopAndJoin(); }
+
+  std::mutex &WaitMutex() { return mutex_; }
+
+ protected:
+  void PushFrame(const uint8_t *, size_t, int64_t, bool) override {}
+};
+
 }  // namespace
 
 TEST_CASE("RTSP NALs do not carry trailing zero bytes", "[rtsp_nal_split]") {
@@ -85,5 +103,51 @@ TEST_CASE("RTSP timestamps never reach xop as 0", "[rtsp_nal_split]") {
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(AV_NOPTS_VALUE, tb) == 0);  // wall clock, not INT64_MIN
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(0, tb) != 0);
   CHECK(ZoneMinderStreamVideoSource::RtpTimestamp(1000000, tb) == 90000);
+}
+
+TEST_CASE("RTSP audio without a pts gets a running RTP timestamp", "[rtsp_nal_split]") {
+  // a missing pts must not collapse every audio packet onto timestamp 0
+  AVRational tb = {1, 8000};
+  CHECK(ZoneMinderStreamAudioSource::RtpTimestamp(1000000, tb) == 8000);
+  int64_t first = ZoneMinderStreamAudioSource::RtpTimestamp(AV_NOPTS_VALUE, tb);
+  CHECK(first != 0);
+  CHECK(first != AV_NOPTS_VALUE);
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  int64_t second = ZoneMinderStreamAudioSource::RtpTimestamp(AV_NOPTS_VALUE, tb);
+  CHECK(second > first);
+}
+
+TEST_CASE("RTSP source Stop waits for the write thread's mutex", "[rtsp_nal_split]") {
+  // The write thread holds this mutex between testing stop_ and waiting on the
+  // condition variable. A Stop() that does not take it can set stop_ and
+  // notify in that gap, and the thread then never wakes.
+  std::shared_ptr<xop::RtspServer> server;
+  MutexExposedSource source(server);
+  std::atomic<bool> stopped{false};
+  std::thread stopper;
+  {
+    std::lock_guard<std::mutex> lock(source.WaitMutex());
+    stopper = std::thread([&] {
+      source.Stop();
+      stopped = true;
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    CHECK_FALSE(stopped);
+  }
+  stopper.join();
+  CHECK(stopped);
+  source.StopAndJoin();
+}
+
+TEST_CASE("RTSP session with a taken stream name is refused", "[rtsp_nal_split]") {
+  xop::EventLoop loop;
+  // let the scheduler thread start before the loop is torn down
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  std::shared_ptr<xop::RtspServer> server = xop::RtspServer::Create(&loop);
+  // Two monitors with an empty RTSPStreamName collide on the same suffix
+  xop::MediaSession *first = xop::MediaSession::CreateNew("");
+  xop::MediaSession *second = xop::MediaSession::CreateNew("");
+  CHECK(RtspAddSession(*server, first));
+  CHECK_FALSE(RtspAddSession(*server, second));
 }
 #endif  // HAVE_RTSP_SERVER

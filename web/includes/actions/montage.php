@@ -47,9 +47,15 @@ if ( isset($_REQUEST['object']) ) {
         }
       } else {
         $Layout = new ZM\MontageLayout(validCardinal($_REQUEST['zmMontageLayout']));
+        # The selected layout is gone (deleted from another tab); don't create an unnamed one
+        if ( !$Layout->Id() ) {
+          ZM\Warning('Layout Id=' . validCardinal($_REQUEST['zmMontageLayout']) . ' not found for save');
+          return;
+        }
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
-        $Layout->UserId($user->Id());
+        # An admin saving someone else's layout leaves it with its owner
+        if (!$Layout->Id()) $Layout->UserId($user->Id());
         $Layout->Positions($_REQUEST['Positions']);
         $Layout->save();
         zm_session_start();
@@ -71,14 +77,20 @@ if ( isset($_REQUEST['object']) ) {
 
       if (canEdit('System')) {
         if ($Layout->Id()) {
-          $Layout->delete();
-          zm_session_start();
-          unset($_SESSION["zmMontageLayout"]);
-          $_SESSION['zmMontageLayout'] = '';
-          session_write_close();
-          unset($_COOKIE['zmMontageLayout']);
-          zm_setcookie('zmMontageLayout', '', array('expires'=>time()-3600*24)); //!!! After this JS still sees cookies, strange !!!
-          $redirect = '?view=montage';
+          // Same preset names that save refuses to overwrite.
+          if (preg_match('/^(Auto|Freeform|\d+ Wide)$/', $Layout->Name())) {
+            ZM\Warning('Cannot delete preset layout ' . $Layout->Name());
+            $redirect = '?view=montage';
+          } else {
+            $Layout->delete();
+            zm_session_start();
+            unset($_SESSION["zmMontageLayout"]);
+            $_SESSION['zmMontageLayout'] = '';
+            session_write_close();
+            unset($_COOKIE['zmMontageLayout']);
+            zm_setcookie('zmMontageLayout', '', array('expires'=>time()-3600*24)); //!!! After this JS still sees cookies, strange !!!
+            $redirect = '?view=montage';
+          }
         } else {
           ZM\Warning('Layout Id=' . $_REQUEST['zmMontageLayout'] . ' not found for delete');
           $redirect = '?view=montage';

@@ -21,18 +21,18 @@
 ?>
 <!DOCTYPE html>
 <html>
+<head>
 <?php
 if ( !empty($refreshParent) )
 {
 ?>
-<head>
 <script nonce="<?php echo $cspNonce;?>">
 //self.onerror = function() { return( true ); }
 opener.location.reload(true);
 </script>
-</head>
 <?php
 }
 ?>
+</head>
 <body></body>
 </html>

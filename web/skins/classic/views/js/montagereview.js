@@ -406,6 +406,13 @@ function imagedone( obj, monId, success ) {
     evaluateLoadTimes();
   }
   monitorLoading[monId] = false;
+  // A newer image was staged while this one loaded; without a timer running
+  // (speed 0) nothing else would ever request it
+  const stagedURL = monitorLoadingStageURL[monId];
+  if (stagedURL) {
+    monitorLoadingStageURL[monId] = '';
+    loadImage2Monitor(monId, stagedURL);
+  }
   if ( ! success ) {
     // if we had a failrue queue up the no-data image
     //loadImage2Monitor(monId,"no data");  // leave the staged URL if there is one, just ignore it here.
@@ -431,6 +438,8 @@ function writeText(monId, text) {
   if (monId) {
     const canvasCtx = monitorCanvasCtx[monId];
     const canvasObj = monitorCanvasObj[monId];
+    // Replace the previous frame, otherwise the text is drawn over a stale image
+    canvasCtx.clearRect(0, 0, canvasObj.width, canvasObj.height);
     var textSize = canvasObj.width * 0.15;
     canvasCtx.font = '600 ' + textSize.toString() + "px Arial";
     canvasCtx.fillStyle = 'white';
@@ -488,7 +497,10 @@ function timerFire() {
     //outputUpdate(currentTimeSecs); // In live mode we basically do nothing but redisplay
   } else if (currentTimeSecs + playSecs >= maxTimeSecs) {
     // beyond the end just stop
-    if (speedIndex) setSpeed(0);
+    if (speedIndex) {
+      $j('#speedslider').val(0); // keep the slider showing what is playing
+      setSpeed(0);
+    }
     //outputUpdate(currentTimeSecs);
   } else if (playSecs || (currentTimeSecs==minTimeSecs)) {
     currentTimeSecs = playSecs + currentTimeSecs;
@@ -568,7 +580,9 @@ function drawSliderOnGraph(val) {
 } // end function drawSliderOnGraph(val)
 
 function drawFrameOnGraph(frame) {
-  if (!frame.Score) {
+  // Score arrives as a string, and "0" is truthy, so compare the number
+  const score = parseInt(frame.Score);
+  if (!score) {
     return;
   }
   const MonitorId = parseInt(events[frame.EventId].MonitorId);
@@ -578,7 +592,7 @@ function drawFrameOnGraph(frame) {
   let x2 = parseInt( (frame.TimeStampSecs - minTimeSecs) / rangeTimeSecs * cWidth + 0.5 ); // round up
   if (x2-x1 < 2) x2=x1+2; // So it is visible make them all at least this number of seconds wide
   ctx.fillStyle = monitorColour[MonitorId];
-  ctx.globalAlpha = 0.4 + 0.6 * (1 - frame.Score/maxScore); // Background is scaled but even lowest is twice as dark as the background
+  ctx.globalAlpha = 0.4 + 0.6 * (1 - score/Math.max(maxScore, score)); // Background is scaled but even lowest is twice as dark as the background
   ctx.fillRect(x1, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight-2);
   //console.log("Drew frame from", x1, MonitorId, monitorIndex[MonitorId]*rowHeight, x2-x1, rowHeight, monitorColour[MonitorId]);
 }
@@ -704,7 +718,6 @@ function drawGraph() {
     if (zm_event.FramesById) {
       for (const frame_id in zm_event.FramesById ) {
         const frame = zm_event.FramesById[frame_id];
-        if (!frame.Score) continue;
         drawFrameOnGraph(frame);
       } // end foreach frame
     } else {
@@ -823,7 +836,7 @@ function outputUpdate(time) {
         writeText(monId, 'No Event');
       }
     }
-  } else if (Object.keys(events).length !== 0) {
+  } else if (liveMode == 1 || Object.keys(events).length !== 0) {
     // Per-frame loading path — used for speeds < 1x, speed 0, live
     // mode, or when EventStreams are not active.  Each frame is an
     // independent mode=single HTTP request to zms.  This works well
@@ -849,8 +862,10 @@ function relMouseCoords(event) {
     totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
   } while (currentElement = currentElement.offsetParent);
 
-  const canvasX = event.pageX - totalOffsetX;
-  const canvasY = event.pageY - totalOffsetY;
+  // A TouchEvent has no pageX/pageY of its own, they are on the touch point
+  const point = (event.touches && event.touches.length) ? event.touches[0] : event;
+  const canvasX = point.pageX - totalOffsetX;
+  const canvasY = point.pageY - totalOffsetY;
 
   return {x: canvasX, y: canvasY};
 }
@@ -1041,6 +1056,15 @@ function setLive(value) {
   liveMode = value;
   var form = document.getElementById('montagereview_form');
   form.elements['live'].value = value;
+  // Fit and scale are changed in script only, so carry the current values over
+  form.elements['fit'].value = (fitMode == 1) ? '1' : '0';
+  if (!form.elements['scale']) {
+    const scaleInput = document.createElement('input');
+    scaleInput.type = 'hidden';
+    scaleInput.name = 'scale';
+    form.appendChild(scaleInput);
+  }
+  form.elements['scale'].value = currentScale;
   form.submit();
   return false;
 }
@@ -1131,6 +1155,7 @@ function click_panleft() {
 function click_panright() {
   minTimeSecs = parseInt(minTimeSecs + rangeTimeSecs/2);
   maxTimeSecs = minTimeSecs + rangeTimeSecs - 1;
+  currentTimeSecs += rangeTimeSecs/2;
   clicknav(minTimeSecs, maxTimeSecs, 0);
 }
 // Manage the DOWNLOAD VIDEO button
@@ -1158,6 +1183,35 @@ function click_download() {
       })
       .fail(logAjaxFail);
 } // end function click_download
+
+// Build the filter[Query][terms][n][...] query parameters for a list of terms.
+function filterTermsQueryString(terms) {
+  let query = '';
+  terms.forEach(function(term, index) {
+    const prefix = 'filter[Query][terms][' + index + ']';
+    if (term.cnj) query += '&' + encodeURIComponent(prefix + '[cnj]') + '=' + encodeURIComponent(term.cnj);
+    if (term.obr) query += '&' + encodeURIComponent(prefix + '[obr]') + '=' + encodeURIComponent(term.obr);
+    query += '&' + encodeURIComponent(prefix + '[attr]') + '=' + encodeURIComponent(term.attr);
+    query += '&' + encodeURIComponent(prefix + '[op]') + '=' + encodeURIComponent(term.op);
+    query += '&' + encodeURIComponent(prefix + '[val]') + '=' + encodeURIComponent(term.val);
+    if (term.cbr) query += '&' + encodeURIComponent(prefix + '[cbr]') + '=' + encodeURIComponent(term.cbr);
+  });
+  return query;
+}
+
+// List the events in the window being reviewed, on the monitors shown.
+// DateTime is what this view's filter and Download use: it means the event was
+// running then, so an event already recording when the window opens is kept.
+function click_events() {
+  const terms = [
+    {attr: 'DateTime', op: '>=', val: secs2dbstr(minTimeSecs)},
+    {cnj: 'and', attr: 'DateTime', op: '<=', val: secs2dbstr(maxTimeSecs)},
+  ];
+  const ids = [];
+  for (let i = 0; i < numMonitors; i++) ids.push(monitorPtr[i]);
+  if (ids.length) terms.push({cnj: 'and', attr: 'MonitorId', op: 'IN', val: ids.join(',')});
+  window.location = '?view=events' + filterTermsQueryString(terms);
+}
 
 function click_all_events() {
   clicknav(0, 0, 0);
@@ -1262,7 +1316,8 @@ function changeFilters(e) {
     minTimeSecs = minStartDateTime.valueOf()/1000;
     maxTime = maxStartDateTime.toFormat('yyyy-MM-dd HH:mm:ss');
     maxTimeSecs = maxStartDateTime.valueOf()/1000;
-    rangeTimeSecs = maxTimeSecs - minTimeSecs;
+    // inclusive, as montagereview.js.php emits it; never 0 when min equals max
+    rangeTimeSecs = maxTimeSecs - minTimeSecs + 1;
     // On any change, jump to beginning ? No...
     if (currentTimeSecs < minTimeSecs) {
       // console.log("currentTimeSecs < minTimeSecs setting to ", minTimeSecs, minTime);
@@ -1527,7 +1582,8 @@ function initPage() {
       const monId = monitorPtr[i];
       if (!monId || !monitorCanvasObj[monId]) continue;
       const server = Servers[monitorServerId[monId]] || Servers[0];
-      const monitor = monitorData[i];
+      // monitorData leaves out deleted monitors, so it cannot be indexed by position
+      const monitor = monitorData.find((m) => m.Id == monId);
 
       eventStreams[monId] = new EventStream({
         monitorId: monId,
@@ -1652,7 +1708,8 @@ function initDatepickerMontageReviewPage() {
 }
 
 function wait_for_events() {
-  if (Object.keys(events).length === 0) {
+  // Live mode shows the cameras, not events, so it must not wait for any
+  if (liveMode != 1 && Object.keys(events).length === 0) {
     if (!wait_for_events_interval) {
       wait_for_events_interval = setInterval(wait_for_events, 1000);
     }
@@ -1736,14 +1793,36 @@ function loadFrames(zm_events) {
       return;
     }
 
+    // A failed fetch must drop the "loading" marker we set above, otherwise a
+    // closed event is skipped by the filter on every later call and its frames
+    // can never be loaded again until a page reload.
+    const clearLoadingMarkers = function(event_ids) {
+      for (let i=0; i<event_ids.length; i++) {
+        const e = zm_events[event_ids[i]];
+        if (e && e.FramesById && !e.FramesById.length) delete e.FramesById;
+      }
+    };
+
     let query = '';
+    let batch = [];
+    let outstanding = 0; // the caller redraws once, so resolve when every batch is in
     while (ids.length) {
-      query += '/EventId:'+ids.shift();
+      const id = ids.shift();
+      query += '/EventId:'+id;
+      batch.push(id);
 
       if ((!ids.length) || (query.length > 1000)) {
+        // Snapshot the batch for this request: the loop keeps pushing into it
+        // and the ajax callbacks run later.
+        const batch_ids = batch;
+        batch = [];
+        outstanding++;
         $j.ajax(zmAuth.appendTo(url+query+'.json'), {
           timeout: 0,
           success: function(data) {
+            if (data && data.result == 'Error') {
+              clearLoadingMarkers(batch_ids);
+            }
             if (data && data.frames && data.frames.length) {
               let last_frame = null;
 
@@ -1770,6 +1849,9 @@ function loadFrames(zm_events) {
 
                 //if (!zm_event.FramesById) zm_event.FramesById = [];
                 zm_event.FramesById[frame.FrameId] = frame;
+                // maxScore is emitted as 0 by the page, so track it as frames arrive
+                const frameScore = parseInt(frame.Score);
+                if (frameScore > maxScore) maxScore = frameScore;
                 // Remember how far this event has been read, so getFrame() can
                 // tell when a recording event has outgrown what we hold.
                 const frameSecs = parseFloat(frame.TimeStampSecs);
@@ -1781,10 +1863,11 @@ function loadFrames(zm_events) {
             } else {
               // console.log("No frames in data", data);
             } // end if there are frames
-            resolve();
+            if (--outstanding == 0) resolve();
           },
           error: function(jqXHR) {
             logAjaxFail(jqXHR);
+            clearLoadingMarkers(batch_ids);
             reject(Error("There was an error"));
           }
         }); // end ajax

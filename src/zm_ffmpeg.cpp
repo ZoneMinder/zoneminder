@@ -24,6 +24,7 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cerrno>
 #include <climits>
@@ -175,9 +176,14 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
     Error("Failed to allocate context for fallback decoder %s", codec->name);
     return nullptr;
   }
-  avcodec_parameters_to_context(ctx, codecpar);
+  int ret = avcodec_parameters_to_context(ctx, codecpar);
+  if (ret < 0) {
+    Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
   zm_dump_codec(ctx);
-  int ret = avcodec_open2(ctx, codec, nullptr);
+  ret = avcodec_open2(ctx, codec, nullptr);
   if (ret < 0) {
     Error("Could not open fallback decoder %s (error '%s')",
         codec->name, av_make_error_string(ret).c_str());
@@ -232,7 +238,12 @@ AVCodecContext *open_video_decoder(
     }
 
     ctx = avcodec_alloc_context3(codec);
-    avcodec_parameters_to_context(ctx, stream->codecpar);
+    ret = avcodec_parameters_to_context(ctx, stream->codecpar);
+    if (ret < 0) {
+      Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+      avcodec_free_context(&ctx);
+      continue;
+    }
     ctx->framerate = stream->r_frame_rate;
     ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
@@ -492,6 +503,60 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
+// Encoder options can name files the encoder then creates or overwrites as the
+// zmc user (two-pass stats, csv logs, reconstructed frames). The options come
+// from the monitor's EncoderParameters, so an account that can edit monitors
+// must not be able to point them at arbitrary paths. Returns the value to use,
+// empty when the whole option has to go.
+static std::string zm_filter_file_option(const std::string &key, const std::string &value) {
+  static const char *const file_keys[] = {"passlogfile", "stats", "dump-yuv", "recon", nullptr};
+  for (const char *const *k = file_keys; *k; k++) {
+    if (key == *k) return "";
+  }
+  if ((key == "flags" or key == "flags2") and (value.find("pass1") != std::string::npos or value.find("pass2") != std::string::npos)) {
+    return "";
+  }
+  if (key == "x264-params" or key == "x265-params" or key == "x264opts") {
+    static const char *const param_keys[] = {
+      "stats", "pass", "csv", "csv-log-level", "analysis-load", "analysis-save", "analysis-reuse-file",
+      "scaling-list", "recon", "recon-y4m-exec", "dump-yuv", "qpfile", "lambda-file", "zonefile",
+      "multi-pass-opt-analysis", "multi-pass-opt-distortion", nullptr};
+    std::string out;
+    size_t pos = 0;
+    while (pos <= value.size()) {
+      size_t end = value.find(':', pos);
+      if (end == std::string::npos) end = value.size();
+      const std::string item = value.substr(pos, end - pos);
+      // libx264 and libx265 read '_' as '-' and x265 also drops a leading "--",
+      // so compare the name in the form the library will use.
+      std::string name = item.substr(0, item.find('='));
+      if (name.compare(0, 2, "--") == 0) name.erase(0, 2);
+      std::replace(name.begin(), name.end(), '_', '-');
+      bool deny = false;
+      for (const char *const *k = param_keys; *k; k++) {
+        if (name == *k) deny = true;
+      }
+      // scaling-list also accepts built-in presets, which do not name a file
+      if (deny and name == "scaling-list") {
+        const size_t eq = item.find('=');
+        if (eq != std::string::npos) {
+          const std::string preset = item.substr(eq + 1);
+          if (preset == "off" or preset == "none" or preset == "flat" or preset == "jvt" or preset == "default") deny = false;
+        }
+      }
+      if (deny) {
+        Warning("Ignoring file option '%s' in encoder option %s", name.c_str(), key.c_str());
+      } else if (!item.empty()) {
+        if (!out.empty()) out += ':';
+        out += item;
+      }
+      pos = end + 1;
+    }
+    return out;
+  }
+  return value;
+}
+
 int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
   const std::string key_terminators = std::string("=") + separators;
   const bool hash_comments = strchr(separators, '#') != nullptr;
@@ -523,9 +588,12 @@ int zm_parse_options(AVDictionary **pm, const std::string &options, const char *
         }
       }
     }
-    if (*key) {
+    const std::string safe = (*key and value and *value) ? zm_filter_file_option(key, value) : std::string();
+    if (*key and value and *value and safe.empty()) {
+      Warning("Ignoring option '%s' as it would write a file", key);
+    } else if (*key) {
       if (value and *value) {
-        int ret = av_dict_set(pm, key, value, 0);
+        int ret = av_dict_set(pm, key, safe.c_str(), 0);
         if (ret < 0) result = ret;
       } else {
         Warning("Ignoring option '%s' as it has no value", key);
@@ -960,6 +1028,8 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
     return AV_PIX_FMT_YUV444P;
   case AV_PIX_FMT_YUVJ440P :
     return AV_PIX_FMT_YUV440P;
+  case AV_PIX_FMT_YUVJ411P :
+    return AV_PIX_FMT_YUV411P;
   case AV_PIX_FMT_NONE :
   case AV_PIX_FMT_YUVJ420P :
     return AV_PIX_FMT_YUV420P;
@@ -983,6 +1053,13 @@ bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
   }
 }
 
+static bool pix_fmt_is_planar_yuv(enum AVPixelFormat fmt) {
+  // Non-J YUV formats (limited range by swscale default), not RGB or gray.
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fix_deprecated_pix_fmt(fmt));
+  return desc && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BAYER))
+         && desc->nb_components >= 3;
+}
+
 void zm_sws_set_ranges(struct SwsContext *ctx,
                        enum AVPixelFormat original_src_fmt,
                        enum AVPixelFormat original_dst_fmt) {
@@ -994,7 +1071,12 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
   // range. Pass the ORIGINAL (pre-fix) formats.
   const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
   const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
-  if (!src_full && !dst_full) return;
+  // sws_getCachedContext() keeps the same context across a YUVJ420P ->
+  // YUV420P change, because both map to one format. A range set for the
+  // earlier frame must therefore be put back to limited for a plain YUV side.
+  const bool src_yuv = pix_fmt_is_planar_yuv(original_src_fmt);
+  const bool dst_yuv = pix_fmt_is_planar_yuv(original_dst_fmt);
+  if (!src_full && !dst_full && !src_yuv && !dst_yuv) return;
 
   int *inv_table, *table;
   int srcRange, dstRange, brightness, contrast, saturation;
@@ -1004,8 +1086,10 @@ void zm_sws_set_ranges(struct SwsContext *ctx,
                                &brightness, &contrast, &saturation) < 0)
     return;
   bool changed = false;
-  if (src_full && srcRange != 1) { srcRange = 1; changed = true; }
-  if (dst_full && dstRange != 1) { dstRange = 1; changed = true; }
+  const int want_src = src_full ? 1 : 0;
+  const int want_dst = dst_full ? 1 : 0;
+  if ((src_full || src_yuv) && srcRange != want_src) { srcRange = want_src; changed = true; }
+  if ((dst_full || dst_yuv) && dstRange != want_dst) { dstRange = want_dst; changed = true; }
   if (!changed) return;
   sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
                            brightness, contrast, saturation);

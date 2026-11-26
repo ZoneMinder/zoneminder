@@ -66,7 +66,7 @@ check('a good save still reports success', $thing2->save(array('Deleted' => true
 // Monitor::delete() must hand that result back rather than swallow it.
 $monitor_src = file_get_contents($root.'/web/includes/Monitor.php');
 check('Monitor::delete returns the result of the save',
-  (bool)preg_match('/return \$this->save\(\[\'Deleted\'=>true\]\);/', $monitor_src));
+  (bool)preg_match('/\$saved = \$this->save\(\[\'Deleted\'=>true\]\);.*return \$saved;/s', $monitor_src));
 
 // And the console action has to surface it, and not audit a delete that failed.
 $console_src = file_get_contents($root.'/web/includes/actions/console.php');

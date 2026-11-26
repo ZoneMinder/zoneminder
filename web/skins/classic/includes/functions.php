@@ -130,6 +130,8 @@ echo output_cache_busted_stylesheet_links(array(
     echo output_link_if_exists(array('/css/base/views/control.css'));
     if ( $css != 'base' )
       echo output_link_if_exists(array('/css/'.$css.'/views/control.css'));
+  } else if ( $basename == 'event' ) {
+    echo output_link_if_exists(array('/assets/glightbox/dist/css/glightbox.min.css'));
   }
 ?>
   <style>
@@ -137,7 +139,7 @@ echo output_cache_busted_stylesheet_links(array(
   $baseCssPhpFile = getSkinFile('css/base/skin.css.php');
   if ($baseCssPhpFile) require_once($baseCssPhpFile);
   $skinCssPhpFile = getSkinFile('css/'.$css.'/skin.css.php');
-  if ($skinCssPhpFile) require_once($baseCssPhpFile);
+  if ($skinCssPhpFile) require_once($skinCssPhpFile);
 
   $baseViewCssPhpFile = getSkinFile('/css/base/views/'.$basename.'.css.php');
   if ($baseViewCssPhpFile) require_once($baseViewCssPhpFile);
@@ -191,6 +193,10 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
+  global $info_message;
+  if ( $info_message ) {
+   echo '<div id="info" class="infoText">'.$info_message.'</div>';
+  }
   global $navbar_type;
   if ($navbar_type == 'left') {
     getSidebarTopHTML();
@@ -237,7 +243,15 @@ function getMenuKeyHrefMap() {
 // MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
 function menuItemEffectiveLink($item) {
   $link = $item->Link();
-  if ($link !== null && $link !== '') return $link;
+  if ($link !== null && $link !== '') {
+    // Browsers ignore whitespace and control characters inside a scheme, so
+    // look at the link without them. Only http(s) may carry a scheme, as a
+    // javascript: or data: link would run script in the session of whoever
+    // clicks it.
+    $bare = preg_replace('/[\x00-\x20]+/', '', $link);
+    if (!preg_match('/^[a-z][a-z0-9+.\-]*:/i', $bare) or preg_match('/^https?:/i', $bare)) return $link;
+    $link = null;
+  }
   $map = getMenuKeyHrefMap();
   $key = $item->MenuKey();
   return isset($map[$key]) ? $map[$key] : '?view='.$key;
@@ -911,7 +925,8 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    $free = $S->disk_total_space() ? ' (' . human_filesize(max(0, $S->disk_total_space() - $S->disk_used_space())) . ' free)' : '';
+    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . $free . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));
@@ -1066,7 +1081,7 @@ function getZMVersionHTML() {
     $class = 'text-danger';
     $tt_text = translate('RunLocalUpdate');
     $content = 'v'.ZM_VERSION.PHP_EOL;
-  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
+  } else if ( verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_VERSION ) || verNum( ZM_DYN_LAST_VERSION ) <= verNum( ZM_DYN_CURR_VERSION ) || !ZM_CHECK_FOR_UPDATES || ZM_DYN_NEXT_REMINDER > time() ) { // No update needed
     $class = ''; // Don't change the text color under normal conditions
     $tt_text = translate('UpdateNotNecessary');
     $content = 'v'.ZM_VERSION.PHP_EOL;
@@ -1743,14 +1758,14 @@ function runtimeStatus($running=null) {
       $state = '';
   }
 
-  return $running ? ($state ? $state : translate('Running')) : translate('Stopped');
+  return $running ? ($state ? htmlspecialchars($state) : translate('Running')) : translate('Stopped');
 }
 
 function getStatsTableHTML($eid, $fid, $row='') {
   if ( !canView('Events') ) return;
   $result = '';
   
-  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,Z.Coords,M.Name AS MonitorName,M.Width,M.Height FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
+  $sql = 'SELECT S.*,E.*,Z.Name AS ZoneName,Z.Units,Z.Area,Z.Coords,M.Name AS MonitorName FROM Stats AS S LEFT JOIN Events AS E ON S.EventId = E.Id LEFT JOIN Zones AS Z ON S.ZoneId = Z.Id LEFT JOIN Monitors AS M ON E.MonitorId = M.Id WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
   $stats = dbFetchAll( $sql, NULL, array( $eid, $fid ) );
   
   $result .= '<table id="contentStatsTable' .$row. '"'.PHP_EOL;
@@ -1782,20 +1797,27 @@ function getStatsTableHTML($eid, $fid, $row='') {
         // Area is in percentage coordinate space (0-10000 for full frame).
         // Convert to pixel area for percentage calculations since Stats values are pixel counts.
         $pixelArea = $stat['Area'] / 10000.0 * $stat['Width'] * $stat['Height'];
-        if ($pixelArea <= 0) $pixelArea = 1; // avoid division by zero
+
+        $pct = function($n) use ($pixelArea) {
+          return $pixelArea > 0 ? sprintf('%d (%d%%)', $n, 100*$n/$pixelArea) : sprintf('%d', $n);
+        };
 
         $result .= '<tr>'.PHP_EOL;
-          $result .= '<td class="colZone">' .validHtmlStr($stat['ZoneName']). '</td>'.PHP_EOL;
+          $result .= '<td class="colZone">' .validHtmlStr(isset($stat['ZoneName']) ? $stat['ZoneName'] : translate('Zone').' '.$stat['ZoneId']). '</td>'.PHP_EOL;
           $result .= '<td class="colPixelDiff">' .validHtmlStr($stat['PixelDiff']). '</td>'.PHP_EOL;
-          $result .= '<td class="colAlarmPx">' .sprintf( "%d (%d%%)", $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$pixelArea) ). '</td>'.PHP_EOL;
-          $result .= '<td class="colFilterPx">' .sprintf( "%d (%d%%)", $stat['FilterPixels'], (100*$stat['FilterPixels']/$pixelArea) ).'</td>'.PHP_EOL;
-          $result .= '<td class="colBlobPx">' .sprintf( "%d (%d%%)", $stat['BlobPixels'], (100*$stat['BlobPixels']/$pixelArea) ). '</td>'.PHP_EOL;
+          $result .= '<td class="colAlarmPx">' .$pct($stat['AlarmPixels']). '</td>'.PHP_EOL;
+          $result .= '<td class="colFilterPx">' .$pct($stat['FilterPixels']).'</td>'.PHP_EOL;
+          $result .= '<td class="colBlobPx">' .$pct($stat['BlobPixels']). '</td>'.PHP_EOL;
           $result .= '<td class="colBlobs">' .validHtmlStr($stat['Blobs']). '</td>'.PHP_EOL;
 
           if ( $stat['Blobs'] > 1 ) {
-            $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$pixelArea), (100*$stat['MaxBlobSize']/$pixelArea) ). '</td>'.PHP_EOL;
+            if ( $pixelArea > 0 ) {
+              $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d (%d%%-%d%%)", $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$pixelArea), (100*$stat['MaxBlobSize']/$pixelArea) ). '</td>'.PHP_EOL;
+            } else {
+              $result .= '<td class="colBlobSizes">' .sprintf( "%d-%d", $stat['MinBlobSize'], $stat['MaxBlobSize'] ). '</td>'.PHP_EOL;
+            }
           } else {
-            $result .= '<td class="colBlobSizes">' .sprintf( "%d (%d%%)", $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$pixelArea ). '</td>'.PHP_EOL;
+            $result .= '<td class="colBlobSizes">' .$pct($stat['MinBlobSize']). '</td>'.PHP_EOL;
           }
           
           $result .= '<td class="colAlarmLimits">' .validHtmlStr($stat['MinX'].",".$stat['MinY']."-".$stat['MaxX'].",".$stat['MaxY']). '</td>'.PHP_EOL;
@@ -1856,6 +1878,9 @@ function xhtmlFooter() {
     echo output_script_if_exists(array('assets/pro-sidebar-template/dist/main.js'));
     echo output_script_if_exists(array('assets/mb.extruder/inc/mbExtruder.js'));
     echo output_script_if_exists(array('assets/swiped-events/dist/swiped-events.min.js'));
+  }
+  if ( $basename == 'event' ) {
+    echo output_script_if_exists(array('assets/glightbox/dist/js/glightbox.min.js'));
   }
   if ( $basename == 'montage' ) {
   } else if ( $basename == 'watch' || $basename == 'event') {

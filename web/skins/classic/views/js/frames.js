@@ -10,13 +10,24 @@ function ajaxRequest(params) {
   }
   $j.getJSON(thisUrl + '?view=request&request=frames&task=query&eid='+eid, params.data)
       .done(function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so params.success()
+          // would never run and the table would load for ever.
+          table.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         var rows = processRows(data.rows);
         // rearrange the result into what bootstrap-table expects
         console.log('Total: '+data.total);
         console.log('TotalnotFiltered: '+data.totalNotFiltered);
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Without this the table stays on "Loading, please wait" for good.
+        table.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
+      });
 }
 
 function processRows(rows) {
@@ -40,9 +51,16 @@ function detailFormatter(index, row, $detail) {
   $detail.html('Please wait. Loading from ajax request...');
   $j.get(thisUrl + '?request=stats&eid=' + row.EventId + '&fid=' + row.FrameId + '&row=' + index)
       .done(function(data) {
+        if (data.result == 'Error') {
+          $detail.empty().text(data.message);
+          return;
+        }
         $detail.html(data.html);
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        $detail.empty();
+        logAjaxFail(jqXHR, textStatus, errorThrown);
+      });
 }
 
 function initPage() {

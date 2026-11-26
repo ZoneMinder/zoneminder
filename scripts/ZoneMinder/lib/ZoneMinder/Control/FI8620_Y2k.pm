@@ -41,6 +41,10 @@ require ZoneMinder::Base;
 require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 # ===================================================================================================================================
 #
 # FI8620 FOSCAM Dome PTZ H264 Control Protocol
@@ -90,7 +94,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
@@ -111,7 +115,7 @@ sub sendCmd
     printMsg( $cmd, "Tx" );
     # I solve the authentication problem with recent Foscam
     # I use perl Basic Authentication method
-    my $ua = LWP::UserAgent->new();
+    my $ua = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     my $req = HTTP::Request->new( GET =>"http://".$self->{Monitor}->{ControlAddress}."/web/cgi-bin/hi3510/".$cmd );
     $req->authorization_basic('admin', $self->{Monitor}->{ControlDevice} );
     my $res = $self->{ua}->request($req);
@@ -134,6 +138,20 @@ sub moveStop
    $self->sendCmd( $cmd );
         $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
         $self->sendCmd( $cmd );
+}
+
+# The web ui sends zoomStop and focusStop when a continuous zoom or focus button
+# is released. The camera has one stop command for the whole ptz head.
+sub zoomStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub focusStop
+{
+   my $self = shift;
+   $self->moveStop();
 }
 
 sub autoStop
@@ -501,7 +519,7 @@ sub focusMan
           $self->sendCmd( $cmd );
           $self->autoStop( int(1000000*0.5) );
     }
-    if ( $osd eq "off" )
+    elsif ( $osd eq "off" )
          {
           $osd = "on";
           my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=1&-name=OSD $osd";

@@ -84,6 +84,7 @@ TEST_CASE("SharedData offsets still match Monitor.php and Memory.pm", "[Monitor]
   CHECK(offsetof(SharedData, last_analysis_index) == 872);
   CHECK(offsetof(SharedData, analysis_image_count) == 876);
   CHECK(offsetof(SharedData, audio_level_until) == 880);
+  CHECK(offsetof(SharedData, onvif_status) == 884);
 }
 
 TEST_CASE("SharedValue reads and writes the plain value", "[Monitor]") {

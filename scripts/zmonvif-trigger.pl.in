@@ -106,7 +106,9 @@ $SIG{INT} = \&handler;
 $SIG{HUP} = \&handler;
 $SIG{QUIT} = \&handler;
 $SIG{TERM} = \&handler;
-$SIG{__DIE__} = \&handler;
+# a die caught by an eval anywhere (SOAP::Lite, DBI, ZoneMinder modules) must not
+# shut the daemon down or kill the subscription renewal process
+$SIG{__DIE__} = sub { return if $^S; handler(@_); };
 
 # =========================================================================
 # Debug
@@ -212,7 +214,8 @@ sub xs_duration {
 
     my %new_monitors = ();
 
-    my $sql = "SELECT * FROM Monitors WHERE Capturing != 'None' AND ONVIF_URL != ''";
+    # A deleted monitor keeps Capturing and ONVIF_URL, so it must be excluded explicitly. Same as zmtrigger.pl.in loadMonitors.
+    my $sql = "SELECT * FROM Monitors WHERE Deleted=0 AND Capturing != 'None' AND ONVIF_URL != ''";
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
     while ( my $monitor = $sth->fetchrow_hashref() ) {
@@ -266,12 +269,20 @@ sub xs_duration {
     Info("On: $monitorId, $score, $cause, $text, $showtext");
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
+    if ( !$monitor ) {
+      Warning("Can't find monitor $monitorId");
+      return;
+    }
     if ( defined $script ) {
       #      eval {
       system($script, 'On', $monitor->{Name}, $monitor->{Path}, $cause);
       # this goes to "stopped" in ffmpeg when executed from shell - why?
       #      }
     } else {
+      if ( !zmMemVerify($monitor) ) {
+        Warning("Can't verify shared memory for monitor $monitorId");
+        return;
+      }
       # encode() ensures that no utf-8 is written to mmap'ed memory.
       zmTriggerEventOn($monitor, $score, encode('utf-8', $cause), encode('utf-8', $text));
       zmTriggerShowtext($monitor, encode('utf-8', $showtext)) if defined($showtext);
@@ -284,11 +295,19 @@ sub xs_duration {
     Info("Off: $monitorId, $score, $cause, $text, $showtext");
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
+    if ( !$monitor ) {
+      Warning("Can't find monitor $monitorId");
+      return;
+    }
     if ( defined $script ) {
       #      eval {
       system($script, 'Off', $monitor->{Name}, $monitor->{Path}, $cause);
       #      }
     } else {
+      if ( !zmMemVerify($monitor) ) {
+        Warning("Can't verify shared memory for monitor $monitorId");
+        return;
+      }
       my $last_event = zmGetLastEvent($monitor);
       zmTriggerEventOff($monitor);
       # encode() ensures that no utf-8 is written to mmap'ed memory.
@@ -351,21 +370,25 @@ $SOAP::Constants::DO_NOT_CHECK_MUSTUNDERSTAND = 1;
     #    Data::Dump::dump($som);
     my $action = $som->valueof('/Envelope/Header/Action');
     Debug('  Action = '.$action);
-    my $msg = $som->match('/Envelope/Body/Notify/NotificationMessage');
-    my $topic = $msg->valueof('Topic');
-    my $msg2  = $msg->match('Message/Message');
-    #    Data::Dump::dump($msg2->current());
-    my $time = $msg2->dataof()->attr->{'UtcTime'};
+    # A Notify can carry several messages; they are the first children of Notify
+    my $count = () = $som->dataof('/Envelope/Body/Notify/NotificationMessage');
+    foreach my $i ( 1 .. $count ) {
+      my $msg = $som->match("/Envelope/Body/Notify/[$i]");
+      my $topic = $msg->valueof('Topic');
+      my $msg2  = $msg->match('Message/Message');
+      #    Data::Dump::dump($msg2->current());
+      my $time = $msg2->dataof()->attr->{'UtcTime'};
 
-    my (%source, %data);
-    foreach my $item ($msg2->dataof('Source/SimpleItem')) {
-      $source{$item->attr->{Name}} = $item->attr->{Value};
-      #      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
+      my (%source, %data);
+      foreach my $item ($msg2->dataof('Source/SimpleItem')) {
+        $source{$item->attr->{Name}} = $item->attr->{Value};
+        #      print $item->attr->{Name} ."=>". $item->attr->{Value} ."\n";
+      }
+      foreach my $item ($msg2->dataof('Data/SimpleItem')) {
+        $data{$item->attr->{Name}} = $item->attr->{Value};
+      }
+      main::handle_notification($zm, $id, $topic, $time, \%source, \%data);
     }
-    foreach my $item ($msg2->dataof('Data/SimpleItem')) {
-      $data{$item->attr->{Name}} = $item->attr->{Value};
-    }
-    main::handle_notification($zm, $id, $topic, $time, \%source, \%data);
     return ();
   }
 } # end Consumer
@@ -386,9 +409,9 @@ sub handle_notification {
     Warning("Notification for unknown monitor $id");
     return;
   }
-  if ( lc($state) eq 'true' ) {
+  if ( lc($state) eq 'true' or $state eq '1' ) {
     $zm->eventOn($id, 100, $cause, $time);
-  } elsif ( lc($state) eq 'false' ) {
+  } elsif ( lc($state) eq 'false' or $state eq '0' ) {
     $zm->eventOff($id, 100, $cause, $time);
   }
 }
@@ -582,6 +605,15 @@ sub renew_monitor {
   subscribe_monitor($monitor, $localaddr, $transport);
 }
 
+# host:port the cameras send notifications to. Without -l the daemon listens
+# on all interfaces, so use the host name the daemon url reports.
+sub consumer_address {
+  my ($localip, $url) = @_;
+  my ($host, $port) = $url =~ m|^\w+://(.*):(\d+)/?$|;
+  $host = $localip if defined $localip and $localip ne '';
+  return $host . ':' . $port;
+}
+
 sub events {
   my ($localip, $localport) = @_;
 
@@ -618,10 +650,7 @@ sub events {
   #};
 
   my $daemon = start_daemon($localip, $localport, $zm);
-  my $port = $daemon->url;
-  $port =~ s|^.*:||;
-  $port =~ s|/.*$||;
-  my $localaddr = $localip . ':' . $port;
+  my $localaddr = consumer_address($localip, $daemon->url);
 
   Info('Daemon uses local address '.$localaddr);
 

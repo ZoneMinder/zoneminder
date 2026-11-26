@@ -59,6 +59,7 @@ $serial = $primary_key = 'Id';
   MaxBlobs
   OverloadFrames
   ExtendAlarmFrames
+  ObjectCoords
   );
 
 %defaults = (
@@ -84,6 +85,7 @@ $serial = $primary_key = 'Id';
   MaxBlobs => undef,
   OverloadFrames => 0,
   ExtendAlarmFrames => 0,
+  ObjectCoords => undef,
 );
 
 1;

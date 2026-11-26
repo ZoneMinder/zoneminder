@@ -1,7 +1,7 @@
 <?php
 // This is the HTML representing the Unarchive confirmation modal on the Events page and other pages
 
-$unarchiveTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmUnarchiveEvents';
+$unarchiveTextKey = (isset($_REQUEST['key']) and is_string($_REQUEST['key']) and $_REQUEST['key'] !== '') ? htmlspecialchars(strip_tags($_REQUEST['key']), ENT_NOQUOTES, 'UTF-8') : 'ConfirmUnarchiveEvents';
 
 ?>  
 <div id="unarchiveConfirm" class="modal fade" class="modal" tabindex="-1">

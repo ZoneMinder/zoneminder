@@ -20,4 +20,3 @@
 // The one translated string cron.js needs. It stays here rather than in
 // cron.js so that cron.js is plain javascript the tests can require.
 ?>
-var confirmDeleteCronString = <?php echo json_encode(translate('CronConfirmDelete')) ?>;

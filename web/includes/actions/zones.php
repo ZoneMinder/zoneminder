@@ -24,21 +24,25 @@ global $redirect;
 if ($action == 'delete') {
   if (isset($_REQUEST['markZids'])) {
     $monitors_to_restart = array();
-    foreach ($_REQUEST['markZids'] as $markZid) {
+    foreach ((array)$_REQUEST['markZids'] as $markZid) {
+      if (!is_scalar($markZid)) continue;
       $zone = new ZM\Zone(validCardinal($markZid));
       if (!$zone->Id()) {
-        $error_message .= 'Zone not found for id ' . $markZid.'<br/>';
+        $error_message .= 'Zone not found for id ' . validHtmlStr($markZid).'<br/>';
         continue;
       }
       $monitor = $zone->Monitor();
       if (!$monitor->canEdit()) {
-        $error_message .= 'You do not have permission to edit zones for monitor ' . $monitor->Name().'.<br/>';
+        $error_message .= 'You do not have permission to edit zones for monitor ' . validHtmlStr($monitor->Name()).'.<br/>';
+        continue;
+      }
+      if (!$zone->delete()) {
+        $error_message .= 'Error deleting zone '.$zone->Id().': '.htmlspecialchars(dbLastError()).'<br/>';
         continue;
       }
       # Could use true but store the object instead for easy access later
       $monitors_to_restart[$monitor->Id()] = $monitor;
-      $error_message .= $zone->delete();
-      ZM\AuditAction('delete', 'zone', $markZid, 'MonitorId: '.$monitor->Id());
+      ZM\AuditAction('delete', 'zone', $zone->Id(), 'MonitorId: '.$monitor->Id());
     } # end foreach Zone
 
     if (daemonCheck()) {
@@ -50,7 +54,7 @@ if ($action == 'delete') {
     }
     $refreshParent = true;
     if (!$error_message)
-      $redirect = '?view=zones'.(isset($_REQUEST['mids']) ? '&'.implode('&', array_map(function($mid){ return 'mids[]='.$mid; }, $_REQUEST['mids'])): '');
+      $redirect = '?view=zones'.(isset($_REQUEST['mids']) ? '&'.implode('&', array_map(function($mid){ return 'mids[]='.validCardinal($mid); }, array_filter((array)$_REQUEST['mids'], 'is_scalar'))): '');
   } else {
     $error_message .= 'No Zones marked for deletion.<br/>';
   } // end if isset($_REQUEST['markZids'])

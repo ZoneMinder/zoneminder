@@ -81,13 +81,14 @@ sub open
 sub close
 {
     my $self = shift;
-    $self->{device}->close();
+    $self->{device}->close() if $self->{device};
     $self->{state} = 'closed';
 }
 
 sub read
 {
     my $self = shift;
+    return( undef ) if !$self->{device};
     my $buffer = $self->{device}->lookfor();
     if ( !$buffer || !length($buffer) )
     {

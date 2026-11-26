@@ -33,8 +33,8 @@ class Storage {
 
  protected:
   unsigned int	id;
-  char name[64+1];
-  char path[64+1];
+  char name[64+1] = "";
+  char path[64+1] = "";
   std::string type_str;
   std::string scheme_str;
   Schemes  scheme;

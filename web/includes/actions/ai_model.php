@@ -24,6 +24,8 @@ if (!canEdit('System')) {
   return;
 }
 
+global $error_message;
+
 if ($action == 'save') {
   if (!empty($_REQUEST['id'])) {
     $dbModel = dbFetchOne('SELECT * FROM AI_Models WHERE Id=?', NULL, [$_REQUEST['id']]);
@@ -36,22 +38,30 @@ if ($action == 'save') {
 
   if (count($changes)) {
     if (!empty($_REQUEST['id'])) {
-      dbQuery('UPDATE AI_Models SET '.implode(', ', $changes).' WHERE Id = ?',
+      $result = dbQuery('UPDATE AI_Models SET '.implode(', ', $changes).' WHERE Id = ?',
         array($_REQUEST['id']) );
     } else {
-      dbQuery('INSERT INTO AI_Models SET '.implode(', ', $changes));
+      $result = dbQuery('INSERT INTO AI_Models SET '.implode(', ', $changes));
     }
-    $refreshParent = true;
+    if ($result) {
+      $refreshParent = true;
+    } else {
+      $error_message .= 'Error saving model: '.validHtmlStr(dbLastError()).'<br/>';
+    }
   }
-  $redirect = '?view=options&tab=ai_models';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_models';
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {
-      dbQuery('DELETE FROM AI_Models WHERE Id=?', array($Id));
+      if (!dbQuery('DELETE FROM AI_Models WHERE Id=?', array($Id))) {
+        $error_message .= 'Error deleting model: '.validHtmlStr(dbLastError()).'<br/>';
+      }
     }
-    $refreshParent = true;
+    if (!$error_message) $refreshParent = true;
   }
-  $redirect = '?view=options&tab=ai_models';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_models';
 } else {
   ZM\Error("Unknown action $action in saving AI Model");
 }

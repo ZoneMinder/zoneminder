@@ -78,6 +78,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
@@ -90,13 +94,14 @@ sub open
 
     use LWP::UserAgent;
 
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
 
     Info( "Open" );
 
+    return !undef;
 }
 
 sub printMsg
@@ -114,8 +119,11 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-    my ( $PROTOCOL, $USER, $PASS, $ADDR, $PORT ) 
-        = $self->{Monitor}->{ControlAddress} =~ /^(https?):\/\/(.*):(.*)@(.*):(\d+)$/;
+    # Split the userinfo on its first colon: a password may contain colons.
+    # The @ is matched greedily so a password may contain one too.
+    my ( $PROTOCOL, $USERINFO, $ADDR, $PORT )
+        = $self->{Monitor}->{ControlAddress} =~ /^(https?):\/\/(.*)@(.*):(\d+)$/;
+    my ( $USER, $PASS ) = split /:/, $USERINFO, 2;
     my $URL = $PROTOCOL."://".$ADDR.":".$PORT."/decoder_control.cgi?command=".$cmd;
 
     Debug( "ControlAddress from camera Control setting:".urlForLog($self->{Monitor}->{ControlAddress}) );
@@ -196,36 +204,54 @@ sub moveConRight
     $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
 }
 
+sub moveDiagonal {
+    my ($self, $vcmd, $vstop, $hcmd, $hstop) = @_;
+    $self->sendCmd( $vcmd );
+    $self->sendCmd( $hcmd );
+    my $timeout = $self->{Monitor}->{AutoStopTimeout};
+    $self->autoStop( $vstop, $timeout );
+    $self->sendCmd( $hstop ) if $timeout;
+}
+
+# The camera stops each direction with its own command and the module does not
+# track which direction is moving, so stop them all.  Stopping a direction that
+# is already still is a no-op, and the web ui sends this on every mouseup.
+sub moveStop
+{
+    my $self = shift;
+    Debug( "Move Stop" );
+    $self->sendCmd( "1" ); # Up stop
+    $self->sendCmd( "3" ); # Down stop
+    $self->sendCmd( "5" ); # Left stop
+    $self->sendCmd( "7" ); # Right stop
+}
+
 sub moveConUpRight
 {
     my $self = shift;
     Debug( "Move Diagonally Up Right" );
-    $self->moveConUp( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "0", "1", "6", "7" );
 }
 
 sub moveConDownRight
 {
     my $self = shift;
     Debug( "Move Diagonally Down Right" );
-    $self->moveConDown( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "2", "3", "6", "7" );
 }
 
 sub moveConUpLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Up Left" );
-    $self->moveConUp( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "0", "1", "4", "5" );
 }
 
 sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    $self->moveConDown( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "2", "3", "4", "5" );
 }
 
 # SET: 30,32,34,36,38,40 for presets 1-6

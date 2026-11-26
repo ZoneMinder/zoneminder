@@ -30,7 +30,9 @@ if ( !canEdit('Events') ) {
 } // end if ! canEdit(Events)
 
 if ( $action == 'eventdetail' ) {
+  global $error_message;
   $multiple = count((array)$_REQUEST['markEids']) > 1;
+  $failed = array();
   $dbConn->beginTransaction();
   foreach ( (array)$_REQUEST['markEids'] as $markEid ) {
     // Events=Edit alone isn't enough: the event's monitor has to be one the user
@@ -52,10 +54,17 @@ if ( $action == 'eventdetail' ) {
     }
     if (!$sets) continue;
     $values[] = $event->Id();
-    dbQuery('UPDATE Events SET '.implode(', ', $sets).' WHERE Id=?', $values);
+    if (!dbQuery('UPDATE Events SET '.implode(', ', $sets).' WHERE Id=?', $values)) {
+      $failed[] = $event->Id();
+    }
   }
-  $dbConn->commit();
-  // Back to the page the edit came from, if that is on this server.
-  $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=events');
+  if ($failed) {
+    $dbConn->rollBack();
+    $error_message .= 'Error updating events '.implode(', ', $failed).'<br/>';
+  } else {
+    $dbConn->commit();
+    // Back to the page the edit came from, if that is on this server.
+    $redirect = localRedirectUrl(isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '', '?view=events');
+  }
 }
 ?>

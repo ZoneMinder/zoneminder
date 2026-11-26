@@ -85,6 +85,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 my ( $controlUri, $scheme );
@@ -137,7 +141,7 @@ sub open {
 
   $self->parseControlAddress($self->{Monitor}->{ControlAddress});
 
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   # Try with SSL verification enabled first
   $self->{ua}->ssl_opts(
       verify_hostname => 1,
@@ -160,14 +164,16 @@ sub parseControlAddress {
 
   my $url = URI->new($controlAddress);
   $$self{scheme} = $url->scheme;
-  @$self{'username','password'} = split /:/, $url->userinfo if $url->userinfo;
+  @$self{'username','password'} = split /:/, $url->userinfo, 2 if $url->userinfo;
   $$self{password} = URI::Escape::uri_unescape($$self{password});
 
   #If we have no explicitly defined port
   $$self{port} = $url->port ? $url->port : $url->default_port;
   $$self{path} = $url->path ? $url->path : '/onvif/PTZ';
 
+  # URI returns an IPv6 host without the brackets a URL and a Host header need.
   $$self{address} = $url->host;
+  $$self{address} = '['.$$self{address}.']' if $$self{address} =~ /:/;
   $$self{BaseURL} = $$self{scheme}.'://'.$$self{address}.':'.$$self{port};
   Debug("Using address $$self{BaseURL}$$self{path}, username $$self{username}");
 }
@@ -332,7 +338,7 @@ sub autoStop {
 </s:Body>';
     }
 
-    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+    my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/Stop"';
     usleep($duration);
     $self->sendCmd($cmd, $msg_body, $content_type);
   }
@@ -371,6 +377,9 @@ sub moveMap {
   my $params = shift;
   my $x = $self->getParam($params,'xcoord');
   my $y = $self->getParam($params,'ycoord');
+  # ONVIF positions are normalised to -1..1, the click arrives in image pixels
+  $x = sprintf('%.4f', 2 * $x / ($self->{Monitor}->{Width} || 1) - 1);
+  $y = sprintf('%.4f', 1 - 2 * $y / ($self->{Monitor}->{Height} || 1));
   Debug("Move map to $x x $y");
 
   my $cmd = $controlUri;
@@ -386,7 +395,7 @@ sub moveMap {
     </Speed>
   </AbsoluteMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/AbsoluteMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -409,7 +418,7 @@ sub moveRel {
     </Translation>
   </RelativeMove>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/RelativeMove"';
   $self->sendCmd($cmd, $msg_body, $content_type);
 }
 
@@ -641,7 +650,7 @@ sub presetHome {
     <ProfileToken>' . $profileToken . '</ProfileToken>
   </GotoHomePosition>
 </s:Body>';
-  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoPreset"';
+  my $content_type = 'application/soap+xml; charset=utf-8; action="http://www.onvif.org/ver20/ptz/wsdl/GotoHomePosition"';
   $self->sendCmd( $cmd, $msg_body, $content_type );
 }
 

@@ -20,6 +20,18 @@ function zm_session_set_remote_addr() {
   $_SESSION['remoteAddr'] = $addr;
 }
 
+// True when the browser reached us over https, directly or through a proxy
+// that says so. Cookies set then carry the Secure flag so they are never sent
+// over plain http.
+function zm_request_is_secure() {
+  if (!empty($_SERVER['HTTPS']) and (strtolower($_SERVER['HTTPS']) !== 'off')) return true;
+  if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    $proto = explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO']);
+    return strtolower(trim($proto[0])) === 'https';
+  }
+  return false;
+}
+
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['path'])) {
@@ -31,12 +43,11 @@ function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['samesite'])) {
     $options['samesite'] = 'Strict';
   }
-
-  if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie($cookie, $value, $options);
-  } else {
-    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
+  if (!isset($options['secure']) and zm_request_is_secure()) {
+    $options['secure'] = true;
   }
+
+  setcookie($cookie, $value, $options);
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
@@ -74,19 +85,9 @@ function zm_session_start() {
       $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
     }
     $currentCookieParams['httponly'] = true;
-    if ( version_compare(phpversion(), '7.3.0', '<') ) {
-      session_set_cookie_params(
-        $currentCookieParams['lifetime'],
-        $currentCookieParams['path'].'; samesite=strict',
-        $currentCookieParams['domain'],
-        $currentCookieParams['secure'],
-        $currentCookieParams['httponly']
-      );
-    } else {
-      # samesite was introduced in 7.3.0
-      $currentCookieParams['samesite'] = 'Strict';
-      session_set_cookie_params($currentCookieParams);
-    }
+    if (zm_request_is_secure()) $currentCookieParams['secure'] = true;
+    $currentCookieParams['samesite'] = 'Strict';
+    session_set_cookie_params($currentCookieParams);
 
     ini_set('session.name', 'ZMSESSID');
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
@@ -152,11 +153,7 @@ function zm_session_regenerate_id_login() {
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
+    return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
   } else {
     \ZM\Warning("php_sapi_name === 'cli'");
   }

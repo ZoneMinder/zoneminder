@@ -322,5 +322,206 @@ test('an unmeasured frame is refused rather than dividing by zero', () => {
       null);
 });
 
+console.log('savedObjectPixels');
+test('a saved MinAlarmPixels gives back the box that produced it', () => {
+  // Round trip through storage: pixels -> 2dp percent -> pixels. The column
+  // holds the alarm area to +-0.005% of the zone, so the box comes back to
+  // within that divided by the fraction - 342px here (27336 for 27260).
+  const pct = ZM.pixelsToPercent(
+      ZM.objectThresholdPixels(BOX_PX, RATIOS).alarm, ZONE_PX);
+  const back = ZM.savedObjectPixels(pct, ZONE_PX, RATIOS.fraction);
+  const slack = 0.005 / 100 * ZONE_PX / RATIOS.fraction;
+  assert.ok(Math.abs(back - BOX_PX) <= slack, 'got ' + back);
+});
+test('nothing saved, nothing drawn', () => {
+  [NaN, 0, -1].forEach((pct) => {
+    assert.strictEqual(ZM.savedObjectPixels(pct, ZONE_PX, 0.25), null);
+  });
+  assert.strictEqual(ZM.savedObjectPixels(1, 0, 0.25), null);
+  assert.strictEqual(ZM.savedObjectPixels(1, ZONE_PX, 0), null);
+});
+
+console.log('boxSidesForArea');
+test('sides keep the area and the aspect', () => {
+  const s = ZM.boxSidesForArea(4800, 4 / 3);
+  assert.ok(Math.abs(s.w - 80) < 1e-9 && Math.abs(s.h - 60) < 1e-9);
+});
+test('no area or aspect gives no box', () => {
+  assert.strictEqual(ZM.boxSidesForArea(0, 1), null);
+  assert.strictEqual(ZM.boxSidesForArea(100, 0), null);
+});
+
+console.log('innerBox');
+const OUTER = {a: {x: 10, y: 20}, b: {x: 50, y: 60}};
+test('a quarter of the area is half of each side, about the centre', () => {
+  assert.deepStrictEqual(ZM.innerBox(OUTER, 0.25),
+      {a: {x: 20, y: 30}, b: {x: 40, y: 50}});
+});
+test('the threshold chain nests', () => {
+  // 25% -> 70% -> 86%: each rect must sit inside the one before.
+  const alarm = ZM.innerBox(OUTER, 0.25);
+  const filter = ZM.innerBox(OUTER, 0.25 * 0.7);
+  const blob = ZM.innerBox(OUTER, 0.25 * 0.7 * 0.86);
+  [[alarm, filter], [filter, blob]].forEach((pair) => {
+    assert.ok(pair[1].a.x > pair[0].a.x && pair[1].b.x < pair[0].b.x);
+  });
+});
+test('a threshold bigger than the object is capped at the box', () => {
+  // A hand-set MinAlarmPixels can exceed the measured box; show the box full.
+  assert.deepStrictEqual(ZM.innerBox(OUTER, 3), OUTER);
+});
+test('an empty threshold draws nothing', () => {
+  [0, NaN, -1].forEach((v) => assert.strictEqual(ZM.innerBox(OUTER, v), null));
+});
+
+console.log('shiftBox');
+test('a move inside the frame moves by exactly that much', () => {
+  assert.deepStrictEqual(ZM.shiftBox(OUTER, 5, -10, 100, 100),
+      {a: {x: 15, y: 10}, b: {x: 55, y: 50}});
+});
+test('a move past an edge stops at it and keeps the size', () => {
+  // Size must survive: the thresholds were derived from the area.
+  assert.deepStrictEqual(ZM.shiftBox(OUTER, 200, -200, 100, 100),
+      {a: {x: 60, y: 0}, b: {x: 100, y: 40}});
+});
+test('a reversed box is moved as its normalised self', () => {
+  const rev = {a: OUTER.b, b: OUTER.a};
+  assert.deepStrictEqual(ZM.shiftBox(rev, 0, 0, 100, 100), OUTER);
+});
+
+console.log('zoneThresholds');
+test('percent of the zone becomes pixels the way Zone::LoadRow rounds it', () => {
+  const t = ZM.zoneThresholds({CheckMethod: 'Blobs', MinAlarmPixels: '2.5',
+    MaxAlarmPixels: '', MinFilterPixels: '1.75', MinBlobPixels: '0.01',
+    MinBlobs: '1', MaxBlobs: ''}, 1000003);
+  assert.deepStrictEqual(t, {checkMethod: 3, overloadFrames: 0, minBlobs: 1, maxBlobs: 0,
+    minAlarm: 25000, maxAlarm: 0, minFilter: 17500, maxFilter: 0,
+    minBlob: 100, maxBlob: 0});
+});
+
+console.log('whatIfVerdict');
+// Zone 11 of event 432536, as zma --json reported it.
+const RAN = {checkMethod: 3, minAlarm: 26131, maxAlarm: 0, minFilter: 18242,
+  maxFilter: 0, minBlob: 15613, maxBlob: 0, minBlobs: 1, maxBlobs: 0};
+const with_ = (o) => Object.assign({}, RAN, o);
+// Passes every stage.
+const PASS = {alarm: 144989, filter: 133210, blobs: 3, maxBlob: 37972, largestBlob: 37972};
+// Through filtering, but its only blob was under MinBlobPixels and removed.
+const SMALL = {alarm: 30000, filter: 20000, blobs: 0, maxBlob: 0, largestBlob: 12000};
+// Short at the first stage, so zma measured nothing after it.
+const QUIET = {alarm: 900, filter: 0, blobs: 0, maxBlob: 0, largestBlob: 0};
+test('unchanged settings give zma\'s own verdict', () => {
+  assert.deepStrictEqual(ZM.whatIfVerdict(PASS, RAN, RAN), {failedAt: null, unknown: null, scored: true});
+  assert.strictEqual(ZM.whatIfVerdict(SMALL, RAN, RAN).failedAt, 'blob');
+  assert.strictEqual(ZM.whatIfVerdict(QUIET, RAN, RAN).failedAt, 'alarm');
+});
+test('raising a minimum fails frames that passed', () => {
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({minFilter: 140000})).failedAt, 'filter');
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({minBlob: 40000})).failedAt, 'blob');
+});
+test('lowering MinBlobPixels passes a blob zma removed, from its size', () => {
+  assert.strictEqual(ZM.whatIfVerdict(SMALL, RAN, with_({minBlob: 10000})).scored, true);
+});
+test('a stage zma never reached is unknown, not failed', () => {
+  const v = ZM.whatIfVerdict(QUIET, RAN, with_({minAlarm: 500}));
+  assert.deepStrictEqual(v, {failedAt: null, unknown: 'filter', scored: false});
+  assert.strictEqual(ZM.whatIfVerdict(PASS, with_({checkMethod: 1}), RAN).unknown, 'filter');
+});
+test('blob count after changing blob size is unknown when MinBlobs > 1', () => {
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({minBlob: 100, minBlobs: 2})).unknown, 'blob');
+  // Same blob size: zma's count stands.
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({minBlobs: 4})).failedAt, 'blob');
+});
+test('a Max now exceeded fails the stage', () => {
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({maxAlarm: 100000})).failedAt, 'alarm');
+});
+test('stageResults stops at an unknown stage', () => {
+  assert.deepStrictEqual(ZM.stageResults({failedAt: null, unknown: 'filter'}, 3), {alarm: true});
+  assert.deepStrictEqual(ZM.stageResults({failedAt: 'blob'}, 3),
+      {alarm: true, filter: true, blob: false});
+});
+
+console.log('tallyVerdicts');
+const v = (scored, extra) => Object.assign({failedAt: scored ? null : 'alarm', unknown: null, scored: scored}, extra);
+test('an alarm needs the count of scored frames in a row', () => {
+  const frames = [{frame: 1, verdict: v(true)}, {frame: 2, verdict: v(true)},
+    {frame: 4, verdict: v(true)}];
+  const t = ZM.tallyVerdicts(frames, 3);
+  assert.strictEqual(t.scored, 3);
+  assert.strictEqual(t.wouldAlarm, false); // frame 3 had no change
+  frames.splice(2, 0, {frame: 3, verdict: v(true)});
+  assert.strictEqual(ZM.tallyVerdicts(frames, 3).wouldAlarm, true);
+  frames.push({frame: 5, verdict: v(true)}, {frame: 6, verdict: v(false)});
+  assert.deepStrictEqual(ZM.tallyVerdicts(frames, 3).alarmFrames, [1, 2, 3, 4, 5]);
+});
+test('unknown frames are counted and not scored', () => {
+  const t = ZM.tallyVerdicts([{frame: 1, verdict: {failedAt: null, unknown: 'blob', scored: false}}], 1);
+  assert.deepStrictEqual([t.unknown, t.scored], [1, 0]);
+});
+
+console.log('applyOverload');
+test('frames after one over a maximum are skipped for OverloadFrames', () => {
+  const over = {failedAt: 'alarm', unknown: null, scored: false, over: true};
+  const ok = {failedAt: null, unknown: null, scored: true};
+  const frames = [{frame: 1, verdict: over}, {frame: 2, verdict: ok}, {frame: 3, verdict: ok},
+    {frame: 4, verdict: ok}];
+  ZM.applyOverload(frames, 2);
+  assert.deepStrictEqual(frames.map((f) => f.verdict.failedAt), ['alarm', 'overload', 'overload', null]);
+});
+test('a maximum exceeded is marked as over', () => {
+  assert.strictEqual(ZM.whatIfVerdict(PASS, RAN, with_({maxAlarm: 100000})).over, true);
+  assert.strictEqual(ZM.whatIfVerdict(QUIET, RAN, RAN).over, false);
+});
+
+console.log('failureSummary');
+const TH = {minAlarm: 1000, minFilter: 800, minBlob: 500};
+const fr = (failedAt, fz) => ({verdict: {failedAt: failedAt}, fz: fz});
+test('names the stage most frames stop at, and the closest one came', () => {
+  const s = ZM.failureSummary([
+    fr('alarm', {alarm: 300}), fr('alarm', {alarm: 900}), fr('blob', {largestBlob: 450}),
+    fr(null, {alarm: 5000}),
+  ], TH);
+  assert.deepStrictEqual(s, {stage: 'alarm', frames: 2, best: 900, need: 1000});
+});
+test('a frame over a maximum is not a near miss', () => {
+  assert.strictEqual(ZM.failureSummary([fr('alarm', {alarm: 5000})], TH), null);
+  assert.strictEqual(ZM.failureSummary([], TH), null);
+});
+
+console.log('frameAt');
+const FR = [{t: 0.1}, {t: 0.2}, {t: 0.5}];
+test('nearest frame within tolerance, either side', () => {
+  assert.strictEqual(ZM.frameAt(FR, 0.21, 0.05), FR[1]);
+  assert.strictEqual(ZM.frameAt(FR, 0.48, 0.05), FR[2]);
+  assert.strictEqual(ZM.frameAt(FR, 0.0, 0.1), FR[0]);
+});
+test('a gap with no motion gives no frame', () => {
+  assert.strictEqual(ZM.frameAt(FR, 0.35, 0.05), null);
+  assert.strictEqual(ZM.frameAt([], 1, 1), null);
+});
+
+console.log('pixelBoxToPercent');
+test('inclusive pixel corners become percent of the frame', () => {
+  assert.deepStrictEqual(ZM.pixelBoxToPercent([0, 0, 99, 49], 200, 100),
+      {a: {x: 0, y: 0}, b: {x: 50, y: 50}});
+});
+test('an unset box draws nothing', () => {
+  assert.strictEqual(ZM.pixelBoxToPercent([0, 0, 0, 0], 200, 100), null);
+  assert.strictEqual(ZM.pixelBoxToPercent(undefined, 200, 100), null);
+});
+
+console.log('boxToCoords / coordsToBox');
+test('a box round-trips through ObjectCoords, corners normalised', () => {
+  const s = ZM.boxToCoords({a: {x: 40.5, y: 60}, b: {x: 10, y: 20.25}});
+  assert.strictEqual(s, '10.00,20.25 40.50,60.00');
+  assert.deepStrictEqual(ZM.coordsToBox(s), {a: {x: 10, y: 20.25}, b: {x: 40.5, y: 60}});
+});
+test('no box, or a malformed or empty one, reads as none', () => {
+  assert.strictEqual(ZM.boxToCoords(null), '');
+  ['', null, '1,2', '10,10 5,20', '0,0 101,50', '1,2 3,4 5,6', 'a,b c,d'].forEach((v) => {
+    assert.strictEqual(ZM.coordsToBox(v), null, String(v));
+  });
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

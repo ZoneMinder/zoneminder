@@ -17,5 +17,8 @@ function check($label, $cond) {
 check('source readable', $src !== false);
 check('the list does not divide by the event width', !preg_match('#/\s*\$event->Width\(\)#', $src));
 check('ids is always an array', (bool)preg_match('/\$ids\s*=\s*\(array\)\s*\$_REQUEST\[\'ids\'\]/', $src));
+// A snapshot added through the API has no CreatedOn (the column is nullable);
+// strtotime(NULL) is false and the formatter turned that into 1970.
+check('a snapshot without CreatedOn is not formatted as 1970', (bool)preg_match('/\$row\[\'CreatedOn\'\]\s*=\s*\$row\[\'CreatedOn\'\]\s*\?[^;]*strtotime\(\$row\[\'CreatedOn\'\]\)[^;]*:\s*\'\'\s*;/', $src));
 echo "\n$tests tests, $failures failures\n";
 exit($failures ? 1 : 0);

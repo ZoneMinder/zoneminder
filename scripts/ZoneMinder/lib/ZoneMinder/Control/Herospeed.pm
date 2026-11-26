@@ -273,7 +273,7 @@ sub api {
   push @headers, 'Cookie' => $self->{api_cookie} if $self->{api_cookie};
 
   my $res = eval {
-    $self->{ua}->post('http://'.$self->{host}.'/api'.$path, @headers,
+    $self->{ua}->post('http://'.($self->{address} // $self->{host}).'/api'.$path, @headers,
       Content => encode_json({action => $action, data => $data}));
   };
   if (!$res) {
@@ -366,8 +366,19 @@ sub ptz {
 }
 
 sub ptz_move {
-  my ($self, $params, $optType) = @_;
-  my $speed = clamp_speed($self->getParam($params, 'speed'));
+  my ($self, $params, $optType, @keys) = @_;
+  @keys = ('speed') if !@keys;
+  # The web ui sends panspeed/tiltspeed for pan and tilt moves and speed only
+  # for zoom, focus and iris, so try the given keys in order without letting
+  # getParam log a missing one.
+  my $picked;
+  foreach my $k (@keys) {
+    if (defined $params->{$k}) {
+      $picked = $params->{$k};
+      last;
+    }
+  }
+  my $speed = clamp_speed($picked);
   return $self->ptz($optType, speed => $speed);
 }
 
@@ -375,8 +386,8 @@ sub ptz_move {
 # the monitor has an AutoStopTimeout, in which case it expects us to stop
 # ourselves after that long.
 sub ptz_move_auto {
-  my ($self, $params, $optType, $stopType) = @_;
-  my $ok = $self->ptz_move($params, $optType);
+  my ($self, $params, $optType, $stopType, @keys) = @_;
+  my $ok = $self->ptz_move($params, $optType, @keys);
   return $ok if !$ok;
   if ($self->{Monitor}{AutoStopTimeout}) {
     usleep($self->{Monitor}{AutoStopTimeout});
@@ -385,14 +396,14 @@ sub ptz_move_auto {
   return 1;
 }
 
-sub moveConUp        { $_[0]->ptz_move_auto($_[1], CMD_UP) }
-sub moveConDown      { $_[0]->ptz_move_auto($_[1], CMD_DOWN) }
-sub moveConLeft      { $_[0]->ptz_move_auto($_[1], CMD_LEFT) }
-sub moveConRight     { $_[0]->ptz_move_auto($_[1], CMD_RIGHT) }
-sub moveConUpLeft    { $_[0]->ptz_move_auto($_[1], CMD_LEFTUP) }
-sub moveConUpRight   { $_[0]->ptz_move_auto($_[1], CMD_RIGHTUP) }
-sub moveConDownLeft  { $_[0]->ptz_move_auto($_[1], CMD_LEFTDOWN) }
-sub moveConDownRight { $_[0]->ptz_move_auto($_[1], CMD_RIGHTDOWN) }
+sub moveConUp        { $_[0]->ptz_move_auto($_[1], CMD_UP, undef, 'tiltspeed', 'panspeed') }
+sub moveConDown      { $_[0]->ptz_move_auto($_[1], CMD_DOWN, undef, 'tiltspeed', 'panspeed') }
+sub moveConLeft      { $_[0]->ptz_move_auto($_[1], CMD_LEFT, undef, 'panspeed', 'tiltspeed') }
+sub moveConRight     { $_[0]->ptz_move_auto($_[1], CMD_RIGHT, undef, 'panspeed', 'tiltspeed') }
+sub moveConUpLeft    { $_[0]->ptz_move_auto($_[1], CMD_LEFTUP, undef, 'panspeed', 'tiltspeed') }
+sub moveConUpRight   { $_[0]->ptz_move_auto($_[1], CMD_RIGHTUP, undef, 'panspeed', 'tiltspeed') }
+sub moveConDownLeft  { $_[0]->ptz_move_auto($_[1], CMD_LEFTDOWN, undef, 'panspeed', 'tiltspeed') }
+sub moveConDownRight { $_[0]->ptz_move_auto($_[1], CMD_RIGHTDOWN, undef, 'panspeed', 'tiltspeed') }
 sub moveStop         { $_[0]->ptz(CMD_STOP) }
 
 sub zoomConTele { $_[0]->ptz_move_auto($_[1], CMD_ZOOM_IN, CMD_ZOOM_STOP) }
@@ -433,7 +444,7 @@ sub presetGoto {
     Error("Herospeed: refusing to go to preset '".(defined $idx ? $idx : 'undef')."'");
     return undef;
   }
-  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($self->getParam($params, 'speed')),
+  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($params->{speed}),
     preset => preset_payload($idx, undef, 1, 0));
 }
 
@@ -444,8 +455,8 @@ sub presetSet {
     Error("Herospeed: refusing to store preset '".(defined $idx ? $idx : 'undef')."'");
     return undef;
   }
-  return $self->ptz(CMD_PRESET_SET, speed => clamp_speed($self->getParam($params, 'speed')),
-    preset => preset_payload($idx, $self->getParam($params, 'presetName'), 1, 0));
+  return $self->ptz(CMD_PRESET_SET, speed => clamp_speed($params->{speed}),
+    preset => preset_payload($idx, $params->{presetName}, 1, 0));
 }
 
 sub presetClear {
@@ -461,7 +472,7 @@ sub presetClear {
 # Preset 1 is the conventional home position on these cameras.
 sub presetHome {
   my ($self, $params) = @_;
-  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($self->getParam($params, 'speed')),
+  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($params->{speed}),
     preset => preset_payload(1, undef, 1, 0));
 }
 

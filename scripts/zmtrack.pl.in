@@ -142,13 +142,97 @@ sub Track {
   .'/zmcontrol.pl -i '
   .$monitor->{Id}
   ;
-  $ctrlCommand .= ' --command='
-  .( $monitor->{CanMoveMap} ? 'moveMap'
-    : 'movePseudoMap'
-  )
-  ." --xcoord=$x --ycoord=$y"
-  ;
+  if ( $monitor->{CanMoveMap} ) {
+    ( $x, $y ) = mapPoint($monitor, $x, $y);
+    $ctrlCommand .= " --command=moveMap --xcoord=$x --ycoord=$y";
+  } else {
+    my $command = pseudoMapCommand($monitor, $x, $y);
+    return if !$command;
+    $ctrlCommand .= ' --command='.$command;
+  }
   executeShellCommand($ctrlCommand);
+}
+
+# The alarm location is in the rotated or flipped image; moveMap takes a point
+# in the camera's own Width x Height frame.
+sub mapPoint {
+  my ( $monitor, $x, $y ) = @_;
+  my $orientation = $monitor->{Orientation};
+  my ( $width, $height ) = ( $monitor->{Width}, $monitor->{Height} );
+  if ( $orientation eq 'ROTATE_90' ) {
+    ( $x, $y ) = ( $y, $height - $x );
+  } elsif ( $orientation eq 'ROTATE_180' ) {
+    ( $x, $y ) = ( $width - $x, $height - $y );
+  } elsif ( $orientation eq 'ROTATE_270' ) {
+    ( $x, $y ) = ( $width - $y, $x );
+  } elsif ( $orientation eq 'FLIP_HORI' ) {
+    $x = $width - $x;
+  } elsif ( $orientation eq 'FLIP_VERT' ) {
+    $y = $height - $y;
+  }
+  return ( $x, $y );
+}
+
+# No control module implements movePseudoMap, so turn the point into a
+# relative move the same way the web does in buildControlCommand().
+sub pseudoMapCommand {
+  my ( $monitor, $x, $y ) = @_;
+  my $orientation = $monitor->{Orientation};
+  my ( $width, $height ) = ( $monitor->{Width}, $monitor->{Height} );
+  ( $width, $height ) = ( $height, $width )
+    if $orientation eq 'ROTATE_90' or $orientation eq 'ROTATE_270';
+
+  my $xFactor = ($x - $width/2)/($width/2);
+  my $yFactor = ($y - $height/2)/($height/2);
+  if ( $orientation eq 'ROTATE_90' ) {
+    ( $xFactor, $yFactor ) = ( $yFactor, -$xFactor );
+  } elsif ( $orientation eq 'ROTATE_180' ) {
+    ( $xFactor, $yFactor ) = ( -$xFactor, -$yFactor );
+  } elsif ( $orientation eq 'ROTATE_270' ) {
+    ( $xFactor, $yFactor ) = ( -$yFactor, $xFactor );
+  } elsif ( $orientation eq 'FLIP_HORI' ) {
+    $xFactor = -$xFactor;
+  } elsif ( $orientation eq 'FLIP_VERT' ) {
+    $yFactor = -$yFactor;
+  }
+
+  my $blind = 0.1; # Threshold for blind spot
+  my $dirn = ( $yFactor > $blind ? 'Down' : $yFactor < -$blind ? 'Up' : '' )
+    .( $xFactor > $blind ? 'Right' : $xFactor < -$blind ? 'Left' : '' );
+  return if !$dirn; # In the blind spot in the middle
+
+  my $command = 'moveRel'.$dirn;
+  $command .= axisOptions($monitor, 'Pan', abs($xFactor)) if $dirn =~ /(Left|Right)$/;
+  $command .= axisOptions($monitor, 'Tilt', abs($yFactor)) if $dirn =~ /^(Up|Down)/;
+  return $command;
+}
+
+sub axisOptions {
+  my ( $monitor, $axis, $factor ) = @_;
+  my $turbo = 0.9; # Threshold for turbo speed
+  my $scale = sub {
+    my ( $min, $max, $f ) = @_;
+    $min //= 0;
+    $max //= 0;
+    # Rounds half away from zero, as PHP round() does; some ranges are negative.
+    my $v = $min+(($max-$min)*$f);
+    return $v < 0 ? -int(0.5-$v) : int($v+0.5);
+  };
+
+  my $options = ' --'.lc($axis).'step='
+    .$scale->($monitor->{"Min${axis}Step"}, $monitor->{"Max${axis}Step"}, $factor);
+  if ( $monitor->{"Has${axis}Speed"} ) {
+    my $speed;
+    if ( !$monitor->{"HasTurbo${axis}"} ) {
+      $speed = $scale->($monitor->{"Min${axis}Speed"}, $monitor->{"Max${axis}Speed"}, $factor);
+    } elsif ( $factor >= $turbo ) {
+      $speed = $monitor->{"Turbo${axis}Speed"};
+    } else {
+      $speed = $scale->($monitor->{"Min${axis}Speed"}, $monitor->{"Max${axis}Speed"}, $factor/$turbo);
+    }
+    $options .= ' --'.lc($axis).'speed='.$speed if defined($speed);
+  }
+  return $options;
 }
 
 sub Return {
@@ -177,9 +261,16 @@ if ( ($monitor->{ReturnLocation} >= 0) ) {
 
 my $alarmed = undef;
 while( 1 ) {
+  # zmc may have restarted since the last pass; verify (and re-attach) the
+  # shared memory before every read.
+  if ( !zmMemVerify($monitor) ) {
+    usleep(SLEEP_TIME);
+    next;
+  }
+
   if ( zmIsAlarmed($monitor) ) {
     my ( $alarm_x, $alarm_y ) = zmGetAlarmLocation($monitor);
-    if ( $alarm_x >= 0 && $alarm_y >= 0 ) {
+    if ( defined($alarm_x) && defined($alarm_y) && $alarm_x >= 0 && $alarm_y >= 0 ) {
       Debug("Got alarm at $alarm_x, $alarm_y");
       Suspend($monitor);
       Track($monitor, $alarm_x, $alarm_y);

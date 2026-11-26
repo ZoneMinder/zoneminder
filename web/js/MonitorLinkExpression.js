@@ -68,6 +68,11 @@ function count_terms(tokens) {
   return term_count;
 }
 
+// Monitor and zone names are user text, so the option text is set as text, not HTML.
+function add_option(select, value, text) {
+  select.append($j('<option></option>').val(value).text(text));
+}
+
 function expr_to_ui(expr, container) {
   container.html('');
   const tokens = tokenize(expr);
@@ -103,6 +108,12 @@ function expr_to_ui(expr, container) {
     } // end foreach token
   }
   brackets --;
+  // Offer at least as many brackets as the expression already has in a row
+  for (let i = 0; i < tokens.length; i++) {
+    if ((tokens[i].type == '(' || tokens[i].type == ')') && tokens[i].value.length > brackets) {
+      brackets = tokens[i].value.length;
+    }
+  }
 
   for (let token_index = 0; token_index < tokens.length; token_index++) {
     const token = tokens[token_index];
@@ -112,24 +123,24 @@ function expr_to_ui(expr, container) {
       for ( monitor_id in monitors ) {
         const monitor = monitors[monitor_id];
         if (mid && (monitor.Id == mid)) continue;
-        select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+        add_option(select, monitor.Id, monitor.Name + ' : All Zones');
         for ( zone_id in zones ) {
           const zone = zones[zone_id];
           if ( monitor.Id == zone.MonitorId ) {
-            select.append('<option value="' + monitor.Id+':'+zone.Id + '">' + monitor.Name + ' : ' +zone.Name + '</option>');
+            add_option(select, monitor.Id+':'+zone.Id, monitor.Name + ' : ' + zone.Name);
           }
         } // end foreach zone
       } // end foreach monitor
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '(' || token.type == ')') {
       const select = $j('<select></select>');
-      select.append('<option value="0"></option>');
+      select.append('<option value=""></option>');
       for (var i = 1; i <= brackets; i++) { // build bracket options
         select.append('<option value="' + token.type.repeat(i) + '">' + token.type.repeat(i) + '</option>');
       }
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else if (token.type == '()') {
@@ -141,14 +152,15 @@ function expr_to_ui(expr, container) {
       for (let i = 1; i <= brackets; i++) { // build bracket options
         select.append('<option value="' + String(")").repeat(i) + '">' + String(")").repeat(i) + '</option>');
       }
-      select.val(token.value);
+      setSelectValue(select, token.value);
       select.on('change', update_expr);
       token.html = select;
     } else {
       const select = $j('<select></select>');
       select.append('<option value="|">or</option>');
       select.append('<option value="&">and</option>');
-      select.val(token.type);
+      // ',' is the same as '|' to the parser
+      select.val(token.type == ',' ? '|' : token.type);
       select.on('change', update_expr);
       token.html = select;
     }
@@ -161,12 +173,12 @@ function expr_to_ui(expr, container) {
     const monitor = monitors[monitor_id];
     if (mid && (monitor.Id == mid)) continue;
     //if (!array_search(monitor.Id, used_monitorlinks))
-    select.append('<option value="' + monitor.Id + '">' + monitor.Name + ' : All Zones</option>');
+    add_option(select, monitor.Id, monitor.Name + ' : All Zones');
     for ( zone_id in zones ) {
       const zone = zones[zone_id];
       if ( monitor.Id == zone.MonitorId ) {
         if (!array_search(monitor.Id+':'+zone.Id, used_monitorlinks)) {
-          select.append('<option value="' + monitor.Id+':'+zone.Id + '">' + monitor.Name + ' : ' +zone.Name + '</option>');
+          add_option(select, monitor.Id+':'+zone.Id, monitor.Name + ' : ' + zone.Name);
         }
       }
     } // end foreach zone
@@ -197,7 +209,8 @@ function ui_to_expr(container, expr_input) {
   let expr = '';
   const children = container.children();
   for (let i = 0; i < children.length; i++) {
-    expr += $j(children[i]).val();
+    const value = $j(children[i]).val();
+    if (value !== null && value !== undefined) expr += value;
   }
   expr_input.val(expr);
 }

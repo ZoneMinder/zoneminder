@@ -1,7 +1,7 @@
 <?php
 if ($argc < 2) {
   $failures = 0;
-  foreach (array('default', 'component', 'code', 'id', 'bad') as $case) {
+  foreach (array('default', 'component', 'code', 'id', 'bad', 'array-sort', 'array-order', 'array-search', 'array-filter') as $case) {
     $out = array();
     $rc = 0;
     exec(escapeshellarg(PHP_BINARY).' '.escapeshellarg(__FILE__).' '.escapeshellarg($case).' 2>&1', $out, $rc);
@@ -61,8 +61,25 @@ switch ($case) {
   case 'bad':
     $request['sort'] = 'Nope';
     break;
+  case 'array-sort':
+    $request['sort'] = array('Id');
+    break;
+  case 'array-order':
+    $request['order'] = array('asc');
+    break;
+  case 'array-search':
+    $request['search'] = array('x');
+    break;
+  case 'array-filter':
+    $request['filter'] = array('Message' => 'x');
+    break;
 }
 $_REQUEST = $request;
+$GLOBALS['warnings'] = array();
+set_error_handler(function($no, $str) {
+  $GLOBALS['warnings'][] = $str;
+  return true;
+});
 
 require(__DIR__.'/../../web/ajax/log.php');
 
@@ -98,6 +115,19 @@ switch ($case) {
     break;
   case 'bad':
     check('an unknown sort field runs no query', $sql, '');
+    break;
+  case 'array-sort':
+    check('an array sort falls back to the time sort',
+      strpos($sql, 'ORDER BY TimeKey ASC, Id ASC LIMIT') !== false, true);
+    check('without a warning', $GLOBALS['warnings'], array());
+    break;
+  case 'array-order':
+    check('an array order falls back to descending',
+      strpos($sql, 'ORDER BY TimeKey DESC, Id DESC LIMIT') !== false, true);
+    break;
+  case 'array-search':
+  case 'array-filter':
+    check('the query runs without a LIKE', $sql !== '' && strpos($sql, 'LIKE') === false, true);
     break;
 }
 exit($failures ? 1 : 0);

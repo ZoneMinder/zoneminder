@@ -47,6 +47,7 @@ logInit();
 GetOptions(
     force          =>\$force,
     'interactive|i:1' =>\$interactive,
+    nointeractive  => sub { $interactive = 0 },
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
@@ -198,6 +199,7 @@ Debug("@Monitors");
           }
           if ( ! opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -243,8 +245,12 @@ Debug("@Monitors");
                 $event->Orientation( $Monitor->Orientation() );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = $event->save({}, 1);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
@@ -254,7 +260,10 @@ Debug("@Monitors");
               saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDateTime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # event path exists
@@ -277,9 +286,9 @@ Debug("@Monitors");
             Debug('Have ' . @contents . " files in $day_dir/$event_dir");
             closedir(DIR);
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?mp4$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -315,8 +324,12 @@ Debug("@Monitors");
                 $event->DiskSpace( undef );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = $event->save({}, 1);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
@@ -326,7 +339,10 @@ Debug("@Monitors");
               saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDateTime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # end if event found
@@ -372,7 +388,10 @@ Debug("@Monitors");
             saveDefaultVideo($event);
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
-                $event->save() if $event->guess_EndDateTime();
+                if ( $event->guess_EndDateTime() ) {
+                  my $error = $event->save();
+                  Error("Failed to save event $$event{Id}: $error") if $error;
+                }
               }
             }
             next;
@@ -391,10 +410,15 @@ Debug("@Monitors");
             $event->Height( $Monitor->Height() );
             $event->Orientation( $Monitor->Orientation() );
             $event->StorageId( $Storage->Id() );
+            $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
-              $event->save({}, 1);
-              Info("Event resurrected as " . $event->to_string() );
+              my $error = $event->save({}, 1);
+              if ( $error ) {
+                Error("Failed to save recovered event $$event{Id}: $error");
+              } else {
+                Info("Event resurrected as " . $event->to_string() );
+              }
             } else {
               Warning("Unable to determine starttime. Not resurrecting this event.");
             }
@@ -410,6 +434,7 @@ Debug("@Monitors");
       }
       if ( ! opendir(DIR, '.') ) {
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+        chdir($Storage->Path());
         next;
       }
       # A Deep scheme year directory is numeric too, but it holds date directories
@@ -422,7 +447,10 @@ Debug("@Monitors");
           saveDefaultVideo($event);
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
-              $event->save() if $event->guess_EndDateTime();
+              if ( $event->guess_EndDateTime() ) {
+                my $error = $event->save();
+                Error("Failed to save event $$event{Id}: $error") if $error;
+              }
             }
           }
 
@@ -430,7 +458,7 @@ Debug("@Monitors");
         }
         $event = new ZoneMinder::Event();
         $$event{Id} = $event_id;
-        $$event{Path} = join('/', $Storage->Path(), $event_id );
+        $$event{Path} = join('/', $Storage->Path(), $monitor_dir, $event_id );
         Info("Have event $$event{Id} at $$event{Path}");
         if ( confirm() ) {
           $$event{Scheme} = 'Shallow';
@@ -442,10 +470,15 @@ Debug("@Monitors");
           $event->Height( $Monitor->Height() );
           $event->Orientation( $Monitor->Orientation() );
           $event->StorageId( $Storage->Id() );
+          $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
-            $event->save({}, 1);
-            Info("Event resurrected as " . $event->to_string() );
+            my $error = $event->save({}, 1);
+            if ( $error ) {
+              Error("Failed to save recovered event $$event{Id}: $error");
+            } else {
+              Info("Event resurrected as " . $event->to_string() );
+            }
           } else {
             Warning("Unable to determine starttime. Not resurrecting this event.");
           }
@@ -463,7 +496,10 @@ sub saveDefaultVideo {
   my $event = shift;
   my $before = $event->DefaultVideo() // '';
   $event->fix_DefaultVideo();
-  $event->save() if ($event->DefaultVideo() // '') ne $before;
+  if ( ($event->DefaultVideo() // '') ne $before ) {
+    my $error = $event->save();
+    Error("Failed to save default video for event $$event{Id}: $error") if $error;
+  }
 }
 
 sub confirm {
@@ -481,10 +517,10 @@ sub confirm {
       Term();
     }
     chomp( $char );
-    if ( $char eq 'q' ) {
+    if ( lc($char) eq 'q' ) {
       Term();
     }
-    if ( !$char ) {
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );
@@ -504,7 +540,7 @@ zmrecover.pl - ZoneMinder event file system and database recovery checker
 
 =head1 SYNOPSIS
 
- zmrecover.pl [-r,-report|-i,-interactive]
+ zmrecover.pl [-r,-report|-i,-interactive|-nointeractive]
 
 =head1 DESCRIPTION
 
@@ -518,7 +554,8 @@ yet.
 
 =head1 OPTIONS
 
- -i, --interactive          - Ask before applying any changes
+ -i, --interactive          - Ask before applying any changes (the default)
+     --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
  -s, --storage_id           - Specify a storage area to recover instead of all

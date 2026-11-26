@@ -7,11 +7,13 @@ var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
+var streamPrepareInterval = null;
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
+var watchRate = null; /* Rate picked on this page, null until the user changes it */
 var currentMonitor;
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
@@ -172,6 +174,9 @@ function streamCmdPause(action) {
 }
 
 function onPlay() {
+  // streamCmdStop() clears the callback so a status reply does not undo the stopped
+  // buttons, so put it back for the stream that is now playing.
+  monitorStream.onplay = onPlay;
   //setButtonState('playBtn', 'active');
   setButtonStateWatch('pauseBtn', 'inactive');
   setButtonStateWatch('stopBtn', 'inactive');
@@ -196,6 +201,8 @@ function onPlay() {
 }
 
 function streamCmdPlay(action) {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   if (document.hidden && action) {
     // Defer autoplay until the tab becomes visible again.
     prevStateStarted = 'played';
@@ -215,6 +222,8 @@ function streamCmdPlay(action) {
 }
 
 function streamCmdStop() {
+  // A WebSite monitor has no stream
+  if (!monitorStream) return;
   monitorStream.isActive = false;
   monitorStream.stop();
   updatePlayerControls("stop");
@@ -462,7 +471,9 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    control = 'moveStop';
+    // A released continuous zoom/focus/iris button stops its own axis.
+    const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
+    control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
@@ -508,7 +519,7 @@ function controlCmd(event) {
 
 function controlCmdImage(x, y) {
   const data = {};
-  data.scale = scale;
+  data.scale = SCALE_BASE; // x and y are already in monitor pixels
   data.control = imageControlMode;
   data.x = x;
   data.y = y;
@@ -660,13 +671,16 @@ function zoomOutClick(event) {
   }
 }
 
+var websiteRefreshTimer;
+
 function reloadWebSite() {
-  document.getElementById('imageFeed').innerHTML = document.getElementById('imageFeed').innerHTML;
+  const feed = document.getElementById('imageFeed'+monitorId);
+  if (feed) feed.innerHTML = feed.innerHTML;
 }
 
 function updatePresetLabels() {
   var lblNdx = $j('#ctrlPresetForm option:selected').val();
-  $j('#newLabel').val(labels[lblNdx]);
+  $j('#newLabel').val(labels[lblNdx] || '');
 }
 
 
@@ -676,6 +690,8 @@ function changeControl(e) {
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
+            // zmu printed nothing, so nothing was applied; keep the slider where it is
+            if (control.value === '') return;
             const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             if (element.length) {
               element.val(control.value);
@@ -709,12 +725,22 @@ function getSettingsModal() {
       .fail(logAjaxFail);
 }
 
+// ajax/events.php lists events it could not delete (archived, no edit rights,
+// already gone) in notDeleted, and a refusal comes back as result Error.
+function reportUndeletedEvents(data) {
+  if (!data.message) return;
+  if (data.result == 'Error' || (data.notDeleted && data.notDeleted.length)) {
+    alert(Array.isArray(data.message) ? data.message.join("\n") : data.message);
+  }
+}
+
 function processClicks(event, field, value, row, $element) {
   if (field == 'Delete') {
     if (window.event.shiftKey) {
       var eid = row.Id.replace(/(<([^>]+)>)/gi, '');
       $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
           .done(function(data) {
+            reportUndeletedEvents(data);
             eventListTable.bootstrapTable('refresh');
           })
           .fail(logAjaxFail);
@@ -744,6 +770,7 @@ function manageDelConfirmModalBtns() {
     evt.preventDefault();
     $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eid)
         .done(function(data) {
+          reportUndeletedEvents(data);
           eventListTable.bootstrapTable('refresh');
           $j('#deleteConfirm').modal('hide');
         })
@@ -767,6 +794,8 @@ function controlSetClicked() {
   $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
+        // The page's labels are those of the monitor it was loaded for; use this monitor's.
+        labels = JSON.parse($j('#ctrlPresetForm').attr('data-labels') || '{}');
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);
@@ -781,6 +810,8 @@ function controlSetClicked() {
 }
 
 function streamPrepareStart(monitor=null) {
+  // The previous monitor may have been a WebSite with a refresh timer
+  clearInterval(websiteRefreshTimer);
   // Only enable the settings button for local cameras
   if (!canView.Control) {
     settingsBtn.prop('disabled', true);
@@ -814,6 +845,8 @@ function streamPrepareStart(monitor=null) {
 
     if (canView.Events) {
       // Init the bootstrap-table
+      // destroy does not remove handlers, and this runs again on every monitor switch
+      eventListTable.off('post-body.bs.table click-cell.bs.table all.bs.table');
       eventListTable.bootstrapTable({icons: icons});
       // Update table rows each time after new data is loaded
       eventListTable.on('post-body.bs.table', function(data) {
@@ -839,7 +872,7 @@ function streamPrepareStart(monitor=null) {
       });
     } // end if canView.Events
   } else if (currentMonitor.monitorRefresh > 0) {
-    setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
+    websiteRefreshTimer = setInterval(reloadWebSite, currentMonitor.monitorRefresh*1000);
   }
 
   // Manage the generate Edit button
@@ -855,14 +888,18 @@ function streamPrepareStart(monitor=null) {
     el.addEventListener('mouseleave', handleMouseLeave);
   }
 
-  const i = setInterval(function() {
+  // One poller per page: a monitor switch calls this again before the last
+  // stream appeared, and that poller would otherwise run forever.
+  if (streamPrepareInterval) clearInterval(streamPrepareInterval);
+  streamPrepareInterval = setInterval(function() {
     const livestream = document.querySelector('[id ^= "liveStream"]');
 
     if (!livestream) {
       console.log("No id matching liveStream");
     } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
-      clearInterval(i);
+      clearInterval(streamPrepareInterval);
+      streamPrepareInterval = null;
       document.getElementById('monitor').classList.remove('hidden-shift');
       monitorsSetScale(monitorId);
     }
@@ -886,6 +923,10 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  // The rate rendered into the other monitors' streams is the one from page load
+  if (watchRate !== null && monitorStream.url_to_zms) {
+    monitorStream.url_to_zms = monitorStream.url_to_zms.replace(/&maxfps=[^&]*/, '') + '&maxfps=' + watchRate;
+  }
 
   monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
@@ -960,7 +1001,8 @@ function streamReStart(oldId, newId) {
   if (volumeControls) volumeControls.id = 'volumeControls'+newId;
   const volumeSlider = document.getElementById('volumeSlider'+oldId);
   if (volumeSlider) {
-    monitorStream.destroyVolumeSlider();
+    // A WebSite monitor opened directly never had a stream.
+    if (monitorStream) monitorStream.destroyVolumeSlider();
     volumeSlider.id = 'volumeSlider'+newId;
   }
   const controlMute = document.getElementById('controlMute'+oldId);
@@ -974,6 +1016,9 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
   controlWhatDisplay(oldId, newId);
   eventListTable.bootstrapTable('destroy');
+  // A WebSite monitor has no events to list
+  // (css() rather than show() so the .hidden class of the PTZ/events toggle still applies)
+  $j('#events').css('display', (currentMonitor.monitorType == 'WebSite') ? 'none' : '');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
@@ -1034,7 +1079,8 @@ function applyMonitorControllable() {
     console.log('ptz toggle is not present. Likely OPT_CONTROL is off');
     return;
   }
-  if (currentMonitor.monitorControllable) {
+  // A monitor with manual actions gets a panel even when it has no control of its own
+  if (currentMonitor.monitorControllable || currentMonitor.ptzControls) {
     ptzToggle.classList.remove("disabled");
     ptzToggle.disabled=false;
     sidebarControls.html(currentMonitor.ptzControls);
@@ -1087,6 +1133,18 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // Zone overlays are always in the DOM; #monitor.hide-zones controls them.
+  const zonesCookie = getCookie('zmWatchShowZones');
+  if (zonesCookie !== null && zonesCookie !== undefined) {
+    setZonesVisible(zonesCookie == '1');
+  } else {
+    const zonesMonitor = document.getElementById('monitor');
+    if (zonesMonitor) updateZonesButton(zonesMonitor.classList.contains('hide-zones'));
+  }
+  if (document.getElementById('toggleZonesButton')) {
+    bindButton('#toggleZonesButton', 'click', null, toggleZones);
+  }
+
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1119,6 +1177,24 @@ function initPage() {
   } else {
     cyclePause();
   }
+
+  // Left/Right switch monitors, as they switch events on the event view.
+  $j(document).on('keydown', function(e) {
+    e = e || window.event;
+    if (!e) return;
+    // Keys typed into a field, or used to pick from a select, are that
+    // control's own and must not drive the page.
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if ($j('.modal').is(':visible')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (monitorData.length < 2) return;
+    if (e.key === 'ArrowLeft') {
+      cyclePrev();
+    } else if (e.key === 'ArrowRight') {
+      cycleNext();
+    }
+  });
+
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
     var inactivityTime = function() {
@@ -1212,6 +1288,31 @@ function initPage() {
   });
 } // initPage
 
+function updateZonesButton(hidden) {
+  const button = document.getElementById('toggleZonesButton');
+  if (!button) return;
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  const icon = button.querySelector('.material-icons');
+  if (icon) icon.textContent = hidden ? 'layers' : 'layers_clear';
+}
+
+function setZonesVisible(visible) {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  monitor.classList.toggle('hide-zones', !visible);
+  updateZonesButton(!visible);
+}
+
+function toggleZones() {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  const hidden = monitor.classList.toggle('hide-zones');
+  setCookie('zmWatchShowZones', hidden ? '0' : '1');
+  updateZonesButton(hidden);
+}
+
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');
   if (btn.firstElementChild.innerHTML == 'fullscreen') {
@@ -1256,8 +1357,9 @@ var secondsToCycle = 0;
 function nextCycleView() {
   const stream = (monitorStream) ? monitorStream.getAVStream() : null;
   const playerErrorLimitReached = monitorStream && monitorStream.selectedPlayer && monitorStream.getCountStreamErrors(monitorStream.player) >= monitorStream.limitCountErrors;
-  if (stream && stream.readyState >= 2) secondsToCycle --;
-  if (secondsToCycle<=0 || monitorStream.fatalError || playerErrorLimitReached) {
+  // A WebSite monitor has no video to wait for, so count down on it too.
+  if ((currentMonitor.monitorType == 'WebSite') || (stream && stream.readyState >= 2)) secondsToCycle --;
+  if (secondsToCycle<=0 || (monitorStream && monitorStream.fatalError) || playerErrorLimitReached) {
     cycleNext();
   }
   $j('#secondsToCycle').text(secondsToCycle);
@@ -1293,6 +1395,7 @@ function cycleStop() {
 // FIXME this runs within the interval handler and can take >50ms which will cause chrome to complain.
 function cycleNext() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (++monIdx) % monitorData.length;
   if (!monitorData[monIdx]) {
@@ -1307,6 +1410,7 @@ function cycleNext() {
 
 function cyclePrev() {
   clearInterval(cycleIntervalId);
+  secondsToCycle = 0; // the next monitor gets a full period
   const oldId = monitorData[monIdx].id;
   monIdx = (monIdx <= 0) ? monitorData.length - 1 : monIdx-1;
   if (!monitorData[monIdx]) {
@@ -1371,6 +1475,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
+  watchRate = newvalue;
   setCookie('zmWatchRate', newvalue);
 }
 

@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ . '/../../../includes/SnapshotCreate.php';
 /**
  * Snapshots Controller
  *
@@ -78,6 +79,9 @@ class SnapshotsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -86,6 +90,33 @@ class SnapshotsController extends AppController {
       $canEdit = (!$user) || ($user->Snapshots() == 'Edit');
       if ( !$canEdit ) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
+        return;
+      }
+
+      # MonitorIds takes the same path as the web action: force an alarm on each
+      # monitor, link the events it records and archive them.
+      $monitorIds = $this->requestField('Snapshot', 'MonitorIds');
+      if ( $monitorIds !== null ) {
+        if ( is_string($monitorIds) ) {
+          $monitorIds = trim($monitorIds) === '' ? array() : explode(',', $monitorIds);
+        } else if ( !is_array($monitorIds) ) {
+          $monitorIds = array($monitorIds);
+        }
+        $snapshotId = ZM\create_snapshot_from_monitors($monitorIds);
+        if ( $snapshotId ) {
+          $this->set(array(
+            'message' => 'Saved',
+            'id' => $snapshotId,
+            '_serialize' => array('message', 'id')
+          ));
+        } else {
+          ZM\Error('Failed to create Snapshot from monitors');
+          $this->set(array(
+            'message' => 'Error',
+            'id' => null,
+            '_serialize' => array('message', 'id')
+          ));
+        }
         return;
       }
 
@@ -102,21 +133,22 @@ class SnapshotsController extends AppController {
 			$this->Snapshot->create();
 
       if ( $this->Snapshot->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The snapshot has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Snapshot->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Snapshot");
         $this->set(array(
           'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
-          '_serialize' => array('message')
+          'id' => null,
+          '_serialize' => array('message', 'id')
         ));
         return;
       }
     } # end if post
-    $monitors = $this->Snapshot->Event->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -130,6 +162,7 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+		$this->request->allowMethod('post', 'put');
     $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;

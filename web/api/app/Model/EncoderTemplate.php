@@ -12,6 +12,12 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Encoder is required',
+        'required' => 'create',
+        'last' => true,
+      ),
+      'unique' => array(
+        'rule' => array('isUniqueByEncoder'),
+        'message' => 'A template with that name already exists for this encoder',
       ),
     ),
     'Params' => array(
@@ -26,6 +32,7 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Name is required',
+        'required' => 'create',
         'last' => true,
       ),
       'unique' => array(
@@ -36,13 +43,19 @@ class EncoderTemplate extends AppModel {
   );
 
   // Custom validator: Name must be unique within the row's Encoder.
+  // An edit may send only one of Encoder and Name, so the other comes from the stored row.
   public function isUniqueByEncoder($field) {
-    $name = $field['Name'];
-    $encoder = isset($this->data[$this->alias]['Encoder']) ? $this->data[$this->alias]['Encoder'] : null;
-    if (!$encoder) return true; // notBlank validator on Encoder will fail separately
+    $row = array();
+    foreach (array('Encoder', 'Name') as $f) {
+      $row[$f] = array_key_exists($f, $this->data[$this->alias])
+        ? $this->data[$this->alias][$f]
+        : (!empty($this->id) ? $this->field($f) : null);
+    }
+    if (!$row['Encoder']) return true; // notBlank validator on Encoder will fail separately
+    if ($row['Name'] === null or $row['Name'] === '') return true;
     $conditions = array(
-      'EncoderTemplate.Encoder' => $encoder,
-      'EncoderTemplate.Name' => $name,
+      'EncoderTemplate.Encoder' => $row['Encoder'],
+      'EncoderTemplate.Name' => $row['Name'],
     );
     if (!empty($this->id)) {
       $conditions['EncoderTemplate.Id !='] = $this->id;

@@ -214,8 +214,8 @@ function cronRead() {
   $status = proc_close($process);
 
   if ($status === 0) return rtrim($out, "\n");
-  // The normal answer for a user who has no crontab yet.
-  if (($status === 1) and preg_match('/^no crontab for /', $err)) return '';
+  // The normal answer for a user who has no crontab yet; BSD crontab prefixes "crontab: ".
+  if (($status === 1) and preg_match('/^(?:crontab: )?no crontab for /', $err)) return '';
 
   \ZM\Error('crontab -l failed (status '.$status.'), not changing the crontab: '.trim($err));
   return false;

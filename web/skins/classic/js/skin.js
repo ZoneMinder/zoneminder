@@ -29,6 +29,7 @@ var ctrled = false;
 var alted = false;
 var mainContent = document.getElementById('content');
 var timeOutExtruderChange;
+var lightbox;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
@@ -313,8 +314,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
-    // Trigger autorefresh of the widget bar stats on the navbar
-    if ( $j('.navbar').length ) {
+    // Trigger autorefresh of the widget bar stats on the navbar. A refresh
+    // time of 0 means off; setInterval would treat it as "as fast as possible".
+    if ( $j('.navbar').length && navBarRefresh > 0 ) {
       setInterval(getNavBar, navBarRefresh);
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
@@ -557,6 +559,9 @@ function formatSeconds(seconds, round='') {
 
 function secsToTime(seconds, round='') {
   let timeString = "--";
+  // Round before splitting into minutes and seconds, otherwise 119.97 at one
+  // decimal place becomes "1:60.0" and 69.996 at two becomes "1:010.00".
+  if (round) seconds = Number(seconds.toFixed(round));
   if ( seconds < 60 ) {
     timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
@@ -810,14 +815,14 @@ function convertLabelFormat(LabelFormat, monitorName) {
     'Y': 'YYYY',
     'z': 'ZZ',
     'Z': 'z',
-    'f': 'SS',
-    'N': '['+monitorName+']',
-    '%': '%'};
-  var momentLabelFormat = Object.keys(replacements).reduce(function(momentFormat, key) {
-    var value = replacements[key];
-    return momentFormat.replace('%' + key, value);
-  }, LabelFormat);
-  return momentLabelFormat;
+    'f': 'SS'};
+  const lit = (s) => s ? '[' + s.replace(/[\[\]]/g, '') + ']' : '';
+  return LabelFormat.replace(/%(.)|([^%]+)|%$/g, (m, k, t) => {
+    if (t !== undefined) return lit(t);
+    if (k === 'N') return lit(monitorName);
+    if (k === '%') return '[%]';
+    return replacements[k] !== undefined ? replacements[k] : lit(m);
+  });
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
@@ -991,12 +996,24 @@ function setCookie(name, value, seconds) {
     // that cannot overflow a signed 32bit int in a client that converts it.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
+  // Encoded so a ';' or '%' in a typed filter value is not cut off or decoded
+  // twice; PHP decodes $_COOKIE and getCookie() below decodes it again.
+  document.cookie = name + "=" + encodeURIComponent(newValue || "") + expires + "; path=/; samesite=strict";
 }
 
 /*
 * If JSON is stored in cookies, the function will return an array or object of values.
 */
+// Select value in a <select>, adding an option for it when the list has none.
+// With no matching option jQuery leaves nothing selected and val() is null.
+function setSelectValue(select, value, text) {
+  select.val(value);
+  if (select.val() === null) {
+    select.append($j('<option></option>').val(value).text(text === undefined ? value : text));
+    select.val(value);
+  }
+}
+
 function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
@@ -1007,6 +1024,11 @@ function getCookie(name) {
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) == 0) {
       result = c.substring(nameEQ.length, c.length);
+      try {
+        result = decodeURIComponent(result);
+      } catch {
+        // Written before values were encoded and holding a bare '%': keep it as is
+      }
       break;
     }
   }
@@ -1043,7 +1065,9 @@ function bwClickFunction() {
 function reminderClickFunction() {
   $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+    // The version view has no page, so the response is HTML, not JSON.
+    // index.php only runs actions sent by POST; csrf-magic adds the token to it.
+    $j.post(thisUrl + '?view=version', {action: 'version', option: option})
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })
@@ -1160,6 +1184,10 @@ function stateStuff(action, runState, newState) {
     timeout: 0
   }).done(function(data) {
     location.reload();
+  }).fail(function(jqxhr, textStatus, error) {
+    // Put the modal back so the user can see it failed and try again.
+    $j('#pleasewait').addClass('hidden');
+    logAjaxFail(jqxhr, textStatus, error);
   });
 }
 
@@ -1262,7 +1290,9 @@ function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;
   var i = 0;
-  while ((size / step) > 0.9) {
+  // NaN (a blank field) would print "NaNB" and Infinity would loop for ever.
+  if (!Number.isFinite(size)) return 'n/a';
+  while ((size / step) > 0.9 && i < units.length - 1) {
     size = size / step;
     i++;
   }
@@ -1290,10 +1320,13 @@ function manageShutdownBtns(element) {
   $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
       .done(function(data) {
         respText.removeClass('invisible');
-        if ( data.rc ) {
-          respText.html('<h2>Error</h2>' + data.output);
+        if ( data.result == 'Error' ) {
+          respText.html('<h2>Error</h2>' + data.message);
+        } else if ( data.rc ) {
+          const lines = [].concat(data.output || []).map(escapeHTML);
+          respText.html('<h2>Error</h2>' + lines.join('<br/>'));
         } else {
-          $j('#cancelBtn').prop('disabled', false);
+          $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
             respText.html('<h2>Success</h2>Event has been cancelled');
           } else {
@@ -1594,6 +1627,23 @@ function go2rtcApiUrl(path) {
   return url;
 }
 
+// The RTSP2Web URL for a ZM_RTSP2WEB_PATH plus a suffix such as
+// "/stream/1/channel/0/webrtc". ZM_RTSP2WEB_PATH may include a path prefix when
+// RTSP2Web is behind a reverse proxy, so the suffix is appended to the base path
+// rather than replacing it, the way zmc talks to RTSP2Web.
+function rtsp2webUrl(base, suffix) {
+  const url = new URL(base);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//stream".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  pathname += suffix.startsWith('/') ? suffix : '/' + suffix;
+  url.pathname = pathname;
+  // Credentials in the configured path are for zmc, not for the browser.
+  url.username = '';
+  url.password = '';
+  return url;
+}
+
 function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
@@ -1670,8 +1720,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
   ensureHlsLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(rtsp2webSrc);
-    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+    const hlsUrl = rtsp2webUrl(rtsp2webSrc, '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8').href;
 
     const video = document.createElement('video');
     video.removeAttribute('controls');
@@ -2783,6 +2832,7 @@ function handleTouchActionGeneral(action, evt) {
 
 /* Processing any key press*/
 function handleKeydownGeneral(evt) {
+  if (isLightboxOpen()) return;
   const target = evt.target;
   const key = evt.key;
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
@@ -2814,6 +2864,10 @@ function handleMouseout(evt) {
   if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'hide');
   }
+}
+
+function isLightboxOpen() {
+  return $j('body').hasClass('glightbox-open');
 }
 
 function manageVisibilitySidebarExtruderPanel(evt, action) {
@@ -3143,6 +3197,41 @@ function initPageGeneral() {
       }
     });
   });
+
+  // Opens images in a zoomable GLightbox viewer.
+  // GLightbox inserts data-title as HTML. Use only trusted, fixed titles;
+  // never pass event or monitor text (Name, Cause, Notes).
+  if (typeof GLightbox === 'function') {
+    // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
+    document.querySelectorAll('a.glightbox').forEach((link) => {
+      if (link.href.includes('view=image')) link.dataset.type = 'image';
+
+      // Prefer data-title, falling back to the link's title and then the nested image's title.
+      const title = link.dataset.title ||
+        link.getAttribute('title') ||
+        link.querySelector('img')?.title;
+
+      if (title) {
+        // Escape HTML special characters to ensure the title is displayed as plain text by GLightbox.
+        link.dataset.title = escapeHTML(title);
+      }
+    });
+
+    try {
+      // eslint-disable-next-line new-cap
+      lightbox = GLightbox({
+        touchNavigation: true,
+        loop: true
+      });
+      if (lightbox && typeof lightbox.on === 'function') {
+        document.dispatchEvent(new CustomEvent('zm:lightboxReady', {
+          detail: lightbox
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to initialize GLightbox:', error);
+    }
+  }
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload
@@ -3863,7 +3952,8 @@ const stringToLocaleString = function(str) {
       result = '';
       matches.forEach((match, index) => {
         const num = Number(match);
-        result += (!isNaN(num)) ? num.toLocaleString() : match;
+        // Number(' ') is 0, so whitespace between two numbers must stay as is
+        result += (match.trim() !== '' && !isNaN(num)) ? num.toLocaleString() : match;
       });
     }
   }

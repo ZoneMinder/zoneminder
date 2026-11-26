@@ -131,7 +131,7 @@ if ( ($noregex)&&(!$topreset) ) {
   print( qq/Warning: Noregex parameter only applies when "topreset" parameter is also set. Ignoring.\n/);
 }
 
-if ( ($topreset)&&($ARGV[0] !~ /\d\d*/) ) {
+if ( ($topreset)&&(!defined($ARGV[0]) || $ARGV[0] !~ /^\d+$/) ) {
   print( STDERR qq/Parameter "topreset" requires a valid monitor ID.\n/ );
   pod2usage(-exitstatus => -1);
 }
@@ -364,6 +364,17 @@ sub extractInserts {
       next;
     }
 
+    # A statement can span several lines (controls.sql has some); join them
+    # up to the line that ends it.
+    if ($line =~ /^\s*INSERT\s/i) {
+      while ($line !~ /;\s*$/) {
+        my $next = <$FH>;
+        last if !defined $next;
+        chomp $next;
+        $line .= ' '.$next;
+      }
+    }
+
     next if $line !~ /^\s*INSERT\s+INTO\s+`?(\w+)`?\s*(?:\(([^)]*)\))?\s*VALUES\s*\((.*)\)\s*;\s*$/i;
     my ($table, $collist, $values) = ($1, $2, $3);
     next if !grep { lc $_ eq lc $table } @$tables;
@@ -483,9 +494,18 @@ sub importsql {
       push @newcontrols, $_;
     } elsif ($overwrite) {
 # An existing Control was found and the overwrite flag is set.
-# Overwrite the control.
+# Overwrite the control, keeping its Id: Monitors.ControlId refers to it.
+      my ($oldid) = selectQuery($dbh,'SELECT MIN(`Id`) FROM `Controls` WHERE `Name` = ?',$_);
       deleteQuery($dbh,'Controls',$_);
       runQuery($dbh,$controls{$_});
+      my $newid = $dbh->last_insert_id(undef, undef, undef, undef);
+      if ( $oldid and $newid and $oldid != $newid ) {
+        my $sth = $dbh->prepare_cached('UPDATE `Controls` SET `Id` = ? WHERE `Id` = ?')
+          or die( "Can't prepare Id restore: ".$dbh->errstr() );
+        $sth->execute($oldid, $newid)
+          or die( "Can't execute: ".$sth->errstr() );
+        $sth->finish();
+      }
       push @overwritecontrols, $_;
     } else {
 # An existing Control was found and the overwrite flag was not set.
@@ -551,7 +571,12 @@ sub exportsql {
 
   my ( $host, $port ) = ( $Config{ZM_DB_HOST} =~ /^([^:]+)(?::(.+))?$/ );
   my $command = findDbCommand('mysqldump').' -t --skip-opt --compact -h'.$host;
-  $command .= ' -P'.$port if defined($port);
+  if ( defined($port) and $port =~ /^\// ) {
+    # Database.pm treats host:/path as a unix socket, not a port
+    $command .= ' -S'.shellQuote($port);
+  } else {
+    $command .= ' -P'.$port if defined($port);
+  }
   $command .= ' -u'.shellQuote($dbUser) if $dbUser;
 
   my $name = $ARGV[0];
@@ -627,8 +652,8 @@ sub toPreset {
       s/\b(?:\d{1,3}\.){3}\d{1,3}\b/<ip-address>/; # ip address
         s/<ip-address>:(6553[0-5]|655[0-2]\d|65[0-4]\d\d|6[0-4]\d{3}|[1-5]\d{4}|[1-9]\d{0,3}|0)$/<ip-address>:<port>/; # tcpip port
         s/\/\/.*:.*@/\/\/<username>:<pwd>@/; # user & pwd preceding an ip address
-        s/(&|\?)(user|username)=\w\w*(&|\?)/$1$2=<username>$3/i; # username embedded in url
-        s/(&|\?)(pwd|password)=\w\w*(&|\?)/$1$2=<pwd>$3/i; # password embedded in url
+        s/(&|\?)(user|username)=[^&?#]*/$1$2=<username>/i; # username embedded in url
+        s/(&|\?)(pwd|password)=[^&?#]*/$1$2=<pwd>/i; # password embedded in url
         s/\w\w*:\w\w*/<username>:<pwd>/; # user & pwd in their own field
         s/\/dev\/video\d\d*/\/dev\/video<?>/; # local video devices
     }

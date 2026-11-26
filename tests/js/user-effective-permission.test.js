@@ -73,5 +73,17 @@ test('a user monitor permission wins over the role', () => {
   assert.strictEqual(effective(role, 'None', {id: 2}, groups, radios), 'View');
 });
 
+// A monitor in two groups, View in one and Edit in the other: editableMonitor() lets any
+// group's Edit through, so the preview must say Edit.
+const twoGroups = [{id: 7, monitor_ids: [1]}, {id: 8, monitor_ids: [1]}];
+test('user groups View and Edit on the same monitor show Edit', () => {
+  const radios = Object.assign({}, inherit, {'group_permission[7]': 'View', 'group_permission[8]': 'Edit'});
+  assert.strictEqual(effective(null, 'None', {id: 1}, twoGroups, radios), 'Edit');
+});
+test('role groups View and Edit on the same monitor show Edit', () => {
+  const r = {monitors: 'None', monitor_permissions: {}, group_permissions: {7: 'View', 8: 'Edit'}};
+  assert.strictEqual(effective(r, 'None', {id: 1}, twoGroups, inherit), 'Edit');
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

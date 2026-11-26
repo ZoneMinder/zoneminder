@@ -101,7 +101,9 @@ if ($rows) {
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['Tags'] = validHtmlStr($row['Tags']);
     $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
-    $row['Length'] = gmdate('H:i:s', intval($row['Length']));
+    // Not gmdate(): its time of day wraps at 24 hours, and events can run longer.
+    $length = intval($row['Length']);
+    $row['Length'] = sprintf('%02d:%02d:%02d', intdiv($length, 3600), intdiv($length, 60) % 60, $length % 60);
 
     $returned_rows[] = $row;
   } # end foreach row matching search

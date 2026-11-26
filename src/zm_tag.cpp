@@ -32,7 +32,7 @@ Tag::Tag(const MYSQL_ROW &dbrow) {
   unsigned int index = 0;
   id = atoll(dbrow[index++]);
   name = std::string(dbrow[index++]);
-  created_on = StringToSystemTimePoint(dbrow ? dbrow[index] : ""); index++;
+  created_on = StringToSystemTimePoint(dbrow[index] ? dbrow[index] : ""); index++;
   created_by = dbrow[index] ? atoi(dbrow[index]) : 0; index++;
   last_assigned_on = StringToSystemTimePoint(dbrow[index] ? dbrow[index] : ""); index++;
 }

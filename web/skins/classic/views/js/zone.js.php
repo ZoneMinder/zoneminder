@@ -14,24 +14,7 @@ var presets = new Object();
 <?php
 foreach ( $presets as $preset ) {
 ?>
-presets[<?php echo $preset['Id'] ?>] = {
-    'UnitsIndex': <?php echo $preset['UnitsIndex'] ?>,
-    'CheckMethodIndex': <?php echo $preset['CheckMethodIndex'] ?>,
-    'MinPixelThreshold': '<?php echo validJsStr($preset['MinPixelThreshold']) ?>',
-    'MaxPixelThreshold': '<?php echo validJsStr($preset['MaxPixelThreshold']) ?>',
-    'FilterX': '<?php echo validJsStr($preset['FilterX']) ?>',
-    'FilterY': '<?php echo validJsStr($preset['FilterY']) ?>',
-    'MinAlarmPixels': '<?php echo validJsStr($preset['MinAlarmPixels']) ?>',
-    'MaxAlarmPixels': '<?php echo validJsStr($preset['MaxAlarmPixels']) ?>',
-    'MinFilterPixels': '<?php echo validJsStr($preset['MinFilterPixels']) ?>',
-    'MaxFilterPixels': '<?php echo validJsStr($preset['MaxFilterPixels']) ?>',
-    'MinBlobPixels': '<?php echo validJsStr($preset['MinBlobPixels']) ?>',
-    'MaxBlobPixels': '<?php echo validJsStr($preset['MaxBlobPixels']) ?>',
-    'MinBlobs': '<?php echo validJsStr($preset['MinBlobs']) ?>',
-    'MaxBlobs': '<?php echo validJsStr($preset['MaxBlobs']) ?>',
-    'OverloadFrames': '<?php echo validJsStr($preset['OverloadFrames']) ?>',
-    'ExtendAlarmFrames': '<?php echo validJsStr($preset['ExtendAlarmFrames']) ?>'
-};
+presets[<?php echo (int)$preset->Id() ?>] = <?php echo json_encode($preset->toArray()) ?>;
 <?php
 } # end foreach preset
 ?>
@@ -103,8 +86,35 @@ var zoneObjectSizeStrings = {
   'inactive': '<?php echo addslashes(translate('ObjectSizeInactive')) ?>',
   'useImage': '<?php echo addslashes(translate('ObjectImageUse')) ?>',
   'liveView': '<?php echo addslashes(translate('ObjectImageLive')) ?>',
+  'stillLiveOff': '<?php echo addslashes(translate('ObjectImageLiveOff')) ?>',
   'notAnImage': '<?php echo addslashes(translate('ObjectImageNotAnImage')) ?>',
-  'sizeNeeded': '<?php echo addslashes(translate('ObjectSizeNeeded')) ?>'
+  'sizeNeeded': '<?php echo addslashes(translate('ObjectSizeNeeded')) ?>',
+  'testRunning': '<?php echo addslashes(translate('ZoneTestRunning')) ?>',
+  'testStale': '<?php echo addslashes(translate('ZoneTestStale')) ?>',
+  'testUnknown': '<?php echo addslashes(translate('ZoneTestUnknown')) ?>',
+  'testUnknownFrame': '<?php echo addslashes(translate('ZoneReplayRerun')) ?>',
+  'liveOff': '<?php echo addslashes(translate('ZoneReplayLiveOff')) ?>',
+  'labelObject': '<?php echo addslashes(translate('ZoneLegendObject')) ?>',
+  'labelEstimate': '<?php echo addslashes(translate('ZoneLegendEstimate')) ?>',
+  'replayFrame': '<?php echo addslashes(translate('Frame')) ?>',
+  'replayAlarmed': '<?php echo addslashes(translate('ZoneReplayAlarmed')) ?>',
+  'replayBlob': '<?php echo addslashes(translate('ZoneReplayBlob')) ?>',
+  'replayFiltered': '<?php echo addslashes(translate('ZoneReplayFiltered')) ?>',
+  'replayScored': '<?php echo addslashes(translate('ZoneReplayScored')) ?>',
+  'testNotDetecting': '<?php echo addslashes(translate('ZoneTestNotDetecting')) ?>',
+  'replayNoMotion': '<?php echo addslashes(translate('ZoneReplayNoMotion')) ?>',
+  'testWouldAlarm': '<?php echo addslashes(translate('ZoneTestWouldAlarm')) ?>',
+  'testWouldNotAlarm': '<?php echo addslashes(translate('ZoneTestWouldNotAlarm')) ?>',
+  'replayInAlarm': '<?php echo addslashes(translate('ZoneReplayInAlarm')) ?>',
+  'replayFailsAt': '<?php echo addslashes(translate('ZoneReplayFailsAt')) ?>',
+  'replayMin': '<?php echo addslashes(translate('ZoneReplayMin')) ?>',
+  'replayGot': '<?php echo addslashes(translate('ZoneReplayGot')) ?>',
+  'testQualify': '<?php echo addslashes(translate('ZoneTestQualify')) ?>',
+  'testNotInARow': '<?php echo addslashes(translate('ZoneTestNotInARow')) ?>',
+  'testClosest': '<?php echo addslashes(translate('ZoneTestClosest')) ?>',
+  'testUnsure': '<?php echo addslashes(translate('ZoneTestUnsure')) ?>',
+  'replayOverload': '<?php echo addslashes(translate('ZoneReplayOverload')) ?>',
+  'testNoVideo': '<?php echo addslashes(translate('ZoneTestNoVideo')) ?>'
 };
 
 var deleteString = "<?php echo translate('Delete') ?>";
@@ -131,3 +141,8 @@ var translate = {
   "Showing Analysis": '<?php echo translate('Showing Analysis'); ?>',
   "Not Showing Analysis": '<?php echo translate('Not Showing Analysis'); ?>'
 };
+
+var enterZonePresetName = '<?php echo validJsStr(translate('ZoneEnterPresetName')); ?>';
+var invalidZonePresetName = '<?php echo validJsStr(translate('ZoneInvalidPresetName')); ?>';
+<?php require_once('includes/ZonePreset.php'); ?>
+var zonePresetFields = <?php echo json_encode(ZM\ZonePreset::getConfigurableFields()); ?>;

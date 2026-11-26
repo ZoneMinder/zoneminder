@@ -43,6 +43,10 @@ class AnalysisMonitor : public Monitor {
     analysis_width = w;
     analysis_height = h;
   }
+  bool LoadZone(const std::vector<const char *> &row) {
+    return Zone::LoadRow(shared_from_this(), row.data(), zones);
+  }
+  const unsigned char *PrivacyMask() const { return privacy_bitmask; }
   // The zones hold the monitor; drop them so neither leaks.
   void ClearZones() { zones.clear(); }
 };
@@ -186,4 +190,20 @@ TEST_CASE("Zone::ScalePolygon and ScalePixelCount", "[Zone][SecondaryAnalysis]")
   REQUIRE(Zone::ScalePixelCount(0, 0.25) == 0);
   REQUIRE(Zone::ScalePixelCount(1000, 0.25) == 250);
   REQUIRE(Zone::ScalePixelCount(1, 0.25) == 1);
+}
+
+// MaskPrivacy applies the mask to the captured frame, so it is built from the
+// zones' frame coordinates even when they were loaded at the analysis size.
+TEST_CASE("Monitor::AddPrivacyBitmask: zones at the analysis size mask the frame", "[Monitor][SecondaryAnalysis]") {
+  auto monitor = MakeMonitor(64, 48);
+  monitor->SetAnalysisSize(32, 24);
+  REQUIRE(monitor->LoadZone(Row("6", "32,0 63,0 63,47 32,47", "0", "0", "0")));
+  monitor->AddPrivacyBitmask();
+  const unsigned char *mask = monitor->PrivacyMask();
+  REQUIRE(mask != nullptr);
+  REQUIRE(mask[20 * 64 + 40] == 0xff);
+  REQUIRE(mask[47 * 64 + 63] == 0xff);
+  REQUIRE(mask[20 * 64 + 20] == 0);
+  REQUIRE(mask[20 * 64 + 31] == 0);
+  monitor->ClearZones();
 }

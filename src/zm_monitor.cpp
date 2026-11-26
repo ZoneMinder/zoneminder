@@ -1420,8 +1420,11 @@ void Monitor::AddPrivacyBitmask() {
         privacy_image = zm::make_unique<Image>(width, width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
-      privacy_image->Fill(0xff, zone.GetPolygon());
-      privacy_image->Outline(0xff, zone.GetPolygon());
+      // The mask is applied to the captured frame, so use the zone's frame
+      // coordinates: under AnalysisSource=Secondary its polygon is at the
+      // smaller analysis size and would mask only part of the area.
+      privacy_image->Fill(0xff, zone.GetFramePolygon());
+      privacy_image->Outline(0xff, zone.GetFramePolygon());
     }
   } // end foreach zone
   if (privacy_image)
@@ -1892,8 +1895,9 @@ bool Monitor::DumpZoneImage(const char *zone_string) {
         colour = kRGBWhite;
       }
     }
-    zone_image->Fill(colour, 2, zone.GetPolygon());
-    zone_image->Outline(colour, zone.GetPolygon());
+    // Drawn on a frame-sized image, so use the frame coordinates.
+    zone_image->Fill(colour, 2, zone.GetFramePolygon());
+    zone_image->Outline(colour, zone.GetFramePolygon());
   }
 
   if (!extra_zone.GetVertices().empty()) {

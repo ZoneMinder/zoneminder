@@ -72,6 +72,15 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
       $_REQUEST['filter']['AutoMove'] = empty($_REQUEST['filter']['AutoMove']) ? 0 : 1;
       $_REQUEST['filter']['AutoMoveTo'] = empty($_REQUEST['filter']['AutoMoveTo']) ? 0 : $_REQUEST['filter']['AutoMoveTo'];
       $_REQUEST['filter']['AutoArchive'] = empty($_REQUEST['filter']['AutoArchive']) ? 0 : 1;
+      $_REQUEST['filter']['AutoTag'] = empty($_REQUEST['filter']['AutoTag']) ? 0 : 1;
+      // The tag must exist; anything else turns the action off
+      $autoTagId = $_REQUEST['filter']['AutoTagId'] ?? '';
+      if (!is_scalar($autoTagId) or !preg_match('/^[1-9][0-9]*$/', (string)$autoTagId)
+        or !dbFetchOne('SELECT Id FROM Tags WHERE Id=?', 'Id', array($autoTagId))) {
+        $autoTagId = 0;
+      }
+      $_REQUEST['filter']['AutoTagId'] = $autoTagId;
+      if (!$autoTagId) $_REQUEST['filter']['AutoTag'] = 0;
       $_REQUEST['filter']['AutoUnarchive'] = empty($_REQUEST['filter']['AutoUnarchive']) ? 0 : 1;
       // The view only renders this checkbox when ZM_OPT_FFMPEG is on, so leave the stored value alone otherwise
       if (ZM_OPT_FFMPEG) {
@@ -168,13 +177,17 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         }
       } # end if changes
 
+      // The outcome of Execute goes on the redirect, so the filter page can say
+      // whether it ran and a reload does not run the filter again.
+      $executed = '';
       if ($action == 'execute') {
         if ($filter->canEdit()) {
-          $filter->execute();
+          $status = $filter->execute();
           if (count($changes)) {
             $filter->delete();
             $filter->Id($_REQUEST['Id']);
           }
+          $executed = $status ? '&executed=0' : '&executed=1';
         } else {
           $error_message .= 'You do not have permission to execute this filter.<br/>';
         }
@@ -182,7 +195,7 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         $filter->control('start');
       }
       global $redirect;
-      $redirect = '?view=filter&Id='.$_REQUEST['Id'];
+      $redirect = '?view=filter&Id='.$_REQUEST['Id'].$executed;
 
     } else if ($action == 'control') {
       if (!$filter->Id() or !$filter->canEdit()) {

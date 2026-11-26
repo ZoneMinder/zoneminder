@@ -91,6 +91,8 @@ AutoMove
 AutoMoveTo
 AutoCopy
 AutoCopyTo
+AutoTag
+AutoTagId
 UpdateDiskSpace
 UserId
 Background
@@ -589,6 +591,10 @@ sub Sql {
     }
     if ( $self->{AutoExecute} ) {
       push @auto_terms, 'E.Executed = 0';
+    }
+    # The tag id goes into the SQL, so only ever as digits
+    if ( $self->{AutoTag} and ($self->{AutoTagId} // '') =~ /^\s*([1-9]\d*)\s*$/ ) {
+      push @auto_terms, 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$1.')';
     }
     if ( @auto_terms ) {
       $sql .= ($has_where ? ' AND' : ' WHERE').' ( '.join(' or ', @auto_terms).' )';

@@ -193,6 +193,10 @@ function getBodyTopHTML() {
   if ( $error_message ) {
    echo '<div id="error">'.$error_message.'</div>';
   }
+  global $info_message;
+  if ( $info_message ) {
+   echo '<div id="info" class="infoText">'.$info_message.'</div>';
+  }
   global $navbar_type;
   if ($navbar_type == 'left') {
     getSidebarTopHTML();
@@ -239,7 +243,15 @@ function getMenuKeyHrefMap() {
 // MenuKeys use their built-in href, custom keys become ?view=<MenuKey>.
 function menuItemEffectiveLink($item) {
   $link = $item->Link();
-  if ($link !== null && $link !== '') return $link;
+  if ($link !== null && $link !== '') {
+    // Browsers ignore whitespace and control characters inside a scheme, so
+    // look at the link without them. Only http(s) may carry a scheme, as a
+    // javascript: or data: link would run script in the session of whoever
+    // clicks it.
+    $bare = preg_replace('/[\x00-\x20]+/', '', $link);
+    if (!preg_match('/^[a-z][a-z0-9+.\-]*:/i', $bare) or preg_match('/^https?:/i', $bare)) return $link;
+    $link = null;
+  }
   $map = getMenuKeyHrefMap();
   $key = $item->MenuKey();
   return isset($map[$key]) ? $map[$key] : '?view='.$key;
@@ -913,7 +925,8 @@ function getStorageHTML() {
     }
     $title = human_filesize($S->disk_used_space()) . ' of ' . human_filesize($S->disk_total_space()). 
       ( ( $S->disk_used_space() != $S->event_disk_space() ) ? ' ' .human_filesize($S->event_disk_space()) . ' used by events' : '' );
-    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . '</a>';
+    $free = $S->disk_total_space() ? ' (' . human_filesize(max(0, $S->disk_total_space() - $S->disk_used_space())) . ' free)' : '';
+    return '<a class="'.$class.'" title="'.$title.'" href="?view=options&amp;tab=storage">'.validHtmlStr($S->Name()) . ': ' . $S->disk_usage_percent().'%' . $free . '</a>';
   };
 
   $storage_areas = ZM\Storage::find(array('Enabled'=>true));

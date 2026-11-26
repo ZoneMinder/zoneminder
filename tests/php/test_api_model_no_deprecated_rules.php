@@ -1,7 +1,7 @@
 <?php
-// Role and Frame validated with Validation::notEmpty(), which CakePHP 2.10 deprecates: each
+// Role, Frame and User validated with Validation::notEmpty(), which CakePHP 2.10 deprecates: each
 // call raises E_USER_DEPRECATED, and the API error handler (level E_ALL & ~E_DEPRECATED, which
-// still includes E_USER_DEPRECATED) logs it on every role or frame save. Run every Validation
+// still includes E_USER_DEPRECATED) logs it on every role, frame or user save. Run every Validation
 // rule of these models and fail if any of them raises a deprecation.
 //
 //   php tests/php/test_api_model_no_deprecated_rules.php [repo-root]
@@ -12,7 +12,7 @@ class AppModel {}
 $repoRoot = $argv[1] ?? realpath(__DIR__.'/../..');
 
 require_once "$repoRoot/web/api/lib/Cake/Utility/Validation.php";
-foreach (array('Role', 'Frame') as $class) require_once "$repoRoot/web/api/app/Model/$class.php";
+foreach (array('Role', 'Frame', 'User') as $class) require_once "$repoRoot/web/api/app/Model/$class.php";
 
 $passes = 0;
 $failures = 0;
@@ -21,7 +21,7 @@ function check($ok, $what) {
   if ($ok) { $passes++; echo "ok - $what\n"; } else { $failures++; echo "not ok - $what\n"; }
 }
 
-foreach (array('Role', 'Frame') as $class) {
+foreach (array('Role', 'Frame', 'User') as $class) {
   $model = new $class();
   foreach ($model->validate as $field => $rules) {
     foreach ($rules as $name => $rule) {

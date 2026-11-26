@@ -828,6 +828,11 @@ function userFromSession() {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
       $user = new ZM\User(dbFetchOne($sql, NULL, array($_SESSION['username'])));
+      # A password reset ends the sessions that logged in with the old password.
+      if ($user->Id() and isset($_SESSION['passwordHash']) and !hash_equals((string)$_SESSION['passwordHash'], (string)$user->Password())) {
+        ZM\Info('The password of '.$_SESSION['username'].' changed since this session logged in, ending it');
+        $user = null;
+      }
     }
   }
   return $user;

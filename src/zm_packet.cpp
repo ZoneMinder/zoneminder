@@ -346,7 +346,7 @@ AVPacket *ZMPacket::set_packet(AVPacket *p) {
   }
 
   // Stamp system and steady clocks back-to-back: the steady stamp pairs with
-  // the substream sidecar's steady frame times for NTP-immune wallclock sync.
+  // the substream sidecar's steady frame times for the NTP-immune stall check.
   timestamp = std::chrono::system_clock::now();
   timestamp_steady = std::chrono::steady_clock::now();
   keyframe = p->flags & AV_PKT_FLAG_KEY;

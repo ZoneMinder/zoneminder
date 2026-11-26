@@ -3325,7 +3325,7 @@ int Monitor::Capture() {
   std::shared_ptr<ZMPacket> packet = std::make_shared<ZMPacket>();
   packet->image_index = shared_data->image_count;
   // Stamp system and steady clocks back-to-back: the steady stamp pairs with
-  // the substream sidecar's steady frame times for NTP-immune wallclock sync.
+  // the substream sidecar's steady frame times for the NTP-immune stall check.
   packet->timestamp = std::chrono::system_clock::now();
   packet->timestamp_steady = std::chrono::steady_clock::now();
   shared_data->heartbeat_time = std::chrono::system_clock::to_time_t(packet->timestamp);
@@ -4387,10 +4387,11 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
     }
 
     bool fresh = (sequence != last_secondary_sequence);
-    // Wallclock sync on the steady clock (immune to NTP steps): the substream
-    // is considered stalled when this packet was captured more than the
-    // threshold AFTER the newest substream frame, i.e. the sidecar has stopped
-    // producing.  The test is one-sided on purpose: a frame newer than the
+    // Stall check on the steady clock (immune to NTP steps). This is not
+    // per-frame sync: the newest substream frame is scored whatever packet is
+    // being analysed (see zm_secondary_sync.h). The substream is considered
+    // stalled when this packet was captured more than the threshold AFTER the
+    // newest substream frame, i.e. the sidecar has stopped producing.  The test is one-sided on purpose: a frame newer than the
     // packet just means the analysis thread lags capture (packetqueue backlog)
     // while the substream is healthy, and analysis pairs with the freshest
     // frame as it always has.

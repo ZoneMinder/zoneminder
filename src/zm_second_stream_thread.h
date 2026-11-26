@@ -44,8 +44,8 @@ class SecondStreamThread {
   // Cheap peek at the newest frame's metadata without copying pixels.  Returns
   // false if no frame has ever been produced.  On success sets sequence (a
   // monotonically increasing frame counter used to detect fresh frames) and
-  // capture_steady (the steady_clock time the frame was captured, for wallclock
-  // sync against a primary packet's steady stamp).  Callers use this to decide
+  // capture_steady (the steady_clock time the frame was captured, for the
+  // stall check against a primary packet's steady stamp).  Callers use this to decide
   // whether a copy is worthwhile before paying for GetLatestImage.
   bool PeekLatest(uint64_t &sequence, TimePoint &capture_steady);
 

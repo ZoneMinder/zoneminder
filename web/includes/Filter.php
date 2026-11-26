@@ -14,6 +14,7 @@ class Filter extends ZM_Object {
   protected static $is_isnot_opTypes = null;
   protected static $archiveTypes = null;
   protected static $booleanValues = null;
+  protected static $stateTypes = null;
 
   protected $Query;
   protected $Terms;
@@ -989,6 +990,11 @@ class Filter extends ZM_Object {
         'DiskPercent' => translate('AttrDiskPercent'),
         #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
         'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'Emailed'     => translate('AttrEmailed'),
+        'Executed'    => translate('AttrExecuted'),
+        'Messaged'    => translate('AttrMessaged'),
+        'Uploaded'    => translate('AttrUploaded'),
+        'Videoed'     => translate('AttrVideoed'),
         'CurrentDateTime' => translate('Current DateTime'),
         'CurrentDate' => translate('Current Date'),
         'CurrentTime' => translate('Current Time'),
@@ -1036,6 +1042,22 @@ class Filter extends ZM_Object {
       );
     }
     return self::$booleanValues;
+  }
+
+  // The Events table's per-event action flags. They are tinyint(3) unsigned,
+  // so the value widget offers False (0) and True (1).
+  public static function stateAttrs() {
+    return array('Videoed', 'Uploaded', 'Emailed', 'Messaged', 'Executed');
+  }
+
+  public static function stateTypes() {
+    if (!self::$stateTypes) {
+      self::$stateTypes = array(
+        '0' => translate('False'),
+        '1' => translate('True')
+      );
+    }
+    return self::$stateTypes;
   }
 
   public static function is_isnot_opTypes() {
@@ -1111,6 +1133,7 @@ class Filter extends ZM_Object {
 
     $is_isnot_opTypes = $this->is_isnot_opTypes();
     $booleanValues = $this->booleanValues();
+    $stateTypes = $this->stateTypes();
 
     $conjunctionTypes = getFilterQueryConjunctionTypes();
     $storageareas = null;
@@ -1193,9 +1216,10 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/></td>'.PHP_EOL;
-        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+        } else if ( $term['attr'] == 'ExistsInFileSystem' or in_array($term['attr'], self::stateAttrs()) ) {
+          $values = ($term['attr'] == 'ExistsInFileSystem') ? $booleanValues : $stateTypes;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $values, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'Group') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1280,6 +1304,7 @@ class Filter extends ZM_Object {
     $archiveTypes = $this->archiveTypes();
     $is_isnot_opTypes = $this->is_isnot_opTypes();
     $booleanValues = $this->booleanValues();
+    $stateTypes = $this->stateTypes();
     $storageareas= null;
     $zones = null;
     $states = array();
@@ -1387,9 +1412,10 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/>'.PHP_EOL;
           $html .= '</span>';
-        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+        } else if ( $term['attr'] == 'ExistsInFileSystem' or in_array($term['attr'], self::stateAttrs()) ) {
+          $values = ($term['attr'] == 'ExistsInFileSystem') ? $booleanValues : $stateTypes;
           $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", $values, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Group') {

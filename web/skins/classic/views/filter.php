@@ -107,6 +107,7 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
 
 // Set by the execute action's redirect.
 if (isset($_REQUEST['executed'])) {

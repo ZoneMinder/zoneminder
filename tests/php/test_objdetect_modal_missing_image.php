@@ -52,6 +52,10 @@ namespace {
     return preg_replace('/[^\-\d]/', '', $value);
   }
 
+  function validCardinal($value) {
+    return preg_replace('/\D/', '', $value);
+  }
+
   function translate($text) {
     return $text;
   }

@@ -68,8 +68,9 @@ class AppModel extends Model {
           }
         }
       } else if (in_array($type, array('datetime', 'timestamp', 'date'))) {
-        if (!preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]\d{1,2}:\d{1,2}(?::\d{1,2}(?:\.\d+)?)?)?$/', $value, $m)
-            or !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+        if (!preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.\d+)?)?)?$/', $value, $m)
+            or !checkdate((int)$m[2], (int)$m[3], (int)$m[1])
+            or (isset($m[4]) and ((int)$m[4] > 23 or (int)$m[5] > 59 or (isset($m[6]) and (int)$m[6] > 59)))) {
           $this->invalidate($field, $field.' must be a date like 2026-01-31 13:45:00');
         }
       } else if ($type == 'string' and !empty($column['length'])) {

@@ -1667,11 +1667,17 @@ $codecs = array(
             <li>
               <label><?php echo translate('ReturnLocation') ?></label>
 <?php
-      $return_options = array(
-          '-1' => translate('None'),
-          '0' => translate('Home'),
-          '1' => translate('Preset').' 1',
-      );
+      $return_options = array('-1' => translate('None'));
+      foreach ($controls as $control) {
+        if ($control->Id() != $monitor->ControlId()) continue;
+        if ($control->HasHomePreset()) $return_options['0'] = translate('Home');
+        for ($i = 1; $i <= $control->NumPresets(); $i++)
+          $return_options[(string)$i] = translate('Preset').' '.$i;
+      }
+      // Keep the saved location listed, or saving the form would reset it to None.
+      $saved_location = $monitor->ReturnLocation();
+      if (is_numeric($saved_location) and $saved_location >= 0 and !isset($return_options[(string)(int)$saved_location]))
+        $return_options[(string)(int)$saved_location] = $saved_location > 0 ? translate('Preset').' '.(int)$saved_location : translate('Home');
 echo htmlSelect('newMonitor[ReturnLocation]', $return_options, $monitor->ReturnLocation()); ?>
             </li>
             <li>

@@ -42,6 +42,10 @@ It can also apply and configure upgrades etc, including on the fly upgrades.
                                      If interactive will try once, print out result and quit.
  -f, --freshen                     - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
  --migrate-events                  - Update database structures as per USE_DEEP_STORAGE setting.
+ --rename                          - Rename event image files from the old capture-NNN.jpg and
+                                     analyse-NNN.jpg form to NNN-capture.jpg and NNN-analyse.jpg
+ --zone-fix                        - For zones in percent units, multiply the Min/Max Alarm, Filter
+                                     and Blob thresholds by the monitor area over the zone area
  -v <version>, --version=<version> - Force upgrade to the current version from <version>
  -u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
  -p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB

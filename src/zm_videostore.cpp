@@ -1683,7 +1683,10 @@ VideoStoreFinalizeAction videostore_finalize_action(bool write_packet_failed, un
 int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   if (write_packet_failed_) {
     // The muxer may be in an inconsistent state after a prior failure; another
-    // av_interleaved_write_frame can trigger ffmpeg's internal abort().
+    // av_interleaved_write_frame can trigger ffmpeg's internal abort(). Still
+    // count the packet as dropped so finalize()'s summary covers the whole tail
+    // of the event, not just the first failure.
+    packet_write_failures++;
     return AVERROR(EINVAL);
   }
   pkt->pos = -1;
@@ -1748,7 +1751,9 @@ int VideoStore::write_packet(AVPacket *pkt, AVStream *stream) {
   int ret = av_interleaved_write_frame(oc, pkt);
   if (ret != 0) {
     if (packet_write_failures == 0) {
-      Error("Error writing packet: %s", av_make_error_string(ret).c_str());
+      Error("Error writing packet to %s: %s. The muxer may now be inconsistent, so the "
+            "remaining packets of this event will be dropped rather than risk an abort.",
+            filename.c_str(), av_make_error_string(ret).c_str());
     }
     packet_write_failures++;
     write_packet_failed_ = true;
@@ -1811,16 +1816,31 @@ void VideoStore::finalize() {
   }
 
   int rc = 0;
+
+  // flush_codecs() drains frames still held inside the encoder and writes the
+  // resulting packets through write_packet(). A hardware encoder (e.g. AV1 on a
+  // NetInt Quadra) can hold every frame of a short event until it is flushed, so
+  // the flush is what produces those packets and it must run before we decide on
+  // the trailer — deciding on packets_written first would discard them as a
+  // header-only file. Skip the flush only when a write has already failed and
+  // the muxer may be inconsistent. flush_codecs() itself writes through
+  // write_packet(), so it can set write_packet_failed_ and will bump
+  // packets_written; the trailer decision below reads those post-flush values.
+  if (!write_packet_failed_) {
+    flush_codecs();
+  }
+
   switch (videostore_finalize_action(write_packet_failed_, packets_written)) {
     case VideoStoreFinalizeAction::kSkipWriteFailed:
-      Warning("Skipping codec flush, interleaved flush and trailer due to prior write failure");
+      Warning("Skipping interleaved flush and trailer for %s: a packet write failed, "
+              "so the muxer may be inconsistent and fragments after the failure are lost",
+              filename.c_str());
       break;
     case VideoStoreFinalizeAction::kSkipNoPackets:
-      Warning("Skipping codec flush, interleaved flush and trailer: no packets ever written to muxer");
+      Warning("Skipping interleaved flush and trailer for %s: no packets ever reached the muxer",
+              filename.c_str());
       break;
-    case VideoStoreFinalizeAction::kWriteTrailer: {
-      flush_codecs();
-
+    case VideoStoreFinalizeAction::kWriteTrailer:
       Debug(4, "Flushing interleaved queues");
       av_interleaved_write_frame(oc, nullptr);
 
@@ -1832,7 +1852,6 @@ void VideoStore::finalize() {
         Debug(3, "Success Writing trailer");
       }
       break;
-    }
   }
 
   // After av_write_trailer, the file contains init+fragments_1..N + mfra trailer.

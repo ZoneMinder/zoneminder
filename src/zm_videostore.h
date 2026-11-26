@@ -25,13 +25,15 @@ class Monitor;
 class ZMPacket;
 class PacketQueue;
 
-// What finalize() should do with the container trailer. It must not flush the
-// codecs and write the trailer when a packet write has already failed (the
-// muxer state can be inconsistent and av_write_trailer can trigger an internal
-// ffmpeg abort), nor when no packet ever reached the muxer (the fragmented-MP4
-// muxer aborts writing a trailer over an empty fragment list, which short-lived
-// events on hardware encoders hit). A prior failure takes priority over the
-// empty case for the message shown.
+// What finalize() should do with the interleaved flush and the container
+// trailer, decided after flush_codecs() has drained the encoder (so
+// packets_written already counts any frames the flush produced). It must not
+// write the trailer when a packet write has already failed (the muxer state can
+// be inconsistent and av_write_trailer can trigger an internal ffmpeg abort),
+// nor when no packet ever reached the muxer (the fragmented-MP4 muxer aborts
+// writing a trailer over an empty fragment list, which short-lived events on
+// hardware encoders hit). A prior failure takes priority over the empty case
+// for the message shown.
 enum class VideoStoreFinalizeAction { kWriteTrailer, kSkipWriteFailed, kSkipNoPackets };
 VideoStoreFinalizeAction videostore_finalize_action(bool write_packet_failed, unsigned int packets_written);
 

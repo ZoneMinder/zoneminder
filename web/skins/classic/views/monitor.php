@@ -458,6 +458,10 @@ foreach ($tabs as $name=>$value) {
   ?>
     </ul>
   </nav> <!-- END PILL LIST -->
+<?php
+$events_url = '?view=events&amp;page=1&amp;filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Battr%5D=Monitor&amp;filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bop%5D=%3D&amp;filter%5BQuery%5D%5Bterms%5D%5B0%5D%5Bval%5D='.$monitor->Id().'&amp;filter%5BQuery%5D%5Bsort_asc%5D=1&amp;filter%5BQuery%5D%5Bsort_field%5D=StartDateTime&amp;filter%5BQuery%5D%5Bskip_locked%5D=&amp;filter%5BQuery%5D%5Blimit%5D=0';
+$events_link = ($monitor->Id() && canView('Events')) ? '<a id="eventsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="'.translate('Events').'" href="'.$events_url.'"><i class="fa fa-calendar"></i></a>' : '';
+?>
   <div class="d-flex flex-column col-sm-offset-2 container-fluid">
     <!-- BEGIN MINI HEADER -->
     <div class="d-flex flex-row justify-content-between px-3 py-1">
@@ -467,6 +471,9 @@ foreach ($tabs as $name=>$value) {
       </div>
       
       <h2><?php echo translate('Monitor').' - '.($monitor->Id() ? $monitor->Id().' - ' : '').validHtmlStr($monitor->Name()) ?></h2>
+<?php if ($events_link) { ?>
+      <div><?php echo $events_link ?></div>
+<?php } ?>
 <?php
 if (canEdit('Monitors')) {
   if (isset($_REQUEST['dupId'])) {

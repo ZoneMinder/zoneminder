@@ -39,6 +39,12 @@ our ($opt_v);
 
 my $OPTIONS = 'v';
 
+sub VERSION_MESSAGE {
+  my ($fh) = @_;
+  require ZoneMinder::Base;
+  print $fh ZoneMinder::Base::ZM_VERSION() . "\n";
+}
+
 sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
   print $fh "Usage: " . __FILE__ . " [-v] probe <soap versions> <network interface>\n";

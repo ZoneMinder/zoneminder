@@ -3504,7 +3504,10 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   AVPixelFormat origPixFormat = (AVPixelFormat)input_frame->format;
   AVPixelFormat inputPixFormat = fix_deprecated_pix_fmt(origPixFormat);
 
-  convert_context = sws_getContext(
+  // Called for every decoded frame: keeps the context while the frame's size and
+  // format are unchanged and rebuilds it when the stream changes them.
+  convert_context = sws_getCachedContext(
+                      convert_context,
                       input_frame->width,
                       input_frame->height,
                       inputPixFormat,
@@ -3517,7 +3520,7 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
           av_get_pix_fmt_name(imagePixFormat)
          );
   } else {
-    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+    Debug(3, "Setup conversion context for %dx%d %s to %dx%d %s",
           input_frame->width, input_frame->height,
           av_get_pix_fmt_name(inputPixFormat),
           image->Width(), image->Height(),
@@ -4025,7 +4028,7 @@ bool Monitor::Decode() {
 
       packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);
 
-      bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
+      bool have_converter = setupConvertContext(packet->in_frame.get(), packet->image);
       if (have_converter) {
         if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
           delete packet->image;

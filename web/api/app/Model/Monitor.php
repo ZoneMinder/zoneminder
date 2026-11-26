@@ -100,6 +100,14 @@ class Monitor extends AppModel {
         'allowEmpty' => true,
         'required' => false,
       ),
+    ),
+    'Path' => array(
+      'ffmpegProtocol' => array(
+        'rule' => array('validFfmpegPath'),
+        'message' => 'Source Path must start with a protocol such as rtsp://',
+        'allowEmpty' => true,
+        'required' => false,
+      ),
     )
 
   );
@@ -148,6 +156,24 @@ class Monitor extends AppModel {
       return true;
     }
     return (bool)preg_match('#^/dev/[\w/.\-]+$#', $value);
+  }
+
+  // The console refuses an Ffmpeg source path with no protocol, which ffmpeg cannot open and zmdc
+  // then restarts zmc in a loop. Absolute paths and the scheme-less v4l2: form are valid. A Path an
+  // edit leaves as stored is not refused.
+  public function validFfmpegPath($check) {
+    $value = reset($check);
+    if ($value === null or $value === '' or !is_string($value)) {
+      return true;
+    }
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
+    if ($type !== 'Ffmpeg') {
+      return true;
+    }
+    if ($this->id and $value === $this->field('Path')) {
+      return true;
+    }
+    return strpos($value, '://') !== false or substr($value, 0, 1) === '/' or stripos($value, 'v4l2:') === 0;
   }
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

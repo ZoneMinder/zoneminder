@@ -4425,45 +4425,21 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
     do_score = fresh and !stale;
 
     // Run motion detection at the substream's NATIVE resolution rather than
-    // upscaling it to the full camera size. Zones are percentage-based, so
-    // rebuilding them at the substream size scales their geometry and pixel
-    // thresholds automatically - this keeps the per-frame Delta/Blend/zone work
-    // proportional to the (small) substream, instead of paying full-res cost.
+    // upscaling it to the full camera size. Zone::LoadRow rebuilds the zones at
+    // that size (percentages parsed at it, legacy pixel zones and their pixel
+    // thresholds scaled down to it), which keeps the per-frame Delta/Blend/zone
+    // work proportional to the (small) substream, instead of paying full-res cost.
     // The substream size is only known once it decodes a frame, so discover it
-    // here and, on change, rebuild the zones and drop the reference image so it
-    // reseeds at the new resolution.
+    // here and, on change, switch to it (SetAnalysisResolution).
     const unsigned int native_w = secondary_image_native.Width();
     const unsigned int native_h = secondary_image_native.Height();
     if (native_w and native_h and
         ((native_w != AnalysisWidth()) or (native_h != AnalysisHeight()))) {
-      const unsigned int prev_w = analysis_width;
-      const unsigned int prev_h = analysis_height;
-      const unsigned int from_w = AnalysisWidth();
-      const unsigned int from_h = AnalysisHeight();
-      // Zone::Load builds zones at AnalysisWidth()/Height(), so switch the analysis
-      // resolution BEFORE loading. If the load comes back empty while we still have
-      // usable zones (e.g. a transient DB error), revert and keep detecting at the
-      // current resolution, retrying next frame rather than dropping every zone -
-      // which, since the switch would not fire again, would silently disable motion
-      // detection. A monitor that genuinely has no zones has zones.empty() already
-      // and falls through to switch.
-      analysis_width = native_w;
-      analysis_height = native_h;
-      std::vector<Zone> new_zones = Zone::Load(shared_from_this());
-      if (new_zones.empty() and !zones.empty()) {
-        analysis_width = prev_w;
-        analysis_height = prev_h;
-        Warning("Monitor %d: could not load zones at substream resolution %ux%u; retrying",
-                id, native_w, native_h);
+      if (!SetAnalysisResolution(native_w, native_h,
+                                 [this]() { return Zone::Load(shared_from_this()); })) {
         do_score = false;
         return nullptr;
       }
-      Info("Monitor %d: motion detection resolution set to substream native %ux%u (was %ux%u); rebuilding zones",
-           id, native_w, native_h, from_w, from_h);
-      substream_width = native_w;
-      substream_height = native_h;
-      zones = std::move(new_zones);
-      ref_image = Image();  // force reseed at the new resolution
     }
     return &secondary_image_native;
   }
@@ -4474,6 +4450,41 @@ Image *Monitor::getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bo
     return packet->get_y_image();  // may be null if not decoded
   }
   return packet->image;
+}
+
+bool Monitor::SetAnalysisResolution(unsigned int w, unsigned int h,
+                                    const std::function<std::vector<Zone>()> &load_zones) {
+  const unsigned int prev_w = analysis_width;
+  const unsigned int prev_h = analysis_height;
+  const unsigned int from_w = AnalysisWidth();
+  const unsigned int from_h = AnalysisHeight();
+  // Zone::LoadRow builds zones at AnalysisWidth()/Height(), so switch the analysis
+  // resolution BEFORE loading. If the load comes back empty while we still have
+  // usable zones (e.g. a transient DB error), revert and keep detecting at the
+  // current resolution, retrying next frame rather than dropping every zone -
+  // which, since the switch would not fire again, would silently disable motion
+  // detection. A monitor that genuinely has no zones has zones.empty() already
+  // and falls through to switch.
+  analysis_width = w;
+  analysis_height = h;
+  std::vector<Zone> new_zones = load_zones();
+  if (new_zones.empty() and !zones.empty()) {
+    analysis_width = prev_w;
+    analysis_height = prev_h;
+    Warning("Monitor %d: could not load zones at substream resolution %ux%u; retrying",
+            id, w, h);
+    return false;
+  }
+  Info("Monitor %d: motion detection resolution set to substream native %ux%u (was %ux%u); rebuilding zones",
+       id, w, h, from_w, from_h);
+  substream_width = w;
+  substream_height = h;
+  zones = std::move(new_zones);
+  // Drop the reference image so the next frame reseeds it at the new size.
+  // Assigning an empty Image() does not do this: Image::Assign refuses an image
+  // without a buffer, logs an error and keeps the old one.
+  ref_image.DumpImgBuffer();
+  return true;
 }
 
 unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zoneSet) {

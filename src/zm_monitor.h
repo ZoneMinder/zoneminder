@@ -1342,6 +1342,13 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // primary packet's Y-channel or colour image.  do_score is set false when the
   // caller should skip scoring this round (no fresh/valid substream frame).
   Image *getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bool &do_score);
+  // Run motion detection at w x h: switch the analysis size, rebuild the zones
+  // at it with load_zones (Zone::Load in zmc) and drop the reference image so it
+  // reseeds at that size. The privacy mask is left alone; it is frame-sized.
+  // Returns false, keeping the current size and zones, when load_zones comes back
+  // empty while there are zones, so the caller retries on a later frame.
+  bool SetAnalysisResolution(unsigned int w, unsigned int h,
+                             const std::function<std::vector<Zone>()> &load_zones);
   // Write capture_image into image_buffer[index] without conversion and
   // record its AVPixelFormat in image_pixelformats[index] so reading
   // processes can adopt that format via ReadShmFrame.

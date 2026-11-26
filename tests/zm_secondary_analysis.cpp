@@ -48,6 +48,10 @@ class AnalysisMonitor : public Monitor {
   }
   const unsigned char *PrivacyMask() const { return privacy_bitmask; }
   void SetSecondaryAnalysis(bool on) { secondary_analysis = on; }
+  bool HasReference() const { return ref_image.Buffer() != nullptr; }
+  size_t ZoneCount() const { return zones.size(); }
+  const Zone &GetZone(size_t i) const { return zones[i]; }
+  unsigned int SubstreamWidth() const { return substream_width; }
   void SeedReference(unsigned int w, unsigned int h) {
     ref_image = Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
     ref_image.Clear();
@@ -233,4 +237,70 @@ TEST_CASE("Monitor::DetectMotion: privacy zones do not score on the substream", 
   FillBox(comp, 4, 10, 7, 13);
   REQUIRE(monitor->DetectMotion(comp, zoneSet) > 0);
   monitor->ClearZones();
+}
+
+TEST_CASE("Monitor::SetAnalysisResolution rebuilds the zones at the substream size", "[Monitor][SecondaryAnalysis]") {
+  auto monitor = MakeMonitor(64, 48);
+  monitor->SetSecondaryAnalysis(true);
+  const auto active = Row("1", "32,0 63,0 63,47 32,47", "4", "0", "0");
+  const auto privacy = Row("6", "0,0 15,0 15,15 0,15", "0", "0", "0");
+  REQUIRE(monitor->LoadZone(active));
+  REQUIRE(monitor->LoadZone(privacy));
+  monitor->AddPrivacyBitmask();
+  monitor->SeedReference(64, 48);
+  REQUIRE(monitor->GetZone(0).GetPolygon().Extent().Hi().x_ == 63);
+
+  // What Zone::Load would read from the Zones table, built at whatever
+  // analysis size the monitor has when it is called.
+  auto load = [&]() {
+    std::vector<Zone> zones;
+    Zone::LoadRow(monitor, active.data(), zones);
+    Zone::LoadRow(monitor, privacy.data(), zones);
+    return zones;
+  };
+
+  SECTION("the switch rebuilds the zones and drops the frame-sized reference") {
+    REQUIRE(monitor->SetAnalysisResolution(32, 24, load));
+    REQUIRE(monitor->AnalysisWidth() == 32);
+    REQUIRE(monitor->AnalysisHeight() == 24);
+    REQUIRE(monitor->SubstreamWidth() == 32);
+    REQUIRE(monitor->ZoneCount() == 2);
+    REQUIRE(monitor->GetZone(0).getPgImage()->Width() == 32);
+    REQUIRE(monitor->GetZone(0).GetPolygon().Extent().Lo().x_ == 16);
+    REQUIRE(monitor->GetZone(0).GetPolygon().Extent().Hi().x_ == 31);
+    // Reseeded from the next substream frame, at the new size.
+    REQUIRE_FALSE(monitor->HasReference());
+    // The privacy mask stays at frame size, covering the same area.
+    const unsigned char *mask = monitor->PrivacyMask();
+    REQUIRE(mask != nullptr);
+    REQUIRE(mask[10 * 64 + 10] == 0xff);
+    REQUIRE(mask[10 * 64 + 20] == 0);
+
+    // Scoring then runs on substream-sized images.
+    Event::StringSet zoneSet;
+    Image comp(32, 24, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    comp.Clear();
+    monitor->SeedReference(32, 24);
+    FillBox(comp, 24, 10, 27, 13);
+    REQUIRE(monitor->DetectMotion(comp, zoneSet) > 0);
+  }
+
+  SECTION("an empty load keeps the zones and size it has") {
+    auto empty = []() { return std::vector<Zone>(); };
+    REQUIRE_FALSE(monitor->SetAnalysisResolution(32, 24, empty));
+    REQUIRE(monitor->AnalysisWidth() == 64);
+    REQUIRE(monitor->AnalysisHeight() == 48);
+    REQUIRE(monitor->ZoneCount() == 2);
+    REQUIRE(monitor->GetZone(0).GetPolygon().Extent().Hi().x_ == 63);
+    REQUIRE(monitor->HasReference());
+  }
+
+  monitor->ClearZones();
+}
+
+TEST_CASE("Monitor::SetAnalysisResolution switches a monitor that has no zones", "[Monitor][SecondaryAnalysis]") {
+  auto monitor = MakeMonitor(64, 48);
+  auto empty = []() { return std::vector<Zone>(); };
+  REQUIRE(monitor->SetAnalysisResolution(32, 24, empty));
+  REQUIRE(monitor->AnalysisWidth() == 32);
 }

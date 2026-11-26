@@ -141,7 +141,8 @@ set(TEST_SOURCES
   zm_local_camera.cpp
   zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp
-  zm_stream_manager_json.cpp)
+  zm_stream_manager_json.cpp
+  zm_storage_fallback.cpp)
 
 add_executable(tests ${TEST_SOURCES})
 

@@ -387,6 +387,16 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   delete storage;
   storage = new Storage(storage_id);
+  if (p != QUERY && Storage::NeedsFallback(storage_id, storage->Id())) {
+    // The configured storage area is gone, use another real one instead of the built-in events path.
+    // Only the processes that write events need this, query loads (zms, zmu, web) leave it alone.
+    zmDbRow storage_row;
+    if (storage_row.fetch(Storage::FallbackSql(storage_id, server_id))) {
+      delete storage;
+      storage = new Storage(static_cast<unsigned int>(atoi(storage_row[0])));
+      Warning("Storage area %u not found for monitor %u, using storage area %u", storage_id, id, storage->Id());
+    }
+  }
 
   if (!strcmp(dbrow[col], "Local")) {
     type = LOCAL;

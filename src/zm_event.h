@@ -84,6 +84,8 @@ inline int EventMaxScoreForDb(int max_score) {
 // recording goes on and zmrecover.pl can add the event from disk later. Built
 // from the time so it needs no database: distinct per monitor at the same
 // millisecond and far above the ids auto increment has handed out.
+// ZoneMinder::Event::FALLBACK_ID_MIN in Perl recognises these ids, so zmaudit
+// keeps such an event and zmrecover.pl gives it a normal id.
 inline uint64_t EventFallbackId(uint64_t epoch_ms, unsigned int monitor_id) {
   return epoch_ms * 1000 + monitor_id % 1000;
 }

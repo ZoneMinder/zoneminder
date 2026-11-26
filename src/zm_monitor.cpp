@@ -3003,7 +3003,7 @@ std::string Monitor::RtspUrlFromRemote(
     if (!pass.empty()) url += ":" + UriEncode(pass);
     url += "@";
   }
-  url += host;
+  url += UrlHost(host);
   // The stored port is kept even when it is the default, so the operator can
   // paste the result without having to know what the default is.
   if (!port.empty()) url += ":" + port;

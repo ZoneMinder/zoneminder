@@ -481,6 +481,7 @@ $SLANG = array(
     'FPS'                   => 'fps',
     'FPSReportInterval'     => 'FPS Report Interval',
     'FrameId'               => 'Frame Id',
+    'Free'                  => 'Free',
     'FrameRate'             => 'Frame Rate',
     'MotionFrameSkip'       => 'Motion Frame Skip',
     'GenerateVideo'         => 'Generate Video',

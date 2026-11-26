@@ -192,6 +192,8 @@ sub _base_url {
     return undef;
   }
   my $port = $$self{port} || 80;
+  # URI returns an IPv6 host without the brackets a URL needs.
+  $host = '['.$host.']' if $host =~ /:/;
   $$self{FoscamBaseURL} = 'http://'.$host.($port == 80 ? '' : ':'.$port);
   return $$self{FoscamBaseURL};
 }

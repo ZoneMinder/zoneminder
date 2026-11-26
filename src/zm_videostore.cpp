@@ -682,15 +682,16 @@ bool VideoStore::open() {
     }
   }
   if ((ret = avformat_write_header(oc, &opts)) < 0) {
-    // we crash if we try again
-    if (ENOSPC != ret) {
+    // we crash if we try again. ret is an AVERROR, so compare with AVERROR(ENOSPC).
+    if (ret != AVERROR(ENOSPC)) {
       Warning("Unable to set movflags trying with defaults.%d %s",
               ret, av_make_error_string(ret).c_str());
 
       ret = avformat_write_header(oc, nullptr);
       Debug(1, "Done %d", ret);
     } else {
-      Error("ENOSPC. fail");
+      Error("Monitor %u: disk full writing %s, the event will not be recorded. Free space on the storage area",
+          monitor->Id(), filename.c_str());
     }
   } else if (av_dict_count(opts) != 0) {
     Info("some options not used, turn on debugging for a list.");
@@ -1075,7 +1076,7 @@ bool VideoStore::setup_resampler() {
     Error("could not open codec (%d) (%s)",
           ret, av_make_error_string(ret).c_str());
     audio_out_codec = nullptr;
-    audio_out_ctx = nullptr;
+    avcodec_free_context(&audio_out_ctx);
     audio_out_stream = nullptr;
     return false;
   }
@@ -1204,15 +1205,19 @@ bool VideoStore::setup_resampler() {
 
   // The codec gives us the frame size, in samples, we calculate the size of the
   // samples buffer in bytes
-  unsigned int audioSampleBuffer_size = av_samples_get_buffer_size(
-                                          nullptr,
+  int audioSampleBuffer_size = av_samples_get_buffer_size(
+                                 nullptr,
 #if LIBAVUTIL_VERSION_CHECK(57, 28, 100, 28, 0)
-                                          audio_out_ctx->ch_layout.nb_channels,
+                                 audio_out_ctx->ch_layout.nb_channels,
 #else
-                                          audio_out_ctx->channels,
+                                 audio_out_ctx->channels,
 #endif
-                                          audio_out_ctx->frame_size,
-                                          audio_out_ctx->sample_fmt, 0);
+                                 audio_out_ctx->frame_size,
+                                 audio_out_ctx->sample_fmt, 0);
+  if (audioSampleBuffer_size < 0) {
+    Error("Could not get the audio sample buffer size (%s)", av_make_error_string(audioSampleBuffer_size).c_str());
+    return false;
+  }
   converted_in_samples = reinterpret_cast<uint8_t *>(av_malloc(audioSampleBuffer_size));
 
   if (!converted_in_samples) {
@@ -1316,7 +1321,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     av_frame_ptr frame(av_frame_alloc());
 
     if (zm_packet->out_frame) {
-      av_frame_ref(frame.get(), zm_packet->out_frame.get());
+      if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+        Error("Could not reference frame");
+        return 0;
+      }
     } else {
       Debug(3, "Have no out frame. codec is %s sw_pf %d %s hw_pf %d %s %dx%d",
             chosen_codec_data->codec_name,
@@ -1340,7 +1348,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
         } else {
           Debug(2, "converting");
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
 
           // The destination is out_frame's buffer, which get_out_frame laid
           // out at alignment (width % 32 ? 1 : 32) — mirror that choice here
@@ -1365,10 +1376,16 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
             and
             static_cast<AVPixelFormat>(zm_packet->in_frame->format) == chosen_codec_data->sw_pix_fmt
            ) {
-          av_frame_ref(frame.get(), zm_packet->in_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->in_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
         } else {
           zm_packet->get_out_frame(video_out_ctx->width, video_out_ctx->height, chosen_codec_data->sw_pix_fmt);
-          av_frame_ref(frame.get(), zm_packet->out_frame.get());
+          if (av_frame_ref(frame.get(), zm_packet->out_frame.get()) < 0) {
+            Error("Could not reference frame");
+            return 0;
+          }
           // Have in_frame.... may need to convert it to out_frame
           swscale.Convert(zm_packet->in_frame.get(), frame.get());
           av_frame_copy_props(frame.get(), zm_packet->in_frame.get());
@@ -1523,7 +1540,10 @@ int VideoStore::writeVideoFramePacket(const std::shared_ptr<ZMPacket> zm_packet)
     AVPacket *ipkt = zm_packet->packet.get();
     ZM_DUMP_STREAM_PACKET(video_in_stream, ipkt, "Doing passthrough, just copy packet");
     // Just copy it because the codec is the same
-    av_packet_ref(opkt.get(), ipkt);
+    if (av_packet_ref(opkt.get(), ipkt) < 0) {
+      Error("Could not reference packet");
+      return 0;
+    }
     pkt_guard.acquire(opkt);
 
     if (monitor->WallClockTimestamps()) {

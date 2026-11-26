@@ -180,6 +180,10 @@ MAIN: while( $loop ) {
     } # end if
   } # end while can't connect to the db
 
+  # -M measures file age from $^T, the time the script started. Continuous mode
+  # runs for days, so without this files made after start would never look old.
+  $^T = time();
+
   my @Storage_Areas;
   my @all_Storage_Areas = ZoneMinder::Storage->find();
 
@@ -372,9 +376,9 @@ MAIN: while( $loop ) {
             my @contents = $Event->files();
             Debug("Have " . @contents . " files in $day_dir/$event_dir");
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -425,7 +429,11 @@ MAIN: while( $loop ) {
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
                 executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
-                $cleaned = 1;
+                if ( -e $event_dir ) {
+                  Warning("Unable to remove event directory $day_dir/$event_dir");
+                } else {
+                  $cleaned = 1;
+                }
               }
             } # end if able to find id
           } # end foreach event_dir without link
@@ -869,10 +877,10 @@ if ( $level > 1 ) {
   };
 
   # Prune the Logs table if required (excluding AUDIT entries)
-  # A number less than or equal to zero means no limit
+  # A number less than or equal to zero, with or without a unit, means no limit
   $Config{ZM_LOG_DATABASE_LIMIT} =~ s/^\s+|\s+$//g if defined $Config{ZM_LOG_DATABASE_LIMIT};
   if ( $Config{ZM_LOG_DATABASE_LIMIT}
-    and !(looks_like_number($Config{ZM_LOG_DATABASE_LIMIT}) and $Config{ZM_LOG_DATABASE_LIMIT} <= 0) ) {
+    and !($Config{ZM_LOG_DATABASE_LIMIT} =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
@@ -918,7 +926,7 @@ if ( $level > 1 ) {
   # Prune AUDIT log entries separately with their own retention period
   my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} // '';
   $audit_limit =~ s/^\s+|\s+$//g;
-  if ( $audit_limit and !(looks_like_number($audit_limit) and $audit_limit <= 0) ) {
+  if ( $audit_limit and !($audit_limit =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $audit_limit =~ /^\d+$/ ) {
       # Number of rows

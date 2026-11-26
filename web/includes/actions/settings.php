@@ -36,11 +36,13 @@ if (!canView('Control', $_REQUEST['mid']) or !canEdit('Control')) {
 require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ($action == 'settings') {
+  // A camera without one of the controls has no slider for it, so nothing is posted; a bare
+  // option makes zmu read the current value.
   $args = ' -m ' . escapeshellarg($mid);
-  $args .= ' -B' . escapeshellarg(validInt($_REQUEST['newBrightness']));
-  $args .= ' -C' . escapeshellarg(validInt($_REQUEST['newContrast']));
-  $args .= ' -H' . escapeshellarg(validInt($_REQUEST['newHue']));
-  $args .= ' -O' . escapeshellarg(validInt($_REQUEST['newColour']));
+  $args .= ' -B' . escapeshellarg(validInt($_REQUEST['newBrightness'] ?? ''));
+  $args .= ' -C' . escapeshellarg(validInt($_REQUEST['newContrast'] ?? ''));
+  $args .= ' -H' . escapeshellarg(validInt($_REQUEST['newHue'] ?? ''));
+  $args .= ' -O' . escapeshellarg(validInt($_REQUEST['newColour'] ?? ''));
 
   $zmuCommand = getZmuCommand($args);
 

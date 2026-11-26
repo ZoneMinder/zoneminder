@@ -303,6 +303,10 @@ use constant ANALYSING_NONE     => 1;
 sub save {
   my $self = shift;
 
+  # zmc reads an empty or NULL ONVIF_Alarm_Text as "match every ONVIF event".
+  # set() would put the default back, so an existing row is saved as it is.
+  delete local $defaults{ONVIF_Alarm_Text} if $$self{Id};
+
   my $manufacturer = $self->Manufacturer();
   my $model = $self->Model();
 
@@ -564,7 +568,7 @@ sub zmcControl {
     if ($ZoneMinder::Config{ZM_OPT_USE_AUTH}) {
       if ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'hashed') {
         #$url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} == 'plain') {
+      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'plain') {
         #$url .= '?user='.$_SESSION['username'];
         #$url .= '?pass='.$_SESSION['password'];
       } else {
@@ -573,6 +577,7 @@ sub zmcControl {
       }
     }
     Debug('sending command to '.$url);
+    require LWP::UserAgent;
     my $ua = LWP::UserAgent->new();
     $ua->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
     my $response = $ua->get($url);

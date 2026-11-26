@@ -41,7 +41,8 @@ if ($filter) {
         $exportFileName .= ' '.$group->Name();
       }
     }
-    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids), 'cnj' => 'and'));
+    # An empty value drops the term, which would export every event. Monitor 0 matches nothing.
+    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => count($monitor_ids) ? implode(',', array_unique($monitor_ids)) : '0', 'cnj' => 'and'));
   }
 }
 $total_size = 0;
@@ -100,7 +101,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     $result .= '<input type="hidden" name="id" value="' .validInt($eid). '"/>'.PHP_EOL;
 
     $Event = new ZM\Event($eid);
-    if (!$Event->Id()) {
+    if (!$Event->Id() or !$Event->canView()) {
       ZM\Error('Invalid event id');
       $result .= '<div class="error">Invalid event id</div>'.PHP_EOL;
     } else {
@@ -108,20 +109,26 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     }
   } else if (!empty($eids)) {
     $total_size = 0;
+    $viewable_count = 0;
     foreach ($eids as $eid) {
       if (!validInt($eid)) {
         ZM\Warning("Invalid event id in eids[] $eid");
         continue;
       }
       $Event = new ZM\Event($eid);
+      # Events of monitors the user cannot view are not counted, as downloadEvents() leaves them out.
+      if (!$Event->Id() or !$Event->canView()) continue;
+      $viewable_count++;
       $total_size += $Event->DiskSpace();
       if (!$filter)
         $result .= '<input type="hidden" name="eids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
     }
     unset($eid);
-    $result .= 'Downloading ' . count($eids) . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
+    $result .= 'Downloading ' . $viewable_count . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
     $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
-    $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
+    # human_filesize() does not scale a negative size, so a download larger than the free space showed as bytes.
+    $remaining = disk_free_space(ZM_DIR_EXPORTS) - $total_size;
+    $result .= '<br>Will remain free: ' . ($remaining < 0 ? '-' : '') . human_filesize(abs($remaining)).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
       $result .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }

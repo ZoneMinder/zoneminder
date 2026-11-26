@@ -76,6 +76,8 @@ class MonitorAction extends ZM_Object {
   public static function targetCandidates() {
     $candidates = array();
     foreach (Monitor::find(array('Deleted' => 0)) as $monitor) {
+      // The editor lists these names and ids, so offer only monitors the user may control, the same right saving an action demands.
+      if (!\canView('Control', $monitor->Id())) continue;
       $types = self::typesForMonitor($monitor);
       if (!count($types))
         continue;

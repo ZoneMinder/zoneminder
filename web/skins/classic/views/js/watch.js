@@ -7,11 +7,13 @@ var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
+var streamPrepareInterval = null;
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
 var idleTimeoutTriggered = false; /* Timer ZM_WEB_VIEWING_TIMEOUT has been triggered */
 var monitorStream = false; /* Stream is not started */
+var watchRate = null; /* Rate picked on this page, null until the user changes it */
 var currentMonitor;
 
 var classSidebarL = 'col-sm-3'; /* id="sidebar" */
@@ -469,7 +471,9 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    control = 'moveStop';
+    // A released continuous zoom/focus/iris button stops its own axis.
+    const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
+    control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
   xtell = button.getAttribute('data-xtell');
   ytell = button.getAttribute('data-ytell');
@@ -686,6 +690,8 @@ function changeControl(e) {
       .done(function(evt) {
         if (evt.result == 'Ok') {
           evt.controls.forEach(function(control) {
+            // zmu printed nothing, so nothing was applied; keep the slider where it is
+            if (control.value === '') return;
             const element = $j('#new'+control.control.charAt(0).toUpperCase() + control.control.slice(1));
             if (element.length) {
               element.val(control.value);
@@ -788,6 +794,8 @@ function controlSetClicked() {
   $j.getJSON(zmAuth.appendTo(monitorUrl + '?request=modal&modal=controlpreset&mid=' + monitorId))
       .done(function(data) {
         insertModalHtml('ctrlPresetModal', data.html);
+        // The page's labels are those of the monitor it was loaded for; use this monitor's.
+        labels = JSON.parse($j('#ctrlPresetForm').attr('data-labels') || '{}');
         updatePresetLabels();
         // Manage the Preset Select box
         $j('#preset').change(updatePresetLabels);
@@ -880,14 +888,18 @@ function streamPrepareStart(monitor=null) {
     el.addEventListener('mouseleave', handleMouseLeave);
   }
 
-  const i = setInterval(function() {
+  // One poller per page: a monitor switch calls this again before the last
+  // stream appeared, and that poller would otherwise run forever.
+  if (streamPrepareInterval) clearInterval(streamPrepareInterval);
+  streamPrepareInterval = setInterval(function() {
     const livestream = document.querySelector('[id ^= "liveStream"]');
 
     if (!livestream) {
       console.log("No id matching liveStream");
     } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
-      clearInterval(i);
+      clearInterval(streamPrepareInterval);
+      streamPrepareInterval = null;
       document.getElementById('monitor').classList.remove('hidden-shift');
       monitorsSetScale(monitorId);
     }
@@ -911,6 +923,10 @@ function handleMouseLeave(event) {
 
 function streamStart(monitor = null) {
   monitorStream = new MonitorStream(monitor ? monitor : monitorData[monIdx]);
+  // The rate rendered into the other monitors' streams is the one from page load
+  if (watchRate !== null && monitorStream.url_to_zms) {
+    monitorStream.url_to_zms = monitorStream.url_to_zms.replace(/&maxfps=[^&]*/, '') + '&maxfps=' + watchRate;
+  }
 
   monitorStream.manageAvailablePlayers(getCookie('zmWatchPlayer'));
   monitorStream.setBottomElement(document.getElementById('bottomBlock'));
@@ -1000,6 +1016,9 @@ function streamReStart(oldId, newId) {
   streamMode = currentMonitor.streamMode;
   controlWhatDisplay(oldId, newId);
   eventListTable.bootstrapTable('destroy');
+  // A WebSite monitor has no events to list
+  // (css() rather than show() so the .hidden class of the PTZ/events toggle still applies)
+  $j('#events').css('display', (currentMonitor.monitorType == 'WebSite') ? 'none' : '');
   applyMonitorControllable();
   //manageChannelStream();
   streamPrepareStart(currentMonitor);
@@ -1114,6 +1133,18 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // Zone overlays are always in the DOM; #monitor.hide-zones controls them.
+  const zonesCookie = getCookie('zmWatchShowZones');
+  if (zonesCookie !== null && zonesCookie !== undefined) {
+    setZonesVisible(zonesCookie == '1');
+  } else {
+    const zonesMonitor = document.getElementById('monitor');
+    if (zonesMonitor) updateZonesButton(zonesMonitor.classList.contains('hide-zones'));
+  }
+  if (document.getElementById('toggleZonesButton')) {
+    bindButton('#toggleZonesButton', 'click', null, toggleZones);
+  }
+
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1146,6 +1177,24 @@ function initPage() {
   } else {
     cyclePause();
   }
+
+  // Left/Right switch monitors, as they switch events on the event view.
+  $j(document).on('keydown', function(e) {
+    e = e || window.event;
+    if (!e) return;
+    // Keys typed into a field, or used to pick from a select, are that
+    // control's own and must not drive the page.
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if ($j('.modal').is(':visible')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (monitorData.length < 2) return;
+    if (e.key === 'ArrowLeft') {
+      cyclePrev();
+    } else if (e.key === 'ArrowRight') {
+      cycleNext();
+    }
+  });
+
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
     var inactivityTime = function() {
@@ -1238,6 +1287,31 @@ function initPage() {
     setTimeout(indicatorLightStatusReq, 800);
   });
 } // initPage
+
+function updateZonesButton(hidden) {
+  const button = document.getElementById('toggleZonesButton');
+  if (!button) return;
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  const icon = button.querySelector('.material-icons');
+  if (icon) icon.textContent = hidden ? 'layers' : 'layers_clear';
+}
+
+function setZonesVisible(visible) {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  monitor.classList.toggle('hide-zones', !visible);
+  updateZonesButton(!visible);
+}
+
+function toggleZones() {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  const hidden = monitor.classList.toggle('hide-zones');
+  setCookie('zmWatchShowZones', hidden ? '0' : '1');
+  updateZonesButton(hidden);
+}
 
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');
@@ -1401,6 +1475,7 @@ function changeRate(e) {
       streamImage.attr('src', oldsrc.replace(/maxfps=\d+/i, 'maxfps='+newvalue));
     }
   }
+  watchRate = newvalue;
   setCookie('zmWatchRate', newvalue);
 }
 

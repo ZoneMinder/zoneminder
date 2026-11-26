@@ -60,6 +60,8 @@ document.onvisibilitychange = () => {
       }
     }, 15*1000);
   } else {
+    // Back before the 15 s ran out: the pending stop would kill a visible stream
+    TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page
     for (let i = 0, length = monitorData.length; i < length; i++) {
       if (!monitors[i].started) {

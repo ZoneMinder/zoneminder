@@ -16,6 +16,12 @@ function manageDelConfirmModalBtns() {
             console.error('snapshot delete refused', data.message);
             return;
           }
+          if (Array.isArray(data.message) && data.message.length) {
+            // The server answers Ok and lists the snapshots it could not delete in message.
+            $j('#deleteConfirm').modal('hide');
+            alert(data.message.join('\n'));
+            return;
+          }
           window.location.assign('?view=snapshots');
         })
         .fail(logAjaxFail);
@@ -103,6 +109,7 @@ function initPage() {
     $j('#downloadProgress').addClass('warnText');
     $j('#downloadProgressText').text(downloadProgressString);
 
+    clearInterval(downloadTimer); // a second click would orphan the first ticker
     downloadTimer = setInterval(downloadProgress, 500);
   });
 

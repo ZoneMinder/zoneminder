@@ -17,6 +17,7 @@ namespace ZM {
   }
   class Event {
     public function __construct($eid) {}
+    public function Width() { return 1920; }
     public function MaxScore() { return 99; }
     public function getImageSrc($frame, $scale=0, $captureOnly=false) {
       // Mirrors web/includes/Event.php::getImageSrc, which reads
@@ -42,6 +43,7 @@ namespace {
     $failures++;
     echo "  FAIL $name\n    warnings: ".var_export($warnings, true)."\n";
   }
+  define('SCALE_BASE', 100);
   function translate($s) { return $s; }
   function validInt($v) { return (int)$v; }
   function validNum($v) { return (float)$v; }
@@ -79,6 +81,7 @@ namespace {
     $eid = 7;
     $fid = 0;
     $scale = 0;
+    $scales = array('0'=>'Auto', '100'=>'Actual', 'fit_to_width'=>'Fit', '480px'=>'480');
     $Event = new \ZM\Event($eid);
     $Monitor = new class { public function Id() { return 1; } public function DefaultScale() { return 100; } };
     set_error_handler('collect_warning');

@@ -22,26 +22,6 @@ require_once('Filter.php');
 require_once('FilterTerm.php');
 require_once('Network.php');
 
-// Polyfills for PHP 8.0+ string functions, so views and callers don't have to
-// guard each use. ZoneMinder still supports PHP 7.x in some distros.
-if (!function_exists('str_starts_with')) {
-  function str_starts_with(string $haystack, string $needle): bool {
-    return $needle === '' || strncmp($haystack, $needle, strlen($needle)) === 0;
-  }
-}
-if (!function_exists('str_ends_with')) {
-  function str_ends_with(string $haystack, string $needle): bool {
-    if ($needle === '' || $needle === $haystack) return true;
-    $nlen = strlen($needle);
-    return $nlen <= strlen($haystack) && substr_compare($haystack, $needle, -$nlen) === 0;
-  }
-}
-if (!function_exists('str_contains')) {
-  function str_contains(string $haystack, string $needle): bool {
-    return $needle === '' || strpos($haystack, $needle) !== false;
-  }
-}
-
 function noCacheHeaders() {
   header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');    // Date in the past
   header('Last-Modified: '.gmdate( 'D, d M Y H:i:s' ).' GMT'); // always modified
@@ -275,7 +255,7 @@ function getWebSiteUrl($id, $src, $width, $height, $title='') {
         ZM\Warning('Web site '.ZM\urlForLog($src).' has X-Frame-Options set to sameorigin. An X-Frame-Options browser plugin is required to display this site.');
     }
   }
-  return '<object id="'.$id.'" data="'.$src.'" alt="'.$title.'" width="'.$width.'" height="'.$height.'"></object>';
+  return '<object id="'.validHtmlStr($id).'" data="'.validHtmlStr($src).'" alt="'.validHtmlStr($title).'" width="'.validHtmlStr($width).'" height="'.validHtmlStr($height).'"></object>';
 }
 
 function outputControlStill($src, $width, $height, $monitor, $scale, $target) {
@@ -1136,7 +1116,7 @@ function currentSortField($field) {
   return isset($legacy[$field]) ? $legacy[$field] : $field;
 }
 
-function sortHeader($field, $querySep='&amp;') {
+function sortHeader($field, $querySep='&amp;', $extra='') {
   global $view;
   $field = currentSortField($field);
   return implode($querySep, array(
@@ -1146,6 +1126,7 @@ function sortHeader($field, $querySep='&amp;') {
     'sort_asc='.( ( isset($_REQUEST['sort_field']) and ( $_REQUEST['sort_field'] == $field ) ) ? !validInt($_REQUEST['sort_asc']) : 0),
     'limit='.(isset($_REQUEST['limit']) ? validInt($_REQUEST['limit']) : ''),
     (isset($_REQUEST['eid']) ? 'eid='.validCardinal($_REQUEST['eid']) : '' ),
+    $extra,
   ));
 }
 
@@ -1270,10 +1251,7 @@ function verNum($version) {
     $vFields[] = 0;
   }
   foreach ( $vFields as $vField ) {
-    $vField = sprintf('%02d', $vField);
-    while ( strlen($vField) < 2 ) {
-      $vField = '0'.$vField;
-    }
+    $vField = sprintf('%04d', $vField);
     $vNum .= $vField;
   }
   return $vNum;
@@ -1639,6 +1617,11 @@ function getDeviceStatusX10($key) {
 }
 
 function setDeviceStatusX10($key, $status) {
+  # The socket message is "status;key", so a ';' in either would add fields to it.
+  if (!is_scalar($key) or !is_scalar($status) or preg_match('/[;\x00-\x1f]/', $key.$status)) {
+    ZM\Warning('Refused X10 command, key and command may not contain ; or control characters');
+    return 'unknown';
+  }
   $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
   if ( $socket < 0 ) {
     ZM\Fatal('socket_create() failed: '.socket_strerror($socket));
@@ -1711,30 +1694,36 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
+    if ( json_last_error() === JSON_ERROR_NONE ) return;
     $value = var_export($value, true);
     switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        $message = "Unable to decode JSON string '$value', maximum stack depth exceeded";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        $message = "Unable to decode JSON string '$value', unexpected control character found";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        $message = "Unable to decode JSON string '$value', invalid or malformed JSON";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_SYNTAX :
-        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        $message = "Unable to decode JSON string '$value', syntax error";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       default :
-        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        $message = "Unable to decode JSON string '$value', unexpected error ".json_last_error();
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
@@ -2337,7 +2326,7 @@ function html_input($name, $type='text', $value='', $options=array()) {
   $options = array_merge($options, ['name'=>$name, 'value'=>$value, 'type'=>$type]);
 
   foreach (array_keys($options) as $k) {
-    $attributes[] = $k.'="'.$options[$k].'"';
+    $attributes[] = $k.'="'.validHtmlStr($options[$k]).'"';
   }
   $html .= join(' ', $attributes);
   $html .= '/>';
@@ -2391,23 +2380,21 @@ function zm_random_bytes($length = 32) {
   if ( !isset($length) || intval($length) <= 8 ) {
     $length = 32;
   }
-  if ( function_exists('random_bytes') ) {
-    return random_bytes($length);
-  }
-  if ( function_exists('mcrypt_create_iv') ) {
-    return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
-  }
-  if ( function_exists('openssl_random_pseudo_bytes') ) {
-    return openssl_random_pseudo_bytes($length);
-  }
-  ZM\Error('No random_bytes function found.');
+  return random_bytes($length);
 }
 
 function i18n() {
-  $string = explode('_', ZM_LANG_DEFAULT, 2);
-  $string[1] = strtoupper($string[1]);
+  global $user;
+  $lang = ZM_LANG_DEFAULT;
+  # Follow the language the page was translated into, see loadLanguage()
+  if ($user and $user->Language()) {
+    $userLang = preg_replace('/[^[:alnum:]_]+/', '', $user->Language());
+    if (file_exists('lang/'.$userLang.'.php')) $lang = $userLang;
+  }
+  $string = explode('_', $lang, 2);
+  $string[1] = isset($string[1]) ? strtoupper($string[1]) : '';
 
-  return implode('-', $string);
+  return implode('-', array_filter($string));
 }
 
 function get_networks() {
@@ -2537,9 +2524,9 @@ function extract_auth_values_from_url($url) {
   $password = substr( $url, $fieldsSeparatorPos+1, $authSeparatorPos-$fieldsSeparatorPos-1 );
 
   // URL decode the credentials since they may contain encoded special characters
-  // from ONVIF probe or manual URL entry
-  $username = urldecode($username);
-  $password = urldecode($password);
+  // from ONVIF probe or manual URL entry. rawurldecode keeps a literal + as +.
+  $username = rawurldecode($username);
+  $password = rawurldecode($password);
 
   return array( $username, $password );
 }
@@ -2725,5 +2712,60 @@ function findVideoEventFile ($Event, $ext="*") {
     }
   }
   return $path;
+}
+
+# Builds the dnsmasq configuration text from the posted config[] array.
+# Returns false when a directive or value could run a program, include another file or start a new line.
+function dnsmasqConfText($config) {
+  if (!is_array($config)) return false;
+  $denied = [
+    'dhcp-script', 'conf-script', 'dumpfile', 'dhcp-luascript', 'conf-file', 'conf-dir', 'servers-file', 'addn-hosts',
+    'hostsdir', 'dhcp-hostsfile', 'dhcp-optsfile', 'dhcp-hostsdir', 'dhcp-optsdir', 'dhcp-leasefile',
+    'user', 'group', 'pid-file', 'log-facility', 'tftp-root',
+  ];
+  $unsafe = function($text) { return preg_match('/[\r\n\0]/', (string)$text); };
+  foreach ($config as $name=>$value) {
+    if (!preg_match('/^[a-z0-9-]+$/', (string)$name) or in_array($name, $denied)) return false;
+    if (is_array($value)) {
+      foreach ($value as $k=>$v) {
+        if ($unsafe($k) or (is_array($v) ? true : $unsafe($v))) return false;
+      }
+    } else if ($unsafe($value)) {
+      return false;
+    }
+  }
+  $conf = '';
+  foreach ($config as $name=>$value) {
+    if ($name == 'dhcp-host') {
+      foreach ($value as $mac=>$ip) {
+        $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-option') {
+      foreach ($value as $option_name=>$option_value) {
+        $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
+      }
+    } else if (
+        ($name == 'bind-interfaces')
+        or
+        ($name == 'dhcp-authoritative')
+        ) {
+      if ($value=='yes') {
+        $conf .= $name.PHP_EOL;
+      }
+    } else if ($name == 'dhcp-range') {
+      $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
+    } else {
+      if (is_array($value)) {
+        foreach ($value as $v) {
+        }
+      } else if ($value === '') {
+        # an option without a value, e.g. no-resolv
+        $conf .= $name.PHP_EOL;
+      } else {
+        $conf .= $name.'='.$value.PHP_EOL;
+      }
+    }
+  }
+  return $conf;
 }
 ?>

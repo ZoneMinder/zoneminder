@@ -318,6 +318,10 @@ function buildControlCommand($monitor) {
 
       $halfWidth = $monitor->ViewWidth() / 2;
       $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
@@ -413,6 +417,10 @@ function buildControlCommand($monitor) {
 
       $halfWidth = $monitor->ViewWidth() / 2;
       $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
@@ -783,6 +791,12 @@ function buildControlCommand($monitor) {
       }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
+      // Saving a preset overwrites the one stored on the camera, which a user who may
+      // only view Control must not do.
+      if ( !canEdit('Control') ) {
+        ZM\Warning('Saving a preset requires Control edit permission');
+        return '';
+      }
       $preset = validInt($_REQUEST['preset']);
       if ( canEdit( 'Control' ) ) {
         // Stored as typed: it is escaped where it is output, and the query is prepared.
@@ -802,7 +816,9 @@ function buildControlCommand($monitor) {
       }
       $ctrlCommand .= ' --preset='.$preset;
     } elseif ( $_REQUEST['control'] == 'moveMap' ) {
-      $ctrlCommand .= " --xcoord=$x --ycoord=$y";
+      // moveMap with both x and y is handled above.
+      ZM\Warning('moveMap needs x and y');
+      return '';
     }
   }
   $ctrlCommand .= ' --command='.$_REQUEST['control'];

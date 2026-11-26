@@ -22,7 +22,11 @@ var NextEventDefVideoPath = "";
 var currEventId = null;
 var CurEventDefVideoPath = null;
 var vid = null;
-var spf = Math.round((eventData.Length / eventData.Frames)*1000000 )/1000000;//Seconds per frame for videojs frame by frame.
+// Seconds per frame for video.js frame stepping, from the event as it is now. Without a usable frame count (an event still recording has none) assume 25 fps.
+function frameSeconds() {
+  const spf = parseFloat(eventData.Length) / parseFloat(eventData.Frames);
+  return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
+}
 var intervalRewind;
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
@@ -36,6 +40,7 @@ var zmsBroke = false; //Use alternate navigation if zms has crashed
 var wasHidden = false;
 var availableTags = [];
 var selectedTags = [];
+var addingTagIds = {}; // tags with an addtag request in flight, so a second Enter or click can't add one twice
 var realEventWidth = 0;
 // The monitor the page's elements (stream, zoom buttons, zones, PanZoom) were
 // built for. On the zms path eventData can move on to another monitor's event
@@ -45,6 +50,7 @@ let pageMonitorId = null;
 // null while they are not hidden for that reason.
 let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
+var prevStateStarted = null;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -58,6 +64,8 @@ var currentScale = 100; // Temporarily, because need to put things in order with
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
+  // The image viewer (GLightbox) handles its own keys while it is open.
+  if (isLightboxOpen()) return;
   if (!$j(".tag-input").is(":focus")) {
     // Keys typed into a field, or used to pick from a select, are that
     // control's own and must not drive the player or the page.
@@ -425,7 +433,8 @@ function changeRate() {
       clearInterval(intervalRewind);
       intervalRewind = setInterval(function() {
         if (vid.currentTime() <= 0) {
-          clearInterval(intervalRewind);
+          // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+          stopFastRev();
           vid.pause();
         } else {
           vid.playbackRate(0);
@@ -547,6 +556,7 @@ function pauseClicked() {
 }
 
 function streamPause() {
+  if (!isLightboxOpen()) prevStateStarted = 'paused';
   $j('#modeValue').html('Paused');
 
   $j('#pauseBtn').hide();
@@ -593,6 +603,7 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay() {
+  if (!isLightboxOpen()) prevStateStarted = 'played';
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -649,7 +660,7 @@ function streamFastFwd(action) {
   setButtonState('slowRevBtn', 'unavail');
   setButtonState('fastRevBtn', 'inactive');
   if (vid) {
-    if (revSpeed != .5) stopFastRev();
+    if (intervalRewind) stopFastRev();
     const next = stepRate(rates, vid.playbackRate()*100, 1);
     if (next === null) {
       // Already at the fastest rate. streamPlay() re-enables this button
@@ -672,7 +683,7 @@ function streamFastFwd(action) {
 
 function streamSlowFwd(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() + spf);
+    vid.currentTime(vid.currentTime() + frameSeconds());
   } else {
     streamReq({command: CMD_SLOWFWD});
   }
@@ -680,7 +691,7 @@ function streamSlowFwd(action) {
 
 function streamSlowRev(action) {
   if (vid) {
-    vid.currentTime(vid.currentTime() - spf);
+    vid.currentTime(vid.currentTime() - frameSeconds());
   } else {
     streamReq({command: CMD_SLOWREV});
   }
@@ -732,7 +743,8 @@ function streamFastRev(action) {
     setCookie('zmEventRate', next);
     intervalRewind = setInterval(function() {
       if (vid.currentTime() <= 0) {
-        clearInterval(intervalRewind);
+        // As the pause button does: the ticks left playbackRate at 0, so Play would not move
+        stopFastRev();
         vid.pause();
       } else {
         vid.playbackRate(0);
@@ -812,6 +824,15 @@ function streamNext(action) {
     streamPlay();
   }
 } // end function streamNext(action)
+
+// The event is gone: show the next one, or the previous one when it was the last.
+function eventDeleted() {
+  if (nextEventId == 0 && prevEventId != 0) {
+    streamPrev(true);
+    return;
+  }
+  streamNext(true);
+}
 
 function tagAndNext(action) {
   addTag(availableTags[0]);
@@ -1001,7 +1022,6 @@ function getEventResponse(respObj, respText) {
     addVideoTimingTrack(vid, LabelFormat, eventData.MonitorName, eventData.Length, eventData.StartDateTime);
     CurEventDefVideoPath = null;
     $j('#modeValue').html('Replay');
-    $j('#zoomValue').html('1');
     $j('#rate').val('100');
     //vjsPanZoom('zoomOut');
   } else {
@@ -1487,7 +1507,7 @@ function manageDelConfirmModalBtns() {
             if (!vid) restartZmsStream();
             return;
           }
-          streamNext(true);
+          eventDeleted();
         })
         .fail(logAjaxFail);
   });
@@ -1524,8 +1544,8 @@ function getStat() {
         tdString = escapeHTML(eventData[key]) + ' (Id:' + eventData['Id'] + ')';
         break;
       case 'Frames':
-        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
-        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData['AlarmFrames'] + '</a>';
+        tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData[key] ?? 0) + '</a>';
+        tdString += ' Alarm:' + '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + (eventData['AlarmFrames'] ?? 0) + '</a>';
         break;
       //case 'AlarmFrames':
       //  tdString = '<a href="?view=frames&amp;eid=' + eventData.Id + '">' + eventData[key] + '</a>';
@@ -1556,7 +1576,7 @@ function getStat() {
       //  tdString = '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + eventData[key] + '</a>';
       //  break;
       case 'Score':
-        tdString = 'Total:' + eventData['TotScore'] + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + eventData['MaxScore'] + '</a>' + ' Avg:' + eventData['AvgScore'];
+        tdString = 'Total:' + (eventData['TotScore'] ?? 0) + ' '+ '<a href="?view=frame&amp;eid=' + eventData.Id + '&amp;fid=0">' + 'Max:' + (eventData['MaxScore'] ?? 0) + '</a>' + ' Avg:' + (eventData['AvgScore'] ?? 0);
         break;
       case 'n/a':
         tdString = 'n/a';
@@ -1766,6 +1786,9 @@ function initPage() {
     console.log('changescale');
     changeScale();
   }
+  // Now that the player has its size, put back the zoom remembered for this
+  // monitor.
+  restoreEventZoom();
   console.log('changeStreamQality');
   changeStreamQuality();
 
@@ -1911,7 +1934,7 @@ function initPage() {
     if (window.event.shiftKey) {
       $j.getJSON(thisUrl + '?request=event&action=delete&id='+eventData.Id)
           .done(function(data) {
-            if (deleteAnswered(data)) streamNext(true);
+            if (deleteAnswered(data)) eventDeleted();
           })
           .fail(logAjaxFail);
     } else {
@@ -2111,7 +2134,27 @@ function initPage() {
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
+
+  if (window.lightbox) {
+    bindLightboxEvents(window.lightbox);
+  } else {
+    document.addEventListener('zm:lightboxReady', (event) => {
+      bindLightboxEvents(event.detail);
+    }, {once: true});
+  }
 } // end initPage
+
+function bindLightboxEvents(lightbox) {
+  lightbox.on('open', () => {
+    // Viewer opened.
+    if (prevStateStarted == 'played') pauseClicked();
+  });
+
+  lightbox.on('close', () => {
+    // Viewer closed.
+    if (prevStateStarted == 'played') playClicked();
+  });
+}
 
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());
@@ -2175,7 +2218,8 @@ function formatTag(tag) {
 }
 
 function addTag(tag, buttonPressed = null) {
-  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name)) {
+  if (canEdit.Events && tag && (tag.Name.trim() !== '') && !isDup(tag.Name) && !addingTagIds[tag.Id]) {
+    addingTagIds[tag.Id] = true;
     $j.getJSON(thisUrl + '?request=event&action=addtag&tid=' + tag.Id + '&id=' + eventData.Id)
         .done(function(data) {
           if (data.result != 'Ok') {
@@ -2190,7 +2234,10 @@ function addTag(tag, buttonPressed = null) {
           availableTags.splice(0, 0, availableTags.splice(index, 1)[0]);
           if (["Enter", " ", ","].includes(buttonPressed)) $j('#tagInput').focus();
         })
-        .fail(logAjaxFail);
+        .fail(logAjaxFail)
+        .always(function() {
+          delete addingTagIds[tag.Id];
+        });
   } else {
     $j('.tag-dropdown-content').hide();
   }
@@ -2222,6 +2269,7 @@ function createTag(tagName, buttonPressed = null) {
       .done(function(data) {
         if (data.result != 'Ok') {
           console.error('createtag refused', data.message);
+          alert(data.message);
           return;
         }
         if (data.response.length > 0) {
@@ -2305,6 +2353,34 @@ function fullscreenClicked() {
     console.log(content);
     openFullscreen(content);
   }
+}
+
+// The PanZoom zoom level is remembered per monitor, like the video scale, so
+// reviewing the same detail across a camera's events does not mean zooming in
+// again on every event. Only the scale is kept, never the pan position.
+// Panning fires panzoomchange too, so only write the cookie when the level changes.
+let storedEventZoom = null;
+function storeEventZoom(scale) {
+  const value = scale.toFixed(1);
+  if (value === storedEventZoom) return;
+  storedEventZoom = value;
+  setCookie('zmEventZoom' + domMonitorId(), value);
+}
+
+function restoreEventZoom() {
+  if (typeof panZoomEnabled === 'undefined' || !panZoomEnabled) return;
+  const stored = parseFloat(getCookie('zmEventZoom' + domMonitorId()));
+  if (!(stored > 1)) return;
+  const panZoom = zmPanZoom.panZoom && zmPanZoom.panZoom[domMonitorId()];
+  if (panZoom) panZoom.zoom(stored, {animate: false});
+}
+
+// Keeps the Zoom readout on the PanZoom scale, including for video.js events
+// where no zms status arrives to refresh it. Every zoom path (buttons, wheel,
+// pinch) ends in a panzoomchange, so this is also where the level is stored.
+function panZoomEventPanzoomchange(event) {
+  $j('#zoomValue').html(event.detail.scale.toFixed(1));
+  storeEventZoom(event.detail.scale);
 }
 
 function panZoomIn(el) {

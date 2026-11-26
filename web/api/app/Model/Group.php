@@ -39,7 +39,9 @@ class Group extends AppModel {
 	public $validate = array(
 		'Name' => array(
 			'notBlank' => array(
-				'rule' => array('notBlank'))),
+				'rule' => array('notBlank'),
+				'required' => 'create',
+				'message' => 'A group needs a name')),
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),

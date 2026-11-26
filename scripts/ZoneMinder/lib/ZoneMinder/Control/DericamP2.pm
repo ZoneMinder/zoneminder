@@ -31,6 +31,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 # ==========================================================================
@@ -56,7 +60,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -108,7 +112,11 @@ sub getCamParams
         my $content = $res->decoded_content;
 
         while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-            $CamParams{$1} = $2;
+            my $key = $1;
+            my $val = $2;
+            $val =~ s/^\s+|\s+$//g;
+            $val =~ s/^["']|["']$//g;
+            $CamParams{$key} = $val;
         }
     }
     else

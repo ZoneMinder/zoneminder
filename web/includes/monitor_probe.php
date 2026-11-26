@@ -237,9 +237,9 @@ function probeAmcrest($ip, $username='', $password='') {
   if (!$username) $username='admin';
   if (!$password) $password='admin';
   $cameras = [];
-  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
+  $url = 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/cam/realmonitor?channel=1&subtype=0&unicast=true';
   $camera = array(
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/snapshot.cgi',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/cgi-bin/snapshot.cgi',
     'ip'      => $ip,
     'Manufacturer' => 'Amcrest',
     #'Model' => 'Amcrest Camera',
@@ -425,7 +425,7 @@ function probeGrandstreamNetworksInc($ip, $username, $password) {
   $url = 'rtsp://'.$ip.':554/0';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/jpg/image.jpg',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/jpg/image.jpg',
     'Manufacturer'  => 'Grandstream',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -508,10 +508,10 @@ function probeUniview($ip, $username, $password) {
   if (!$password) $password = '123456';
   $cameras = [];
   $port_open = port_open($ip, 554);
-  $url = 'rtsp://'.$username.':'.rawurlencode($password).'@'.$ip.':554/media/video1';
+  $url = 'rtsp://'.probe_userinfo($username, $password).'@'.$ip.':554/media/video1';
   $camera = array(
     'ip'      => $ip,
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/LAPI/V1.0/Channels/0/Media/Video/Streams/0/Snapshot',
     'Manufacturer'  => 'Uniview',
     'Model'         => ($port_open ? 'Camera' : 'Not Camera'),
     'monitor' =>  array(
@@ -676,7 +676,7 @@ function probeHanwhaTechwinSecurityVietnam($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Hanwha Camera',
     'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/stw-cgi/video.cgi?msubmenu=snapshot&action=view',
     'monitor' => array(
       'Manufacturer'  => 'Hanwha Techwin Security Vietnam',
       'Type'     => 'Ffmpeg',
@@ -703,7 +703,7 @@ function probeVivotek($ip, $username, $password) {
     'ip'      => $ip,
     'Name'   => 'Vivotek Camera',
     'Manufacturer'  => 'Vivotek',
-    'mjpegstream' => 'http://'.$username.':'.rawurlencode($password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
+    'mjpegstream' => 'http://'.probe_userinfo($username, $password).'@'.$ip.'/cgi-bin/viewer/video.jpg',
     'monitor' => array(
       'Manufacturer'  => 'Vivotek',
       'Type'     => 'Ffmpeg',
@@ -855,6 +855,33 @@ function get_arp_scan_results($network) {
   return $results;
 } # end function get_arp_scan_results
 
+// Existing Remote and Ffmpeg monitors by host, for matching probe results. Only
+// monitors the user can edit: a match is returned with its stored user and
+// password, which the probe also tries on the camera.
+function probeKnownMonitors() {
+  $monitors = array();
+  foreach (ZM\Monitor::find(['Type'=>'Remote', 'Deleted'=>0]) as $monitor) {
+    if (!canEdit('Monitors', $monitor->Id())) continue;
+    if ( preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches) ) {
+      //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
+      $monitors[gethostbyname($matches[2])] = $monitor;
+    } else {
+      //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
+      $monitors[gethostbyname($monitor->Host())] = $monitor;
+    }
+  }
+  foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
+    if (!canEdit('Monitors', $monitor->Id())) continue;
+    $url_parts = parse_url($monitor->Path());
+    if ($url_parts !== false and !empty($url_parts['host'])) {
+      $monitors[gethostbyname($url_parts['host'])] = $monitor;
+    } else {
+      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor->Path()));
+    }
+  }
+  return $monitors;
+}
+
 function probeNetwork() {
   $username = empty($_REQUEST['probe_username']) ? null : $_REQUEST['probe_username'];
   $password = empty($_REQUEST['probe_password']) ? null : $_REQUEST['probe_password'];
@@ -867,24 +894,7 @@ function probeNetwork() {
   $cameras = array();
   $results = array();
 
-  $monitors = array();
-  foreach (ZM\Monitor::find(['Type'=>'Remote', 'Deleted'=>0]) as $monitor) {
-    if ( preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches) ) {
-      //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
-      $monitors[gethostbyname($matches[2])] = $monitor;
-    } else {
-      //echo "2: ".$monitor['Host']." = ".gethostbyname($monitor['Host'])."<br/>";
-      $monitors[gethostbyname($monitor->Host())] = $monitor;
-    }
-  }
-  foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
-    $url_parts = parse_url($monitor->Path());
-    if ($url_parts !== false and !empty($url_parts['host'])) {
-      $monitors[gethostbyname($url_parts['host'])] = $monitor;
-    } else {
-      ZM\Debug('Unable to find a host in '.ZM\urlForLog($monitor->Path()));
-    }
-  }
+  $monitors = probeKnownMonitors();
   //ZM\Debug(print_r($monitors, true));
 
   $macVendors = file_get_contents(ZM_PATH_DATA.'/MacVendors.json');

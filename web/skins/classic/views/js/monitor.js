@@ -210,6 +210,10 @@ function initPage() {
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
     el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
   });
+  // The maximum is only checked against the pre event count once it is entered
+  document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]').forEach(function(el) {
+    el.addEventListener('change', window['buffer_setting_oninput'].bind(el));
+  });
   update_estimated_ram_use();
 
   document.querySelectorAll('select[name="newMonitor[VideoWriter]"]').forEach(function(el) {
@@ -743,8 +747,17 @@ function change_Path(event) {
     return;
   }
 
-  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
-  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  // The User and Pass fields hold the decoded values (the server decodes them
+  // the same way), so a %40 in the URL must not end up in them literally.
+  const decodeCredential = function(value) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value; // a lone % that is not an escape
+    }
+  };
+  const usernameValue = decodeCredential(pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos ));
+  const passwordValue = decodeCredential(pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos ));
   if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
@@ -768,7 +781,7 @@ function change_Path(event) {
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
   }
 }
@@ -800,7 +813,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value)
+  // Typing a new maximum passes through smaller numbers, don't cut the pre event count down to them
+  const typing_max = (this.id == 'newMonitor[MaxImageBufferCount]') && e && (e.type == 'input');
+  if (!typing_max
+    &&
+    parseInt(max_image_buffer_count.value)
     &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {
@@ -1086,6 +1103,8 @@ function populate_models(ManufacturerId) {
   dropdown.empty();
   dropdown.append('<option value="" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
+  // With the model back at Unknown, the name box is how one is entered.
+  $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
 
   if (ManufacturerId) {
     // Populate dropdown with list of provinces

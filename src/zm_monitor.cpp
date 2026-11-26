@@ -894,8 +894,8 @@ void Monitor::LoadCamera() {
                                         port.c_str(),
                                         user.c_str(),
                                         pass.c_str(),
-                                        width,
-                                        height,
+                                        camera_width,
+                                        camera_height,
                                         colours,
                                         brightness,
                                         contrast,
@@ -1347,6 +1347,15 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  // These pointed into the mapping that is gone.
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+  video_store_data = nullptr;
+  shared_timestamps = nullptr;
+  shared_images = nullptr;
+  image_pixelformats = nullptr;
+  analysis_image_pixelformats = nullptr;
+
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
@@ -1407,7 +1416,8 @@ void Monitor::AddPrivacyBitmask() {
   for (const Zone &zone : zones) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
-        privacy_image = zm::make_unique<Image>(width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        // MaskPrivacy indexes the bitmask as y*width+x, so the rows must not be padded.
+        privacy_image = zm::make_unique<Image>(width, width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
       privacy_image->Fill(0xff, zone.GetPolygon());
@@ -2309,14 +2319,16 @@ bool Monitor::Analyse() {
             Info("%s: %03d - Closing event %" PRIu64 ", signal loss", name.c_str(), analysis_image_count, event->Id());
             closeEvent();
           }
-        } else if (shared_data->recording == RECORDING_ALWAYS) {
-          if (!event) {
-            if (!cause.empty()) cause += ", ";
-            cause += SIGNAL_CAUSE + std::string(": Reacquired");
-          } else {
-            event->addNote(SIGNAL_CAUSE, "Reacquired");
+        } else {
+          if (shared_data->recording == RECORDING_ALWAYS) {
+            if (!event) {
+              if (!cause.empty()) cause += ", ";
+              cause += SIGNAL_CAUSE + std::string(": Reacquired");
+            } else {
+              event->addNote(SIGNAL_CAUSE, "Reacquired");
+            }
           }
-          if (shared_data->analysing != ANALYSING_NONE) {
+          if (ReacquireNeedsRefReset(shared_data->analysing)) {
             if  (analysis_image == ANALYSISIMAGE_YCHANNEL) {
               Image *y_image = packet->get_y_image();
               if (y_image) {
@@ -2463,8 +2475,10 @@ bool Monitor::Analyse() {
                   // Instead of showing a greyscale image, let's use the full colour
                   // Only allocate it when this frame actually has motion score,
                   // so that Event::AddFrame doesn't save analysis jpegs for
-                  // every analysed frame (refs #4996).
-                  if (motion_score and !packet->analysis_image)
+                  // every analysed frame (refs #4996). Only Event::AddFrame
+                  // (SaveJPEGs analysis images) and WriteAlarmImage (analysis
+                  // viewers) read it, so skip the full-frame copy otherwise.
+                  if (motion_score and !packet->analysis_image and ((savejpegs & 2) or hasAnalysisViewers()))
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2999,7 +3013,7 @@ std::string Monitor::RtspUrlFromRemote(
     if (!pass.empty()) url += ":" + UriEncode(pass);
     url += "@";
   }
-  url += host;
+  url += UrlHost(host);
   // The stored port is kept even when it is the default, so the operator can
   // paste the result without having to know what the default is.
   if (!port.empty()) url += ":" + port;
@@ -3918,9 +3932,22 @@ bool Monitor::Decode() {
         Debug(2, "send_packet returned EAGAIN, waiting before retry");
         return false;
       } else if (ret < 0) {
-        // Error
-        Debug(1, "send_packet failed: %d", ret);
+        // Warn at the start of a run of rejected packets; a corrupt stream can
+        // fail on every packet, so the rest of the run stays at Debug.
+        if (decode_send_failures++ == 0) {
+          Warning("Monitor %u %s: decoder rejected packet %d: %s (%d)",
+              id, name.c_str(), packet->image_index, av_make_error_string(ret).c_str(), ret);
+        } else {
+          Debug(1, "Monitor %u: decoder rejected packet %d: %s (%d)",
+              id, packet->image_index, av_make_error_string(ret).c_str(), ret);
+        }
         return false;
+      }
+
+      if (decode_send_failures) {
+        Info("Monitor %u %s: decoder accepting packets again after %u rejected",
+            id, name.c_str(), decode_send_failures);
+        decode_send_failures = 0;
       }
 
       // Success - packet sent to decoder, queue it for receive later
@@ -4098,52 +4125,93 @@ bool Monitor::Decode() {
 std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_time) const {
   if (format.empty()) return "";
 
-  std::string text;
-  text.reserve(1024);
+  // Expand our own codes (%N, %Q, %f) before strftime. strftime copies unknown
+  // conversions through on glibc but drops the % on BSD/macOS, so they have to
+  // be gone before it runs. A literal % in an inserted value is doubled so
+  // strftime prints it as is, whichever character marks the codes.
+  const char code_char = config.timestamp_code_char[0];
+  const bool escape = (code_char == '%');
+  auto append_value = [&](std::string &out, const std::string &value) {
+    for (char c : value) {
+      if (c == '%') out.push_back('%');
+      out.push_back(c);
+    }
+  };
 
-  // Expand the strftime macros first
-  char label_time_text[256];
-  tm ts_tm = {};
-  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
-  strftime(label_time_text, sizeof(label_time_text), format.c_str(), localtime_r(&ts_time_t, &ts_tm));
-
-  const char *s_ptr = label_time_text;
-  char *d_ptr = text.data();
-
-  while (*s_ptr && ((unsigned int)(d_ptr - text.data()) < text.capacity())) {
-    if (*s_ptr == config.timestamp_code_char[0]) {
-      const auto max_len = text.capacity() - (d_ptr - text.data());
-      bool found_macro = false;
-      int rc = 0;
-      switch ( *(s_ptr+1) ) {
-      case 'N' :
-        rc = snprintf(d_ptr, max_len, "%s", name.c_str());
-        found_macro = true;
-        break;
-      case 'Q' :
-        rc = snprintf(d_ptr, max_len, "%s", trigger_data->trigger_showtext);
-        found_macro = true;
-        break;
-      case 'f' :
+  std::string pre;
+  pre.reserve(format.size() + 64);
+  for (size_t i = 0; i < format.size(); i++) {
+    if (format[i] == code_char) {
+      if (i + 1 >= format.size()) {
+        // A trailing code character is kept as a literal.
+        pre.push_back(code_char);
+        if (escape) pre.push_back('%');
+        continue;
+      }
+      const char next = format[i+1];
+      if (next == 'N') {
+        append_value(pre, name);
+        i++;
+        continue;
+      } else if (next == 'Q') {
+        if (trigger_data) append_value(pre, trigger_data->trigger_showtext);
+        i++;
+        continue;
+      } else if (next == 'f') {
         typedef std::chrono::duration<int64, std::centi> Centiseconds;
         Centiseconds centi_sec = std::chrono::duration_cast<Centiseconds>(
                                    ts_time.time_since_epoch() - std::chrono::duration_cast<Seconds>(ts_time.time_since_epoch()));
-        rc = snprintf(d_ptr, max_len, "%02lld", static_cast<long long int>(centi_sec.count()));
-        found_macro = true;
-        break;
-      }
-      if (rc < 0 || static_cast<size_t>(rc) > max_len) {
-        break;
-      }
-      d_ptr += rc;
-      if (found_macro) {
-        s_ptr += 2;
+        char centi_buf[16];
+        snprintf(centi_buf, sizeof(centi_buf), "%02lld", static_cast<long long int>(centi_sec.count()));
+        pre.append(centi_buf);
+        i++;
+        continue;
+      } else if (escape && next == '%') {
+        // %% stays %% for strftime, so %%N is a literal %N.
+        pre.append("%%");
+        i++;
         continue;
       }
     }
-    *d_ptr++ = *s_ptr++;
-  } // end while
-  *d_ptr = '\0';
+    pre.push_back(format[i]);
+  }
+
+  // Expand the strftime macros. strftime returns 0 when the result does not
+  // fit, so grow the buffer and retry before giving up.
+  std::vector<char> time_buf(256);
+  tm ts_tm = {};
+  time_t ts_time_t = std::chrono::system_clock::to_time_t(ts_time);
+  bool time_expanded = false;
+  while (true) {
+    time_buf[0] = 0;
+    if (strftime(time_buf.data(), time_buf.size(), pre.c_str(), localtime_r(&ts_time_t, &ts_tm))) {
+      time_expanded = true;
+      break;
+    }
+    if (time_buf.size() >= 8192) {
+      break;
+    }
+    time_buf.resize(std::min<size_t>(time_buf.size() * 2, 8192));
+  }
+
+  // If even the largest buffer was too small, fall back to the substituted
+  // format rather than returning an empty label.
+  std::string text = time_expanded ? std::string(time_buf.data()) : pre;
+
+  if (text.size() > 1024) {
+    text.resize(1024);
+    // Don't leave a UTF-8 character cut in half at the end.
+    size_t s = text.size();
+    while (s > 0 && (static_cast<unsigned char>(text[s-1]) & 0xC0) == 0x80) s--;
+    if (s > 0) {
+      const unsigned char lead = static_cast<unsigned char>(text[s-1]);
+      size_t len = 1;
+      if ((lead & 0xE0) == 0xC0) len = 2;
+      else if ((lead & 0xF0) == 0xE0) len = 3;
+      else if ((lead & 0xF8) == 0xF0) len = 4;
+      if (text.size() - (s-1) < len) text.resize(s-1);
+    }
+  }
   return text;
 }
 
@@ -4808,6 +4876,8 @@ int Monitor::PrimeCapture() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
@@ -4981,6 +5051,8 @@ int Monitor::Play() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",

@@ -27,7 +27,7 @@ global $user;
 ?>
 const ZM_WEB_VIEWING_TIMEOUT=<?php echo (ZM_WEB_VIEWING_TIMEOUT==''?'0':ZM_WEB_VIEWING_TIMEOUT)?>;
 const AJAX_TIMEOUT = <?php echo ZM_WEB_AJAX_TIMEOUT ?>;
-const navBarRefresh = <?php echo 1000*ZM_WEB_REFRESH_NAVBAR ?>;
+const navBarRefresh = <?php echo 1000*(int)ZM_WEB_REFRESH_NAVBAR ?>;
 const currentView = '<?php echo $view ?>';
 const homeView = '<?php echo getHomeView() ?>';
 const navbar_type = '<?php echo $navbar_type ?>';

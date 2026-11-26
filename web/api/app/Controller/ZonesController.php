@@ -40,7 +40,10 @@ class ZonesController extends AppController {
   private function requestMonitorId() {
     $data = $this->request->data;
     if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
-    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
+    if (!isset($data['MonitorId'])) return null;
+    // An array or object here would be checked as a made-up monitor and then saved as the zone's MonitorId.
+    if (!is_scalar($data['MonitorId'])) throw new BadRequestException(__('MonitorId must be a number'));
+    return $data['MonitorId'];
   }
 
   // Find all zones which belong to a MonitorId
@@ -144,11 +147,12 @@ class ZonesController extends AppController {
     if ( $zone ) {
       require_once __DIR__ .'/../../../includes/Monitor.php';
       $monitor = new ZM\Monitor($zone['Zone']['MonitorId']);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $message = 'Saved';
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
       $message = 'Error: ';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if ( !$this->Zone->validates() ) {
         $message = $this->Zone->validationErrors;
@@ -194,9 +198,10 @@ class ZonesController extends AppController {
         if ($monitorId !== null and $monitorId != $oldMonitorId) $monitorIds[] = $monitorId;
         foreach ($monitorIds as $reloadId) {
           $monitor = new ZM\Monitor($reloadId);
-          if ($monitor->Type() != 'WebSite') $monitor->zmcControl('reload');
+          if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
     }
@@ -229,7 +234,7 @@ class ZonesController extends AppController {
     $this->requireMonitorEdit($monitorId);
     if ( $this->Zone->delete() ) {
       $monitor = new ZM\Monitor($monitorId);
-      if ($monitor->Type() != 'WebSite') $monitor->zmcControl('restart');
+      if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('restart');
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),

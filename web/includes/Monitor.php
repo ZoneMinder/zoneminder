@@ -596,7 +596,7 @@ class Monitor extends ZM_Object {
         $args['user'] = isset($_SESSION['username']) ? $_SESSION['username'] : '';
         $args['pass'] = isset($_SESSION['password']) ? $_SESSION['password'] : '';
       } elseif ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
     if (ZM_RAND_STREAM) {
@@ -679,6 +679,10 @@ class Monitor extends ZM_Object {
   function zmcControl($mode=false) {
     if (!(property_exists($this,'Id') and $this->{'Id'})) {
       Warning('Attempt to control a monitor with no Id');
+      return;
+    }
+    if ($mode != 'stop' and $this->Deleted()) {
+      Warning('Attempt to control deleted monitor '.$this->{'Id'});
       return;
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
@@ -847,6 +851,8 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
+    } else if ($this->{'Type'} == 'File' || $this->{'Type'} == 'cURL') {
+      $source = preg_replace('/^.*\//', '', (string)$this->{'Path'});
     } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});
@@ -1065,13 +1071,17 @@ class Monitor extends ZM_Object {
 
     $group_permissions = $u->Group_Permissions();
 
-    # If denied view in any group, then can't view it.
+    # If denied in any group, then can't edit it.
+    $group_edit = false;
     foreach ($group_permissions as $permission) {
-      if (!$permission->canEditMonitor($this->{'Id'})) {
-        Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      $value = $permission->MonitorPermission($this->{'Id'});
+      if ($value == 'None') {
+        Debug("Can't edit monitor ".$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$value);
         return false;
       }
+      if ($value == 'Edit') $group_edit = true;
     }
+    if ($group_edit) return true;
     return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
@@ -1085,6 +1095,8 @@ class Monitor extends ZM_Object {
       Debug('Can\'t view monitor '.$this->{'Id'}.' because of monitor permission '.$monitor_permission->Permission());
       return false;
     }
+    # The user's own View or Edit on this monitor decides before groups and role, as visibleMonitor() does.
+    if ($monitor_permission and in_array($monitor_permission->Permission(), array('View', 'Edit'))) return true;
 
     $group_permissions = $u->Group_Permissions();
 
@@ -1487,8 +1499,8 @@ class Monitor extends ZM_Object {
       }
       $gp_permissions[$gp->Permission()] = 1;
     }
-    if (isset($gp_permissions['View'])) return 'View';
     if (isset($gp_permissions['Edit'])) return 'Edit';
+    if (isset($gp_permissions['View'])) return 'View';
 
     // Same order as visibleMonitor() and editableMonitor(): the role's monitor permission,
     // its groups, then the higher of the user's and the role's Monitors permission.
@@ -1506,8 +1518,8 @@ class Monitor extends ZM_Object {
         }
         $role_gp_permissions[$gp->Permission()] = 1;
       }
-      if (isset($role_gp_permissions['View'])) return 'View';
       if (isset($role_gp_permissions['Edit'])) return 'Edit';
+      if (isset($role_gp_permissions['View'])) return 'View';
       $levels = array('None'=>0, 'View'=>1, 'Edit'=>2, 'Create'=>3);
       return ($levels[$role->Monitors()] > $levels[$u->Monitors()]) ? $role->Monitors() : $u->Monitors();
     }

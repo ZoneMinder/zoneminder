@@ -35,6 +35,7 @@ require_once('includes/CronTab.php');
 require_once('includes/Command.php');
 
 $cron_error = '';
+$delete_error = '';
 
 if ($action == 'save') {
   $posted = isset($_REQUEST['newJob']) && is_array($_REQUEST['newJob'])
@@ -84,7 +85,9 @@ if ($action == 'save') {
       $id = validInt($id);
       if (!$id) continue;
       ZM\Info('Deleting scheduled task '.$id);
-      dbQuery('DELETE FROM CronJobs WHERE Id=?', array($id));
+      if (dbQuery('DELETE FROM CronJobs WHERE Id=?', array($id)) === null) {
+        $delete_error .= ($delete_error === '' ? '' : ' ').'Unable to delete scheduled task '.$id.': '.dbLastError();
+      }
     }
   }
 }
@@ -94,6 +97,10 @@ if (in_array($action, array('save', 'delete')) and ($cron_error === '')) {
   // changes, so the two cannot drift.
   if (cronRebuild() === false)
     $cron_error = translate('CronWriteFailed');
+}
+// Reported after the rebuild, so the crontab still drops the tasks that were deleted.
+if ($delete_error !== '') {
+  $cron_error = ($cron_error === '' ? '' : $cron_error.' ').$delete_error;
 }
 
 if ($cron_error !== '') {

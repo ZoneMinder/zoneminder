@@ -150,9 +150,10 @@ function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // enable or disable buttons based on current selection and user rights
+  // enable or disable buttons based on current selection and user rights. The table
+  // drops its selection on every reload without an uncheck event, so check after each render too.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table',
   function() {
     selections = table.bootstrapTable('getSelections');
 
@@ -271,9 +272,7 @@ function initPage() {
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
-    var thumb_ndx = $j('#snapshotTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
-    }).index();
+    var thumb_ndx = $j('#snapshotTable tr th[data-field="Thumbnail"]').index();
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 

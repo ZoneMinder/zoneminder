@@ -90,6 +90,7 @@ if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
       'HasTurboTilt' => '',
       'TurboTiltSpeed' => '',
       'CanZoom' => '',
+      'CanAutoZoom' => '',
       'CanZoomAbs' => '',
       'CanZoomRel' => '',
       'CanZoomCon' => '',
@@ -391,6 +392,10 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoom') ?></th>
               <td><input type="checkbox" name="Control[CanZoom]" value="1"<?php if ( !empty($Control['CanZoom']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoZoom') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoZoom]" value="1"<?php if ( !empty($Control['CanAutoZoom']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomAbs') ?></th>

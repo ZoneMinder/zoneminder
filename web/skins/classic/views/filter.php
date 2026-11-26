@@ -70,6 +70,12 @@ if ($have_query_params) {
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else if ($fid) {
+  // A filter deleted since the link was made, or not this user's to see. The
+  // blank form shown here before would have been saved as a new filter.
+  ZM\Warning("Filter $fid not found");
+  $view = 'error';
+  return;
 } else {
   ZM\Debug('Creating new empty filter');
   $filter = new ZM\Filter();

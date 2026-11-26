@@ -101,6 +101,7 @@ sub open
 
     Info( "Open" );
 
+    return !undef;
 }
 
 sub printMsg

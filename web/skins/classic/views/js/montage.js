@@ -172,6 +172,16 @@ function selectLayout(new_layout_id) {
     initGridStack();
   } else { //CUSTOM
     document.getElementById("btnDeleteLayout").removeAttribute('disabled');
+    if (layout.Positions && layout.Positions.monitorStatusPosition) {
+      const statusSelect = document.getElementById('monitorStatusPosition');
+      const savedStatusPosition = layout.Positions.monitorStatusPosition;
+      const isKnownOption = statusSelect && Array.prototype.some.call(
+          statusSelect.options, (option) => option.value === savedStatusPosition);
+      if (isKnownOption) {
+        setSelected(statusSelect, savedStatusPosition);
+        changeMonitorStatusPosition();
+      }
+    }
     for (let i = 0, length = monitors.length; i < length; i++) {
       const monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
@@ -398,7 +408,7 @@ function save_layout(button) {
 
   const Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
-  Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
+  Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val();
   Positions['monitorRatio'] = {};
   $j('.select-ratio').each(function f() {
     Positions['monitorRatio'][stringToNumber(this.id)] = getSelected(this);

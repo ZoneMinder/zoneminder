@@ -73,7 +73,7 @@ echo getNavBarHTML();
                   <tbody>
                     <tr>
                       <th scope="row"><?php echo translate('Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="role[Name]" placeholder="<?php echo translate('NewRole') ?>" value="<?php echo validHtmlStr($Role->Name()); ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="role[Name]" placeholder="<?php echo translate('NewRole') ?>" value="<?php echo validHtmlStr($Role->Name()); ?>" maxlength="64"/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Description') ?></th>

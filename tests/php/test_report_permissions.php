@@ -30,8 +30,9 @@ namespace ZM {
   }
   class Filter {
     function __construct($id = null) {}
+    function Id() { return 5; }
     function addTerm($t) { return $this; }
-    static function find() { return array(); }
+    static function find() { return array(5 => new Filter(5)); }
     function Events() {
       return array(new Event(array('Id' => 1, 'MonitorId' => 1, 'Name' => 'visible')),
                    new Event(array('Id' => 2, 'MonitorId' => 2, 'Name' => 'HIDDEN-EVENT')));

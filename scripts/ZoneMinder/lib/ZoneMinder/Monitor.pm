@@ -303,6 +303,10 @@ use constant ANALYSING_NONE     => 1;
 sub save {
   my $self = shift;
 
+  # zmc reads an empty or NULL ONVIF_Alarm_Text as "match every ONVIF event".
+  # set() would put the default back, so an existing row is saved as it is.
+  delete local $defaults{ONVIF_Alarm_Text} if $$self{Id};
+
   my $manufacturer = $self->Manufacturer();
   my $model = $self->Model();
 

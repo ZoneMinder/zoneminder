@@ -325,6 +325,7 @@ $SLANG = array(
     'ClassLabel'            => 'Label',
     'ClearLogs'             => 'Clear Logs',
     'CloneMonitor'          => 'Clone',
+    'CloneZones'            => 'Also clone the zones',
     'ConcurrentFilter'      => 'Run filter concurrently',
     'ConfigOptions'         => 'ConfigOptions',
     'ConfigType'            => 'Config Type',

@@ -324,9 +324,23 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
+        $dupId = empty($_REQUEST['dupId']) ? 0 : validCardinal($_REQUEST['dupId']);
+        $dupZones = (!empty($_REQUEST['cloneZones']) and $dupId and canView('Monitors', $dupId))
+          ? dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($dupId)) : array();
+        foreach ($dupZones as $dupZone) {
+          unset($dupZone['Id']);
+          $dupZone['MonitorId'] = $mid;
+          $zone = new ZM\Zone();
+          if (!$zone->save($dupZone)) {
+            $error_message .= $zone->get_last_error();
+            ZM\Error('Error cloning zone: '.$error_message);
+          }
+        }
         // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+        if ($dupZones) {
+          // zones were cloned, no default zone needed
+        } else if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,

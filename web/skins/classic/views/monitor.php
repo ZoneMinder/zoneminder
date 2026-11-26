@@ -480,6 +480,7 @@ if (canEdit('Monitors')) {
 ?>
       <div class="alert alert-info">
         Configuration cloned from Monitor: <?php echo validHtmlStr($clonedName) ?>
+        <label><input type="checkbox" name="cloneZones" value="1" form="contentForm" checked="checked"/> <?php echo translate('CloneZones') ?></label>
       </div>
 <?php
   }
@@ -498,6 +499,9 @@ if (canEdit('Monitors')) {
     <div class="container-fluid" id="monitor">
       <form name="contentForm" id="contentForm" method="post" action="?view=monitor" autocomplete="off">
         <input type="hidden" name="tab" value="<?php echo $tab?>"/>
+<?php if (isset($_REQUEST['dupId']) and canView('Monitors', validCardinal($_REQUEST['dupId']))) { ?>
+        <input type="hidden" name="dupId" value="<?php echo validCardinal($_REQUEST['dupId']) ?>"/>
+<?php } ?>
         <input type="hidden" name="mid" value="<?php echo $monitor->Id() ? $monitor->Id() : $mid ?>"/>
         <input type="hidden" name="origMethod" value="<?php echo (null !== $monitor->Method())?validHtmlStr($monitor->Method()):'' ?>"/>
         <div class="tab-content" id="pills-tabContent">

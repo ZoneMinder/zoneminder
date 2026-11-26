@@ -177,6 +177,8 @@ our %pending_tasks;
 
 sub runServer {
   Info('X10 server starting');
+  # A client may hang up before our reply is written; a failed write must not kill the daemon
+  $SIG{PIPE} = 'IGNORE';
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE);

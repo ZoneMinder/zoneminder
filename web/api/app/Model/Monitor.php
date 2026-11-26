@@ -120,6 +120,10 @@ class Monitor extends AppModel {
   // Empty and 0 mean "none" (the default storage area, any server).
   public function rowExists($check, $model) {
     $value = reset($check);
+    // AppModel::beforeValidate() already refuses a non-empty array.
+    if (is_array($value) and $value) {
+      return true;
+    }
     if ($value === null or $value === '' or $value == 0) {
       return true;
     }

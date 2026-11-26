@@ -1510,7 +1510,7 @@ echo htmlSelect('newMonitor[DefaultPlayer]', $players, $monitor->DefaultPlayer()
             </li>
             <li>
               <label><?php echo translate('DefaultRate') ?></label>
-              <?php echo htmlSelect('newMonitor[DefaultRate]', $rates, $monitor->DefaultRate()); ?>
+              <?php echo htmlSelect('newMonitor[DefaultRate]', array_filter($rates, function($rate) { return $rate >= 0; }, ARRAY_FILTER_USE_KEY), $monitor->DefaultRate()); ?>
             </li>
             <li>
               <label><?php echo translate('DefaultScale') ?></label>

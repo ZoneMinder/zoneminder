@@ -581,7 +581,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
 
   /* "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, " */
-  image_buffer_count = atoi(dbrow[col]);
+  image_buffer_count = SanitiseImageBufferCount(atoi(dbrow[col]));
   col++;
   max_image_buffer_count = atoi(dbrow[col]);
   col++;
@@ -929,6 +929,16 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
   monitor->Load(dbrow.mysql_row(), load_zones, purpose);
 
   return monitor;
+}
+
+// ImageBufferCount comes straight from the database and the API accepts 0 or negative values. Zero makes
+// Capture() take image_count % 0 and connect() index analysis_image_buffer[-1], so keep to the smallest value the web UI accepts.
+int Monitor::SanitiseImageBufferCount(int count) {
+  if (count < 1) {
+    Warning("ImageBufferCount %d is invalid, using 2", count);
+    return 2;
+  }
+  return count;
 }
 
 bool Monitor::connect() {

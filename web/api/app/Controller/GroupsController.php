@@ -131,6 +131,7 @@ class GroupsController extends AppController {
       }
 
       $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( is_array($monitorIds) ) $monitorIds = implode(',', array_filter($monitorIds, 'is_numeric'));
       if ( is_string($monitorIds) and $monitorIds !== '' and ! isset($this->request->data['Monitor']) ) {
         $this->request->data['Monitor'] = explode(',', $monitorIds);
         unset($this->request->data['MonitorIds']);

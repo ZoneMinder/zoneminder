@@ -47,6 +47,11 @@ class AnalysisMonitor : public Monitor {
     return Zone::LoadRow(shared_from_this(), row.data(), zones);
   }
   const unsigned char *PrivacyMask() const { return privacy_bitmask; }
+  void SetSecondaryAnalysis(bool on) { secondary_analysis = on; }
+  void SeedReference(unsigned int w, unsigned int h) {
+    ref_image = Image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    ref_image.Clear();
+  }
   // The zones hold the monitor; drop them so neither leaks.
   void ClearZones() { zones.clear(); }
 };
@@ -205,5 +210,27 @@ TEST_CASE("Monitor::AddPrivacyBitmask: zones at the analysis size mask the frame
   REQUIRE(mask[47 * 64 + 63] == 0xff);
   REQUIRE(mask[20 * 64 + 20] == 0);
   REQUIRE(mask[20 * 64 + 31] == 0);
+  monitor->ClearZones();
+}
+
+// The frame is privacy-masked at capture, before analysis sees it; the substream
+// is not, so its privacy areas must not score.
+TEST_CASE("Monitor::DetectMotion: privacy zones do not score on the substream", "[Monitor][SecondaryAnalysis]") {
+  auto monitor = MakeMonitor(64, 48);
+  monitor->SetAnalysisSize(32, 24);
+  monitor->SetSecondaryAnalysis(true);
+  REQUIRE(monitor->LoadZone(Row("1", "0,0 63,0 63,47 0,47", "1", "0", "0")));
+  REQUIRE(monitor->LoadZone(Row("6", "32,0 63,0 63,47 32,47", "0", "0", "0")));
+  monitor->SeedReference(32, 24);
+
+  Event::StringSet zoneSet;
+  Image comp(32, 24, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  comp.Clear();
+  FillBox(comp, 24, 10, 27, 13);
+  REQUIRE(monitor->DetectMotion(comp, zoneSet) == 0);
+
+  comp.Clear();
+  FillBox(comp, 4, 10, 7, 13);
+  REQUIRE(monitor->DetectMotion(comp, zoneSet) > 0);
   monitor->ClearZones();
 }

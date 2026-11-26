@@ -4506,9 +4506,12 @@ unsigned int Monitor::DetectMotion(const Image &comp_image, Event::StringSet &zo
       // Not every zone is checked each frame, so drop last frame's scores and boxes.
       zone.ClearStats();
     }
-    if (!zone.IsInactive())
+    // The frame is privacy-masked at capture, before it is analysed. The
+    // substream is not, so under secondary analysis blank privacy zones here
+    // too, or motion inside them would alarm.
+    if (!zone.IsInactive() && !(secondary_analysis && zone.IsPrivacy()))
       continue;
-    Debug(3, "Blanking inactive zone %s", zone.Label());
+    Debug(3, "Blanking %s zone %s", zone.IsPrivacy() ? "privacy" : "inactive", zone.Label());
     delta_image.Fill(kRGBBlack, zone.GetPolygon());
     delta_image.Outline(kRGBBlack, zone.GetPolygon());
   } // end foreach zone

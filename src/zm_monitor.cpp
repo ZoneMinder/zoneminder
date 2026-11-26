@@ -3922,9 +3922,22 @@ bool Monitor::Decode() {
         Debug(2, "send_packet returned EAGAIN, waiting before retry");
         return false;
       } else if (ret < 0) {
-        // Error
-        Debug(1, "send_packet failed: %d", ret);
+        // Warn at the start of a run of rejected packets; a corrupt stream can
+        // fail on every packet, so the rest of the run stays at Debug.
+        if (decode_send_failures++ == 0) {
+          Warning("Monitor %u %s: decoder rejected packet %d: %s (%d)",
+              id, name.c_str(), packet->image_index, av_make_error_string(ret).c_str(), ret);
+        } else {
+          Debug(1, "Monitor %u: decoder rejected packet %d: %s (%d)",
+              id, packet->image_index, av_make_error_string(ret).c_str(), ret);
+        }
         return false;
+      }
+
+      if (decode_send_failures) {
+        Info("Monitor %u %s: decoder accepting packets again after %u rejected",
+            id, name.c_str(), decode_send_failures);
+        decode_send_failures = 0;
       }
 
       // Success - packet sent to decoder, queue it for receive later

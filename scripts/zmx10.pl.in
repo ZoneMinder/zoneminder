@@ -461,6 +461,7 @@ sub loadTasks {
     if ( $monitor->{Activation} ) {
       Debug("$monitor->{Name} has active string '$monitor->{Activation}'");
       foreach my $code_string ( split(',', $monitor->{Activation}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -488,6 +489,7 @@ sub loadTasks {
     if ( $monitor->{AlarmInput} ) {
       Debug("$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'");
       foreach my $code_string ( split(',', $monitor->{AlarmInput}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -515,6 +517,7 @@ sub loadTasks {
     if ( $monitor->{AlarmOutput} ) {
       Debug("$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'");
       foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );

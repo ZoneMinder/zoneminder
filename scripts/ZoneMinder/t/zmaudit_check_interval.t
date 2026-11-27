@@ -38,10 +38,10 @@ ok($loop, 'found the zmaudit main loop');
 # so exclude that block before counting.
 (my $per_pass = $loop // '') =~ s/^  while \( ! \( \$dbh and \$dbh->ping\(\) \) \) \{\n.*?^  \} # end while can't connect to the db\n//ms;
 
-my $sleeps = () = $per_pass =~ /sleep\(\$Config\{ZM_AUDIT_CHECK_INTERVAL\}\)/g;
+my $sleeps = () = $per_pass =~ /sleep\(\$audit_interval\)/g;
 is($sleeps, 1, 'main loop sleeps exactly once per pass at the check interval');
 
-my $first_sleep = index($loop // '', 'sleep($Config{ZM_AUDIT_CHECK_INTERVAL})');
+my $first_sleep = index($loop // '', 'sleep($audit_interval)');
 my $first_redo  = index($loop // '', 'redo MAIN');
 ok($first_sleep >= 0 && ($first_redo == -1 || $first_sleep < $first_redo),
    'the per-pass sleep is at the top of the loop, before any redo MAIN');

@@ -119,9 +119,16 @@ void RemoteCameraHttp::Initialise() {
     Debug( 2, "Request: %s", request_for_log(request).c_str() );
   }
 
-  if ( !timeout.tv_sec ) {
-    timeout.tv_sec = config.http_timeout/1000;
-    timeout.tv_usec = (config.http_timeout%1000)*1000;
+  if ( !timeout.tv_sec && !timeout.tv_usec ) {
+    // The Options page accepts 0, which made every select() a pure poll, so a
+    // camera that was not instantly ready was dropped and reconnected in a loop.
+    int http_timeout = config.http_timeout;
+    if ( http_timeout < 100 ) {
+      Warning("ZM_HTTP_TIMEOUT is %d ms, using 2500", http_timeout);
+      http_timeout = 2500;
+    }
+    timeout.tv_sec = http_timeout/1000;
+    timeout.tv_usec = (http_timeout%1000)*1000;
   }
 
   int max_size = width*height*colours;

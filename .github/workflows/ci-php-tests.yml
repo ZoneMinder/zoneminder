@@ -42,3 +42,7 @@ jobs:
             timeout 60 php "$t" || failed=1
           done
           exit $failed
+      # An audit rather than a test, so the tests/php glob above does not pick
+      # it up. It reads the sources and takes paths relative to the repo root.
+      - name: Audit the stored filter selections
+        run: php tests/audit-filter-cookies.php

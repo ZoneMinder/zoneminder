@@ -29,8 +29,10 @@ if ( !canEdit('Groups') ) {
 
 if ( $action == 'save' ) {
   $group_id = null;
-  if ( !empty($_REQUEST['gid']) )
-    $group_id = $_REQUEST['gid'];
+  if ( !empty($_REQUEST['gid']) ) {
+    $gid = validCardinal($_REQUEST['gid']);
+    if ($gid !== '') $group_id = $gid;
+  }
   $group = new ZM\Group($group_id);
   // A group deleted in another tab would be saved here as a new one
   if ($group_id and !$group->Id()) {

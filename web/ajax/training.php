@@ -572,7 +572,7 @@ switch ($action) {
 
     if (!ensureTrainingDirs()) break;
 
-    $annotations = json_decode($_REQUEST['annotations'], true);
+    $annotations = is_string($_REQUEST['annotations'] ?? null) ? json_decode($_REQUEST['annotations'], true) : null;
     if (!is_array($annotations)) {
       ajaxError('Invalid annotations data');
       break;
@@ -588,7 +588,7 @@ switch ($action) {
 
     // Validate and sanitize annotation labels
     foreach ($annotations as $ann) {
-      if (!isset($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
+      if (!isset($ann['label']) || !is_scalar($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
         ajaxError('Invalid label: labels must contain only Unicode letters, numbers, hyphens, and underscores');
         break 2;
       }

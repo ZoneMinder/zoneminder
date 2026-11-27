@@ -109,20 +109,30 @@ class UserPreferenceController extends AppController {
     }
     $message = '';
 		if ($this->request->is('post')) {
+      # save() writes the row named by an Id in the data and prefers a nested
+      # UserPreference array over the flat fields, so use the flat fields only.
+      if (is_array($data) and isset($data['UserPreference']) and is_array($data['UserPreference'])) {
+        $data = $data['UserPreference'];
+      }
       # The client sends its own UserId; taking it on trust would let anyone
       # write a preference for another account.
       $own = $this->currentUserId();
-      if ($own !== null) $data['UserId'] = $own;
-      if (!is_array($data) or !isset($data['UserId']) or !isset($data['Name'])) {
+      if ($own !== null and is_array($data)) $data['UserId'] = $own;
+      if (!is_array($data) or !isset($data['UserId']) or !isset($data['Name'])
+          or !is_scalar($data['Name']) or !is_scalar($data['UserId'])) {
         throw new BadRequestException(__('UserId and Name are required'));
       }
+      # Save only the expected fields: Cake's set() prefers a nested
+      # UserPreference entry over the flat keys, and an Id would pick the row.
+      $row = array('UserPreference' => array('UserId' => $data['UserId'], 'Name' => $data['Name']));
+      if (isset($data['Value']) and is_scalar($data['Value'])) $row['UserPreference']['Value'] = $data['Value'];
       $exists = $this->UserPreference->find('first', ['conditions'=>['UserId'=>$data['UserId'],'Name'=>$data['Name']]]);
       if ($exists) {
         $this->UserPreference->id = $exists['UserPreference']['Id'];
-        $rc = $this->UserPreference->save($data);
+        $rc = $this->UserPreference->save($row);
       } else {
         $this->UserPreference->create();
-        $rc = $this->UserPreference->save($data);
+        $rc = $this->UserPreference->save($row);
       }
       if ($rc) {
         $message = 'Success';

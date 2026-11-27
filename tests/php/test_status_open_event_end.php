@@ -69,6 +69,8 @@ namespace {
   $entity = $argv[1];
   $_REQUEST = array('entity' => $entity, 'id' => '7');
   try {
+    // status.php requires includes/log_redact.php relative to web/, as under the web server.
+    set_include_path(__DIR__.'/../../web'.PATH_SEPARATOR.get_include_path());
     include __DIR__.'/../../web/ajax/status.php';
   } catch (StopRequest $e) {
   }

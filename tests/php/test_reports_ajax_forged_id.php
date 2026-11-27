@@ -58,6 +58,7 @@ class Report {
 
   public function delete() {
     self::$deleted[] = $this->Id();
+    return true;
   }
 }
 

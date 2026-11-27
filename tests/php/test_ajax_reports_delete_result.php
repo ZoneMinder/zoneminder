@@ -31,6 +31,12 @@ namespace {
     }
   }
 
+  // Copied from web/includes/functions.php.
+  function validCardinal($input) {
+    if (!is_scalar($input)) return '';
+    return preg_replace('/\D/', '', $input);
+  }
+
   $root = isset($argv[1]) ? $argv[1] : __DIR__.'/../..';
   $path = $root.'/web/ajax/reports.php';
   $src = file_get_contents($path);

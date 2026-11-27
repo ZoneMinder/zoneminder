@@ -60,6 +60,11 @@ namespace {
   function dbQuery($sql, $params = array()) { return true; }
   function dbLastError() { return ''; }
   function validHtmlStr($s) { return htmlspecialchars((string)$s); }
+  // Copied from web/includes/functions.php.
+  function validCardinal($input) {
+    if (!is_scalar($input)) return '';
+    return preg_replace('/\D/', '', $input);
+  }
 
   $webroot = isset($argv[1]) ? rtrim($argv[1], '/') : __DIR__.'/../../web';
 

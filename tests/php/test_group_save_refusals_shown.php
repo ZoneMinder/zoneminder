@@ -40,6 +40,11 @@ namespace ZM {
 namespace {
   function canEdit($p, $id = null) { return true; }
   function validHtmlStr($v) { return htmlspecialchars((string)$v, ENT_QUOTES); }
+  // Copied from web/includes/functions.php.
+  function validCardinal($input) {
+    if (!is_scalar($input)) return '';
+    return preg_replace('/\D/', '', $input);
+  }
   function dbFetchAll($sql, $col = null, $args = array()) { return array(); }
   function dbQuery($sql, $args = array()) { return true; }
 

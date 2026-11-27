@@ -2046,7 +2046,7 @@ function validDevicePath($input) {
 
 // For general strings
 function validStr($input) {
-  if (is_null($input)) return '';
+  if (is_null($input) or is_array($input)) return '';
   return strip_tags($input);
 }
 

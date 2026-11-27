@@ -167,6 +167,13 @@ while (!$zm_terminate) {
             .$connection->name().' ('.$connection->fileno().')');
         if ( $connection->spawns() ) {
           my $new_connection = $connection->accept();
+          if ( !$new_connection ) {
+            # A pending connection that cannot be accepted (out of descriptors)
+            # keeps the listener readable, so pause as an idle pass would rather
+            # than repeat the failed accept and its Error at full speed.
+            select(undef, undef, undef, SELECT_TIMEOUT);
+            next;
+          }
           $spawned_connections{$new_connection->fileno()} = $new_connection;
           Debug('Added new spawned connection ('.$new_connection->fileno()
               .'), '.int(keys(%spawned_connections)).' spawned connections');

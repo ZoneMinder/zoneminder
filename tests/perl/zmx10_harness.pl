@@ -61,7 +61,7 @@ BEGIN {
     ZM_PATH_SOCKS => $ENV{ZMX10_DIR},
     ZM_X10_DEVICE => 'stub',
     ZM_X10_HOUSE_CODE => 'A',
-    ZM_X10_DB_RELOAD_INTERVAL => 3600,
+    ZM_X10_DB_RELOAD_INTERVAL => ($ENV{ZMX10_RELOAD} // 3600),
     ZM_FORCED_ALARM_SCORE => 255,
   );
 }
@@ -154,6 +154,7 @@ STUB
 # zmx10_start(rows => [ {Id=>1, Name=>'m', Activation=>..., AlarmInput=>..., AlarmOutput=>...} ])
 sub zmx10_start {
   my %opt = @_;
+  $ENV{ZMX10_RELOAD} = $opt{reload} if defined($opt{reload});
   my $root = "$FindBin::Bin/../..";
   my $base = dirname(Cwd::abs_path($root));
   $Dir = tempdir('zmx10-test-XXXXXX', DIR => $base, CLEANUP => 0);

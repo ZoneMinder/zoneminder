@@ -431,6 +431,7 @@ sub addToMonitorList {
 sub loadTasks {
   # The poll keeps monitors attached; detach them before dropping them.
   zmMemInvalidate($_) foreach values(%monitor_hash);
+  my %old_monitors = %monitor_hash;
   %monitor_hash = ();
 
   Debug('Loading tasks');
@@ -457,6 +458,9 @@ sub loadTasks {
       next;
     }
 
+    my $old = $old_monitors{$monitor->{Id}};
+    $monitor->{LastState} = $old->{LastState}
+      if $old and defined($old->{LastState});
     $monitor_hash{$monitor->{Id}} = $monitor;
 
     if ( $monitor->{Activation} ) {

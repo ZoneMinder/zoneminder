@@ -311,6 +311,13 @@ if ( empty($_REQUEST['path']) ) {
     return;
   }
 
+  if ( !is_scalar($_REQUEST['fid']) or (isset($_REQUEST['eid']) and !is_scalar($_REQUEST['eid'])) ) {
+    # An array would make the Event and Frame lookups match several rows
+    header('HTTP/1.0 400 Bad Request');
+    ZM\Error('Invalid event or frame id');
+    return;
+  }
+
   if ( !empty($_REQUEST['eid']) ) {
     $Event = ZM\Event::find_one(array('Id'=>$_REQUEST['eid']));
     if ( !$Event ) {

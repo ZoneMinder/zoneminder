@@ -15,6 +15,7 @@ if (PHP_SAPI === 'cli-server') {
   // ---- router: run one request against one view ----
   $cfgFile = $_GET['cfg'];
   $cfg = json_decode(file_get_contents($cfgFile), true);
+  $root = $cfg['root'];
   $GLOBALS['ZMT'] = $cfg;
   $_REQUEST = $cfg['request'];
   set_include_path($cfg['stubdir'].PATH_SEPARATOR.$root.'/web'.PATH_SEPARATOR.$root.'/web/includes');
@@ -66,7 +67,7 @@ class Event {
   private $d = array();
   public function __construct($id = 0) {
     $e = $GLOBALS['ZMT']['event'];
-    if ($id == $e['Id']) $this->d = $e;
+    if ($id == $e['Id'] or (is_array($id) and in_array($e['Id'], $id))) $this->d = $e;
   }
   public static function find_one($p) {
     $e = new Event($p['Id']);
@@ -129,7 +130,7 @@ for ($i = 0; $i < 50; $i++) {
 
 $scn = 0;
 function run_view($view, $request, $eventOver = array(), $files = array(), $opts = array()) {
-  global $tmp, $scn, $ffmpegLog, $srcJpg;
+  global $tmp, $scn, $ffmpegLog, $srcJpg, $root;
   $scn++;
   $dir = $tmp.'/ev'.$scn;
   mkdir($dir, 0700, true);
@@ -146,6 +147,7 @@ function run_view($view, $request, $eventOver = array(), $files = array(), $opts
     'frames' => isset($opts['frames']) ? $opts['frames'] : array(),
     'canView' => isset($opts['canView']) ? $opts['canView'] : array('Events', 'Snapshots'),
     'stubdir' => $tmp.'/inc', 'ffmpeg' => $tmp.'/ffmpeg',
+    'root' => $root,
   );
   file_put_contents($tmp.'/cfg'.$scn.'.json', json_encode($cfg));
   $errFile = $tmp.'/cfg'.$scn.'.json.errors';
@@ -213,6 +215,11 @@ $r = run_view('image', array('eid' => 5, 'fid' => 25), $ev, array('video.mp4' =>
 check('last-frames-in-range fid is still extracted', file_exists($r['dir'].'/00025-capture.jpg') && $r['ffmpeg'] !== '');
 $r = run_view('image', array('eid' => 5, 'fid' => 400), array_merge($ev, array('EndDateTime' => null)), array('video.mp4' => 'x'));
 check('open event (Frames not final) is not clamped', file_exists($r['dir'].'/00400-capture.jpg'));
+
+echo "image.php with a list of event ids\n";
+$r = run_view('image', array('eid' => array(5, 6), 'fid' => 3), array(), array('00003-capture.jpg' => true));
+check('answers 400', $r['status'] === 400, 'status='.var_export($r['status'], true));
+check('does not send the image', $r['body'] !== file_get_contents($srcJpg));
 
 echo "image.php fractional width\n";
 $r = run_view('image', array('eid' => 5, 'fid' => 3, 'width' => '32.5', 'height' => '24'), array(), array('00003-capture.jpg' => true),

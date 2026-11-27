@@ -220,14 +220,17 @@ class ConfigsController extends AppController {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
 			// Config.Name is the primary key, so a Name in the body would move the save
-			// to another row than the one validated here.
+			// to another row than the one validated here. Only the Value is writable.
 			$this->pinRequestId($this->Config, $id);
 			$value = $this->requestField('Config', 'Value');
 			if (($config['Config']['Name'] == 'ZM_AUTH_HASH_SECRET') and ($value !== null)
 				and !authHashSecretValid($value)) {
 				throw new BadRequestException(__('ZM_AUTH_HASH_SECRET must be at least %d characters long', ZM_AUTH_HASH_SECRET_MIN_LENGTH));
 			}
-			if ($this->Config->save($this->request->data)) {
+			if ($value === null) {
+				throw new BadRequestException(__('A Value is required'));
+			}
+			if ($this->Config->save(array('Config' => array('Name' => $id, 'Value' => $value)), true, array('Value'))) {
 				$message = 'Saved';
 			} else {
 				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';

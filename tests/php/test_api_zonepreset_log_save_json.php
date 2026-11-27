@@ -22,6 +22,7 @@ if (!class_exists('NotFoundException')) { class NotFoundException extends Except
 if (!function_exists('__')) { function __($s) { return $s; } }
 if (!defined('ZM_LOG_INJECT')) define('ZM_LOG_INJECT', false);
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -60,7 +61,7 @@ function run($class, $model, $action, $method, $save_result) {
   global $user;
   $user = null;
   $h = new $class();
-  $h->request = new FakeRequest($method, array($model => array('Name' => 'x')));
+  $h->request = new FakeRequest($method, array($model => array('Name' => 'x'))); $h->response = new FakeResponse;
   $h->$model = new FakeModel();
   $h->$model->saveResult = $save_result;
   try {
@@ -81,7 +82,7 @@ foreach (array('ZonePresets' => 'ZonePreset', 'Logs' => 'Log') as $name => $mode
     continue;
   }
   $class = $name.'Harness';
-  eval('class '.$class.' { public $request, $'.$model.', $vars = array(), $flashed = array();
+  eval('class '.$class.' { public $request, $response, $'.$model.', $vars = array(), $flashed = array();
     function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
     function flash($message, $url = null) { $this->flashed[] = $message; return "FLASH"; }
     function pinRequestId($model, $id) { $model->id = $id; }

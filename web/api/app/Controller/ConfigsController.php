@@ -231,6 +231,7 @@ class ConfigsController extends AppController {
 				$message = 'Saved';
 			} else {
 				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
+				$this->response->statusCode(400);
 			}
 			$this->set(array(
 				'message' => $message,

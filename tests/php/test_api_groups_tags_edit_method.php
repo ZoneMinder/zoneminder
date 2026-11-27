@@ -37,6 +37,7 @@ if (!class_exists('ZM\Group')) {
   }');
 }
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -110,7 +111,7 @@ function run_action($class, $model, $action, $method, $save_result, $validation_
   $user = null;
   $warnings = array();
   $h = new $class();
-  $h->request = new FakeRequest($method, array($model => array('Name' => 'x')));
+  $h->request = new FakeRequest($method, array($model => array('Name' => 'x'))); $h->response = new FakeResponse;
   $h->$model = new FakeModel($model);
   $h->$model->saveResult = $save_result;
   $h->$model->saveAssociatedResult = $save_result;
@@ -134,7 +135,7 @@ foreach ($models as $name => $model) {
   }
 
   $class = $name.'Harness';
-  eval('class '.$class.' { public $request, $'.$model.', $vars = array(), $flashed = array();
+  eval('class '.$class.' { public $request, $response, $'.$model.', $vars = array(), $flashed = array();
     function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
     function flash($message, $url = null) { $this->flashed[] = $message; return "FLASH"; }
     function pinRequestId($model, $id) { $model->id = $id; }

@@ -141,6 +141,7 @@ class SnapshotsController extends AppController {
         return;
       } else {
         ZM\Error("Failed to save Snapshot");
+        $this->response->statusCode(400);
         $this->set(array(
           'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
           'id' => null,
@@ -182,6 +183,7 @@ class SnapshotsController extends AppController {
         $message = 'Saved';
       } else {
         $message = $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error';
+        $this->response->statusCode(400);
 			}
 		} # end if post/put
 

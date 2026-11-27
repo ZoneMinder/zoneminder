@@ -171,6 +171,7 @@ class GroupsController extends AppController {
         return;
       } else {
         ZM\Error("Failed to save Group");
+        $this->response->statusCode(400);
         $this->set(array(
           'message' => $this->Group->validationErrors ? $this->Group->validationErrors : 'Error',
           'id' => null,
@@ -234,6 +235,7 @@ class GroupsController extends AppController {
         $message = 'Saved';
       } else {
         $message = 'Error';
+        $this->response->statusCode(400);
         // if there is a validation message, use it
         if ( !$this->Group->validates() ) {
           $message = $this->Group->validationErrors;

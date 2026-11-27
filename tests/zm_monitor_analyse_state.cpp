@@ -96,6 +96,62 @@ TEST_CASE("Monitor::ClearAlarmTracking drops partial alarm progress", "[Monitor]
   REQUIRE(m.PreAlarmCount() == 0);
 }
 
+// MaxFPS on a network camera: frames are dropped after decoding so the
+// camera's own rate no longer backs up behind a sleep in zmc.
+TEST_CASE("Monitor::FrameDue keeps MaxFPS frames of a faster source", "[Monitor][maxfps]") {
+  const SystemTimePoint t0 = SystemTimePoint(Seconds(1000));
+  const Microseconds delay = Microseconds(200000);  // 5 fps
+
+  SECTION("no limit passes everything") {
+    SystemTimePoint due{};
+    for (int i = 0; i < 10; i++)
+      REQUIRE(Monitor::FrameDue(t0 + Microseconds(i * 40000), due, Microseconds(0)));
+  }
+  SECTION("25 fps source at 5 fps keeps every fifth frame") {
+    SystemTimePoint due{};
+    int kept = 0;
+    for (int i = 0; i < 250; i++)
+      if (Monitor::FrameDue(t0 + Microseconds(i * 40000), due, delay)) kept++;
+    REQUIRE(kept == 50);
+  }
+  SECTION("jitter on the source does not lose frames or drift") {
+    SystemTimePoint due{};
+    int kept = 0;
+    for (int i = 0; i < 250; i++) {
+      const int jitter = (i % 3 - 1) * 4000;  // +-4 ms
+      if (Monitor::FrameDue(t0 + Microseconds(i * 40000 + jitter), due, delay)) kept++;
+    }
+    REQUIRE(kept == 50);
+  }
+  SECTION("a source slower than the limit keeps every frame") {
+    SystemTimePoint due{};
+    for (int i = 0; i < 20; i++)
+      REQUIRE(Monitor::FrameDue(t0 + Microseconds(i * 500000), due, delay));
+  }
+  SECTION("a stall does not release a burst afterwards") {
+    SystemTimePoint due{};
+    REQUIRE(Monitor::FrameDue(t0, due, delay));
+    const SystemTimePoint later = t0 + Seconds(10);
+    REQUIRE(Monitor::FrameDue(later, due, delay));
+    REQUIRE_FALSE(Monitor::FrameDue(later + Microseconds(40000), due, delay));
+  }
+  SECTION("a clock step back does not hold frames") {
+    SystemTimePoint due{};
+    REQUIRE(Monitor::FrameDue(t0 + Seconds(100), due, delay));
+    REQUIRE(Monitor::FrameDue(t0, due, delay));
+  }
+}
+
+TEST_CASE("Monitor::MaxFPSByDropping applies only to decoder-fed cameras", "[Monitor][maxfps]") {
+  REQUIRE(Monitor::MaxFPSByDropping(Monitor::FFMPEG, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::FFMPEG, Monitor::ENCODE));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::LOCAL, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::FILE, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::REMOTE, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::LIBCURL, Monitor::PASSTHROUGH));
+  REQUIRE_FALSE(Monitor::MaxFPSByDropping(Monitor::VNC, Monitor::PASSTHROUGH));
+}
+
 // After signal loss the reference image is stale. It must be re-seeded on
 // reacquire for every recording mode that analyses, not only Record.
 TEST_CASE("Monitor::ReacquireNeedsRefReset follows analysing, not recording", "[Monitor][analyse]") {

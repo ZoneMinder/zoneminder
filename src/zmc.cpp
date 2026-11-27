@@ -438,7 +438,7 @@ int main(int argc, char *argv[]) {
         // capture_delay is the amount of time we should sleep in useconds to achieve the desired framerate.
         Microseconds delay = (monitors[i]->GetState() == Monitor::ALARM) ? monitors[i]->GetAlarmCaptureDelay()
                              : monitors[i]->GetCaptureDelay();
-        if (delay != Microseconds(0)) {
+        if (delay != Microseconds(0) and !monitors[i]->MaxFPSByDropping()) {
           if (last_capture_times[i].time_since_epoch() != Seconds(0)) {
             Microseconds delta_time = std::chrono::duration_cast<Microseconds>(now - last_capture_times[i]);
 

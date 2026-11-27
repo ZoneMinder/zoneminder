@@ -1555,32 +1555,31 @@ void EventStream::runStream() {
 } // end void EventStream::runStream()
 
 bool EventStream::send_file(const std::string &filepath) {
-  FILE *fdj = fopen(filepath.c_str(), "rb");
+  // A lambda deleter: decltype(&fclose) carries glibc attributes that -Wignored-attributes rejects.
+  auto file_closer = [](FILE *f) { if (f) fclose(f); };
+  std::unique_ptr<FILE, decltype(file_closer)> fdj(fopen(filepath.c_str(), "rb"), file_closer);
   if (!fdj) {
     Error("Can't open %s: %s", filepath.c_str(), strerror(errno));
     std::string error_message = stringtf("Can't open %s: %s", filepath.c_str(), strerror(errno));
     return sendTextFrame(error_message.c_str());
   }
   static struct stat filestat;
-  if (fstat(fileno(fdj), &filestat) < 0) {
-    fclose(fdj); /* Close the file handle */
+  if (fstat(fileno(fdj.get()), &filestat) < 0) {
     Error("Failed getting information about file %s: %s", filepath.c_str(), strerror(errno));
     return false;
   }
   if (!filestat.st_size) {
-    fclose(fdj); /* Close the file handle */
     Info("File size is zero. Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
   if (0 > fprintf(stdout, "Content-Length: %jd\r\n\r\n", static_cast<intmax_t>(filestat.st_size))) {
-    fclose(fdj); /* Close the file handle */
     Info("Unable to send raw frame %d: %s", curr_frame_id, strerror(errno));
     return false;
   }
   ssize_t remaining = filestat.st_size;
 
   while (remaining > 0) {
-    ssize_t rc = zm_sendfile(fileno(stdout), fileno(fdj), nullptr, remaining);
+    ssize_t rc = zm_sendfile(fileno(stdout), fileno(fdj.get()), nullptr, remaining);
     if (rc < 0) break;
     if (rc > 0) {
       remaining -= rc;
@@ -1589,7 +1588,6 @@ bool EventStream::send_file(const std::string &filepath) {
 
   if (!remaining) {
     // Success
-    fclose(fdj); /* Close the file handle */
     return true;
   }
   Warning("Unable to send raw frame %d: %s %zu remaining",

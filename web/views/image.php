@@ -482,19 +482,20 @@ if ( empty($_REQUEST['path']) ) {
         $Frame->FrameId('snapshot');
       } # end if found snapshot.jpg
     } else {
-      $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$_REQUEST['fid']));
+      $fid = (int)$_REQUEST['fid'];
+      $Frame = ZM\Frame::find_one(array('EventId'=>$_REQUEST['eid'], 'FrameId'=>$fid));
       if (!$Frame) {
-        $Frame = $Event->find_virtual_frame($_REQUEST['fid']);
+        $Frame = $Event->find_virtual_frame($fid);
         if (!$Frame) {
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$_REQUEST['fid'].')');
+          ZM\Error('No Frame found for event('.$_REQUEST['eid'].') and frame id('.$fid.')');
           return;
         }
-        if ($Event->EndDateTime() and $Event->Frames() and $_REQUEST['fid'] > $Event->Frames()) {
+        if ($Event->EndDateTime() and $Event->Frames() and $fid > $Event->Frames()) {
           # A virtual frame past the end of a finished event does not exist, and
           # extracting it would store an image file for a frame number that is not there.
           header('HTTP/1.0 404 Not Found');
-          ZM\Error('Frame '.validInt($_REQUEST['fid']).' is beyond the last frame of event '.$_REQUEST['eid']);
+          ZM\Error('Frame '.validInt($fid).' is beyond the last frame of event '.$_REQUEST['eid']);
           return;
         }
       }  # end if !Frame

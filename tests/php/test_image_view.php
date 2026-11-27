@@ -227,6 +227,10 @@ $r = run_view('image', array('eid' => 5, 'fid' => 3, 'width' => '32.5', 'height'
 check('no deprecation raised', $r['errors'] === array(), json_encode($r['errors']));
 check('cache file name uses whole pixels', count(glob($r['dir'].'/00003-capture-32x24.jpg')) === 1, implode(',', array_map('basename', glob($r['dir'].'/*'))));
 
+echo "image.php virtual frame number is not echoed into the file name\n";
+$r = run_view('image', array('eid' => 5, 'fid' => '2"x'), array(), array('00002-capture.jpg' => true));
+check('file name holds only the frame number', header_of($r, 'Content-Disposition') === 'inline; filename="1_5_2.jpg"', (string)header_of($r, 'Content-Disposition'));
+
 echo "image.php with no fid and no Events permission\n";
 $r = run_view('image', array(), array(), array(), array('canView' => array()));
 check('no undefined index warning', $r['errors'] === array(), json_encode($r['errors']));

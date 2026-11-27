@@ -34,6 +34,15 @@ set_include_path($include);
 function Warning($s) {}
 function Error($s) {}
 function Debug($s) {}
+// Copied from web/includes/functions.php; Object.php changes() calls it.
+function scalar_values_differ($old, $new) {
+  if (is_array($old) or is_array($new)) {
+    return $old != $new;
+  }
+  if (is_bool($old)) $old = (int)$old;
+  if (is_bool($new)) $new = (int)$new;
+  return (string)($old === null ? '' : $old) !== (string)($new === null ? '' : $new);
+}
 
 require_once 'Object.php';
 require_once 'Group.php';

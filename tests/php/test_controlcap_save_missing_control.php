@@ -30,6 +30,11 @@ namespace ZM {
 
 namespace {
   function canEdit($a) { return true; }
+  // Copied from web/includes/functions.php.
+  function validCardinal($input) {
+    if (!is_scalar($input)) return '';
+    return preg_replace('/\D/', '', $input);
+  }
 
   $root = isset($argv[1]) ? $argv[1] : __DIR__.'/../..';
   $stub = sys_get_temp_dir().'/zm_ccmissing_'.getmypid();

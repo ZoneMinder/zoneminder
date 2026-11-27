@@ -60,6 +60,8 @@ namespace {
   }
   $thrown = '';
   try {
+    // status.php requires includes/log_redact.php relative to web/, as under the web server.
+    set_include_path(__DIR__.'/../../web'.PATH_SEPARATOR.get_include_path());
     include __DIR__.'/../../web/ajax/status.php';
   } catch (StopRequest $e) {
   } catch (Throwable $e) {

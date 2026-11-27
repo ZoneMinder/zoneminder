@@ -62,6 +62,12 @@ class FakeUser {
 }
 $user = new FakeUser();
 
+// generateAuthHash() takes its freshness limit from authHashTtl(), lifted the
+// same way. Older copies of auth.php read ZM_AUTH_HASH_TTL directly.
+if (preg_match('/^function authHashTtl\(.*?^}$/ms', $auth_src, $ttl_matches)) {
+  eval($ttl_matches[0]);
+}
+
 eval($fn_src);
 
 if (!function_exists('generateAuthHash')) {

@@ -800,42 +800,43 @@ function getDelConfirmModal(key, title, formName=null) {
 
 window.addEventListener( 'DOMContentLoaded', checkSize );
 
-function convertLabelFormat(LabelFormat, monitorName) {
-  //convert label format from strftime to moment's format (modified from
-  //https://raw.githubusercontent.com/benjaminoakes/moment-strftime/master/lib/moment-strftime.js
-  //added %f and %N below (TODO: add %Q)
-  var replacements = {
-    'a': 'ddd',
-    'A': 'dddd',
-    'b': 'MMM',
-    'B': 'MMMM',
-    'd': 'DD',
-    'e': 'D',
-    'F': 'YYYY-MM-DD',
+// Render a monitor's label format, a strftime pattern such as "%N - %d/%m/%y %H:%M:%S", for a luxon
+// DateTime the way zmc draws it on the frame. Each %X is formatted on its own and everything else is
+// copied as is, so letters and apostrophes in the literal text or the monitor name are never read as
+// luxon tokens (luxon 3.4 has no way to print an apostrophe from a format string).
+function formatLabel(LabelFormat, monitorName, dt) {
+  const tokens = {
+    'a': 'ccc',
+    'A': 'cccc',
+    'b': 'LLL',
+    'B': 'LLLL',
+    'd': 'dd',
+    'e': 'd',
+    'F': 'yyyy-MM-dd',
     'H': 'HH',
     'I': 'hh',
-    'j': 'DDDD',
+    'j': 'ooo',
     'k': 'H',
     'l': 'h',
     'm': 'MM',
     'M': 'mm',
-    'p': 'A',
-    'r': 'hh:mm:ss A',
+    'p': 'a',
+    'r': 'hh:mm:ss a',
     'S': 'ss',
     'u': 'E',
-    'w': 'd',
     'W': 'WW',
-    'y': 'YY',
-    'Y': 'YYYY',
-    'z': 'ZZ',
-    'Z': 'z',
-    'f': 'SS'};
-  const lit = (s) => s ? '[' + s.replace(/[\[\]]/g, '') + ']' : '';
-  return LabelFormat.replace(/%(.)|([^%]+)|%$/g, (m, k, t) => {
-    if (t !== undefined) return lit(t);
-    if (k === 'N') return lit(monitorName);
-    if (k === '%') return '[%]';
-    return replacements[k] !== undefined ? replacements[k] : lit(m);
+    'y': 'yy',
+    'Y': 'yyyy',
+    'z': 'ZZZ',
+    'Z': 'ZZZZ'};
+  return LabelFormat.replace(/%(.)|%$/g, (m, k) => {
+    if (k === 'N') return monitorName;
+    if (k === '%') return '%';
+    // strftime counts Sunday as 0, luxon as 7
+    if (k === 'w') return String(dt.weekday % 7);
+    // zmc's %f is hundredths of a second
+    if (k === 'f') return String(Math.floor(dt.millisecond / 10)).padStart(2, '0');
+    return tokens[k] !== undefined ? dt.toFormat(tokens[k]) : m;
   });
 }
 
@@ -852,44 +853,24 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
     return;
   }
 
-  var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-  startTime = moment(startTime);
+  // StartDateTime is the server's wall clock as 'yyyy-MM-dd HH:mm:ss'. English names match the label zmc
+  // draws on the frame.
+  const opts = {zone: serverTimeZone(), locale: 'en-US'};
+  let cueTime = DateTime.fromSQL(startTime, opts);
+  if (!cueTime.isValid) cueTime = DateTime.fromISO(startTime, opts);
 
   // In Video.js 8, we need to add cues using the addCue method
   for (let i = 0; i <= duration; i++) {
-    var cue = new VTTCue(i, i + 1, startTime.format(labelFormat));
+    var cue = new VTTCue(i, i + 1, formatLabel(LabelFormat, monitorName, cueTime));
     cue.id = i;
     try {
       track.addCue(cue);
     } catch (e) {
       console.warn('Failed to add cue:', e);
     }
-    startTime.add(1, 's');
+    cueTime = cueTime.plus({seconds: 1});
   }
 }
-/*
-var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-var webvttformat = 'HH:mm:ss.SSS', webvttdata="WEBVTT\n\n";
-
-startTime = moment(startTime);
-
-var seconds = moment({s:0}), endduration = moment({s:duration});
-while(seconds.isBefore(endduration)){
-  webvttdata += seconds.format(webvttformat) + " --> ";
-  seconds.add(1,'s');
-  webvttdata += seconds.format(webvttformat) + "\n";
-  webvttdata += startTime.format(labelFormat) + "\n\n";
-  startTime.add(1, 's');
-}
-var track = document.createElement('track');
-track.kind = "captions";
-track.srclang = "en";
-track.label = "English";
-track['default'] = true;
-track.src = 'data:plain/text;charset=utf-8,'+encodeURIComponent(webvttdata);
-video.appendChild(track);
-}
-*/
 
 var resizeTimer;
 

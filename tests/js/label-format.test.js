@@ -1,10 +1,11 @@
 'use strict';
 
 // A monitor's label format is a strftime pattern ("%N - %d/%m/%y %H:%M:%S").
-// convertLabelFormat() turns it into a moment.js format for the video timing
-// track. Literal text must be wrapped in moment's [ ] escapes, otherwise
-// moment reads every letter as a token ("Cam at " -> "Cpm7 pmt "), and every
-// %X must be converted, including repeats.
+// formatLabel() renders it with luxon for the video timing track, the way zmc
+// draws it on the frame. Literal text and the monitor name must come out as
+// is: letters must not be read as luxon tokens ("Cam at " -> "Cpm7 pmt "), and
+// an apostrophe must survive, which luxon 3.4 cannot print from a format
+// string. Every %X must be converted, including repeats.
 
 const assert = require('assert');
 const fs = require('fs');
@@ -14,6 +15,8 @@ const vm = require('vm');
 const skinPath = process.env.SKIN_JS || path.join(
     __dirname, '../../web/skins/classic/js/skin.js');
 const src = fs.readFileSync(skinPath, 'utf8');
+const luxonSrc = fs.readFileSync(path.join(
+    __dirname, '../../web/skins/classic/js/luxon-3.4.4.min.js'), 'utf8');
 
 let passed = 0;
 let failed = 0;
@@ -29,47 +32,62 @@ function test(name, fn) {
   }
 }
 
-// Load the real convertLabelFormat() from skin.js.
+// Load the real formatLabel() from skin.js next to the vendored luxon.
 const match = src.match(
-    /function convertLabelFormat\(LabelFormat, monitorName\) \{[\s\S]*?\n\}\n/);
-assert.ok(match, 'convertLabelFormat() not found in skin.js');
+    /function formatLabel\(LabelFormat, monitorName, dt\) \{[\s\S]*?\n\}\n/);
+assert.ok(match, 'formatLabel() not found in skin.js');
 const sandbox = {};
 vm.createContext(sandbox);
-vm.runInContext(
-    match[0] + '\nthis.convertLabelFormat = convertLabelFormat;', sandbox);
-const c = (format, name) => sandbox.convertLabelFormat(format, name);
+vm.runInContext(luxonSrc + '\nthis.luxon = luxon;', sandbox);
+vm.runInContext(match[0] + '\nthis.formatLabel = formatLabel;', sandbox);
+const DateTime = sandbox.luxon.DateTime;
 
-console.log('convertLabelFormat');
-test('brackets literal text and converts every token', () => {
-  assert.strictEqual(c('Cam at %H:%M', 'X'), '[Cam at ]HH[:]mm');
+// Sunday 2024-03-03 14:07:09.250 in New York (EST), as addVideoTimingTrack()
+// builds it.
+const dt = DateTime.fromSQL('2024-03-03 14:07:09.250',
+    {zone: 'America/New_York', locale: 'en-US'});
+const f = (format, name) => sandbox.formatLabel(format, name, dt);
+
+console.log('formatLabel');
+test('keeps literal text and converts every token', () => {
+  assert.strictEqual(f('Cam at %H:%M', 'X'), 'Cam at 14:07');
 });
 test('converts repeated tokens', () => {
-  assert.strictEqual(c('%H:%M:%S %H', 'X'), 'HH[:]mm[:]ss[ ]HH');
+  assert.strictEqual(f('%H:%M:%S %H', 'X'), '14:07:09 14');
 });
-test('substitutes the monitor name', () => {
-  assert.strictEqual(c('%N - %d', 'Cam1'), '[Cam1][ - ]DD');
+test('substitutes the monitor name as is', () => {
+  assert.strictEqual(f('%N - %d/%m/%y', 'Cam1'), 'Cam1 - 03/03/24');
 });
-test('escapes a literal percent', () => {
-  assert.strictEqual(c('100%% %H', 'X'), '[100][%][ ]HH');
+test('keeps token letters, brackets and apostrophes in the name', () => {
+  assert.strictEqual(f('%N %H', "Dad's [MD] cam"), "Dad's [MD] cam 14");
 });
-test('does not drop brackets from the monitor name', () => {
-  assert.strictEqual(c('%N', 'Cam[1]'), '[Cam1]');
+test('keeps an apostrophe in literal text', () => {
+  assert.strictEqual(f("o'clock %H", 'X'), "o'clock 14");
 });
-
-// End-to-end with the vendored moment, when it can be loaded in node.
-let moment = null;
-try {
-  moment = require(path.join(__dirname, '../../web/skins/classic/js/moment.min.js'));
-} catch (e) {
-  console.log('  skip moment end-to-end: ' + e.message);
-}
-if (moment) {
-  test('moment renders literal text unchanged', () => {
-    const date = new Date(2024, 2, 5, 14, 7, 9);
-    assert.strictEqual(
-        moment(date).format(c('Cam at %H:%M', 'X')), 'Cam at 14:07');
-  });
-}
+test('prints a literal percent', () => {
+  assert.strictEqual(f('100%% %H', 'X'), '100% 14');
+});
+test('keeps a trailing percent and an unknown code', () => {
+  assert.strictEqual(f('%Q %H%', 'X'), '%Q 14%');
+});
+test('names and 12 hour clock match strftime in English', () => {
+  assert.strictEqual(f('%a %A %b %B %I %l %p', 'X'),
+      'Sun Sunday Mar March 02 2 PM');
+  assert.strictEqual(f('%r', 'X'), '02:07:09 PM');
+});
+test('numeric dates match strftime', () => {
+  assert.strictEqual(f('%F %e %j %k %Y', 'X'), '2024-03-03 3 063 14 2024');
+});
+test('weekday numbers count like strftime', () => {
+  // %u is 1-7 from Monday, %w is 0-6 from Sunday.
+  assert.strictEqual(f('%u %w', 'X'), '7 0');
+});
+test('time zone offset and abbreviation', () => {
+  assert.strictEqual(f('%z %Z', 'X'), '-0500 EST');
+});
+test('%f is hundredths of a second', () => {
+  assert.strictEqual(f('%S.%f', 'X'), '09.25');
+});
 
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

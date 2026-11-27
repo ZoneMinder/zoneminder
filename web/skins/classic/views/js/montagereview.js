@@ -1395,9 +1395,13 @@ function loadEventData(e) {
             // Normalize date/time values to YYYY-MM-DD HH:mm:ss for the API URL.
             // Locale formats using / as separator break the URL path.
             if (/Date|Time/.test(apiAttr)) {
-              const m = moment(val);
-              if (m.isValid()) {
-                urlVal = m.format('YYYY-MM-DD HH:mm:ss');
+              // Anything that isn't ISO or SQL (a locale format) is read the way the browser reads it, as
+              // moment did.
+              let dt = DateTime.fromISO(val);
+              if (!dt.isValid) dt = DateTime.fromSQL(val);
+              if (!dt.isValid) dt = DateTime.fromJSDate(new Date(val));
+              if (dt.isValid) {
+                urlVal = dt.toFormat('yyyy-MM-dd HH:mm:ss');
               }
             }
             url += '/'+apiAttr+' '+op.value+':'+encodeURIComponent(urlVal);

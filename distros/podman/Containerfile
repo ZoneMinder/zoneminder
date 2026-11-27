@@ -28,6 +28,7 @@ RUN apt update && \
         libmime-tools-perl \
         libdbd-mysql-perl \
         libwww-perl \
+        libxml-libxml-perl \
         libarchive-tar-perl \
         libarchive-zip-perl \
         libdevice-serialport-perl \

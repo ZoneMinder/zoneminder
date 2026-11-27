@@ -84,7 +84,11 @@ if ($action == 'save') {
 
   if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
     # Need to add a new Model entry
-    $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
+    # Model names are only unique per manufacturer, so look under this one.
+    $newModel = ZM\Model::find_one(array(
+      'Name'=>$newMonitor['Model'],
+      'ManufacturerId'=>$newMonitor['ManufacturerId'] ? $newMonitor['ManufacturerId'] : null
+    ));
     if (!$newModel) {
       $newModel = new ZM\Model();
       if (!$newModel->save(array(
@@ -99,6 +103,21 @@ if ($action == 'save') {
   }
 
   $monitor = new ZM\Monitor($mid);
+
+  # Refuse an Ffmpeg source path with no protocol. ffmpeg then fails in
+  # avformat_open_input with "Protocol not found" and zmdc restarts zmc in a
+  # loop without pointing at the field. Absolute paths and ffmpeg's scheme-less
+  # v4l2: form are valid, so allow those.
+  $type = isset($newMonitor['Type']) ? $newMonitor['Type'] : $monitor->Type();
+  if ($type == 'Ffmpeg') {
+    $path = array_key_exists('Path', $newMonitor) ? $newMonitor['Path'] : $monitor->Path();
+    if ($path !== null and $path !== '' and strpos($path, '://') === false and
+        substr($path, 0, 1) !== '/' and stripos($path, 'v4l2:') !== 0) {
+      $error_message .= translate('BadFfmpegPathProtocol').'</br>';
+      ZM\Warning('Refused to save monitor '.$mid.': Source Path must start with a protocol such as rtsp://');
+      return;
+    }
+  }
 
   // Define a field type for anything that's not simple text equivalent
   $types = monitorFormUncheckedDefaults();
@@ -183,7 +202,7 @@ if ($action == 'save') {
                 if (is_link($linkPath)) {
                   $absolutePath = realpath($linkPath);
                   if ($oldLinkPath == $linkPath) $oldLinkPathFound = true;
-                  if ($absolutePath == $Storage->Path().'/'.$mid) {
+                  if ($absolutePath == $storagePath.$mid) {
                     ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
                     unlink($linkPath);
                   }
@@ -235,8 +254,10 @@ if ($action == 'save') {
             convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
             $zoneChanges = getFormChanges($zone, $newZone, $types);
             if ( count($zoneChanges) ) {
-              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                array($mid, $zone['Id']));
+              if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id'])) ) {
+                $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+              }
             }
             $zone = $newZone;
           }
@@ -256,8 +277,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } # end foreach zone
           } else if ($oldA > 0 && $newA != $oldA) {
@@ -278,8 +301,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } // end foreach zone
           } // end if rotation or just size change
@@ -299,9 +324,23 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
+        $dupId = empty($_REQUEST['dupId']) ? 0 : validCardinal($_REQUEST['dupId']);
+        $dupZones = (!empty($_REQUEST['cloneZones']) and $dupId and canView('Monitors', $dupId))
+          ? dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($dupId)) : array();
+        foreach ($dupZones as $dupZone) {
+          unset($dupZone['Id']);
+          $dupZone['MonitorId'] = $mid;
+          $zone = new ZM\Zone();
+          if (!$zone->save($dupZone)) {
+            $error_message .= $zone->get_last_error();
+            ZM\Error('Error cloning zone: '.$error_message);
+          }
+        }
         // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+        if ($dupZones) {
+          // zones were cloned, no default zone needed
+        } else if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,
@@ -340,9 +379,14 @@ if ($action == 'save') {
     }
 
     if ( isset($changes['GroupIds']) ) {
-      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
-      foreach ( $changes['GroupIds'] as $group_id ) {
-        dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
+      if ( !dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid)) ) {
+        $error_message .= 'Error clearing groups: '.dbLastError().'<br/>';
+      } else {
+        foreach ( $changes['GroupIds'] as $group_id ) {
+          if ( !dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid)) ) {
+            $error_message .= 'Error adding monitor to group '.validInt($group_id).': '.dbLastError().'<br/>';
+          }
+        }
       }
     } // end if there has been a change of groups
 
@@ -361,12 +405,18 @@ if ($action == 'save') {
 
     if ( count($x10Changes) ) {
       if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
-        dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid));
+        if ( !dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid)) ) {
+          $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+        }
       } else if ( !$user->unviewableMonitorIds() ) {
         if ( !$x10Monitor ) {
-          dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid));
+          if ( !dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         } else {
-          dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid));
+          if ( !dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         }
       }
       $restart = true;
@@ -389,6 +439,14 @@ if ($action == 'save') {
           dbQuery('DELETE FROM MonitorActions WHERE Id=? AND MonitorId=?', array($action_id, $mid));
           $actionsChanged = true;
         }
+        continue;
+      }
+
+      # The same right ajax/control.php demands when an action is fired by hand.
+      # Without it a user who may edit this monitor could store an action whose
+      # alarms drive a light or speaker on a monitor they have no Control over.
+      if ( !canView('Control', $target) ) {
+        $error_message .= 'Ignoring action: no Control permission on monitor '.validInt($target).'.<br/>';
         continue;
       }
 

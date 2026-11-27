@@ -39,6 +39,12 @@ our ($opt_v);
 
 my $OPTIONS = 'v';
 
+sub VERSION_MESSAGE {
+  my ($fh) = @_;
+  require ZoneMinder::Base;
+  print $fh ZoneMinder::Base::ZM_VERSION() . "\n";
+}
+
 sub HELP_MESSAGE {
   my ($fh, $pkg, $ver, $opts) = @_;
   print $fh "Usage: " . __FILE__ . " [-v] probe <soap versions> <network interface>\n";
@@ -50,6 +56,7 @@ sub HELP_MESSAGE {
     metadata  - print some of the device's configuration settings
     move      - move the device (only ptz cameras)
     events    - check if the device supports ONVIF events
+    other     - any other command of the device's ONVIF Media service
   Common parameters:
     -v        - increase verbosity
   Device access parameters (for all commands but 'probe'):
@@ -153,8 +160,8 @@ zmonvif-probe.pl - ZoneMinder ONVIF probing tool
 
 =head1 SYNOPSIS
 
- zmonfig-probe.pl [-v] probe <soap version>
-                  [-v] <command> <device URI> <soap version> <user> <password>\n";
+ zmonvif-probe.pl [-v] probe <soap versions> <network interface>
+ zmonvif-probe.pl [-v] <command> <device URI> <soap version> <user> <password>
 
   Commands are:
     probe     - scan for devices on the local network and list them
@@ -177,12 +184,8 @@ zmonvif-probe.pl - ZoneMinder ONVIF probing tool
 
 =head1 OPTIONS
 
- -c, --continuous           - Run continuously
- -f, --force                - Run even if pid file exists
- -i, --interactive          - Ask before applying any changes
- -m, --monitor_id           - Only consider the given monitor
- -r, --report               - Just report don't actually do anything
- -s, --storage_id           - Specify a storage area to audit instead of all
- -v, --version              - Print the installed version of ZoneMinder
+ -v                         - Increase verbosity
+ --help                     - Print the usage
+ --version                  - Print the version of this script
 
 =cut

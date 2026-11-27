@@ -24,7 +24,7 @@ use File::Temp qw(tempdir);
 use File::Path qw(make_path);
 use FindBin;
 
-my $repo = "$FindBin::Bin/../..";
+my $repo = $ENV{ZMT_REPO} // $ENV{ZM_TEST_ROOT} // "$FindBin::Bin/../..";
 
 sub write_file {
   my ($path, $content) = @_;
@@ -34,7 +34,8 @@ sub write_file {
 }
 
 sub run_zmtrigger {
-  my ($scenario) = @_;
+  my ($scenario, $args) = @_;
+  $args //= [];
   my $dir = tempdir(CLEANUP => 1);
   make_path("$dir/lib/ZoneMinder/Trigger/Channel");
 
@@ -57,7 +58,8 @@ EOM
   write_file("$dir/zmtrigger.pl", $prelude.$src);
   write_file("$dir/scenario.pl", $scenario);
 
-  write_file("$dir/lib/ZoneMinder/Base.pm", "package ZoneMinder::Base;\nour \$VERSION = '1';\n1;\n");
+  write_file("$dir/lib/ZoneMinder/Base.pm",
+    "package ZoneMinder::Base;\nour \$VERSION = '1';\nuse constant ZM_VERSION => '9.8.7';\n1;\n");
   write_file("$dir/lib/ZoneMinder/Config.pm", <<'EOM');
 package ZoneMinder::Config;
 our %Config;
@@ -91,6 +93,7 @@ package ZoneMinder;
 use strict;
 use warnings;
 use ZoneMinder::Logger;
+use ZoneMinder::Base;
 our %Config = (ZM_PATH_SOCKS => '/nonexistent', ZM_SERVER_ID => 0);
 our $tick = 0;
 use constant { STATE_UNKNOWN => 0, STATE_IDLE => 1, STATE_PREALARM => 2,
@@ -108,6 +111,7 @@ sub import {
     zmMonitorEnable zmMonitorDisable);
 }
 sub zmDbConnect {
+  print "DB connect\n";
   if ($tick++ > 0) {
     ZmtSim::tick($tick - 1) if defined &ZmtSim::tick;
     if ($tick - 1 >= $ZmtSim::max_ticks) { kill 'TERM', $$; }
@@ -187,7 +191,7 @@ sub new {
   $self->{state} = 'connected';
   return bless $self, $class;
 }
-sub open { return 1; }
+sub open { print "OPEN Inet\n"; return 1; }
 sub spawns { return undef; }
 sub fileno { return -1; }
 sub read {
@@ -215,7 +219,7 @@ use warnings;
 require ZoneMinder::Trigger::Channel;
 our \@ISA = ('ZoneMinder::Trigger::Channel');
 sub new { my \$class = shift; return bless ZoneMinder::Trigger::Channel->new(), \$class; }
-sub open { return 1; }
+sub open { print "OPEN $name\\n"; return 1; }
 sub spawns { return undef; }
 sub fileno { return -1; }
 sub read { return undef; }
@@ -233,7 +237,7 @@ EOM
     $ENV{ZMT_SCENARIO} = "$dir/scenario.pl";
     open(STDOUT, '>', $out) or die;
     open(STDERR, '>&', \*STDOUT) or die;
-    exec($^X, '-w', @inc, "$dir/zmtrigger.pl") or die "exec: $!";
+    exec($^X, '-w', @inc, "$dir/zmtrigger.pl", @$args) or die "exec: $!";
   }
   local $SIG{ALRM} = sub { kill 'KILL', $pid; };
   alarm 60;

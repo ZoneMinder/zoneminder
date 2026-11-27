@@ -42,6 +42,9 @@ $cases = array(
   'rtsp://admin@h/x' => array(),
   'http://u:p@h' => array('u', 'p'),
   'host/live' => array(),
+  'rtsp://admin:pa+ss@10.0.0.5:554/s' => array('admin', 'pa+ss'),
+  'rtsp://us+er:p%2Bss@h/x' => array('us+er', 'p+ss'),
+  'rtsp://us%20er:p%20ss@h/x' => array('us er', 'p ss'),
 );
 foreach ($cases as $url => $expected)
   check($url, extract_auth_values_from_url($url), $expected);

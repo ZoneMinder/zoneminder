@@ -20,6 +20,18 @@ function zm_session_set_remote_addr() {
   $_SESSION['remoteAddr'] = $addr;
 }
 
+// True when the browser reached us over https, directly or through a proxy
+// that says so. Cookies set then carry the Secure flag so they are never sent
+// over plain http.
+function zm_request_is_secure() {
+  if (!empty($_SERVER['HTTPS']) and (strtolower($_SERVER['HTTPS']) !== 'off')) return true;
+  if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+    $proto = explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO']);
+    return strtolower(trim($proto[0])) === 'https';
+  }
+  return false;
+}
+
 // Wrapper around setcookie that auto-sets samesite, and deals with older versions of php
 function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['path'])) {
@@ -31,12 +43,11 @@ function zm_setcookie($cookie, $value, $options=array()) {
   if (!isset($options['samesite'])) {
     $options['samesite'] = 'Strict';
   }
-
-  if (version_compare(phpversion(), '7.3.0', '>=')) {
-    setcookie($cookie, $value, $options);
-  } else {
-    setcookie($cookie, $value, $options['expires'], '/; samesite=strict');
+  if (!isset($options['secure']) and zm_request_is_secure()) {
+    $options['secure'] = true;
   }
+
+  setcookie($cookie, $value, $options);
   //ZM\Debug("Setting cookie for $cookie to $value");
 }
 
@@ -60,6 +71,23 @@ function zm_session_is_persistable() {
   return $zm_session_persist || !empty($_COOKIE[session_name()]);
 }
 
+// ZM_COOKIE_LIFETIME as the session code uses it. It is the session cookie
+// lifetime and sets when the session id is regenerated (half of it), so a value
+// under a minute, 0 included, would regenerate the id on nearly every request
+// and parallel ajax calls would race on the old one. Such a value is replaced
+// by the option's default, 3600, with one warning per request.
+function zmCookieLifetime($value = null) {
+  static $warned = false;
+  if ($value === null) $value = defined('ZM_COOKIE_LIFETIME') ? ZM_COOKIE_LIFETIME : 3600;
+  $value = intval($value);
+  if ($value >= 60) return $value;
+  if (!$warned) {
+    $warned = true;
+    ZM\Warning("ZM_COOKIE_LIFETIME is $value, less than 60 seconds. Using 3600.");
+  }
+  return 3600;
+}
+
 // ZM session start function support timestamp management
 function zm_session_start() {
   if (ini_get('session.name') != 'ZMSESSID') {
@@ -71,22 +99,12 @@ function zm_session_start() {
     if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0' && empty($_COOKIE['ZM_REMEMBER_ME'])) {
       $currentCookieParams['lifetime'] = 0;
     } else {
-      $currentCookieParams['lifetime'] = ZM_COOKIE_LIFETIME;
+      $currentCookieParams['lifetime'] = zmCookieLifetime();
     }
     $currentCookieParams['httponly'] = true;
-    if ( version_compare(phpversion(), '7.3.0', '<') ) {
-      session_set_cookie_params(
-        $currentCookieParams['lifetime'],
-        $currentCookieParams['path'].'; samesite=strict',
-        $currentCookieParams['domain'],
-        $currentCookieParams['secure'],
-        $currentCookieParams['httponly']
-      );
-    } else {
-      # samesite was introduced in 7.3.0
-      $currentCookieParams['samesite'] = 'Strict';
-      session_set_cookie_params($currentCookieParams);
-    }
+    if (zm_request_is_secure()) $currentCookieParams['secure'] = true;
+    $currentCookieParams['samesite'] = 'Strict';
+    session_set_cookie_params($currentCookieParams);
 
     ini_set('session.name', 'ZMSESSID');
     //ZM\Debug('Setting cookie parameters to '.print_r($currentCookieParams, true));
@@ -102,8 +120,9 @@ function zm_session_start() {
     session_destroy();
     session_start();
   } else if ( !empty($_SESSION['generated_at']) ) {
-    if ( $_SESSION['generated_at']<($now-(ZM_COOKIE_LIFETIME/2)) ) {
-      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.ZM_COOKIE_LIFETIME.'/2 = '.($now-ZM_COOKIE_LIFETIME/2));
+    $cookieLifetime = zmCookieLifetime();
+    if ( $_SESSION['generated_at']<($now-($cookieLifetime/2)) ) {
+      ZM\Debug('Regenerating session because generated_at ' . $_SESSION['generated_at'] . ' < ' . $now . '-'.$cookieLifetime.'/2 = '.($now-$cookieLifetime/2));
       zm_session_regenerate_id();
     }
   }
@@ -152,11 +171,7 @@ function zm_session_regenerate_id_login() {
 
 function is_session_started() {
   if ( php_sapi_name() !== 'cli' ) {
-    if ( version_compare(phpversion(), '5.4.0', '>=') ) {
-      return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
-    } else {
-      return session_id() === '' ? FALSE : TRUE;
-    }
+    return session_status() === PHP_SESSION_ACTIVE ? TRUE : FALSE;
   } else {
     \ZM\Warning("php_sapi_name === 'cli'");
   }

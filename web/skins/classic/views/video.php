@@ -29,7 +29,7 @@ $eid = validInt($_REQUEST['eid']);
 
 $event = new ZM\Event($eid);
 
-if (!canView('Monitors', $event->MonitorId())) {
+if (!$event->canView()) {
   $view = 'error';
   return;
 }
@@ -111,6 +111,9 @@ if (isset($_REQUEST['deleteIndex'])) {
   $deleteIndex = validCardinal($_REQUEST['deleteIndex']);
   if (!isset($videoFiles[$deleteIndex])) {
     ZM\Warning('No video file at index '.$deleteIndex);
+  } else if (isset($_REQUEST['deleteName']) && is_scalar($_REQUEST['deleteName'])
+    && basename($videoFiles[$deleteIndex]) !== (string)$_REQUEST['deleteName']) {
+    ZM\Warning('Video file at index '.$deleteIndex.' is not the one asked to delete');
   } else if (!$canDeleteVideo($videoFiles[$deleteIndex])) {
     ZM\Warning('Must have Events edit permission to delete an event\'s recording');
   } else {
@@ -280,7 +283,7 @@ if (isset($_REQUEST['showIndex']) and isset($videoFiles[validInt($_REQUEST['show
             <a href="?view=video&eid=<?php echo $event->Id() ?>&downloadIndex=<?php echo $index ?>"><?php echo translate('Download') ?></a>
 <?php if ($canDeleteVideo($file)) { ?>
                &nbsp;/&nbsp;
-            <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>"><?php echo translate('Delete') ?></a>
+            <a href="?view=video&eid=<?php echo $event->Id() ?>&deleteIndex=<?php echo $index ?>&deleteName=<?php echo urlencode($path_parts['basename']) ?>"><?php echo translate('Delete') ?></a>
 <?php } ?>
           </td>
         </tr>

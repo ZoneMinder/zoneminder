@@ -296,7 +296,15 @@ class Filter extends ZM_Object {
 
   public function Query() {
     if ( func_num_args( ) ) {
-      $this->{'Query'} = func_get_arg(0);
+      $Query = func_get_arg(0);
+      if ( is_array($Query) and isset($Query['terms']) and is_array($Query['terms']) ) {
+        foreach ( $Query['terms'] as $k => $term ) {
+          if ( is_array($term) and isset($term['val']) and is_array($term['val']) ) {
+            $Query['terms'][$k]['val'] = implode(',', $term['val']);
+          }
+        }
+      }
+      $this->{'Query'} = $Query;
       $this->{'Query_json'} = empty($this->{'Query'}) ? '{}' : jsonEncode($this->{'Query'});
       # We have altered the query so need to reset all the calculated results.
       unset($this->_querystring);
@@ -1200,8 +1208,8 @@ class Filter extends ZM_Object {
           // Error($term['attr']);
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $options = ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple'];
-          $selected = isset($term['val']) ? json_decode($term['val']) : [];
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
+          $selected = self::decode_multi($term['val']);
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", $availableTags, $selected, $options).'</td>'.PHP_EOL;
           // These echo statements print these variables at the top of the view for debugging.
           // echo '<div style="background-color:orange"><pre>availableTags: '; print_r($availableTags); echo '</pre></div>';
           // echo '<div style="background-color:lightblue"><pre>selected: '; print_r($selected); echo '</pre></div>';
@@ -1231,18 +1239,15 @@ class Filter extends ZM_Object {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $weekdays, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'Monitor' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $selected = explode(',', $term['val']);
-          if (count($selected) == 1 and !$selected[0]) {
-            $selected = null;
-          }
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $monitors, $selected, ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
+          $selected = self::decode_multi($term['val']);
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", $monitors, $selected, ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'MonitorName' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", array_combine($monitor_names,$monitor_names), $term['val'],
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", array_combine($monitor_names,$monitor_names), self::decode_multi($term['val']),
           ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'ServerId' || $term['attr'] == 'MonitorServerId' || $term['attr'] == 'StorageServerId' || $term['attr'] == 'FilterServerId' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $servers, $term['val'],
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", $servers, self::decode_multi($term['val']),
           ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else if ( ($term['attr'] == 'StorageId') || ($term['attr'] == 'SecondaryStorageId') ) {
           if (!$storageareas) {
@@ -1250,11 +1255,11 @@ class Filter extends ZM_Object {
           }
 
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $storageareas, $term['val'],
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", $storageareas, self::decode_multi($term['val']),
           ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } elseif ( $term['attr'] == 'AlarmedZoneId' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val][]", $zones, self::decode_multi($term['val']),
           ['class'=>'chosen chosen-full-width', 'multiple'=>'multiple']).'</td>'.PHP_EOL;
         } else {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;

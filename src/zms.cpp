@@ -25,6 +25,7 @@
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
+#include <climits>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -224,15 +225,30 @@ int main(int argc, const char *argv[], char **envp) {
       event_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frame") ) {
-      frame_id = strtoull(value, nullptr, 10);
+      unsigned long long parsed_frame = strtoull(value, nullptr, 10);
+      if (parsed_frame > UINT_MAX) {
+        Warning("Ignoring frame '%s', out of range", value);
+      } else {
+        frame_id = static_cast<unsigned int>(parsed_frame);
+      }
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frames") ) {
-      frames_to_send = strtoll(value, nullptr, 10);
+      long long parsed_frames = strtoll(value, nullptr, 10);
+      if (parsed_frames < INT_MIN || parsed_frames > INT_MAX) {
+        Warning("Ignoring frames '%s', out of range", value);
+      } else {
+        frames_to_send = static_cast<int>(parsed_frames);
+      }
     } else if ( !strcmp(name, "scale") ) {
       scale = StreamBase::ParseScaleParam(value);
       if (strtol(value, nullptr, 10) > 16*ZM_SCALE_BASE) Warning("Limiting scale to 16x");
     } else if ( !strcmp(name, "rate") ) {
-      rate = atoi(value);
+      long parsed_rate = strtol(value, nullptr, 10);
+      if (parsed_rate < 0 || parsed_rate > 1000000) {
+        Warning("Ignoring rate '%s', out of range", value);
+      } else {
+        rate = static_cast<unsigned int>(parsed_rate);
+      }
     } else if ( !strcmp(name, "maxfps") ) {
       maxfps = atof(value);
     } else if ( !strcmp(name, "bitrate") ) {

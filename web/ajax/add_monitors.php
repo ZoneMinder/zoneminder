@@ -170,7 +170,7 @@ if (canEdit('Monitors')) {
 
     $available_streams = array();
     $row = 0;
-    while ( ($data = fgetcsv($handle, 0, ',')) !== FALSE ) {
+    while ( ($data = fgetcsv($handle, 0, ',', '"', '\\')) !== FALSE ) {
       $row ++;
       if ( count($data) < 2 ) {
         ZM\Info("Skipping line $row, expected at least Name,URL columns");

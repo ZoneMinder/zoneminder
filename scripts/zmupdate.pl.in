@@ -273,7 +273,7 @@ if ( $zoneFix ) {
 
 if ( $migrateEvents ) {
   my $webUid = (getpwnam($Config{ZM_WEB_USER}))[2];
-  my $webGid = (getgrnam($Config{ZM_WEB_USER}))[2];
+  my $webGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
 
   if ( !(($> == 0) || ($> == $webUid)) ) {
     print("Error, migrating events can only be done as user root or ".$Config{ZM_WEB_USER}.".\n");

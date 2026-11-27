@@ -214,7 +214,7 @@ sub runSysCmd {
 sub sendData {
   my $msg = shift;
 
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
   if ($Config{ZM_UPDATE_CHECK_PROXY}) {
@@ -271,7 +271,7 @@ sub getUUID {
 sub getGeo {
   my $unknown = 'Unknown';
   my $endpoint = 'https://ipinfo.io/geo';
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 15);
   my $req = HTTP::Request->new(GET => $endpoint);
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;
@@ -283,7 +283,7 @@ sub getGeo {
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
     my $endpoint2 = 'https://api.ip2location.io';
-    my $ua2 = LWP::UserAgent->new;
+    my $ua2 = LWP::UserAgent->new(timeout => 15);
     my $req2 = HTTP::Request->new(GET => $endpoint2);
     my $resp2 = $ua2->request($req2);
     my $resp_msg2 = $resp2->decoded_content;

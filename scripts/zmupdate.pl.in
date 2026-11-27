@@ -175,7 +175,7 @@ if ($check) {
   }
 
   use LWP::UserAgent;
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
   if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
     $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});

@@ -578,7 +578,7 @@ sub zmcControl {
     }
     Debug('sending command to '.$url);
     require LWP::UserAgent;
-    my $ua = LWP::UserAgent->new();
+    my $ua = LWP::UserAgent->new(timeout => 30);
     $ua->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
     my $response = $ua->get($url);
     if (!$response->is_success()) {

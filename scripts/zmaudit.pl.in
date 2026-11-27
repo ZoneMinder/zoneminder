@@ -533,6 +533,12 @@ MAIN: while( $loop ) {
               Debug("$$Event{Id} found in secondary lookup.");
               next;
             }
+            if ( ZoneMinder::Event::is_fallback_id($fs_event_id) ) {
+              # zmc recorded it without a row because the insert failed. It is video
+              # we want, not an orphan, so leave it for zmrecover.pl to add.
+              Warning("Filesystem event $fs_event_id at $$Event{Path} was recorded without a database row. Run zmrecover.pl to add it.");
+              next;
+            }
             my $age = $Event->age();
 
             if ( $age and ($age > $Config{ZM_AUDIT_MIN_AGE}) ) {
@@ -789,10 +795,12 @@ if ( $level > 1 ) {
   $cleaned = 0;
   Debug('Checking for Orphaned Frames');
   my $selectOrphanedFramesSql = 'SELECT DISTINCT `EventId` FROM `Frames`
-    WHERE (SELECT COUNT(*) FROM `Events` WHERE `Events`.`Id`=`EventId`)=0';
+    WHERE (SELECT COUNT(*) FROM `Events` WHERE `Events`.`Id`=`EventId`)=0
+      AND `EventId` < ?';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
     or Fatal("Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr());
-  $res = $selectOrphanedFramesSth->execute()
+  # Rows under a fallback id belong to an event zmrecover.pl has yet to add
+  $res = $selectOrphanedFramesSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
     or Fatal("Can't execute: ".$selectOrphanedFramesSth->errstr());
   while( my $frame = $selectOrphanedFramesSth->fetchrow_hashref() ) {
     aud_print("Found orphaned frame records for event '$frame->{EventId}'");
@@ -809,10 +817,11 @@ if ( $level > 1 ) {
   $cleaned = 0;
   Debug('Checking for Orphaned Stats');
   my $selectOrphanedStatsSql = 'SELECT DISTINCT `EventId` FROM `Stats`
-    WHERE `EventId` NOT IN (SELECT `Id` FROM `Events`)';
+    WHERE `EventId` NOT IN (SELECT `Id` FROM `Events`)
+      AND `EventId` < ?';
   my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql )
     or Fatal("Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr());
-  $res = $selectOrphanedStatsSth->execute()
+  $res = $selectOrphanedStatsSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
     or Fatal("Can't execute: ".$selectOrphanedStatsSth->errstr());
   while( my $stat = $selectOrphanedStatsSth->fetchrow_hashref() ) {
     aud_print("Found orphaned statistic records for event '$stat->{EventId}'");
@@ -831,10 +840,11 @@ if ( $level > 1 ) {
   Debug('Checking for Orphaned Event Data');
   my $selectOrphanedEventDataSql = 'SELECT DISTINCT `EventId` FROM `Event_Data`
     WHERE `EventId` IS NOT NULL
-      AND `EventId` NOT IN (SELECT `Id` FROM `Events`)';
+      AND `EventId` NOT IN (SELECT `Id` FROM `Events`)
+      AND `EventId` < ?';
   my $selectOrphanedEventDataSth = $dbh->prepare_cached( $selectOrphanedEventDataSql )
     or Fatal("Can't prepare '$selectOrphanedEventDataSql': ".$dbh->errstr());
-  $res = $selectOrphanedEventDataSth->execute()
+  $res = $selectOrphanedEventDataSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
     or Fatal("Can't execute: ".$selectOrphanedEventDataSth->errstr());
   while( my $event_data = $selectOrphanedEventDataSth->fetchrow_hashref() ) {
     aud_print("Found orphaned event data records for event '$event_data->{EventId}'");

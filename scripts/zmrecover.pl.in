@@ -245,7 +245,7 @@ Debug("@Monitors");
                 $event->Orientation( $Monitor->Orientation() );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  my $error = $event->save({}, 1);
+                  my $error = saveRecovered($event);
                   if ( $error ) {
                     Error("Failed to save recovered event $$event{Id}: $error");
                   } else {
@@ -324,7 +324,7 @@ Debug("@Monitors");
                 $event->DiskSpace( undef );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  my $error = $event->save({}, 1);
+                  my $error = saveRecovered($event);
                   if ( $error ) {
                     Error("Failed to save recovered event $$event{Id}: $error");
                   } else {
@@ -413,7 +413,7 @@ Debug("@Monitors");
             $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
-              my $error = $event->save({}, 1);
+              my $error = saveRecovered($event);
               if ( $error ) {
                 Error("Failed to save recovered event $$event{Id}: $error");
               } else {
@@ -473,7 +473,7 @@ Debug("@Monitors");
           $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
-            my $error = $event->save({}, 1);
+            my $error = saveRecovered($event);
             if ( $error ) {
               Error("Failed to save recovered event $$event{Id}: $error");
             } else {
@@ -490,6 +490,14 @@ Debug("@Monitors");
   } # end foreach Storage Area
 
 Term();
+
+# An event zmc recorded under a fallback id, because it could not insert the
+# row, gets a normal id now instead of keeping one far past every other event's
+sub saveRecovered {
+  my $event = shift;
+  return $event->save_with_new_id() if ZoneMinder::Event::is_fallback_id($$event{Id});
+  return $event->save({}, 1);
+}
 
 # fix_DefaultVideo only changes the object, so save it when the video was found
 sub saveDefaultVideo {

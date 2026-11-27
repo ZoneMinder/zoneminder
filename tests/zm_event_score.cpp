@@ -27,6 +27,17 @@ TEST_CASE("EventMaxScoreForDb") {
   REQUIRE(EventMaxScoreForDb(42) == 42);
 }
 
+TEST_CASE("EventFallbackId") {
+  // When the Events insert keeps failing the event is still recorded to disk
+  // under this id, for zmrecover.pl to add to the database later. It has to be
+  // nonzero, distinct per monitor at the same moment, and grow with time.
+  REQUIRE(EventFallbackId(1795517294000, 1) != 0);
+  REQUIRE(EventFallbackId(1795517294000, 1) != EventFallbackId(1795517294000, 2));
+  REQUIRE(EventFallbackId(1795517294001, 1) > EventFallbackId(1795517294000, 999));
+  // Far above any id the Events table has handed out by auto increment.
+  REQUIRE(EventFallbackId(1795517294000, 1) > 1000000000000000ULL);
+}
+
 TEST_CASE("ClampSectionLength") {
   // SectionLength=0 is accepted by the monitor form and used as a modulo.
   REQUIRE(ClampSectionLength(Seconds(0)) == Seconds(1));

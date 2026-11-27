@@ -33,6 +33,23 @@ class GroupsController extends AppController {
     }
   }
 
+  # The web UI hides a group none of whose monitors the user may view
+  # (ZM\Group::canView); the API does the same.
+  private function canViewGroup($groupId) {
+    global $user;
+    if (!$user) return true;
+    $group = new ZM\Group($groupId);
+    return $group->canView($user);
+  }
+
+  private function viewableGroups($groups) {
+    $viewable = array();
+    foreach ($groups as $group) {
+      if ($this->canViewGroup($group['Group']['Id'])) $viewable[] = $group;
+    }
+    return $viewable;
+  }
+
   # Drop monitors the user may not view from each group's Monitor list.
   private function filterGroupMonitors($groups) {
     $condition = $this->viewableMonitorCondition('Monitor.Id');
@@ -85,7 +102,7 @@ class GroupsController extends AppController {
       'group' => '`Group`.`Id`',
     );
 
-		$groups = $this->filterGroupMonitors($this->Group->find('all', $find_array));
+		$groups = $this->filterGroupMonitors($this->viewableGroups($this->Group->find('all', $find_array)));
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')
@@ -106,6 +123,9 @@ class GroupsController extends AppController {
 		}
 		$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
 		$group = $this->Group->find('first', $options);
+		if (!$this->canViewGroup($id)) {
+			throw new NotFoundException(__('Invalid group'));
+		}
 		$this->set(array(
 			'group' => $group,
 			'_serialize' => array('group')
@@ -134,6 +154,7 @@ class GroupsController extends AppController {
       }
 
       $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( is_array($monitorIds) ) $monitorIds = implode(',', array_filter($monitorIds, 'is_numeric'));
       if ( is_string($monitorIds) and $monitorIds !== '' and ! isset($this->request->data['Monitor']) ) {
         $this->request->data['Monitor'] = explode(',', $monitorIds);
         unset($this->request->data['MonitorIds']);
@@ -188,6 +209,12 @@ class GroupsController extends AppController {
       $this->pinRequestId($this->Group, $id);
       $group = new ZM\Group($id);
       $moved = array();
+      $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( (is_array($monitorIds) or (is_string($monitorIds) and $monitorIds !== '')) and !isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = is_array($monitorIds) ? $monitorIds : explode(',', $monitorIds);
+        unset($this->request->data['MonitorIds']);
+        if ( isset($this->request->data['Group']) and is_array($this->request->data['Group']) ) unset($this->request->data['Group']['MonitorIds']);
+      }
       $newIds = $this->requestAssociatedIds('Group', 'Monitor');
       if ($newIds !== null) {
         $oldIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($id));
@@ -275,7 +302,7 @@ class GroupsController extends AppController {
                                         )
                                       )
                                 );
-            $groups = $this->filterGroupMonitors($groups);
+            $groups = $this->filterGroupMonitors($this->viewableGroups($groups));
             $this->set(array(
                     'groups' => $groups,
                     '_serialize' => array('groups')

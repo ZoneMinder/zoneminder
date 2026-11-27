@@ -48,6 +48,10 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use URI::Escape qw(uri_escape uri_unescape);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # The settings API.
@@ -150,7 +154,7 @@ sub _ua {
   my $self = shift;
   if (!$self->{ua}) {
     require LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   }
   return $self->{ua};
@@ -188,6 +192,8 @@ sub _base_url {
     return undef;
   }
   my $port = $$self{port} || 80;
+  # URI returns an IPv6 host without the brackets a URL needs.
+  $host = '['.$host.']' if $host =~ /:/;
   $$self{FoscamBaseURL} = 'http://'.$host.($port == 80 ? '' : ':'.$port);
   return $$self{FoscamBaseURL};
 }

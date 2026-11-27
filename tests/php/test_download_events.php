@@ -142,27 +142,27 @@ SH
 
   // 1. an unviewable event is skipped, the viewable one is exported
   $r = run([1, 99]);
-  check('unviewable event is skipped without an error ('.var_export($r, true).')', $r === '?view=download&type=zip&file=Export.zip');
+  check('unviewable event is skipped without an error ('.var_export($r, true).')', $r === '?view=download&type=zip&file=u0_Export.zip');
   check('viewable event was merged', strpos((string)@file_get_contents("$root/concat.log"), "$root/ev1/1-video.mp4") !== false);
-  @unlink("$root/exports/download/Export.zip");
+  @unlink("$root/exports/download/u0_Export.zip");
 
   // 2. an mkv event is merged
   $r = run([2]);
-  check('mkv event gives a download ('.var_export($r, true).')', $r === '?view=download&type=zip&file=Export.zip');
+  check('mkv event gives a download ('.var_export($r, true).')', $r === '?view=download&type=zip&file=u0_Export.zip');
   check('mkv file is in the merge list', strpos((string)@file_get_contents("$root/concat.log"), "$root/ev2/2-video.mkv") !== false);
-  @unlink("$root/exports/download/Export.zip");
+  @unlink("$root/exports/download/u0_Export.zip");
 
   // 3. a left-over archive is not appended to
   @mkdir(DIR_EXPORTS_DOWNLOAD, 0700, true);
-  file_put_contents(DIR_EXPORTS_DOWNLOAD.'/Export.zip', "OLD\n");
+  file_put_contents(DIR_EXPORTS_DOWNLOAD.'/u0_Export.zip', "OLD\n");
   run([1]);
-  $zip = (string)@file_get_contents(DIR_EXPORTS_DOWNLOAD.'/Export.zip');
+  $zip = (string)@file_get_contents(DIR_EXPORTS_DOWNLOAD.'/u0_Export.zip');
   check('old archive content is gone from the new zip', strpos($zip, 'OLD') === false);
   check('new zip holds the merged video', strpos($zip, 'entry') !== false);
-  @unlink(DIR_EXPORTS_DOWNLOAD.'/Export.zip');
-  file_put_contents(DIR_EXPORTS_DOWNLOAD.'/Export.tar', "OLD\n");
+  @unlink(DIR_EXPORTS_DOWNLOAD.'/u0_Export.zip');
+  file_put_contents(DIR_EXPORTS_DOWNLOAD.'/u0_Export.tar', "OLD\n");
   run([1], 'tar');
-  $tar = (string)@file_get_contents(DIR_EXPORTS_DOWNLOAD.'/Export.tar');
+  $tar = (string)@file_get_contents(DIR_EXPORTS_DOWNLOAD.'/u0_Export.tar');
   check('old archive content is gone from the new tar', strpos($tar, 'OLD') === false);
 
   deletePath($root);

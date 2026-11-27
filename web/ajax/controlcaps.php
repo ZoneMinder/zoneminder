@@ -1,6 +1,7 @@
 <?php
 if ( !canEdit('Control') ) {
   ZM\Warning('Need Control permissions to edit control capabilities');
+  ajaxError('Insufficient permissions');
   return;
 }
 

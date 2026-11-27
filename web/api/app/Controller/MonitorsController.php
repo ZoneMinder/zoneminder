@@ -31,27 +31,39 @@ class MonitorsController extends AppController {
   public function index() {
     $this->Monitor->recursive = 0;
 
-    if ($this->request->params['named']) {
-      $this->FilterComponent = $this->Components->load('Filter');
-      // The columns of Monitors and of the tables find() joins at recursive 0
-      // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
-      // below. Anything else would reach MySQL as an unknown column and come
-      // back as a 500.
-      $fields = array('Monitor' => array_keys($this->Monitor->schema()));
-      if (!$this->canQueryCredentials($this->Monitor->find('list', array('fields' => array('Id', 'Id'), 'conditions' => array('Monitor.Deleted' => 0))))) {
-        $fields['Monitor'] = array_values(array_diff($fields['Monitor'], $this->monitorCredentialColumns()));
-      }
-      foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
-        $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
-      }
-      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], $fields, array('GroupId'));
-      $conditions = $this->FilterComponent->buildFilter($named);
-    } else {
-      $conditions = array();
+    $this->FilterComponent = $this->Components->load('Filter');
+    // The columns of Monitors and of the tables find() joins at recursive 0
+    // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
+    // below. Anything else would reach MySQL as an unknown column and come
+    // back as a 500.
+    $fields = array('Monitor' => array_keys($this->Monitor->schema()));
+    if (!$this->canQueryCredentials($this->Monitor->find('list', array('fields' => array('Id', 'Id'), 'conditions' => array('Monitor.Deleted' => 0))))) {
+      $fields['Monitor'] = array_values(array_diff($fields['Monitor'], $this->monitorCredentialColumns()));
     }
+    foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
+      $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
+    }
+    if ($this->request->params['named']) {
+      $filter_params = $this->request->params['named'];
+    } else {
+      // The query string filters like the equivalent named parameters, so
+      // /monitors.json?Enabled=1 is no longer ignored. The API client sends its
+      // credentials and transport keys alongside them; those are not fields.
+      $filter_params = $this->request->query;
+      foreach (array('token', 'auth', 'user', 'pass', 'username', 'password', 'stateful', 'url', 'ext') as $transport) {
+        unset($filter_params[$transport]);
+      }
+      // Keys that cannot be a field, such as a client's _=<time> cache buster,
+      // were always ignored here, so keep ignoring them.
+      foreach (array_keys($filter_params) as $key) {
+        if (!preg_match('/^[A-Za-z]/', (string)$key)) unset($filter_params[$key]);
+      }
+    }
+    $named = $this->FilterComponent->qualifyFields($filter_params, $fields, array('GroupId'));
+    $conditions = $this->FilterComponent->buildFilter($named);
 
     $filters_deleted = false;
-    foreach (array_keys($this->request->params['named']) as $attribute) {
+    foreach (array_keys($filter_params) as $attribute) {
       if (preg_match('/^(Monitor\.)?Deleted\b/i', trim($attribute))) $filters_deleted = true;
     }
     if (!$filters_deleted) {
@@ -234,6 +246,7 @@ class MonitorsController extends AppController {
       $id = $this->Monitor->id;
     } else {
       $message = 'Error';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if (!$this->Monitor->validates()) {
         $message = $this->Monitor->validationErrors;
@@ -305,6 +318,7 @@ class MonitorsController extends AppController {
           $saved->zmtrackControl('start');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
       }
     } else {

@@ -64,7 +64,7 @@ class FakeFilter {
 }
 class FakeComponents { public $f; function load($n) { return $this->f; } }
 class FakeRequest {
-  public $params = array('named' => array()); public $q = array();
+  public $params = array('named' => array()); public $q = array(); public $query = array();
   function query($k) { return isset($this->q[$k]) ? $this->q[$k] : null; }
 }
 class FakeMonitorModel {
@@ -93,6 +93,7 @@ function runIndex($named, $query, $editable) {
   $c->request = new FakeRequest();
   $c->request->params['named'] = $named;
   $c->request->q = $query;
+  $c->request->query = $query;
   try {
     $c->index();
   } catch (BadRequestException $e) {
@@ -108,6 +109,8 @@ list(, $c) = runIndex(array('Name' => 'x'), array(), array());
 $f = $c->Components->f->fields['Monitor'];
 check('viewer: Name stays filterable', in_array('Name', $f), true);
 foreach ($credential as $col) check("viewer: $col is not filterable", in_array($col, $f), false);
+list(, $c) = runIndex(array(), array('Pass' => 'x'), array());
+check('viewer: Pass is not filterable from the query string', in_array('Pass', $c->Components->f->fields['Monitor']), false);
 
 foreach ($credential as $col) {
   list($state) = runIndex(array(), array('sort' => $col), array());

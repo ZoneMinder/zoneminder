@@ -31,7 +31,7 @@ function check($name, $got, $expected) {
 }
 
 $emulated = zmDbConn();
-check('prepares are emulated', $emulated->getAttribute(PDO::ATTR_EMULATE_PREPARES), true);
+check('prepares are emulated', (bool)$emulated->getAttribute(PDO::ATTR_EMULATE_PREPARES), true);
 
 // A second connection with the same settings, switched back to server-side prepares.
 dbDisconnect();

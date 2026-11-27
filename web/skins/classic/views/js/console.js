@@ -271,7 +271,29 @@ function processRows(rows) {
     now -= tz_difference;
 
     if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
-      functionHtml = 'Offline<br/>';
+      var last_seen = '';
+      if (row.UpdatedOn) {
+        var updated = new Date(row.UpdatedOn);
+        var updated_seconds = updated.getTime() / 1000;
+        if (!isNaN(updated_seconds)) {
+          var age_seconds = now - Math.floor(updated_seconds);
+          var age_text;
+          if (age_seconds < 3600) {
+            age_text = Math.max(1, Math.floor(age_seconds / 60)) + ' min ago';
+          } else if (age_seconds < 86400) {
+            age_text = Math.floor(age_seconds / 3600) + ' h ago';
+          } else {
+            age_text = Math.floor(age_seconds / 86400) + ' d ago';
+          }
+          // Build the age with DOM text/attr so any value is escaped for us.
+          last_seen = '<br/>' + $j('<span>')
+              .addClass('small text-nowrap text-muted')
+              .attr('title', updated.toLocaleString())
+              .text(age_text)
+              .prop('outerHTML');
+        }
+      }
+      functionHtml = 'Offline' + last_seen + '<br/>';
     } else {
       functionHtml = '';
       if (row.Analysing && row.Analysing != 'None') {
@@ -593,6 +615,9 @@ function sortMonitors(button) {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
+  // The server assigns ascending Sequence in posted order, so reverse when sorted desc.
+  var options = table.bootstrapTable('getOptions');
+  if (options.sortName == 'Sequence' && options.sortOrder == 'desc') monitor_ids.reverse();
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
   $j.post(thisUrl + '?request=console', data)

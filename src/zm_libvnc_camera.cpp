@@ -69,21 +69,19 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType) 
 }
 
 static rfbBool resize(rfbClient* client) {
-  if (client->frameBuffer) {
-    Debug(1, "Freeing old frame buffer");
-    av_free(client->frameBuffer);
-  }
-
-  size_t bufferSize = static_cast<size_t>(client->width) * client->height * 4;
+  VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(client, &TAG_0);
+  uint8_t *unused = nullptr;
+  uint8_t *&published = data ? data->buffer : unused;
   // libVNC doesn't do alignment or padding in each line
-  //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
-  client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
-  if (!client->frameBuffer) {
-    Error("Failed to allocate %zu byte frame buffer for %dx%d", bufferSize, client->width, client->height);
+  bool ok = zm_libvnc_replace_framebuffer(
+      client->frameBuffer, published, client->width, client->height,
+      [](size_t n) { return (uint8_t *)av_malloc(n); },
+      [](uint8_t *p) { av_free(p); });
+  if (!ok) {
+    Error("Failed to allocate frame buffer for %dx%d", client->width, client->height);
     return FALSE;
   }
-  Debug(1, "Allocing new frame buffer %dx%d = %zu", client->width, client->height, bufferSize);
-
+  Debug(1, "Allocing new frame buffer %dx%d", client->width, client->height);
   return TRUE;
 }
 
@@ -235,12 +233,12 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
   Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
-        static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
+        static_cast<size_t>(mRfb->width) * mRfb->height * 4,
         directbuffer,
         static_cast<size_t>(zm_packet->image->Size()),
         mImgPixFmt,
-        mRfb->si.framebufferWidth,
-        mRfb->si.framebufferHeight,
+        mRfb->width,
+        mRfb->height,
         width,
         height);
 
@@ -248,13 +246,13 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // Image buffer (WriteBuffer), which is always align-32.
   int rc = scale.Convert(
              mVncData.buffer,
-             static_cast<size_t>(mRfb->si.framebufferWidth) * mRfb->si.framebufferHeight * 4,
+             static_cast<size_t>(mRfb->width) * mRfb->height * 4,
              directbuffer,
              zm_packet->image->Size(),
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
-             mRfb->si.framebufferWidth,
-             mRfb->si.framebufferHeight,
+             mRfb->width,
+             mRfb->height,
              width,
              height,
              1, 32);

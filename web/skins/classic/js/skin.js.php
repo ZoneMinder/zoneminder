@@ -38,6 +38,35 @@ const exportFailedString = '<?php echo translate('ExportFailed') ?>';
 const exportSucceededString = '<?php echo translate('ExportSucceeded') ?>';
 const cancelString = '<?php echo translate('Cancel') ?>';
 const playerDisabledInMonitorSettings = '<?php echo translate('PlayerDisabledInMonitorSettings') ?>';
+
+const deleteString = "<?php echo validJsStr(translate('Delete')) ?>";
+const archivedString = "<?php echo validJsStr(translate('Archived')) ?>";
+const unarchivedString = "<?php echo validJsStr(translate('Unarchived')) ?>";
+const emailedString = "<?php echo validJsStr(translate('Emailed')) ?>";
+const yesString = "<?php echo validJsStr(translate('Yes')) ?>";
+const noString = "<?php echo validJsStr(translate('No')) ?>";
+const confirmDeleteEventsString = "<?php echo validJsStr(translate('ConfirmDeleteEvents')) ?>";
+
+const translate = {};
+function zmPrimeTranslations(t) { Object.assign(translate, t); }
+zmPrimeTranslations({
+  "seconds": "<?php echo validJsStr(translate('seconds')) ?>",
+  "Fullscreen": "<?php echo validJsStr(translate('Fullscreen')) ?>",
+  "Exit Fullscreen": "<?php echo validJsStr(translate('Exit Fullscreen')) ?>",
+  "Showing Analysis": "<?php echo validJsStr(translate('Showing Analysis')) ?>",
+  "Show Analysis": "<?php echo validJsStr(translate('Show Analysis')) ?>",
+  "Not Showing Analysis": "<?php echo validJsStr(translate('Not Showing Analysis')) ?>",
+  "Live": "<?php echo validJsStr(translate('Live')) ?>",
+  "Edit": "<?php echo validJsStr(translate('Edit')) ?>",
+  "All Events": "<?php echo validJsStr(translate('All Events')) ?>",
+  "Info": "<?php echo validJsStr(translate('Info')) ?>",
+  "Archived": "<?php echo validJsStr(translate('Archived')) ?>",
+  "Emailed": "<?php echo validJsStr(translate('Emailed')) ?>",
+  "EnableAlarms": "<?php echo validJsStr(translate('EnableAlarms')) ?>",
+  "DisableAlarms": "<?php echo validJsStr(translate('DisableAlarms')) ?>",
+  "ForceAlarm": "<?php echo validJsStr(translate('ForceAlarm')) ?>",
+  "CancelForcedAlarm": "<?php echo validJsStr(translate('CancelForcedAlarm')) ?>",
+});
 <?php
 /* We can't trust PHP_SELF on a path like /index.php/"%3E%3Cimg src=x onerror=prompt('1');%3E which
    will still load index.php but will include the arbitrary payload after `.php/`. To mitigate this,

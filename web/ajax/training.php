@@ -636,15 +636,21 @@ switch ($action) {
     $labelLines = [];
     foreach ($annotations as $ann) {
       $classId = array_search($ann['label'], $labels);
-      $x1 = floatval($ann['x1']);
-      $y1 = floatval($ann['y1']);
-      $x2 = floatval($ann['x2']);
-      $y2 = floatval($ann['y2']);
+      // Order the corners and clip them to the image first, so a detector box that
+      // overhangs an edge keeps its visible part instead of a shifted centre
+      $ax = floatval($ann['x1']);
+      $ay = floatval($ann['y1']);
+      $bx = floatval($ann['x2']);
+      $by = floatval($ann['y2']);
+      $x1 = max(0.0, min($imgWidth, min($ax, $bx)));
+      $x2 = max(0.0, min($imgWidth, max($ax, $bx)));
+      $y1 = max(0.0, min($imgHeight, min($ay, $by)));
+      $y2 = max(0.0, min($imgHeight, max($ay, $by)));
       // Convert pixel coords [x1, y1, x2, y2] to YOLO normalized [cx, cy, w, h]
-      $cx = max(0.0, min(1.0, (($x1 + $x2) / 2) / $imgWidth));
-      $cy = max(0.0, min(1.0, (($y1 + $y2) / 2) / $imgHeight));
-      $w  = max(0.0, min(1.0, ($x2 - $x1) / $imgWidth));
-      $h  = max(0.0, min(1.0, ($y2 - $y1) / $imgHeight));
+      $cx = (($x1 + $x2) / 2) / $imgWidth;
+      $cy = (($y1 + $y2) / 2) / $imgHeight;
+      $w  = ($x2 - $x1) / $imgWidth;
+      $h  = ($y2 - $y1) / $imgHeight;
       $labelLines[] = sprintf('%d %.6f %.6f %.6f %.6f', $classId, $cx, $cy, $w, $h);
     }
     file_put_contents($paths['lbl'], empty($labelLines) ? '' : implode("\n", $labelLines)."\n", LOCK_EX);

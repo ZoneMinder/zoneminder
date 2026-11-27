@@ -280,6 +280,7 @@ function keyHandler(modalVisible) {
   const calls = [];
   globals.prevEvent = () => calls.push('prev');
   globals.nextEvent = () => calls.push('next');
+  globals.isLightboxOpen = () => false;
   // load() ran event.js before the handler could be wired to the spies above;
   // $j(document).on was recorded in log.on.
   return {handler: log.on.find((o) => o.ev === 'keydown').fn, calls, sel};

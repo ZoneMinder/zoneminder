@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 // 
 
+require_once(__DIR__.'/../../../includes/download_functions.php');
+
 function exportHeader($title) {
 ?>
 <!DOCTYPE html>
@@ -868,6 +870,8 @@ function exportFileList(
 
   if ($exportMisc) {
     foreach ($files as $file) {
+      // Pages left behind by an earlier export link to files that are not in this one
+      if (preg_match('/^zmEvent(?:Detail|Frames|Images)\.html$/', $file)) continue;
       $exportFileList[$file] = $file;
     }
     $files = array();
@@ -909,6 +913,8 @@ function exportEvents(
   if (empty($export_root) or $export_root === '.' or $export_root === '..') $export_root = 'zmExport';
   $connkey = preg_replace('/[^\w\-.]/', '', $connkey);
   if ($connkey === '.' or $connkey === '..') $connkey = '';
+  // Name the archive after its owner so archive.php serves it only to that user.
+  $export_root = exportOwnerPrefix().$export_root;
 
   if (!($exportFormat == 'tar' or $exportFormat == 'zip')) {
     ZM\Error("None or invalid exportFormat specified $exportFormat.");

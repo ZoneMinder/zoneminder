@@ -38,7 +38,7 @@ function probeV4L() {
 
   $cameras = array();
   $monitors = array();
-  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' ORDER BY Device, Channel" ) as $monitor )
+  foreach ( dbFetchAll("SELECT Id, Name, Device, Channel FROM Monitors WHERE Type = 'Local' AND Deleted = 0 ORDER BY Device, Channel" ) as $monitor )
     $monitors[$monitor['Device'].':'.$monitor['Channel']] = $monitor;
   $devices = array();
   $devices_to_probe = array();
@@ -347,7 +347,7 @@ function probeNetwork() {
   $cameras = array();
 
   $monitors = array();
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' ORDER BY `Host`") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Host` FROM `Monitors` WHERE `Type` = 'Remote' AND `Deleted` = 0 ORDER BY `Host`") as $monitor ) {
     if ( preg_match('/^(.+)@(.+)$/', $monitor['Host'], $matches) ) {
       //echo "1: ".$matches[2]." = ".gethostbyname($matches[2])."<br/>";
       $monitors[gethostbyname($matches[2])] = $monitor;
@@ -356,7 +356,7 @@ function probeNetwork() {
       $monitors[gethostbyname($monitor['Host'])] = $monitor;
     }
   }
-  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' ORDER BY `Path`") as $monitor ) {
+  foreach ( dbFetchAll("SELECT `Id`, `Name`, `Path` FROM `Monitors` WHERE `Type` = 'Ffmpeg' AND `Deleted` = 0 ORDER BY `Path`") as $monitor ) {
     $url_parts = parse_url($monitor['Path']);
     if (!empty($url_parts['host'])) {
       ZM\Debug("Ffmpeg monitor {$url_parts['host']} = {$monitor['Id']} {$monitor['Name']}");

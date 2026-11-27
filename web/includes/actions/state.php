@@ -52,6 +52,8 @@ if ($action == 'state') {
 } else if ($action == 'delete') {
   if (isset($_REQUEST['runState']) and is_string($_REQUEST['runState'])) {
     dbQuery('DELETE FROM `States` WHERE `Name`=?', array($_REQUEST['runState']));
+    // Deleting the active state would leave none active, so events would be recorded with no StateId. Fall back to default like zmpkg.pl does.
+    dbQuery('UPDATE `States` SET `IsActive`=1 WHERE `Name`=\'default\' AND NOT EXISTS (SELECT 1 FROM (SELECT `Id` FROM `States` WHERE `IsActive`=1) AS `Active`)');
     ZM\AuditAction('delete', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 }

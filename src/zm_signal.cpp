@@ -162,7 +162,8 @@ void crash_syslog(const char *str) {
          reinterpret_cast<const struct sockaddr *>(&target->addr), sizeof(target->addr));
 }
 
-void crash_syslog(const CrashLine &line) {
+// Only the backtrace() fallback in zm_die_handler calls this; libunwind builds don't.
+[[maybe_unused]] void crash_syslog(const CrashLine &line) {
   crash_syslog(line.c_str());
 }
 

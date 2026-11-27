@@ -36,6 +36,11 @@ class State extends AppModel {
 				'rule' => array('isUnique'),
 				'message' => 'A state with this name already exists',
 			),
+			// zmpkg.pl treats these names as commands, so such a state could never be applied
+			'notReserved' => array(
+				'rule' => array('custom', '/^(?!(?:start|stop|restart|status|logrot|version)$)/'),
+				'message' => 'A run state cannot be named start, stop, restart, status, logrot or version',
+			),
 		),
 		// The column has no default, so a state added without one is refused by MySQL.
 		'Definition' => array(
@@ -47,5 +52,13 @@ class State extends AppModel {
 			),
 		),
 	);
+
+	// Deleting the active state would leave none active, so events would be recorded with no
+	// StateId. Fall back to default, as the console and zmpkg.pl do.
+	public function afterDelete() {
+		if (!$this->find('count', array('conditions' => array('State.IsActive' => 1), 'recursive' => -1))) {
+			$this->updateAll(array('State.IsActive' => 1), array('State.Name' => 'default'));
+		}
+	}
 
 }

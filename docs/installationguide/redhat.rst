@@ -60,6 +60,13 @@ RHEL 8 users must also enable the powertools repo:
     sudo dnf install dnf-plugins-core
     sudo dnf config-manager --set-enabled powertools
 
+ZoneMinder requires PHP 8.0 or newer. RHEL 8 defaults to PHP 7.2, so RHEL 8 users must also switch to a PHP 8 module stream from the distribution's own AppStream repo:
+
+::
+
+    sudo dnf module reset php
+    sudo dnf module enable php:8.2
+
 RHEL 9 users must also enable the crb repo:
 
 ::

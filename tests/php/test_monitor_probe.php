@@ -63,10 +63,12 @@ class Monitor {
   function User() { return null; }
   function Pass() { return null; }
   function Name() { return "mon"; }
+  function Id() { return $this->f["Id"] ?? 1; }
 }
 class Control { static function find_one($f) { return null; } }
 ');
 function translate($s) { return $s; }
+function canEdit($area, $mid = null) { return true; }
 
 $GLOBALS['wget_reply'] = [];
 function wget($method, $url, $username, $password) {
@@ -102,7 +104,7 @@ define('ZM_PATH_DATA', $dir);
 define('ZM_PATH_OUI', false);
 
 load($src, ['probe_userinfo', 'probePanasonic', 'probeAzureWaveTechnologyInc', 'probeWansview',
-  'probeHikvision', 'probeAxis', 'probeAmcrest', 'probeAvigilon', 'probeNetwork']);
+  'probeHikvision', 'probeAxis', 'probeAmcrest', 'probeAvigilon', 'probeKnownMonitors', 'probeNetwork']);
 
 function run_probe($interface = null) {
   $_REQUEST = [];

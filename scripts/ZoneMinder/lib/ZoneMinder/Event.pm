@@ -40,6 +40,7 @@ require File::Find;
 require File::Path;
 require File::Copy;
 require File::Basename;
+require File::Glob;
 require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
@@ -190,21 +191,26 @@ sub RelativePath {
         $$event{RelativePath} = '';
       }
     } elsif ( $$event{Scheme} eq 'Medium' ) {
-      if ( $event->Time() ) {
+      if ( $event->Time() and $$event{Id} ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
             POSIX::strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
-        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        Error('Event has no Id or no value for Time(), unable to determine path');
         $$event{RelativePath} = '';
       }
     } else { # Shallow
-      $$event{RelativePath} = join('/',
-          $event->{MonitorId},
-          $event->{Id},
-          );
+      if ( $$event{Id} ) {
+        $$event{RelativePath} = join('/',
+            $event->{MonitorId},
+            $event->{Id},
+            );
+      } else {
+        Error('Event has no Id, unable to determine path');
+        $$event{RelativePath} = '';
+      }
     } # end if Scheme
   } # end if ! Path
 
@@ -278,7 +284,9 @@ sub GenerateVideo {
   chdir($event_path);
   # Name is user editable; keep the output file inside the event directory.
   ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
-  $video_name =~ s/^\./_/;
+  $video_name =~ s/^[-.]/_/;
+  # An empty name would make the output file start with '-', which ffmpeg reads as an option.
+  $video_name = 'Event' if $video_name eq '';
 
   my @file_parts;
   if ( $rate ) {
@@ -513,8 +521,13 @@ sub delete {
       }
 
       if (!$err) {
-        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
-        last;
+        last if $in_transaction;
+        # A failed commit rolls the deletes back, so the rows are still there; keep the files.
+        if ($ZoneMinder::Database::dbh->commit()) {
+          last;
+        }
+        $err = $ZoneMinder::Database::dbh->err() // 1;
+        $errstr = $ZoneMinder::Database::dbh->errstr() // 'commit failed';
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
@@ -756,6 +769,12 @@ sub CopyTo {
     return 'No permission to copy event.';
   }
 
+  # An event with no EndDateTime is still being recorded: zmc keeps writing
+  # frames into the source directory, which MoveTo then deletes.
+  if ( !$$self{EndDateTime} ) {
+    return "Event $$self{Id} has no EndDateTime, it is still being recorded.";
+  }
+
   my $OldStorage = $self->Storage(undef);
   my ( $OldPath ) = ( $self->Path() =~ /^(.*)$/ ); # De-taint
   if ( ! -e $OldPath ) {
@@ -803,7 +822,9 @@ sub CopyTo {
     my $bucket = $NewStorage->bucket();
     if ($s3 and $bucket) {
       my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
-      my @files = glob("$OldPath/*");
+      # Not glob(): it splits its pattern on whitespace, so a storage path with a
+      # space in it matches none of the event's files.
+      my @files = File::Glob::bsd_glob("$OldPath/*");
       Debug("Files to move @files");
       eval {
         foreach my $file (@files) {
@@ -957,7 +978,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -971,8 +992,9 @@ sub recover_timestamps {
   if ( @capture_jpgs ) {
     $$Event{Frames} = scalar @capture_jpgs;
     $$Event{SaveJPEGs} |= 1;
-    # can get start and end times from stat'ing first and last jpg
-    @capture_jpgs = sort { $a cmp $b } @capture_jpgs;
+    # can get start and end times from stat'ing first and last jpg,
+    # in frame order: numbers past the zero padding do not sort as text
+    @capture_jpgs = sort { ($a =~ /^(\d+)/)[0] <=> ($b =~ /^(\d+)/)[0] } @capture_jpgs;
     my $first_file = "$path/$capture_jpgs[0]";
     ( $first_file ) = $first_file =~ /^(.*)$/;
     my $first_timestamp = (stat($first_file))[9];
@@ -1090,7 +1112,7 @@ sub fix_DefaultVideo {
     Debug('Have ' . @contents . ' files in '.$path);
     closedir(DIR);
 
-    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
     if ( @mp4_files ) {
       $$event{DefaultVideo} = $mp4_files[0];
     }

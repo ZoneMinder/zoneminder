@@ -40,12 +40,25 @@ if ( $action == 'delete' ) {
   if ( isset($_REQUEST['object']) ) {
     if ( $_REQUEST['object'] == 'server' ) {
       if ( !empty($_REQUEST['markIds']) ) {
+        // Monitors, storage areas and cron jobs hold a ServerId with no foreign key: refuse rather than orphan them.
+        foreach ( $_REQUEST['markIds'] as $key => $Id ) {
+          $Id = validCardinal($Id);
+          $_REQUEST['markIds'][$key] = $Id;
+          $summary = ZM\Server::InUseSummary($Id);
+          if ( $summary ) {
+            $error_message .= 'Server '.validHtmlStr($Id).' is still used by '.$summary.' and cannot be deleted.<br/>';
+            unset($_REQUEST['markIds'][$key]);
+          }
+        }
         foreach ( $_REQUEST['markIds'] as $Id ) {
-          dbQuery('DELETE FROM Servers WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM Servers WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting server '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'server', $Id, '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'storage' ) {
       if ( !empty($_REQUEST['markIds']) ) {
         foreach ( $_REQUEST['markIds'] as $Id ) {
@@ -55,33 +68,47 @@ if ( $action == 'delete' ) {
             $error_message .= 'Storage area '.validHtmlStr($Storage->Name()).' is in use by events or monitors and cannot be deleted.<br/>';
             continue;
           }
-          dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id()));
+          if ( dbQuery('DELETE FROM Storage WHERE Id=?', array($Storage->Id())) === null ) {
+            $error_message .= 'Error deleting storage area '.validHtmlStr($Storage->Name()).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'storage', $Storage->Id(), '');
         }
       }
-      $refreshParent = true;
+      if ( !$error_message ) $refreshParent = true;
     } else if ( $_REQUEST['object'] == 'role' ) {
       if ( !empty($_REQUEST['markRids']) ) {
         foreach ( $_REQUEST['markRids'] as $Id ) {
-          dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id));
+          if ( dbQuery('DELETE FROM User_Roles WHERE Id=?', array($Id)) === null ) {
+            $error_message .= 'Error deleting role '.validHtmlStr($Id).': '.validHtmlStr(dbLastError()).'<br/>';
+            continue;
+          }
           ZM\AuditAction('delete', 'role', $Id, '');
         }
       }
-      $redirect = '?view=options&tab=roles';
+      if ( !$error_message ) $redirect = '?view=options&tab=roles';
     } # end if isset($_REQUEST['object'] )
   } else if ( isset($_REQUEST['markUids']) ) {
     // deletes users
     foreach ($_REQUEST['markUids'] as $markUid) {
       # User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
-      dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid));
-      dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid));
+      if (dbQuery('DELETE FROM User_Preferences WHERE UserId = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
+      if (dbQuery('DELETE FROM Users WHERE Id = ?', array($markUid)) === null) {
+        $error_message .= 'Error deleting user '.validHtmlStr($markUid).': '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'user', $markUid, '');
     }
-    if (in_array($user->Id(), $_REQUEST['markUids'])) {
-      userLogout();
-      $redirect = '?view=login';
-    } else {
-      $redirect = '?view=options&tab=users';
+    if ($error_message == '') {
+      if (in_array($user->Id(), $_REQUEST['markUids'])) {
+        userLogout();
+        $redirect = '?view=login';
+      } else {
+        $redirect = '?view=options&tab=users';
+      }
     }
   }
 } else if ( $action == 'options' && isset($_REQUEST['tab']) ) {
@@ -101,6 +128,14 @@ if ( $action == 'delete' ) {
     $effective[$row['Name']] = isset($fileConfig[$row['Name']])
       ? configFileValue($fileConfig[$row['Name']]['Value'], $row['Type']) : $row['Value'];
   }
+  // Options whose value is a number of seconds that must be at least 1. The
+  // type check only proves they are numeric: ZM_WATCH_CHECK_INTERVAL=0 makes
+  // zmwatch loop on sleep(0) and query the database nonstop, and
+  // ZM_WATCH_MAX_DELAY=0 makes it restart every capture daemon on every pass.
+  $optionMinimums = array(
+    'ZM_WATCH_CHECK_INTERVAL' => 1,
+    'ZM_WATCH_MAX_DELAY' => 1,
+  );
   $changed = false;
   while ($config = dbFetchNext($result)) {
     unset($newValue);
@@ -112,6 +147,9 @@ if ( $action == 'delete' ) {
     // Readonly rows are maintained by the daemons (version detection, telemetry),
     // so a posted value for one is not saved, and not counted as a change.
     if (!empty($config['Readonly'])) continue;
+    // System rows (paths the daemons execute, such as ZM_PATH_FFMPEG) are only changed in
+    // the config files, as the Options page already shows them.
+    if (!empty($config['System'])) continue;
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
       if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;
@@ -121,7 +159,8 @@ if ( $action == 'delete' ) {
     }
 
     if (isset($newValue)) $effective[$config['Name']] = $newValue;
-    if (isset($newValue) && ($newValue != $config['Value'])) {
+    # Compare as strings: loosely, "1e3" equals "1000" and "007" equals "7", so such an edit was dropped.
+    if (isset($newValue) && ((string)$newValue !== (string)$config['Value'])) {
       # Handle special cases first
       if ($config['Name'] == 'ZM_LANG_DEFAULT') {
         # Verify that the language file exists in the lang directory.
@@ -131,8 +170,19 @@ if ( $action == 'delete' ) {
           continue;
         }
       }
+      if (($config['Name'] == 'ZM_AUTH_HASH_SECRET') and !authHashSecretValid($newValue)) {
+        $error_message .= 'Error setting ZM_AUTH_HASH_SECRET. New value not saved because it must be at least '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters long and not the shipped default.<br/>';
+        ZM\Error('Not saving ZM_AUTH_HASH_SECRET: shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or the shipped default');
+        continue;
+      }
       if (!configValueIsValid($newValue, $config['Type'], (string)$config['DefaultValue'])) {
         $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is not a valid ' . $config['Type'] . '.<br/>';
+        continue;
+      }
+      if (isset($optionMinimums[$config['Name']]) and (float)$newValue < $optionMinimums[$config['Name']]) {
+        $minimum = $optionMinimums[$config['Name']];
+        $error_message .= 'Error setting ' . htmlspecialchars($config['Name']) . ': ' . htmlspecialchars($newValue) . ' is below the minimum of ' . $minimum . '.<br/>';
+        ZM\Error('Not saving '.$config['Name'].': '.$newValue.' is below the minimum of '.$minimum);
         continue;
       }
       if (dbQuery('UPDATE Config SET Value=? WHERE Name=?', array($newValue, $config['Name'])) === null) {
@@ -184,39 +234,10 @@ if ( $action == 'delete' ) {
   if (isset($_REQUEST['object'])) {
     if ($_REQUEST['object'] == 'dnsmasq') {
       $config = isset($_REQUEST['config']) ? $_REQUEST['config'] : [];
-      $conf = '';
-      foreach ($config as $name=>$value) {
-        if ($name == 'dhcp-host') {
-          foreach ($value as $mac=>$ip) {
-            $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
-          }
-        } else if ($name == 'dhcp-option') {
-          foreach ($value as $option_name=>$option_value) {
-            $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
-          }
-        } else if (
-            ($name == 'bind-interfaces')
-            or
-            ($name == 'dhcp-authoritative')
-            ) {
-          if ($value=='yes') {
-            $conf .= $name.PHP_EOL;
-          }
-        } else if ($name == 'dhcp-range') {
-          $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
-        } else {
-          if (is_array($value)) {
-            foreach ($value as $v) {
-            }
-          } else if ($value === '') {
-            # an option without a value, e.g. no-resolv
-            $conf .= $name.PHP_EOL;
-          } else {
-            $conf .= $name.'='.$value.PHP_EOL;
-          }
-        }
-      }
-      if (false===file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf)) {
+      $conf = dnsmasqConfText($config);
+      if ($conf === false) {
+        ZM\Warning('Refusing to write the dnsmasq configuration: it names a directive that is not allowed or has a line break in it');
+      } else if (false===file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf)) {
         ZM\Warning("Failed to writh to ".ZM_PATH_DNSMASQ_CONF);
       } else {
         exec('sudo -n /bin/systemctl restart dnsmasq.service');
@@ -257,21 +278,21 @@ if ( $action == 'delete' ) {
       // since the page loaded) must keep its settings, not be disabled.
       if (!isset($_REQUEST['items'][$id])) continue;
       $enabled = isset($_REQUEST['items'][$id]['Enabled']) ? 1 : 0;
-      $label = isset($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
+      $label = isset($_REQUEST['items'][$id]['Label']) && is_string($_REQUEST['items'][$id]['Label']) ? trim($_REQUEST['items'][$id]['Label']) : null;
       $sortOrder = isset($_REQUEST['items'][$id]['SortOrder']) ? intval($_REQUEST['items'][$id]['SortOrder']) : $item->SortOrder();
       if ($label === '') $label = null;
 
-      $iconType = isset($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
+      $iconType = isset($_REQUEST['items'][$id]['IconType']) && is_string($_REQUEST['items'][$id]['IconType']) ? $_REQUEST['items'][$id]['IconType'] : $item->IconType();
       if (!in_array($iconType, ['material', 'fontawesome', 'image', 'none'])) $iconType = 'material';
-      $icon = isset($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
+      $icon = isset($_REQUEST['items'][$id]['Icon']) && is_string($_REQUEST['items'][$id]['Icon']) ? trim($_REQUEST['items'][$id]['Icon']) : $item->Icon();
       if ($icon === '') $icon = null;
 
-      $link = isset($_REQUEST['items'][$id]['Link']) ? trim($_REQUEST['items'][$id]['Link']) : $item->Link();
+      $link = isset($_REQUEST['items'][$id]['Link']) && is_string($_REQUEST['items'][$id]['Link']) ? trim($_REQUEST['items'][$id]['Link']) : $item->Link();
       if ($link === '') $link = null;
 
       // The MenuKey is only editable for custom (non-built-in) entries, so it
       // is only present in the request for those rows; keep it otherwise.
-      $menuKey = isset($_REQUEST['items'][$id]['MenuKey']) ? trim($_REQUEST['items'][$id]['MenuKey']) : $item->MenuKey();
+      $menuKey = isset($_REQUEST['items'][$id]['MenuKey']) && is_string($_REQUEST['items'][$id]['MenuKey']) ? trim($_REQUEST['items'][$id]['MenuKey']) : $item->MenuKey();
       if ($menuKey === '') $menuKey = $item->MenuKey();
 
       if (!$item->save([
@@ -343,8 +364,9 @@ if ( $action == 'delete' ) {
   if (!canEdit('System')) {
     ZM\Warning('Need System permission to reset menu items');
   } else {
-    dbQuery('DELETE FROM Menu_Items');
-    dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
+    if ( dbQuery('DELETE FROM Menu_Items') === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    } else if ( dbQuery("INSERT INTO `Menu_Items` (`MenuKey`, `Enabled`, `SortOrder`) VALUES
       ('Console', 1, 10),
       ('Watch', 1, 15),
       ('Montage', 1, 20),
@@ -359,8 +381,12 @@ if ( $action == 'delete' ) {
       ('Snapshots', 1, 110),
       ('Reports', 1, 120),
       ('ReportEventAudit', 1, 130),
-      ('Map', 1, 140)");
+      ('Map', 1, 140)") === null ) {
+      $error_message .= 'Failed to reset menu entries: '.htmlspecialchars(dbLastError()).'<br/>';
+    }
   }
-  $redirect = '?view=options&tab=menu';
+  if (!$error_message) {
+    $redirect = '?view=options&tab=menu';
+  }
 } // end if object vs action
 ?>

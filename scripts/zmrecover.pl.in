@@ -286,9 +286,9 @@ Debug("@Monitors");
             Debug('Have ' . @contents . " files in $day_dir/$event_dir");
             closedir(DIR);
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?mp4$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -410,6 +410,7 @@ Debug("@Monitors");
             $event->Height( $Monitor->Height() );
             $event->Orientation( $Monitor->Orientation() );
             $event->StorageId( $Storage->Id() );
+            $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
               my $error = $event->save({}, 1);
@@ -469,6 +470,7 @@ Debug("@Monitors");
           $event->Height( $Monitor->Height() );
           $event->Orientation( $Monitor->Orientation() );
           $event->StorageId( $Storage->Id() );
+          $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
             my $error = $event->save({}, 1);
@@ -552,10 +554,12 @@ yet.
 
 =head1 OPTIONS
 
+ -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes (the default)
      --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
+     --server_id            - Only recover the storage areas of the given server
  -s, --storage_id           - Specify a storage area to recover instead of all
  -v, --version              - Print the installed version of ZoneMinder
 

@@ -132,7 +132,11 @@ $monitors = array();
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT
   min(E.StartDateTime) AS MinTime,
-  max(IFNULL(E.EndDateTime, NOW())) AS MaxTime
+  max(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime
+  END) AS MaxTime
 FROM Events AS E
 INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
@@ -177,6 +181,13 @@ if ( isset($range) and validInt($range) ) {
     $maxTimeT = $midTimeT+$halfRange;
     if ( !($range%1) ) {
       $maxTimeT--;
+    }
+    // The window cannot extend into the future: slide it back so a pan or zoom keeps its length.
+    if ( $maxTimeT > time() ) {
+      $shiftT = $maxTimeT - time();
+      $minTimeT -= $shiftT;
+      $maxTimeT -= $shiftT;
+      $midTimeT -= $shiftT;
     }
     $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
     $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);
@@ -275,10 +286,19 @@ $majXScale = getDateScale($scales, $range, $chart['grid']['x']['major']['min'], 
 
 // Adjust the range etc for scale
 // Align on local wall clock boundaries: epoch seconds are only a multiple of a day or an hour in UTC.
-$scaleStep = $majXScale['factor']*$majXScale['align'];
-$minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+if ( $majXScale['name'] == 'month' ) {
+  // Months and years are not a fixed number of seconds, so round to calendar boundaries.
+  $minTimeT = mktime(0, 0, 0, date('n', $minTimeT), 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, date('n', $maxTimeT)+1, 0, date('Y', $maxTimeT));
+} else if ( $majXScale['name'] == 'year' ) {
+  $minTimeT = mktime(0, 0, 0, 1, 1, date('Y', $minTimeT));
+  $maxTimeT = mktime(23, 59, 59, 12, 31, date('Y', $maxTimeT));
+} else {
+  $scaleStep = $majXScale['factor']*$majXScale['align'];
+  $minTimeT -= ($minTimeT+date('Z', $minTimeT))%$scaleStep;
+  $maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
+}
 $minTime = date(STRF_FMT_DATETIME_DB, $minTimeT);
-$maxTimeT += ($scaleStep-($maxTimeT+date('Z', $maxTimeT))%$scaleStep)-1;
 if ( $maxTimeT > time() )
   $maxTimeT = time();
 $maxTime = date(STRF_FMT_DATETIME_DB, $maxTimeT);
@@ -455,6 +475,7 @@ foreach (array_keys($monEventSlots) as $monitorId) {
           if ( $currSlot['width'] < $maxEventWidth ) {
             // Merge slots for the same long event
             $currSlot['width']++;
+            if (isset($currSlot['units'])) $currSlot['units'][] = array($currEventSlots[$i]['event']['Id'], getSlotFrame($currEventSlots[$i]));
             unset( $currEventSlots[$i] );
             continue;
           } else if ( $currSlot['offset'] < $currEventSlots[$i]['offset'] ) {
@@ -462,7 +483,12 @@ foreach (array_keys($monEventSlots) as $monitorId) {
             $currEventSlots[$i]['frame'] = array( 'FrameId'=>$currEventSlots[$i]['offset'] );
           }
         } else if ( $currSlot['width'] < $minEventWidth ) {
-          // Merge multiple small events
+          // Merge multiple small events. Remember which event owns each merged
+          // slot so a click or hover can pick the one under the cursor.
+          if (!isset($currSlot['units'])) {
+            $currSlot['units'] = array_fill(0, $currSlot['width'], array($currSlot['event']['Id'], getSlotFrame($currSlot)));
+          }
+          $currSlot['units'][] = array($currEventSlots[$i]['event']['Id'], getSlotFrame($currEventSlots[$i]));
           $currSlot['width']++;
           unset( $currEventSlots[$i] );
           continue;
@@ -515,6 +541,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
 $graphHeight = $chart['graph']['height'];
 
 if ( $mode == 'overlay' ) {
+  $minActivityHeight = 30;
   $minEventBarHeight = 10;
   $maxEventBarHeight = 40;
 
@@ -522,6 +549,10 @@ if ( $mode == 'overlay' ) {
     $chart['graph']['eventBarHeight'] = $minEventBarHeight;
     while ( ($chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1))) < $maxEventBarHeight ) {
       $chart['graph']['eventBarHeight']++;
+    }
+    if ( $chart['graph']['eventsHeight'] > ($graphHeight - $minActivityHeight) ) {
+      $chart['graph']['eventBarHeight'] = max(1, (int)floor(($graphHeight - $minActivityHeight - (count($monitors)-1)) / count($monitors)));
+      $chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1));
     }
   } else {
     $chart['graph']['eventBarHeight'] = $maxEventBarHeight;
@@ -802,6 +833,7 @@ foreach ( array_keys($monEventSlots) as $monitorId ) {
   echo "<div class=\"event monitorColour{$slot['event']['MonitorId']}\"
             style=\"left:{$left}%; width: {$width}%;\"
   data-event-id=\"{$slot['event']['Id']}\" data-frame-id=\"".getSlotFrame($slot)."\"".
+  ( isset($slot['units']) ? ' data-slot-targets="'.implode(',', array_map(function($u) { return (int)$u[0].':'.(int)$u[1]; }, $slot['units'])).'"' : '' ).
   ( $mouseover ? ' data-on-mouseover-this="previewEvent" data-on-click-this="showEvent"' : ' data-on-click-this="previewEvent"').
   '></div>';
       unset( $slot );

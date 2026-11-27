@@ -33,10 +33,6 @@ require_once('includes/Snapshot.php');
 $id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : null;
 $snapshot = new ZM\Snapshot($id);
 
-$monitors = array();
-if ( count($user->unviewableMonitorIds())) {
-  $monitor_ids = $user->viewableMonitorIds();
-}
 xhtmlHeaders(__FILE__, translate('Snapshot').' '.$snapshot->Id());
 getBodyTopHTML();
 echo getNavBarHTML();
@@ -91,7 +87,13 @@ if ( !$snapshot->Id() ) {
     $width = 100 / ( count($events) < 2 ? 1 : ( ( count($events) < 4 ) ? count($events) : 4 ) )-1;
     foreach ( $snapshot->Events() as $event ) {
       $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
-      echo '<img src="?view=image&eid='.$event->Id().'&fid=snapshot" width="'.$width.'%"/>';
+      $eid = validInt($event->Id());
+      $img = '<img src="?view=image&eid='.$eid.'&fid=snapshot" width="'.$width.'%"/>';
+      if ( $event->canView() ) {
+        echo '<a href="?view=event&amp;eid='.$eid.'">'.$img.'</a>';
+      } else {
+        echo $img;
+      }
     }
 ?>
     </div><!--content-->

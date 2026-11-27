@@ -62,6 +62,10 @@ namespace {
     exit(1);
   }
   eval('namespace AuthHashCompareTest; '.$matches[0]);
+  // getAuthUser() reads the TTL through authHashTtl().
+  if (preg_match('/^function authHashTtl\(.*?^}/ms', $auth_src, $ttl_fn)) {
+    eval('namespace AuthHashCompareTest; '.$ttl_fn[0]);
+  }
 
   $failures = 0;
   $passes = 0;

@@ -231,7 +231,7 @@ sub generateAuthHashSecret {
   return if !$option;
   if ( defined($option->{value}) and $option->{value} ne ''
     and $option->{value} ne $option->{default} ) {
-    my $value = extendAuthHashSecret($option->{value});
+    my $value = ZoneMinder::ConfigData::extendAuthHashSecret($option->{value});
     if ( $value ne $option->{value} ) {
       $option->{value} = $value;
       print("Extended ZM_AUTH_HASH_SECRET to ".length($value)." characters by repeating it; API tokens need at least 32.\n");

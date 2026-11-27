@@ -101,8 +101,11 @@ sub s3 {
     $url =~ /^\s*(?<ID>[^:]+):(?<SECRET>[^@]+)@(?<HOST>(https?:\/\/)?[^\/]*)\/(?<BUCKET>[^\/]+)(?<SUBPATH>\/.+)?\s*$/;
     my ( $aws_id, $aws_secret, $aws_host, $aws_bucket, $subpath ) = ($+{ID},$+{SECRET}, $+{HOST}, $+{BUCKET}, $+{SUBPATH});
     $$self{aws_bucket} = $aws_bucket;
+    # Keys are <subpath><event path>, so the subpath has no leading slash and one trailing slash.
+    $subpath = '' if !defined $subpath;
+    $subpath =~ s{^/+|/+$}{}g;
+    $subpath .= '/' if $subpath ne '';
     $$self{aws_subpath} = $subpath;
-    $subpath = '' if !$subpath;
     Debug("S3 url parsed to id:$aws_id host:$aws_host, bucket:$aws_bucket, subpath:$subpath from ".urlForLog($$self{Url}));
     if ($aws_id and $aws_secret and $aws_host and $aws_bucket) {
       eval {
@@ -143,8 +146,8 @@ sub bucket {
     if ($s3) {
       my $bucket = $$self{bucket} = $s3->bucket($$self{aws_bucket});
       if ( !$bucket ) {
-        Error("S3 bucket $bucket not found.");
-        die;
+        Error("S3 bucket $$self{aws_bucket} not found.");
+        return undef;
       }
     } # end if s3 
   } # end if bucket

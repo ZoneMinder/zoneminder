@@ -44,4 +44,20 @@ function packSetEventMessage($msg_cmd, $command, $prev, $event_id, $source_event
     .packEventId64($event_id)
     .packEventId48($source_event_id);
 }
+
+// A command carrying seconds for zms (CMD_SEEK, CMD_MAXFPS): whole seconds then
+// microseconds, each a big-endian uint32. The fraction is rounded, not
+// truncated: 2.3 - 2 is 0.29999999999999982, which truncated to 299999us and
+// seeked to the frame before the one at 2.3s.
+function packSecondsMessage($msg_cmd, $command, $seconds) {
+  // Round only the fraction, so whole seconds past 2147 still fit a 32-bit PHP int.
+  $s = floatval($seconds);
+  $sec = (int)floor($s);
+  $us = (int)round(($s - $sec) * 1000000);
+  if ($us >= 1000000) {
+    $sec += 1;
+    $us = 0;
+  }
+  return pack('lcNN', $msg_cmd, $command, $sec, $us);
+}
 ?>

@@ -54,6 +54,10 @@ sub open
 
     use Device::SerialPort;
     $self->{port} = new Device::SerialPort( $self->{Monitor}->{ControlDevice} );
+    if ( !$self->{port} ) {
+      Error( "Failed to open serial port ".$self->{Monitor}->{ControlDevice}.' reason:'.$! );
+      return undef;
+    }
     $self->{port}->baudrate(9600);
     $self->{port}->databits(8);
     $self->{port}->parity('none');
@@ -71,7 +75,7 @@ sub close
 {
     my $self = shift;
     $self->{state} = 'closed';
-    $self->{port}->close();
+    $self->{port}->close() if $self->{port};
 }
 
 sub printMsg
@@ -140,7 +144,7 @@ sub sendCmd
                 my @resp = unpack( "C*", $rx_msg );
                 $self->printMsg( \@resp, "Rx" );
 
-                if ( $resp[0] = 0x80 + ($id<<4) )
+                if ( $resp[0] == 0x80 + ($id<<4) )
                 {
                     if ( ($resp[1] & 0xf0) == 0x40 )
                     {
@@ -182,7 +186,7 @@ sub sendCmd
                 my @resp = unpack( "C*", $rx_msg );
                 $self->printMsg( \@resp, "Rx" );
 
-                if ( $resp[0] = 0x80 + ($id<<4) )
+                if ( $resp[0] == 0x80 + ($id<<4) )
                 {
                     if ( ($resp[1] & 0xf0) == 0x50 )
                     {

@@ -50,7 +50,7 @@ or as email attachments.
  -f<format>, --format=<format>            - What format to create the video in, default is mpg. For ffmpeg only.
  -r<rate>, --rate=<rate>                  - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
  -s<scale>, --scale=<scale>               - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
- -t<transforms>, --transform=<transforms> - Transform video.  Applies -vf option to ffmpeg.
+ -t<transforms>, --transforms=<transforms> - Transform video.  Applies -vf option to ffmpeg.
  -F<fps>, --fps=<fps>                     - Absolute frame rate, in frames per second
  -S<size>, --size=<size>                  - Absolute video size, WxH or other specification supported by ffmpeg
  -o, --overwrite                          - Whether to overwrite an existing file, off by default.
@@ -277,8 +277,9 @@ if ( $concat_name ) {
   # monitor/event names. The list entries are absolute paths, so its location
   # does not affect ffmpeg's resolution.
   my ($fd, $concat_list_file) = tempfile('zmconcat-XXXXXX', SUFFIX => '.concat.lst', DIR => '@ZM_TMPDIR@');
-  foreach ( @video_files ) {
-    print $fd "file '$_'\n";
+  foreach my $video_file_path ( @video_files ) {
+    ( my $escaped = $video_file_path ) =~ s/'/'\\''/g;
+    print $fd "file '$escaped'\n";
   }
   close $fd;
   # ffmpeg asks on the terminal before replacing an existing file, so say which.

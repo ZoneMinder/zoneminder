@@ -132,7 +132,11 @@ $monitors = array();
 # The as E, and joining with Monitors is required for the filterSQL filters.
 $rangeSql = 'SELECT
   min(E.StartDateTime) AS MinTime,
-  max(IFNULL(E.EndDateTime, NOW())) AS MaxTime
+  max(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime
+  END) AS MaxTime
 FROM Events AS E
 INNER JOIN Monitors AS M ON (E.MonitorId = M.Id)
 LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
@@ -537,6 +541,7 @@ for ( $i = 0; $i < $chart['graph']['width']; $i++ ) {
 $graphHeight = $chart['graph']['height'];
 
 if ( $mode == 'overlay' ) {
+  $minActivityHeight = 30;
   $minEventBarHeight = 10;
   $maxEventBarHeight = 40;
 
@@ -544,6 +549,10 @@ if ( $mode == 'overlay' ) {
     $chart['graph']['eventBarHeight'] = $minEventBarHeight;
     while ( ($chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1))) < $maxEventBarHeight ) {
       $chart['graph']['eventBarHeight']++;
+    }
+    if ( $chart['graph']['eventsHeight'] > ($graphHeight - $minActivityHeight) ) {
+      $chart['graph']['eventBarHeight'] = max(1, (int)floor(($graphHeight - $minActivityHeight - (count($monitors)-1)) / count($monitors)));
+      $chart['graph']['eventsHeight'] = (($chart['graph']['eventBarHeight'] * count($monitors)) + (count($monitors)-1));
     }
   } else {
     $chart['graph']['eventBarHeight'] = $maxEventBarHeight;

@@ -95,6 +95,14 @@ bool PacketQueue::queuePacket(std::shared_ptr<ZMPacket> add_packet) {
     Debug(4, "No iterators so no one needs us to queue packets.");
     return false;
   }
+  // The counters only exist for the streams added with addStream(), so a packet
+  // for any other stream would be counted outside the array.
+  if (!packet_counts or !add_packet->packet
+      or add_packet->packet->stream_index < 0 or add_packet->packet->stream_index > max_stream_id) {
+    Error("Refusing a packet for stream %d, the queue has streams 0 to %d",
+          add_packet->packet ? add_packet->packet->stream_index : -1, max_stream_id);
+    return false;
+  }
   if (!packet_counts[video_stream_id]
       and !(add_packet->keyframe and add_packet->packet->stream_index == video_stream_id)) {
     Debug(4, "No video keyframe so no one needs us to queue packets.");
@@ -312,7 +320,7 @@ bool PacketQueue::clearPackets(const std::shared_ptr<ZMPacket> &add_packet) {
     int packets_removed = 0;
     Debug(3, "Not keeping keyframes");
     // If not doing passthrough, we don't care about starting with a keyframe so logic is simpler
-    while ((*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
+    while (!pktQueue.empty() and (*pktQueue.begin() != add_packet) and (packet_counts[video_stream_id] > pre_event_video_packet_count + tail_count)) {
       std::shared_ptr<ZMPacket> zm_packet = *pktQueue.begin();
 
       if (zm_packet->queue_index >= min_iterator_queue_index) {
@@ -766,6 +774,10 @@ packetqueue_iterator *PacketQueue::get_event_start_packet_it(
   if (*it == pktQueue.end()) {
     // Should never be able to happen.
     *it = pktQueue.begin();
+    if (*it == pktQueue.end()) {
+      // The queue was cleared (Monitor::Pause) since the snapshot, so there is no packet to start on.
+      return it;
+    }
   }
  
   std::shared_ptr<ZMPacket> packet = *(*it);

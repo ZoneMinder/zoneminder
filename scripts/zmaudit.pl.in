@@ -133,6 +133,13 @@ sub Term {
   unlink ZM_AUDIT_PID;
   exit(0);
 }
+# The Options page accepts 0, which would run the audit back to back.
+sub audit_interval {
+  my $value = shift;
+  return $value if defined($value) and $value =~ /^\d+$/ and $value >= 1;
+  Warning('ZM_AUDIT_CHECK_INTERVAL is '.(defined($value) ? "'$value'" : 'unset').', which is below the minimum of 1, using 900 seconds.');
+  return 900;
+}
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
@@ -150,6 +157,7 @@ my $max_swap_age = 24/24; # 24 hours
 # images now live under the event path
 my $image_path = EVENT_PATH;
 
+my $audit_interval = audit_interval($Config{ZM_AUDIT_CHECK_INTERVAL});
 my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
@@ -159,7 +167,7 @@ MAIN: while( $loop ) {
     # if we are running continuously, then just skip to the next
     # interval, otherwise we are a one off run, so wait a second and
     # retry until someone kills us.
-    sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
+    sleep($audit_interval);
   } else {
     sleep 1;
   } # end if
@@ -173,7 +181,7 @@ MAIN: while( $loop ) {
         # if we are running continuously, then just skip to the next
         # interval, otherwise we are a one off run, so wait a second and
         # retry until someone kills us.
-        sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
+        sleep($audit_interval);
       } else {
         Term();
       } # end if
@@ -376,9 +384,9 @@ MAIN: while( $loop ) {
             my @contents = $Event->files();
             Debug("Have " . @contents . " files in $day_dir/$event_dir");
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -429,7 +437,11 @@ MAIN: while( $loop ) {
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
                 executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
-                $cleaned = 1;
+                if ( -e $event_dir ) {
+                  Warning("Unable to remove event directory $day_dir/$event_dir");
+                } else {
+                  $cleaned = 1;
+                }
               }
             } # end if able to find id
           } # end foreach event_dir without link

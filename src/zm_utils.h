@@ -60,6 +60,8 @@ inline void zm_strncpy(char *dst, const char *src, size_t size, ssize_t n = -1) 
 std::string escape_json_string(std::string input);
 std::string remove_newlines(std::string input);
 std::string Trim(const std::string &str, const std::string &char_set);
+// Replaces every byte that is not part of a well formed UTF-8 sequence with '?'
+std::string Utf8Sanitize(const std::string &str);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string ShellEscape(const std::string &str) {

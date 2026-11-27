@@ -35,6 +35,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our $VERSION = $ZoneMinder::Base::VERSION;
 
 # ==========================================================================
@@ -82,7 +86,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent" );
 
 
@@ -174,7 +178,7 @@ sub moveConRight
 	my $params = shift;
 	Debug( "Orientation" );
 	my $dvalue=$self->getDisplayAttr(10);
-	if ( $dvalue == 1 )
+	if ( $dvalue <= 1 )
 	{
 	$dvalue=4;
 	my $cmd = "parameters?rotation=$dvalue";

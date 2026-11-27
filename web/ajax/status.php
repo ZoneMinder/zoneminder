@@ -152,6 +152,7 @@ $statusData = array(
   ),
   'event' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Events',
     'limit' => 1,
     'selector' => 'Events.Id',
@@ -204,6 +205,7 @@ $statusData = array(
   ),
   'frames' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'defaultLimit' => 100,
     'selector' => 'EventId',
@@ -220,6 +222,7 @@ $statusData = array(
   ),
   'frame' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'limit' => 1,
     'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
@@ -237,14 +240,17 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
+    'eventParam' => 'eid',
     'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearEvents'
   )
 );
@@ -262,6 +268,26 @@ function collectData() {
   if (isset($entitySpec['permission'])) {
     if (!canView($entitySpec['permission'])) {
       ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
+  }
+
+  # These entities name an event, so the monitor it belongs to must be viewable.
+  if (!empty($entitySpec['eventParam'])) {
+    if (!isset($_REQUEST[$entitySpec['eventParam']])) {
+      ajaxError('Event id required for '.$entity);
+      return;
+    }
+    $eventParam = $_REQUEST[$entitySpec['eventParam']];
+    if (is_array($eventParam)) $eventParam = reset($eventParam);
+    # Check the same cleaned id that the query binds (validInt).
+    $requestedEvent = new ZM\Event(validInt($eventParam));
+    if (!$requestedEvent->Id()) {
+      ajaxError('Event not found');
+      return;
+    }
+    if (!$requestedEvent->canView()) {
+      ajaxError('Insufficient permissions for event '.$requestedEvent->Id());
       return;
     }
   }

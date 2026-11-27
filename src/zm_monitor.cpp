@@ -387,6 +387,16 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
   delete storage;
   storage = new Storage(storage_id);
+  if (p != QUERY && Storage::NeedsFallback(storage_id, storage->Id())) {
+    // The configured storage area is gone, use another real one instead of the built-in events path.
+    // Only the processes that write events need this, query loads (zms, zmu, web) leave it alone.
+    zmDbRow storage_row;
+    if (storage_row.fetch(Storage::FallbackSql(storage_id, server_id))) {
+      delete storage;
+      storage = new Storage(static_cast<unsigned int>(atoi(storage_row[0])));
+      Warning("Storage area %u not found for monitor %u, using storage area %u", storage_id, id, storage->Id());
+    }
+  }
 
   if (!strcmp(dbrow[col], "Local")) {
     type = LOCAL;
@@ -581,7 +591,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   col++;
 
   /* "ImageBufferCount, `MaxImageBufferCount`, WarmupCount, PreEventCount, PostEventCount, StreamReplayBuffer, AlarmFrameCount, " */
-  image_buffer_count = atoi(dbrow[col]);
+  image_buffer_count = SanitiseImageBufferCount(atoi(dbrow[col]));
   col++;
   max_image_buffer_count = atoi(dbrow[col]);
   col++;
@@ -894,8 +904,8 @@ void Monitor::LoadCamera() {
                                         port.c_str(),
                                         user.c_str(),
                                         pass.c_str(),
-                                        width,
-                                        height,
+                                        camera_width,
+                                        camera_height,
                                         colours,
                                         brightness,
                                         contrast,
@@ -929,6 +939,16 @@ std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpo
   monitor->Load(dbrow.mysql_row(), load_zones, purpose);
 
   return monitor;
+}
+
+// ImageBufferCount comes straight from the database and the API accepts 0 or negative values. Zero makes
+// Capture() take image_count % 0 and connect() index analysis_image_buffer[-1], so keep to the smallest value the web UI accepts.
+int Monitor::SanitiseImageBufferCount(int count) {
+  if (count < 1) {
+    Warning("ImageBufferCount %d is invalid, using 2", count);
+    return 2;
+  }
+  return count;
 }
 
 bool Monitor::connect() {
@@ -1337,6 +1357,15 @@ bool Monitor::disconnect() {
   }
 #endif // ZM_MEM_MAPPED
 
+  // These pointed into the mapping that is gone.
+  trigger_data = nullptr;
+  zone_scores = nullptr;
+  video_store_data = nullptr;
+  shared_timestamps = nullptr;
+  shared_images = nullptr;
+  image_pixelformats = nullptr;
+  analysis_image_pixelformats = nullptr;
+
   for (int32_t i = 0; i < image_buffer_count; i++) {
     // We delete the image because it is an object pointing to space that won't be free'd.
     delete image_buffer[i];
@@ -1397,7 +1426,8 @@ void Monitor::AddPrivacyBitmask() {
   for (const Zone &zone : zones) {
     if (zone.IsPrivacy()) {
       if (!privacy_image) {
-        privacy_image = zm::make_unique<Image>(width, height, 1, ZM_SUBPIX_ORDER_NONE);
+        // MaskPrivacy indexes the bitmask as y*width+x, so the rows must not be padded.
+        privacy_image = zm::make_unique<Image>(width, width, height, 1, ZM_SUBPIX_ORDER_NONE);
         privacy_image->Clear();
       }
       privacy_image->Fill(0xff, zone.GetPolygon());
@@ -2455,8 +2485,10 @@ bool Monitor::Analyse() {
                   // Instead of showing a greyscale image, let's use the full colour
                   // Only allocate it when this frame actually has motion score,
                   // so that Event::AddFrame doesn't save analysis jpegs for
-                  // every analysed frame (refs #4996).
-                  if (motion_score and !packet->analysis_image)
+                  // every analysed frame (refs #4996). Only Event::AddFrame
+                  // (SaveJPEGs analysis images) and WriteAlarmImage (analysis
+                  // viewers) read it, so skip the full-frame copy otherwise.
+                  if (motion_score and !packet->analysis_image and ((savejpegs & 2) or hasAnalysisViewers()))
                     packet->analysis_image = new Image(*(packet->image));
 
                   // lets construct alarm cause. It will contain cause + names of zones alarmed
@@ -2991,7 +3023,7 @@ std::string Monitor::RtspUrlFromRemote(
     if (!pass.empty()) url += ":" + UriEncode(pass);
     url += "@";
   }
-  url += host;
+  url += UrlHost(host);
   // The stored port is kept even when it is the default, so the operator can
   // paste the result without having to know what the default is.
   if (!port.empty()) url += ":" + port;
@@ -3472,7 +3504,10 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
   AVPixelFormat origPixFormat = (AVPixelFormat)input_frame->format;
   AVPixelFormat inputPixFormat = fix_deprecated_pix_fmt(origPixFormat);
 
-  convert_context = sws_getContext(
+  // Called for every decoded frame: keeps the context while the frame's size and
+  // format are unchanged and rebuilds it when the stream changes them.
+  convert_context = sws_getCachedContext(
+                      convert_context,
                       input_frame->width,
                       input_frame->height,
                       inputPixFormat,
@@ -3485,7 +3520,7 @@ bool Monitor::setupConvertContext(const AVFrame *input_frame, const Image *image
           av_get_pix_fmt_name(imagePixFormat)
          );
   } else {
-    Debug(1, "Setup conversion context for %dx%d %s to %dx%d %s",
+    Debug(3, "Setup conversion context for %dx%d %s to %dx%d %s",
           input_frame->width, input_frame->height,
           av_get_pix_fmt_name(inputPixFormat),
           image->Width(), image->Height(),
@@ -3910,9 +3945,22 @@ bool Monitor::Decode() {
         Debug(2, "send_packet returned EAGAIN, waiting before retry");
         return false;
       } else if (ret < 0) {
-        // Error
-        Debug(1, "send_packet failed: %d", ret);
+        // Warn at the start of a run of rejected packets; a corrupt stream can
+        // fail on every packet, so the rest of the run stays at Debug.
+        if (decode_send_failures++ == 0) {
+          Warning("Monitor %u %s: decoder rejected packet %d: %s (%d)",
+              id, name.c_str(), packet->image_index, av_make_error_string(ret).c_str(), ret);
+        } else {
+          Debug(1, "Monitor %u: decoder rejected packet %d: %s (%d)",
+              id, packet->image_index, av_make_error_string(ret).c_str(), ret);
+        }
         return false;
+      }
+
+      if (decode_send_failures) {
+        Info("Monitor %u %s: decoder accepting packets again after %u rejected",
+            id, name.c_str(), decode_send_failures);
+        decode_send_failures = 0;
       }
 
       // Success - packet sent to decoder, queue it for receive later
@@ -3980,7 +4028,7 @@ bool Monitor::Decode() {
 
       packet->image = new Image(camera_width, camera_height, native_colours, native_subpixelorder);
 
-      bool have_converter = convert_context || setupConvertContext(packet->in_frame.get(), packet->image);
+      bool have_converter = setupConvertContext(packet->in_frame.get(), packet->image);
       if (have_converter) {
         if (!packet->image->Assign(packet->in_frame.get(), convert_context)) {
           delete packet->image;
@@ -4092,13 +4140,13 @@ std::string Monitor::Substitute(const std::string &format, SystemTimePoint ts_ti
 
   // Expand our own codes (%N, %Q, %f) before strftime. strftime copies unknown
   // conversions through on glibc but drops the % on BSD/macOS, so they have to
-  // be gone before it runs. When the code character is %, a literal % in an
-  // inserted value is doubled so strftime prints it as is.
+  // be gone before it runs. A literal % in an inserted value is doubled so
+  // strftime prints it as is, whichever character marks the codes.
   const char code_char = config.timestamp_code_char[0];
   const bool escape = (code_char == '%');
   auto append_value = [&](std::string &out, const std::string &value) {
     for (char c : value) {
-      if (escape && c == '%') out.push_back('%');
+      if (c == '%') out.push_back('%');
       out.push_back(c);
     }
   };
@@ -4841,6 +4889,8 @@ int Monitor::PrimeCapture() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",
@@ -5014,6 +5064,8 @@ int Monitor::Play() {
     packetqueue.addStream();
     shared_data->audio_frequency = camera->getFrequency();
     shared_data->audio_channels = camera->getChannels();
+  } else {
+    audio_stream_id = -1;
   }
 
   Debug(2, "Video stream id is %d, audio is %d, minimum_packets to keep in buffer %d",

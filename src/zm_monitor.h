@@ -967,6 +967,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   void LoadCamera();
   const std::shared_ptr<Camera> getCamera() { return camera; }
+  static int SanitiseImageBufferCount(int count);
   bool connect();
   bool disconnect();
   inline bool isConnected() const { return mem_ptr != nullptr; }
@@ -1197,6 +1198,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   AVCodecContext *GetVideoCodecContext() const { return mVideoCodecContext; };
 
   std::string GetSecondPath() const { return second_path; };
+  int GetStreamReplayBuffer() const { return stream_replay_buffer; }
   std::string GetStreamSocketPath() const { return shared_data ? shared_data->stream_socket_path : ""; };
   std::string GetRTSPStreamName() const { return rtsp_streamname; };
 
@@ -1416,6 +1418,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // A future improvement could eliminate mode-specific checks by relying solely
   // on this flag to track the decoder state.
   bool decoder_requires_next_packet = false;
+  // Packets in a row the decoder has rejected; only the first is a Warning.
+  unsigned int decode_send_failures = 0;
 };
 
 #define MOD_ADD( var, delta, limit ) (((var)+(limit)+(delta))%(limit))

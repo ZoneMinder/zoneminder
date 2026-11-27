@@ -27,9 +27,17 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
   if ( ($action == 'zone') && isset($_REQUEST['zid']) ) {
     $zid = validInt($_REQUEST['zid']);
     $monitor = new ZM\Monitor($mid);
+    if ( !$monitor->Id() or $monitor->Deleted() ) {
+      $error_message .= 'Monitor not found.<br/>';
+      return;
+    }
 
     if ( !empty($zid) ) {
       $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($mid, $zid));
+      if ( !$zone ) {
+        $error_message .= 'Zone not found.<br/>';
+        return;
+      }
     } else {
       $zone = array();
     }

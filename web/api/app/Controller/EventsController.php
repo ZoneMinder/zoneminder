@@ -282,6 +282,7 @@ class EventsController extends AppController {
 
     $this->Paginator->settings = $settings;
     if ($this->request->query('limit') or $this->request->query('page')) {
+      $this->requireScalarSort();
       $events = $this->Paginator->paginate('Event');
     } else {
       $events = $this->Event->find('all', $settings);

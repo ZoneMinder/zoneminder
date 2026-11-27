@@ -320,4 +320,16 @@ class AppController extends Controller {
     }));
     return $row;
   }
+
+  # Paginator uses sort as an array key and lowercases direction, so a list for either, from the
+  # query string or a named parameter, is a TypeError.
+  protected function requireScalarSort() {
+    foreach (array($this->request->params['named'], $this->request->query) as $params) {
+      foreach (array('sort', 'direction') as $key) {
+        if (isset($params[$key]) and !is_string($params[$key])) {
+          throw new BadRequestException($key.' must be a single value');
+        }
+      }
+    }
+  }
 }

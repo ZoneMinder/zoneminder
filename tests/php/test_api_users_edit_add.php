@@ -80,6 +80,8 @@ class FakePaginator { function paginate($m) { return array(); } }
 
 eval('class UsersHarness { public $request, $response, $User, $UserPreference, $Paginator, $vars;
   function set($v) { $this->vars = $v; } function loadModel($m) { $this->$m = new FakeModel(); }
+  // AppController::requireScalarSort() is covered by test_api_paginate_sort_list.php.
+  function requireScalarSort() {}
   // Copy of AppController::pinRequestId().
   function pinRequestId($model, $id) {
     $alias = $model->alias;

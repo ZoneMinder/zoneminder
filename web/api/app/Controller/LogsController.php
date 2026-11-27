@@ -44,6 +44,7 @@ class LogsController extends AppController {
 			$this->Paginator->settings['conditions'] = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Log->schema()));
 		}
 
+		$this->requireScalarSort();
 		$logs = $this->Paginator->paginate('Log');
 		$this->set(compact('logs'));
 	}

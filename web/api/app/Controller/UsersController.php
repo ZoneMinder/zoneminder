@@ -44,6 +44,7 @@ class UsersController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireScalarSort();
 		$users = $this->Paginator->paginate('User');
 
 		$this->set(compact('users'));

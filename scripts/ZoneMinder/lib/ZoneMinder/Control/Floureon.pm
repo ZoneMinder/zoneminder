@@ -330,8 +330,10 @@ sub autoStop
 
 	if ($timeout)
 	{
+		# Pan and tilt pass a speed, in tenths of a second; the rest pass
+		# AutoStopTimeout, which loadMonitor has made microseconds.
 		if ($timeout > 1) {
-			usleep(100000*$timeout);
+			usleep($timeout < 1000 ? 100000*$timeout : $timeout);
 		}
 		Debug( "Auto Stop" );
 		my $cmd = "cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0";

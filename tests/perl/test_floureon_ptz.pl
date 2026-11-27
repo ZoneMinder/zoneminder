@@ -8,6 +8,9 @@
 # 2. autoStop unconditionally sent Stop=0 even when timeout was 0/undefined,
 #    and zoomCon*/focusCon*/irisCon* called $self->autoStop() with no timeout,
 #    immediately stopping operations upon start.
+# 3. Since Control::loadMonitor hands modules AutoStopTimeout in microseconds,
+#    autoStop multiplied it by 100000 like a pan/tilt speed, so zoom, focus
+#    and iris slept about 14 hours for a 0.5 second timeout.
 #
 use strict;
 use warnings;
@@ -109,6 +112,22 @@ sub camera {
   check('zoomConTele second request is auto-stop',
     $stop_uri,
     'http://192.0.2.1/cgi/ptz_set?Channel=1&Group=PTZCtrlInfo&Stop=0&user=admin&pwd=secret');
+}
+
+# 4. AutoStopTimeout arrives in microseconds; pan/tilt speeds are still scaled
+{
+  my @sleeps;
+  no warnings 'redefine';
+  local *ZoneMinder::Control::Floureon::usleep = sub ($) { push @sleeps, $_[0]; };
+  my ($control, $ua) = camera(500000);
+  $control->zoomConTele();
+  $control->focusConNear();
+  $control->irisConOpen();
+  check('zoom, focus and iris sleep the auto stop timeout',
+    join(',', @sleeps), '500000,500000,500000');
+  @sleeps = ();
+  $control->moveConUp({tiltspeed => 4});
+  check('moveConUp still sleeps a tenth of a second per speed step', $sleeps[0], 400000);
 }
 
 print "\n$passes passed, $failures failed\n";

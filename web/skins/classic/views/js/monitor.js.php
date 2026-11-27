@@ -95,6 +95,10 @@ function validateForm(form) {
   } else if ( form.elements['newMonitor[Type]'].value == 'Ffmpeg' ) {
     if ( !form.elements['newMonitor[Path]'].value ) {
       errors[errors.length] = "<?php echo translate('BadPath') ?>";
+    } else if ( form.elements['newMonitor[Path]'].value.indexOf('://') < 0 &&
+                form.elements['newMonitor[Path]'].value.charAt(0) != '/' &&
+                !form.elements['newMonitor[Path]'].value.match(/^v4l2:/i) ) {
+      errors[errors.length] = "<?php echo translate('BadFfmpegPathProtocol') ?>";
     } else if (form.elements['newMonitor[Path]'].value.match(/[\!\*'\(\)\$ ,#]/)) {
       warnings[warnings.length] = "<?php echo translate('BadPathNotEncoded') ?>";
     }

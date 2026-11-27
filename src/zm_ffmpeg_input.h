@@ -3,6 +3,7 @@
 
 #include "zm_define.h"
 #include "zm_ffmpeg.h"
+#include "zm_time.h"
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -48,6 +49,12 @@ class FFmpeg_Input {
     int frame_count;
     bool drained;
   } stream;
+
+  static int InterruptCallback(void *opaque);
+
+  // The interrupt callback gives Open() ten seconds; reads are not timed.
+  bool opening = false;
+  TimePoint open_start;
 
   stream *streams;
   int video_stream_id;

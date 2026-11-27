@@ -54,6 +54,10 @@ sub open
 
     use Device::SerialPort;
     $self->{port} = new Device::SerialPort( $self->{Monitor}->{ControlDevice} );
+    if ( !$self->{port} ) {
+      Error( "Failed to open serial port ".$self->{Monitor}->{ControlDevice}.' reason:'.$! );
+      return undef;
+    }
     $self->{port}->baudrate(9600);
     $self->{port}->databits(8);
     $self->{port}->parity('none');
@@ -71,7 +75,7 @@ sub close
 {
     my $self = shift;
     $self->{state} = 'closed';
-    $self->{port}->close();
+    $self->{port}->close() if $self->{port};
 }
 
 sub printMsg

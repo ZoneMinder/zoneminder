@@ -5,10 +5,12 @@ $root = isset($argv[1]) ? $argv[1] : __DIR__.'/../..';
 
 $stub = sys_get_temp_dir().'/zm_report_name_stub_'.getmypid();
 mkdir($stub.'/includes', 0777, true);
-file_put_contents($stub.'/includes/Report.php', '<?php namespace ZM; function Warning($m){} function Error($m){}
+file_put_contents($stub.'/includes/Report.php', '<?php
+namespace ZM { function Warning($m){} function Error($m){}
 class Report { function Id(){return null;} function canEdit(){return true;}
   function save($c){ $GLOBALS["saved"] = $c; return true; }
-  function changes($v){ return $v; } }');
+  function changes($v){ return $v; } } }
+namespace { function canEdit($area=false) { return true; } }');
 set_include_path($stub.PATH_SEPARATOR.get_include_path());
 
 function attempt($root, $name) {

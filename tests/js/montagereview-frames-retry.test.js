@@ -130,6 +130,40 @@ test('success with frames fills FramesById and the closed event is not re-reques
       'a closed event whose frames loaded must not be re-requested');
 });
 
+test('the promise waits for every batch, not the first one to answer', async () => {
+  // Over ~1000 characters of /EventId:N terms the ids go out in several
+  // requests. The caller redraws the timeline once the promise settles, so
+  // settling on the first reply left the other batches' alarm frames undrawn.
+  const sb = load();
+  const pending = [];
+  setup(sb, (opts) => pending.push(opts));
+  run(sb, `var many = {};
+    for (let id = 10000; id < 10200; id++) {
+      events[id] = {Id: id, MonitorId: 1, EndDateTime: "2020-01-01 00:00:00"};
+      many[id] = events[id];
+    }`);
+  let settled = false;
+  const p = run(sb, 'loadFrames(many)');
+  p.then(() => {
+    settled = true;
+  });
+  assert.ok(pending.length > 1, 'expected several batches, got ' + pending.length);
+  const frameFor = (url) => {
+    const id = parseInt(/EventId:(\d+)/.exec(url)[1]);
+    return {frames: [{Frame: {EventId: id, FrameId: 1, TimeStampSecs: '1500', Score: '5'}}]};
+  };
+  const answer = (i) => pending[i].success(frameFor(sb.ajaxCalls[i].url));
+  answer(0);
+  await new Promise((r) => setImmediate(r));
+  assert.strictEqual(settled, false, 'resolved after 1 of ' + pending.length + ' batches');
+  for (let i = 1; i < pending.length; i++) answer(i);
+  await p;
+  assert.strictEqual(settled, true);
+  const last = sb.ajaxCalls[pending.length - 1].url;
+  const lastId = parseInt(/EventId:(\d+)/.exec(last)[1]);
+  assert.ok(run(sb, 'events[' + lastId + '].FramesById[1]'), 'last batch frames missing');
+});
+
 (async function() {
   for (const {name, fn} of tests) {
     try {

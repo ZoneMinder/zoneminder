@@ -126,7 +126,9 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     unset($eid);
     $result .= 'Downloading ' . $viewable_count . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
     $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
-    $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
+    # human_filesize() does not scale a negative size, so a download larger than the free space showed as bytes.
+    $remaining = disk_free_space(ZM_DIR_EXPORTS) - $total_size;
+    $result .= '<br>Will remain free: ' . ($remaining < 0 ? '-' : '') . human_filesize(abs($remaining)).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
       $result .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }

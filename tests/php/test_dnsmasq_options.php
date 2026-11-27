@@ -42,7 +42,7 @@ function extract_function($src, $name) {
 }
 $root = dirname(__DIR__, 2).'/web';
 $view = file_get_contents($root.'/skins/classic/views/_options_dnsmasq.php');
-$save = file_get_contents($root.'/includes/actions/options.php');
+$save = file_get_contents($root.'/includes/actions/options.php').file_get_contents($root.'/includes/functions.php');
 
 set_error_handler(function($no, $str) { throw new ErrorException($str, 0, $no); });
 eval(extract_function($view, 'process_dnsmasq_configfile'));

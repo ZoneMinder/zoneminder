@@ -124,6 +124,10 @@ class EventStream : public StreamBase {
 
   // Where MODE_SINGLE playback goes when it runs off either end of the event.
   static int LoopedFrameId(int frame_id, int num_frames);
+  // The wait before the next frame. Past the last loaded frame of a recording event the
+  // stream has nothing new to send, so it checks back every STREAM_PAUSE_WAIT instead of
+  // reloading the event and resending the last frame in a tight loop.
+  static Microseconds TailPollDelta(bool in_progress, int frame_id, int num_frames, Microseconds delta);
   // The 1-based frame a stream starts on for a requested frame id.
   static int InitialFrameId(int requested, size_t num_frames);
   // Spacing of the frames made up for an event that has none in the Frames table.

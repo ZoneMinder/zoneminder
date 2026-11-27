@@ -78,6 +78,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use Time::HiRes qw( usleep );
@@ -90,13 +94,14 @@ sub open
 
     use LWP::UserAgent;
 
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
 
     Info( "Open" );
 
+    return !undef;
 }
 
 sub printMsg

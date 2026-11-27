@@ -272,9 +272,7 @@ function initPage() {
 
   // Update table links each time after new data is loaded
   table.on('post-body.bs.table', function(data) {
-    var thumb_ndx = $j('#snapshotTable tr th').filter(function() {
-      return $j(this).text().trim() == 'Thumbnail';
-    }).index();
+    var thumb_ndx = $j('#snapshotTable tr th[data-field="Thumbnail"]').index();
     table.find("tr td:nth-child(" + (thumb_ndx+1) + ")").addClass('colThumbnail');
   });
 

@@ -44,6 +44,9 @@ class EncoderTemplatesController extends AppController {
   }
 
   public function add() {
+    if (!$this->request->is('post')) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ($this->request->is('post')) {
       global $user;
       $canEdit = (!$user) || ($user->System() == 'Edit');

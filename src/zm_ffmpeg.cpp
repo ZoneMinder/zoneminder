@@ -176,9 +176,14 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
     Error("Failed to allocate context for fallback decoder %s", codec->name);
     return nullptr;
   }
-  avcodec_parameters_to_context(ctx, codecpar);
+  int ret = avcodec_parameters_to_context(ctx, codecpar);
+  if (ret < 0) {
+    Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
   zm_dump_codec(ctx);
-  int ret = avcodec_open2(ctx, codec, nullptr);
+  ret = avcodec_open2(ctx, codec, nullptr);
   if (ret < 0) {
     Error("Could not open fallback decoder %s (error '%s')",
         codec->name, av_make_error_string(ret).c_str());
@@ -233,7 +238,12 @@ AVCodecContext *open_video_decoder(
     }
 
     ctx = avcodec_alloc_context3(codec);
-    avcodec_parameters_to_context(ctx, stream->codecpar);
+    ret = avcodec_parameters_to_context(ctx, stream->codecpar);
+    if (ret < 0) {
+      Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+      avcodec_free_context(&ctx);
+      continue;
+    }
     ctx->framerate = stream->r_frame_rate;
     ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 
@@ -525,6 +535,14 @@ static std::string zm_filter_file_option(const std::string &key, const std::stri
       bool deny = false;
       for (const char *const *k = param_keys; *k; k++) {
         if (name == *k) deny = true;
+      }
+      // scaling-list also accepts built-in presets, which do not name a file
+      if (deny and name == "scaling-list") {
+        const size_t eq = item.find('=');
+        if (eq != std::string::npos) {
+          const std::string preset = item.substr(eq + 1);
+          if (preset == "off" or preset == "none" or preset == "flat" or preset == "jvt" or preset == "default") deny = false;
+        }
       }
       if (deny) {
         Warning("Ignoring file option '%s' in encoder option %s", name.c_str(), key.c_str());

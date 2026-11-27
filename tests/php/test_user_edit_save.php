@@ -27,7 +27,8 @@ namespace ZM {
   class User {
     public $f;
     function __construct($id = 0) {
-      $this->f = $id ? $GLOBALS['users'][$id] : array('Id' => null, 'Username' => '', 'Password' => '');
+      // Like the real class, an id that matches no row loads an empty user.
+      $this->f = ($id and isset($GLOBALS['users'][$id])) ? $GLOBALS['users'][$id] : array('Id' => null, 'Username' => '', 'Password' => '');
     }
     static function find_one($p) {
       foreach ($GLOBALS['users'] as $u) {
@@ -37,6 +38,7 @@ namespace ZM {
     }
     function Id() { return $this->f['Id']; }
     function Username() { return $this->f['Username']; }
+    function Password() { return $this->f['Password']; }
     function changes($new) {
       $c = array();
       foreach ($new as $k => $v) {
@@ -45,13 +47,14 @@ namespace ZM {
       }
       return $c;
     }
-    function save($c) { $GLOBALS['user_saves'][] = $c; $this->f = array_merge($this->f, $c); if (!$this->f['Id']) $this->f['Id'] = 99; return true; }
+    function save($c) { $GLOBALS['user_saves'][] = $c; $this->f = array_merge($this->f, $c); if (!$this->f['Id']) $this->f['Id'] = 99; $GLOBALS['users'][$this->f['Id']] = $this->f; return true; }
     function get_last_error() { return 'err'; }
     function Monitor_Permissions($n = null) {}
   }
 }
 
 namespace {
+  $GLOBALS['zm_root'] = $argv[1] ?? __DIR__.'/../..';
   $tmp = sys_get_temp_dir().'/zm_user_edit_save_'.getmypid();
   @mkdir($tmp.'/includes', 0700, true);
   file_put_contents($tmp.'/includes/User.php', "<?php\n");
@@ -83,7 +86,7 @@ namespace {
     $user = $me;
     $_REQUEST = $request; $_POST = $post;
     $notice = null;
-    try { include __DIR__.'/../../web/includes/actions/user.php'; }
+    try { include ($GLOBALS['zm_root'] ?? __DIR__.'/../..').'/web/includes/actions/user.php'; }
     catch (ErrorException $e) { $notice = $e->getMessage(); }
     return $notice;
   }
@@ -98,6 +101,14 @@ namespace {
   check('rename self: no notice', $n, null);
   check('rename self: auth hash regenerated', $auth_calls, 1);
 
+  // Admin changes their own password: the session keeps the new hash, so the
+  // password check on the next request doesn't log them out.
+  $_SESSION = array('passwordHash' => 'x');
+  $n = run_save(array('uid' => '1', 'user' => array('Username' => 'alice2', 'Password' => 'n3w-Passw0rd!')), array(), $alice);
+  check('own password change: no notice', $n, null);
+  check('own password change: session hash follows the new password',
+    password_verify('n3w-Passw0rd!', $_SESSION['passwordHash'] ?? ''), true);
+
   // A group missing from the posted group_permission must not be overwritten with null.
   $groups = array(new ZM\Group(5), new ZM\Group(6));
   $n = run_save(array('uid' => '2', 'user' => array('Username' => 'bob')),
@@ -105,6 +116,17 @@ namespace {
   check('missing group key: no notice', $n, null);
   check('missing group key: only posted group saved', $saved_perms, array(array(5, 'View')));
   $groups = array();
+
+  // A user deleted since the form was opened must not be saved as a new account.
+  $n = run_save(array('uid' => '9', 'user' => array('Username' => 'ghost', 'Enabled' => 1)), array(), $alice);
+  check('deleted user: no notice', $n, null);
+  check('deleted user: nothing saved', $user_saves, array());
+  check('deleted user: the reason is shown', $error_message, 'This user no longer exists.<br/>');
+
+  // A new user (no uid) is still created.
+  $n = run_save(array('uid' => '0', 'user' => array('Username' => 'carol', 'Password' => 'Secret-pass-1', 'Enabled' => 1)), array(), $alice);
+  check('new user: saved', count($user_saves) > 0, true);
+  check('new user: no error', $error_message, '');
 
   echo "$passed passed, $failed failed\n";
   exit($failed ? 1 : 0);

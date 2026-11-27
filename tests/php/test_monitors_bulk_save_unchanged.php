@@ -15,6 +15,8 @@ namespace ZM {
     static $calls = array();
     private $id;
     function __construct($id) { $this->id = $id; }
+    function Id() { return $this->id; }
+    function Deleted() { return false; }
     function Type() { return 'Ffmpeg'; }
     function Capturing() { return 'Always'; }
     function commandFieldChangesNotAllowed($v) { return array(); }

@@ -17,9 +17,18 @@
 
 #include "zm_catch2.h"
 #include "zm_ffmpeg_input.h"
+#include "zm_signal.h"
 
+#include <arpa/inet.h>
+#include <chrono>
+#include <csignal>
 #include <filesystem>
+#include <netinet/in.h>
 #include <string>
+#include <sys/socket.h>
+#include <sys/wait.h>
+#include <thread>
+#include <unistd.h>
 
 namespace {
 
@@ -158,4 +167,48 @@ TEST_CASE("FFmpeg_Input: sequential decode returns every frame before EOF", "[ff
   REQUIRE(max_pts == 29696);
   REQUIRE(input.get_frame(video_stream_id) == nullptr);
   input.Close();
+}
+
+// A server that accepts the connection and never answers (a camera that is up
+// but wedged) left Open() waiting for good, so zmc could not be stopped while
+// it primed a secondary stream.
+TEST_CASE("FFmpeg_Input: Open returns when terminated while the server is silent", "[ffmpeg]") {
+  int listener = socket(AF_INET, SOCK_STREAM, 0);
+  REQUIRE(listener >= 0);
+  sockaddr_in addr = {};
+  addr.sin_family = AF_INET;
+  addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  REQUIRE(bind(listener, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)) == 0);
+  REQUIRE(listen(listener, 1) == 0);
+  socklen_t addr_len = sizeof(addr);
+  REQUIRE(getsockname(listener, reinterpret_cast<sockaddr *>(&addr), &addr_len) == 0);
+  const std::string url = "rtsp://127.0.0.1:" + std::to_string(ntohs(addr.sin_port)) + "/silent";
+
+  pid_t child = fork();
+  REQUIRE(child >= 0);
+  if (child == 0) {
+    alarm(30);
+    zmSetDefaultTermHandler();
+    FFmpeg_Input input;
+    _exit(input.Open(url.c_str()) < 0 ? 0 : 1);
+  }
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  kill(child, SIGTERM);
+
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  int status = 0;
+  pid_t done = 0;
+  while ((done = waitpid(child, &status, WNOHANG)) == 0 and std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+  }
+  if (done == 0) {
+    kill(child, SIGKILL);
+    waitpid(child, &status, 0);
+  }
+  close(listener);
+
+  CHECK(done == child);
+  CHECK(WIFEXITED(status));
+  CHECK(WEXITSTATUS(status) == 0);
 }

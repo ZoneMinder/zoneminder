@@ -42,7 +42,10 @@ function cycleStart() {
   // is unrecoverable once overwritten. refs #5135
   clearInterval(intervalId);
   cycleSetPaused(false);
-  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  // A refresh time of 0 means off.
+  if (cycleRefreshTimeout > 0) {
+    intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  }
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
 }
@@ -79,7 +82,8 @@ function initCycle() {
   if (cycleIsPaused()) {
     pauseBtn.prop('disabled', true);
     playBtn.prop('disabled', false);
-  } else {
+  } else if (cycleRefreshTimeout > 0) {
+    // A refresh time of 0 means off.
     intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
   }
   monitor = new MonitorStream(monitorData[monIdx]);

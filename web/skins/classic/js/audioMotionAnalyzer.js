@@ -287,7 +287,6 @@ export class _AudioMotionAnalyzer extends HTMLElement {
   controlMediaStream = function() {
     const monitorStream = getMonitorStream(this.mid);
     if (!monitorStream.mediaStream) return;
-    const volumeControls = document.querySelector('[id ^= "volumeControls'+this.mid+'"]');
 
     if (monitorStream.videoTrack) {
       this.changeIconIsVideo('on');
@@ -297,11 +296,9 @@ export class _AudioMotionAnalyzer extends HTMLElement {
     if (monitorStream.audioTrack) {
       this.changeIconIsAudio('on');
       this.show();
-      if (volumeControls) volumeControls.classList.remove('disabled');
     } else {
       this.changeIconIsAudio('off');
       this.hide();
-      if (volumeControls) volumeControls.classList.add('disabled');
     }
   };
 

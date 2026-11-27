@@ -91,6 +91,8 @@ AutoMove
 AutoMoveTo
 AutoCopy
 AutoCopyTo
+AutoTag
+AutoTagId
 UpdateDiskSpace
 UserId
 Background
@@ -552,7 +554,7 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
-    if ( ($filter_expr->{sort_field} || '') eq 'MonitorName' ) {
+    if ( ($filter_expr->{sort_field} || '') =~ /(?:^|,)\s*MonitorName\b/ ) {
       $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
       $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
     }
@@ -589,6 +591,10 @@ sub Sql {
     }
     if ( $self->{AutoExecute} ) {
       push @auto_terms, 'E.Executed = 0';
+    }
+    # The tag id goes into the SQL, so only ever as digits
+    if ( $self->{AutoTag} and ($self->{AutoTagId} // '') =~ /^\s*([1-9]\d*)\s*$/ ) {
+      push @auto_terms, 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$1.')';
     }
     if ( @auto_terms ) {
       $sql .= ($has_where ? ' AND' : ' WHERE').' ( '.join(' or ', @auto_terms).' )';
@@ -639,8 +645,32 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
         # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
         $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
-      } elsif ( $filter_expr->{sort_field} =~ /^\w+$/ ) {
-        $sort_column = 'E.'.$filter_expr->{sort_field};
+      } else {
+        # sort_field may be a comma separated list of parts, each
+        # '<Column> [IS [NOT] NULL] [ASC|DESC]' (web/includes/Filter.php
+        # SORT_PART_RE).  Prefix every part's column with E. and keep the
+        # rest of the part, so 'EndDateTime IS NOT NULL, EndDateTime'
+        # becomes 'E.EndDateTime IS NOT NULL, E.EndDateTime'.
+        my @sort_parts = split /,/, $filter_expr->{sort_field}, -1;
+        my @sort_columns;
+        my $sort_valid = 1;
+        foreach my $sort_part ( @sort_parts ) {
+          $sort_part =~ s/^\s+|\s+$//g;
+          if ( $sort_part !~ /^([A-Za-z]\w*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?$/i ) {
+            $sort_valid = 0;
+            last;
+          }
+          my ($sort_name, $sort_rest) = $sort_part =~ /^(\w+)(.*)$/;
+          my %sort_column_map = (
+            MonitorName => 'M.Name',
+            Tags => '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))',
+            StartTime => 'E.StartDateTime',
+            EndTime => 'E.EndDateTime',
+            Secs => 'E.Length',
+          );
+          push @sort_columns, ($sort_column_map{$sort_name} || 'E.'.$sort_name).$sort_rest;
+        }
+        $sort_column = join(', ', @sort_columns) if $sort_valid;
       }
     }
     #$sql .= ' GROUP BY E.Id ';

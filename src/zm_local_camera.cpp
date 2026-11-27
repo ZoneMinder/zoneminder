@@ -1419,9 +1419,10 @@ int LocalCamera::PreCapture() {
 
 int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // We assume that the avpacket is allocated, and just needs to be filled
+  // Static: a camera sharing the channel reuses the last capture below.
   static uint8_t* buffer = nullptr;
-  int buffer_bytesused = 0;
-  int capture_frame = -1;
+  static int buffer_bytesused = 0;
+  static int capture_frame = -1;
 
   int captures_per_frame = 1;
   if (channel_count > 1)
@@ -1526,7 +1527,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
                            tmpPicture->linesize, directbuffer,
                            imagePixFormat, width, height, 1);
 
-      sws_scale(
+      if (sws_scale(
         imgConversionContext,
         capturePictures[capture_frame]->data,
         capturePictures[capture_frame]->linesize,
@@ -1534,7 +1535,10 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         height,
         tmpPicture->data,
         tmpPicture->linesize
-      );
+      ) < 0) {
+        Error("Unable to convert the captured image with sws_scale");
+        return -1;
+      }
     } else if (conversion_type == 2) {
       Debug(9, "Calling the conversion function");
       /* Call the image conversion function and convert directly into the shared memory */

@@ -102,7 +102,8 @@ function processRows(rows) {
         '<br/><div class="small text-muted">' + archived + emailed + '</div>';
     if ( typeof canView !== 'undefined' && canView.Events ) row.Monitor = '<a href="?view=event&amp;eid=' + eid + '">' + row.Monitor + '</a>';
     const notes = row.Notes || '';
-    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notes + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
+    const notesTitle = notes.replace(/<br\s*\/?>/gi, '\n');
+    if ( canEdit.Events ) row.Cause = '<a href="#" title="' + notesTitle + '" class="eDetailLink" data-eid="' + eid + '">' + row.Cause + '</a>';
     if ( notes.indexOf('detected:') >= 0 ) {
       row.Cause = row.Cause + '<a href="#" class="objDetectLink" data-eid=' +eid+ '><div class="small text-muted"><u>' + notes + '</u></div></div></a>';
     } else if ( notes && notes != 'Forced Web: ' ) {
@@ -363,6 +364,25 @@ function initPage() {
 
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
+
+  // Double-clicking a row opens the event, using the same URL as its Id/Name
+  // link. Controls inside the row keep their own click behaviour.
+  // bootstrap-table triggers dbl-click-row on the table element, so that event
+  // does not say what was clicked. This capture listener runs before the
+  // table's own cell handlers and notes whether the real target was a control.
+  let dblClickOnControl = false;
+  table[0].addEventListener('dblclick', function(evt) {
+    const target = evt.target;
+    dblClickOnControl = !!(target && target.closest &&
+      target.closest('a, button, input, select, textarea, label'));
+  }, true);
+  table.on('dbl-click-row.bs.table', function(evt, row) {
+    if (dblClickOnControl) return;
+    // row.Id holds the Id link's markup; only its number goes into the URL.
+    const eid = parseInt(strip_html(row.Id), 10);
+    if (!eid) return;
+    window.location.assign('?view=event&eid=' + eid + filterQuery + sortQuery + '&page=1');
+  });
 
   // Hide these columns on first run when no cookie is saved
   if (!getCookie('zmEventsTable.bs.table.hiddenColumns')) {

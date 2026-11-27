@@ -384,7 +384,11 @@ class FilterTerm {
       return 'weekday(E.EndDateTime)';
     case 'Notes':
     case 'Emailed':
+    case 'Executed':
     case 'Id':
+    case 'Messaged':
+    case 'Uploaded':
+    case 'Videoed':
     case 'Name':
     case 'DiskSpace':
     case 'MonitorId':
@@ -623,7 +627,7 @@ class FilterTerm {
     # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars((string)$this->val).'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -713,6 +717,10 @@ class FilterTerm {
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
+      'Executed',
+      'Messaged',
+      'Uploaded',
+      'Videoed',
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
@@ -787,6 +795,11 @@ class FilterTerm {
       break;
     case 'Id' :
     case 'Archived' :
+    case 'Emailed' :
+    case 'Executed' :
+    case 'Messaged' :
+    case 'Uploaded' :
+    case 'Videoed' :
     case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :

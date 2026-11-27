@@ -6,7 +6,7 @@
 //
 // Includes the real action file with the web helpers stubbed.
 //
-// Run as: php tests/php/test_snapshot_create_requires_monitor_edit.php <repo root>
+// Run as: php tests/php/test_snapshot_create_requires_monitor_edit.php [repo root]
 
 
 namespace ZM {
@@ -37,8 +37,8 @@ namespace ZM {
 }
 
 namespace {
-  if ($argc < 2) { fwrite(STDERR, "usage: php $argv[0] <repo root>\n"); exit(2); }
-  $GLOBALS['webdir'] = rtrim($argv[1], '/').'/web';
+  $root = isset($argv[1]) ? $argv[1] : dirname(__DIR__, 2);
+  $GLOBALS['webdir'] = rtrim($root, '/').'/web';
   $stubdir = sys_get_temp_dir().'/zm_snapshot_create_stubs_'.getmypid();
   @mkdir($stubdir.'/includes', 0700, true);
   file_put_contents($stubdir.'/includes/Snapshot.php', "<?php\n");

@@ -248,6 +248,7 @@ echo getNavBarHTML();
       </div>
       <div class="float-right pr-3 pt-1">
         <button type="button" id="saveBtn" value="Save" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"<?php if (!canEdit('Monitors') || (false && $selfIntersecting)) { ?> disabled="disabled"<?php } ?>><i class="fa fa-save"></i></button>
+        <button type="button" id="undoBtn" value="Undo" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Undo') ?>" disabled="disabled"><i class="fa fa-reply"></i></button>
         <button type="button" id="resetBtn" value="Reset" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Reset') ?>" disabled="disabled"><i class="fa fa-undo"></i></button>
         <button type="button" id="cancelBtn" value="Cancel" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Cancel') ?>"><i class="fa fa-times"></i></button>
       </div>
@@ -283,7 +284,10 @@ if ( $zone['Id'] ) {
 if ( count($other_zones) ) {
   $html = '';
   foreach ( $other_zones as $other_zone ) {
-    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', $other_zone['Coords']);
+    # Percent coordinates are always written with decimals; without any they are pixels
+    $otherPoints = coordsToPoints($other_zone['Coords']) ?: array();
+    convertPixelPointsToPercent($otherPoints, $monitor->ViewWidth(), $monitor->ViewHeight(), strpos($other_zone['Coords'], '.') === false);
+    $other_zone['AreaCoords'] = preg_replace('/\s+/', ',', pointsToCoords($otherPoints));
     $html .= '<polygon id="zonePoly'.$other_zone['Id'].'" points="'. $other_zone['AreaCoords'] .'" class="'. $other_zone['Type'] .'"/>';
   }
   echo $html;
@@ -456,8 +460,8 @@ if ( count($other_zones) ) {
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
-									<td><input type="number" name="newZone[FilterX]" value="<?php echo $zone['FilterX'] ?>" min="0"/></td>
-									<td><input type="number" name="newZone[FilterY]" value="<?php echo $zone['FilterY'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterX]" max="255" value="<?php echo $zone['FilterX'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterY]" max="255" value="<?php echo $zone['FilterY'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneArea') ?></th>
@@ -481,16 +485,16 @@ if ( count($other_zones) ) {
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
-									<td><input type="number" name="newZone[MinBlobs]" value="<?php echo $zone['MinBlobs'] ?>" min="0"/></td>
-									<td><input type="number" name="newZone[MaxBlobs]" value="<?php echo $zone['MaxBlobs'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[MinBlobs]" max="65535" value="<?php echo $zone['MinBlobs'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[MaxBlobs]" max="65535" value="<?php echo $zone['MaxBlobs'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" value="<?php echo $zone['OverloadFrames'] ?>" min="0"/></td>
+									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" max="65535" value="<?php echo $zone['OverloadFrames'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" value="<?php echo $zone['ExtendAlarmFrames'] ?>" min="0"/></td>
+									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" max="65535" value="<?php echo $zone['ExtendAlarmFrames'] ?>" min="0"/></td>
 								</tr>
 							</tbody>
 						</table>

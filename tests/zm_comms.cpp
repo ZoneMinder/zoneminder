@@ -431,6 +431,44 @@ TEST_CASE("ZM::TcpInetClient/Server send/recv", "[notCI]") {
   }
 }
 
+TEST_CASE("ZM::Select deleteReader") {
+  zm::Pipe pipe_a;
+  zm::Pipe pipe_b;
+
+  REQUIRE(pipe_a.open() == true);
+  REQUIRE(pipe_b.open() == true);
+
+  zm::Select select;
+  select.setTimeout(Microseconds(1000000));
+  REQUIRE(select.addReader(&pipe_a) == true);
+  REQUIRE(select.addReader(&pipe_b) == true);
+
+  const char byte = 'x';
+  REQUIRE(pipe_b.write(&byte, 1) == 1);
+
+  SECTION("delete closed reader") {
+    REQUIRE(pipe_a.close() == true);
+    REQUIRE(pipe_a.isOpen() == false);
+    REQUIRE(pipe_a.getReadDesc() == -1);
+
+    REQUIRE(select.deleteReader(&pipe_a) == true);
+
+    REQUIRE(select.wait() == 1);
+
+    const zm::Select::CommsList &readable = select.getReadable();
+    REQUIRE(readable.size() == 1);
+    REQUIRE(readable[0] == &pipe_b);
+
+    SECTION("delete open reader with highest fd") {
+      REQUIRE(pipe_a.getReadDesc() == -1);
+      REQUIRE(select.deleteReader(&pipe_b) == true);
+
+      REQUIRE(select.wait() == 0);
+      REQUIRE(select.getReadable().empty());
+    }
+  }
+}
+
 // accept() on a listener whose queue is empty must fail without tearing the
 // listener down: a non-blocking descriptor makes ::accept() return EAGAIN,
 // which is one of the transient errors that leave the socket usable.

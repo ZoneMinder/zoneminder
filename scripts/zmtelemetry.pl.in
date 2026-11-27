@@ -331,8 +331,12 @@ sub getMonitorRef {
   # Sanitize Path
   foreach my $monitor (@{$arrayref}) {
     next if $$monitor{Type} eq 'Local';
+    next if !defined($$monitor{Path}) or $$monitor{Path} eq '';
     my $uri = URI->new($$monitor{Path});
-    $uri->authority('username:password@host');
+    $uri->authority('username:password@host') if $uri->scheme();
+    # Cameras often take credentials in the query string, so don't send it.
+    $uri->query(undef);
+    $uri->fragment(undef);
     $$monitor{Path} = $uri->as_string();
   }
 

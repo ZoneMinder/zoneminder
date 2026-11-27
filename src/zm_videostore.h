@@ -25,6 +25,18 @@ class Monitor;
 class ZMPacket;
 class PacketQueue;
 
+// What finalize() should do with the interleaved flush and the container
+// trailer, decided after flush_codecs() has drained the encoder (so
+// packets_written already counts any frames the flush produced). It must not
+// write the trailer when a packet write has already failed (the muxer state can
+// be inconsistent and av_write_trailer can trigger an internal ffmpeg abort),
+// nor when no packet ever reached the muxer (the fragmented-MP4 muxer aborts
+// writing a trailer over an empty fragment list, which short-lived events on
+// hardware encoders hit). A prior failure takes priority over the empty case
+// for the message shown.
+enum class VideoStoreFinalizeAction { kWriteTrailer, kSkipWriteFailed, kSkipNoPackets };
+VideoStoreFinalizeAction videostore_finalize_action(bool write_packet_failed, unsigned int packets_written);
+
 class VideoStore {
  public:
   struct Fragment {
@@ -64,6 +76,9 @@ class VideoStore {
   unsigned int packets_written;
   unsigned int frame_count;
   int packet_write_failures;
+  // Sticky: once av_interleaved_write_frame fails the muxer state may be
+  // inconsistent, so further writes and the trailer are skipped.
+  bool write_packet_failed_;
   bool video_encoded;  // true once at least one frame has been sent to the video encoder
   // Set in open() when the monitor asked for ENCODE but no encoder would
   // open. We then copy the input stream and write its packets unchanged,

@@ -249,3 +249,53 @@ TEST_CASE("VideoStore audio transcode: packets longer than one AAC frame lose no
     if (p.stream == 1) audio++;
   CHECK(audio * 1024 >= 20000);
 }
+
+// finalize() must not flush the codecs and write the container trailer after a
+// write has failed (the muxer state can be inconsistent and av_write_trailer
+// can abort), nor when no packet ever reached the muxer (the fragmented-MP4
+// muxer aborts on an empty fragment list, which short-lived events on hardware
+// encoders hit). A prior failure takes priority over the empty case.
+TEST_CASE("videostore_finalize_action", "[videostore]") {
+  SECTION("writes the trailer when packets were written and none failed") {
+    REQUIRE(videostore_finalize_action(false, 5) == VideoStoreFinalizeAction::kWriteTrailer);
+  }
+  SECTION("skips on a prior write failure") {
+    REQUIRE(videostore_finalize_action(true, 5) == VideoStoreFinalizeAction::kSkipWriteFailed);
+  }
+  SECTION("skips when no packet ever reached the muxer") {
+    REQUIRE(videostore_finalize_action(false, 0) == VideoStoreFinalizeAction::kSkipNoPackets);
+  }
+  SECTION("a prior failure takes priority over the empty case") {
+    REQUIRE(videostore_finalize_action(true, 0) == VideoStoreFinalizeAction::kSkipWriteFailed);
+  }
+}
+
+// finalize() must drain the encoder before it decides on the trailer. Feed one
+// audio packet shorter than a single AAC frame (1024 samples) and no video, so
+// the AAC encoder holds every sample and nothing is written during the session
+// — packets_written is 0 right up until finalize() calls flush_codecs(). If the
+// no-packets decision were made before the flush (the bug), the buffered tail
+// would be dropped and the file would come back empty. After the fix the flush
+// produces the frame, the trailer is written, and the sample survives.
+TEST_CASE("VideoStore transcode: a tail shorter than one encoder frame is flushed, not dropped",
+          "[VideoStore][write]") {
+  EnsureConfig();
+  TempDir dir;
+  const std::string file = (dir.path / "out.mp4").string();
+  PassthroughMonitor mon;
+  InputFormat in;
+  AVStream *vs = in.NewVideo({1, 90000});
+  AVStream *as = in.NewMuLaw();
+  {
+    VideoStore store(file.c_str(), "mp4", vs, nullptr, as, &mon);
+    REQUIRE(store.open());
+    // 500 mu-law samples: fewer than one 1024-sample AAC frame, so the encoder
+    // buffers them and emits nothing until the flush in finalize().
+    store.writePacket(MakePacket(as, AVMEDIA_TYPE_AUDIO, 0, 0, 500, true, 500));
+    store.finalize();
+  }
+  size_t audio = 0;
+  for (const auto &p : ReadBack(file))
+    if (p.stream == 1) audio++;
+  CHECK(audio >= 1);
+}

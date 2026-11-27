@@ -914,10 +914,10 @@ if ( $version ) {
 
     my $columns = $sth->{NAME};
     if ( ! grep(/^Colours$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
+      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     if ( ! grep(/^Deinterlacing$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;});
+      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     $sth->finish();
 

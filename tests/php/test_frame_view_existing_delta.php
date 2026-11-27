@@ -23,6 +23,7 @@ namespace ZM {
     public $virtualCalls = array();
     public $imageSrcResult = null;
     public function __construct($eid) {}
+    public function Width() { return 1920; }
     public function find_virtual_frame($fid) {
       $this->virtualCalls[] = $fid;
       return new VirtualFrame(4.5);
@@ -49,6 +50,7 @@ namespace {
     $failures++;
     echo "  FAIL $name\n    warnings: ".var_export($warnings, true)."\n";
   }
+  define('SCALE_BASE', 100);
   function translate($s) { return $s; }
   function validInt($v) { return (int)$v; }
   function validNum($v) { return (float)$v; }
@@ -90,6 +92,7 @@ namespace {
     $stubRow = $dbResult;
     $eid = 7;
     $scale = 0;
+    $scales = array('0'=>'Auto', '100'=>'Actual', 'fit_to_width'=>'Fit', '480px'=>'480');
     $Event = new \ZM\Event($eid);
     $Event->imageSrcResult = $imageSrcResult;
     $Monitor = new class { public function Id() { return 1; } public function DefaultScale() { return 100; } };

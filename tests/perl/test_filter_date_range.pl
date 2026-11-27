@@ -13,6 +13,17 @@ use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
 
 use ZoneMinder::Filter;
 
+{
+  no warnings qw(redefine once);
+  # sql_quote asks the database handle to quote; there is none here.
+  *ZoneMinder::Filter::sql_quote = sub {
+    my $v = shift;
+    return q(NULL) if !defined $v;
+    $v =~ s/'/''/g;
+    return "'$v'";
+  };
+}
+
 my $failures = 0;
 my $passes = 0;
 
@@ -134,6 +145,20 @@ sub assert_sql_matches {
     $sql, qr/E\.StartDateTime\s*>=\s*CURDATE\(\)/, 1);
   assert_sql_matches('Date = CURDATE() uses interval upper bound',
     $sql, qr/E\.StartDateTime\s*<\s*CURDATE\(\)\s*\+\s*INTERVAL\s+1\s+DAY/i, 1);
+}
+
+# === Date attr, NOW() means today, as to_days(NOW()) did ===
+{
+  my $f = make_filter(q([{"attr":"Date","op":"=","val":"NOW()"}]));
+  my $sql = $f->Sql();
+  assert_sql_matches('Date = NOW() lower bound is CURDATE()',
+    $sql, qr/E\.StartDateTime\s*>=\s*CURDATE\(\)/, 1);
+  assert_sql_matches('Date = NOW() upper bound is CURDATE() + 1 day',
+    $sql, qr/E\.StartDateTime\s*<\s*CURDATE\(\)\s*\+\s*INTERVAL\s+1\s+DAY/i, 1);
+  $f = make_filter(q([{"attr":"Date","op":"<","val":"now()"}]));
+  $sql = $f->Sql();
+  assert_sql_matches('Date < now() is before today',
+    $sql, qr/E\.StartDateTime\s*<\s*CURDATE\(\)/, 1);
 }
 
 # === Sanity: DateTime (non-date attr) is unchanged ===

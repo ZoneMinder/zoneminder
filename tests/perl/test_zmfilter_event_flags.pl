@@ -1,7 +1,8 @@
 #!/usr/bin/perl
 #
 # Flags and DiskSpace that zmfilter.pl's actions store must survive a later
-# full save of the same event, and an event deleted meanwhile must stay deleted.
+# full save of the same event, columns zmc changes while a filter works on the
+# event must not be put back, and an event deleted meanwhile must stay deleted.
 #
 # Run as: perl tests/perl/test_zmfilter_event_flags.pl
 #
@@ -9,6 +10,7 @@ use strict;
 use warnings;
 use FindBin;
 use File::Temp qw(tempdir);
+use File::Basename;
 
 BEGIN {
   $INC{$_} = 1 for qw(MIME/Lite.pm Net/SMTP.pm Net/FTP.pm Archive/Tar.pm);
@@ -59,7 +61,7 @@ sub load {
 sub save {
   my ($self, $data) = @_;
   @$self{keys %$data} = values %$data if $data;
-  my %row = map { $_ => $$self{$_} } qw(Archived Videoed Uploaded Emailed Messaged Executed DiskSpace);
+  my %row = map { $_ => $$self{$_} } grep { $_ ne 'Id' } keys %$self;
   if (!$$self{Id}) {
     $$self{Id} = 1 + (sort { $b <=> $a } 0, keys %main::rows)[0];
     $main::rows{$$self{Id}} = { %row, Id => $$self{Id} };
@@ -99,10 +101,12 @@ our %Config = (
 our $dbh = bless {}, 'FakeDbh';
 our $zm_terminate = 0;
 our $delete_during_video = 0;
+our $close_during_video = 0;
 our $video_exists = 0;
 our $video_fails = 0;
 sub Debug {} sub Info {} sub Warning {} sub Error {} sub Fatal { die @_ }
 sub logDebugging { 0 }
+sub commandIsAllowed { 1 }
 sub make_path {}
 sub zmDbConnect { return $dbh; }
 our $ev_tag = 0;
@@ -129,6 +133,12 @@ sub zmDbFetchOne {
 BEGIN {
   *CORE::GLOBAL::readpipe = sub {
     my $command = shift;
+    # An AutoExecuteCmd, run with the event's path
+    if ($command =~ /^(zmtest-\w+) /) {
+      delete $main::rows{1} if $1 eq 'zmtest-delete';
+      $? = 0;
+      return '';
+    }
     die "unexpected command $command" if $command !~ /zmvideo\.pl/;
     if ($main::video_fails) { $? = 1 << 8; return ''; }
     # An existing video is left alone and DiskSpace is not stored
@@ -137,6 +147,8 @@ BEGIN {
       $main::rows{1}{DiskSpace} = 5000;
     }
     delete $main::rows{1} if $main::delete_during_video;
+    # zmc closes the event while its video is made
+    @{$main::rows{1}}{qw(EndDateTime Frames Length)} = ('2026-11-01 10:01:00', 600, 60) if $main::close_during_video;
     $? = 0;
     return "/nonexistent/1/video.mp4\n";
   };
@@ -146,7 +158,7 @@ my $file = "$FindBin::Bin/../../scripts/zmfilter.pl.in";
 open(my $fh, '<', $file) or die "Can't read $file: $!";
 my $src = do { local $/; <$fh> };
 close($fh);
-foreach my $name (qw(checkFilter checkFilterEvent generateVideo uploadArchFile sendEmail sendMessage sendSummaryEmail)) {
+foreach my $name (qw(checkFilter checkFilterEvent generateVideo uploadArchFile sendEmail sendMessage sendSummaryEmail executeCommand)) {
   my ($sub) = $src =~ /^(sub $name \{.*?^\}[^\n]*\n)/ms;
   die "sub $name not found in $file\n" if !$sub;
   eval "$sub; 1" or die "Can't compile $name: $@";
@@ -155,13 +167,15 @@ foreach my $name (qw(checkFilter checkFilterEvent generateVideo uploadArchFile s
 sub run_filter {
   my %filter = @_;
   $delete_during_video = delete $filter{delete_during_video} // 0;
+  $close_during_video = delete $filter{close_during_video} // 0;
   $video_exists = delete $filter{video_exists} // 0;
   $video_fails = delete $filter{video_fails} // 0;
   $ev_tag = delete $filter{ev_tag} // 0;
   local $Config{ZM_MESSAGE_ADDRESS} = '' if delete $filter{message_fails};
   $files_size = $video_exists ? 5000 : 10;
   %rows = (1 => { Id => 1, MonitorId => 1, DiskSpace => 1000, Archived => 0,
-    Videoed => 0, Uploaded => 0, Emailed => 0, Messaged => 0, Executed => 0 });
+    Videoed => 0, Uploaded => 0, Emailed => 0, Messaged => 0, Executed => 0,
+    EndDateTime => undef, Frames => 10, Length => undef });
   checkFilter(bless { Name => 'test', EmailTo => 'a@example.com', EmailFormat => 'Individual',
     EmailSubject => 'subject', EmailBody => "head\n%SUMMARY%event\n%SUMMARY%tail", %filter }, 'FakeFilter');
 }
@@ -197,6 +211,21 @@ check('summary email made the video, delete skipped, archived: Emailed is still 
 
 run_filter(AutoVideo => 1, AutoEmail => 1, delete_during_video => 1);
 check('event deleted while its video is made is not written back', join(',', sort keys %rows), '');
+
+run_filter(AutoVideo => 1, AutoEmail => 1, close_during_video => 1);
+check('event closed while its video is made: Emailed is set', $rows{1}{Emailed}, 1);
+check('event closed while its video is made: EndDateTime is kept', $rows{1}{EndDateTime}, '2026-11-01 10:01:00');
+check('event closed while its video is made: Frames is kept', $rows{1}{Frames}, 600);
+
+run_filter(AutoExecute => 1, AutoExecuteCmd => 'zmtest-ok', UpdateDiskSpace => 1);
+check('execute then disk space update: Executed is set', $rows{1}{Executed}, 1);
+check('execute then disk space update: DiskSpace is saved', $rows{1}{DiskSpace}, 10);
+
+run_filter(AutoExecute => 1, AutoExecuteCmd => 'zmtest-delete');
+check('event deleted by its command is not written back', join(',', sort keys %rows), '');
+
+run_filter(AutoExecute => 1, AutoExecuteCmd => 'zmtest-delete', UpdateDiskSpace => 1);
+check('event deleted by its command is not written back by the disk space update', join(',', sort keys %rows), '');
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

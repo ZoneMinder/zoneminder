@@ -31,24 +31,36 @@ class MonitorsController extends AppController {
   public function index() {
     $this->Monitor->recursive = 0;
 
-    if ($this->request->params['named']) {
-      $this->FilterComponent = $this->Components->load('Filter');
-      // The columns of Monitors and of the tables find() joins at recursive 0
-      // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
-      // below. Anything else would reach MySQL as an unknown column and come
-      // back as a 500.
-      $fields = array('Monitor' => array_keys($this->Monitor->schema()));
-      foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
-        $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
-      }
-      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], $fields, array('GroupId'));
-      $conditions = $this->FilterComponent->buildFilter($named);
-    } else {
-      $conditions = array();
+    $this->FilterComponent = $this->Components->load('Filter');
+    // The columns of Monitors and of the tables find() joins at recursive 0
+    // (hasOne, belongsTo), plus GroupId, served by the Groups_Monitors join
+    // below. Anything else would reach MySQL as an unknown column and come
+    // back as a 500.
+    $fields = array('Monitor' => array_keys($this->Monitor->schema()));
+    foreach (array_merge(array_keys($this->Monitor->hasOne), array_keys($this->Monitor->belongsTo)) as $alias) {
+      $fields[$alias] = array_keys($this->Monitor->{$alias}->schema());
     }
+    if ($this->request->params['named']) {
+      $filter_params = $this->request->params['named'];
+    } else {
+      // The query string filters like the equivalent named parameters, so
+      // /monitors.json?Enabled=1 is no longer ignored. The API client sends its
+      // credentials and transport keys alongside them; those are not fields.
+      $filter_params = $this->request->query;
+      foreach (array('token', 'auth', 'user', 'pass', 'username', 'password', 'stateful', 'url', 'ext') as $transport) {
+        unset($filter_params[$transport]);
+      }
+      // Keys that cannot be a field, such as a client's _=<time> cache buster,
+      // were always ignored here, so keep ignoring them.
+      foreach (array_keys($filter_params) as $key) {
+        if (!preg_match('/^[A-Za-z]/', (string)$key)) unset($filter_params[$key]);
+      }
+    }
+    $named = $this->FilterComponent->qualifyFields($filter_params, $fields, array('GroupId'));
+    $conditions = $this->FilterComponent->buildFilter($named);
 
     $filters_deleted = false;
-    foreach (array_keys($this->request->params['named']) as $attribute) {
+    foreach (array_keys($filter_params) as $attribute) {
       if (preg_match('/^(Monitor\.)?Deleted\b/i', trim($attribute))) $filters_deleted = true;
     }
     if (!$filters_deleted) {
@@ -206,12 +218,14 @@ class MonitorsController extends AppController {
       ))['Monitor']);
       if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite') {
         $saved->zmcControl('start');
+        $saved->zmtrackControl('start');
       }
       //return $this->flash(__('The monitor has been saved.'), array('action' => 'index'));
       $message = 'Saved';
       $id = $this->Monitor->id;
     } else {
       $message = 'Error';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if (!$this->Monitor->validates()) {
         $message = $this->Monitor->validationErrors;
@@ -257,6 +271,11 @@ class MonitorsController extends AppController {
       if ($this->Monitor->save($this->request->data)) {
         $message = 'Saved';
 
+        $savedRow = $this->Monitor->find('first', array(
+          'conditions' => array('Id' => $id)
+        ))['Monitor'];
+        $this->resizeZones($id, $monitor, $savedRow);
+
         // Restart the daemons the way the console's save does
         // (includes/actions/monitor.php): zmc, and the control server of a
         // controllable monitor, which otherwise keeps the ControlAddress,
@@ -269,16 +288,16 @@ class MonitorsController extends AppController {
             $zm_monitor->sendControlCommand('stop');
           }
         }
-        $saved = new ZM\Monitor($this->Monitor->find('first', array(
-          'conditions' => array('Id' => $id)
-        ))['Monitor']);
+        $saved = new ZM\Monitor($savedRow);
         if ($saved->Capturing() != 'None' and $saved->Type() != 'WebSite' and !$saved->Deleted()) {
           $saved->zmcControl('start');
           if ($saved->Controllable()) {
             $saved->sendControlCommand('start');
           }
+          $saved->zmtrackControl('start');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Monitor->invalidFields(), true);
       }
     } else {
@@ -291,6 +310,60 @@ class MonitorsController extends AppController {
     ));
 
   } // end function edit
+
+  // Keep a monitor's zones on the same part of the picture when its Width or Height change,
+  // as the console's save does (includes/actions/monitor.php): swap x and y when the size is
+  // rotated, rescale the pixel thresholds of a zone that is not in percent, and turn a legacy
+  // pixel zone (integer coordinates, which zmc reads as pixels of the old size) into percent.
+  private function resizeZones($id, $old, $new) {
+    $oldW = intval($old['Width']);
+    $oldH = intval($old['Height']);
+    $newW = intval($new['Width']);
+    $newH = intval($new['Height']);
+    if (($oldW == $newW and $oldH == $newH) or $oldW <= 0 or $oldH <= 0 or $newW <= 0 or $newH <= 0) return;
+    require_once __DIR__ .'/../../../includes/functions.php';
+    require_once __DIR__ .'/../../../includes/Zone.php';
+
+    $fields = array('MinAlarmPixels', 'MaxAlarmPixels', 'MinFilterPixels', 'MaxFilterPixels', 'MinBlobPixels', 'MaxBlobPixels');
+    $rotated = ($newW == $oldH and $newH == $oldW);
+    $oldA = $oldW * $oldH;
+    $newA = $newW * $newH;
+    foreach (ZM\Zone::find(array('MonitorId' => $id)) as $zone) {
+      $row = array('Coords' => $zone->Coords(), 'Units' => $zone->Units());
+      foreach ($fields as $field) $row[$field] = $zone->$field();
+      $current = array_merge($row, array('Area' => $zone->Area()));
+      $points = coordsToPoints($row['Coords']);
+      if (!$points or count($points) < 3) continue;
+
+      $changes = array();
+      $legacyPixels = strpos($row['Coords'], '.') === false;
+      if ($legacyPixels) {
+        convertPixelPointsToPercent($points, $oldW, $oldH, true);
+        convertZoneThresholdsToPercent($row, getPolyArea($points) / 10000.0 * $oldA, true);
+        foreach ($fields as $field) $changes[$field] = $row[$field];
+        $changes['Units'] = 'Percent';
+      } else if (!$rotated and $row['Units'] != 'Percent') {
+        foreach ($fields as $field) {
+          if ($row[$field] === null) continue;
+          $changes[$field] = intval(round(($row[$field]*$newA)/$oldA));
+        }
+      }
+      if ($rotated) {
+        foreach ($points as &$point) {
+          $x = $point['x'];
+          $point['x'] = $point['y'];
+          $point['y'] = $x;
+        }
+        unset($point);
+      }
+      if ($legacyPixels or $rotated) {
+        $changes['Coords'] = pointsToCoords($points);
+        $changes['Area'] = getPolyArea($points);
+      }
+      $changes = array_diff_assoc($changes, $current);
+      if (count($changes)) $zone->save($changes);
+    } # end foreach zone
+  } # end function resizeZones
 
 /**
  * delete method

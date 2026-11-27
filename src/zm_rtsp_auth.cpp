@@ -21,14 +21,27 @@
 #include "zm_crypt.h"
 #include "zm_logger.h"
 #include "zm_utils.h"
+#include <algorithm>
+#include <cstdio>
 #include <cstring>
+#include <random>
 #include <utility>
 
 namespace zm {
 
+namespace {
+// A fixed cnonce lets a server or an on-path attacker precompute Digest responses.
+std::string MakeCnonce() {
+  std::random_device rd;
+  char buf[9];
+  snprintf(buf, sizeof(buf), "%08x", static_cast<unsigned int>(rd()));
+  return std::string(buf);
+}
+}  // namespace
+
 Authenticator::Authenticator(const std::string &username, const std::string &password)
   : fAuthMethod(AUTH_UNDEFINED),
-    fCnonce("0a4f113b"),
+    fCnonce(MakeCnonce()),
     fUsername(std::move(username)),
     fPassword(std::move(password)),
     nc(1) {}
@@ -62,6 +75,8 @@ void Authenticator::authHandleHeader(const std::string &headerData) {
     // A new challenge starts a new nonce, so the nonce count starts again.
     nc = 1;
     fOpaque.clear();
+    // A challenge without a usable qop must not inherit the previous one.
+    fQop.clear();
     // Split on commas that are not inside a quoted value.
     StringVector subparts;
     std::string current;
@@ -188,6 +203,11 @@ void Authenticator::checkAuthResponse(const std::string &response) {
   const char* authenticate_match = "WWW-Authenticate:";
   size_t authenticate_match_len = strlen(authenticate_match);
 
+  // A camera may offer Basic and Digest on separate lines in either order,
+  // and several Digest lines for different algorithms. Prefer Digest over
+  // Basic, and among Digest challenges the MD5 one (or one with no algorithm),
+  // since MD5 is the only digest computed here. Otherwise keep the last line.
+  std::string firstDigest;
   for ( size_t i = 0; i < lines.size(); i++ ) {
     // stop at end of headers
     if ( lines[i].length() == 0 )
@@ -196,9 +216,28 @@ void Authenticator::checkAuthResponse(const std::string &response) {
     if ( strncasecmp(lines[i].c_str(), authenticate_match, authenticate_match_len) == 0 ) {
       authLine = lines[i];
       Debug(2, "Found auth line at %zu:", i);
-      //break;
+      size_t value_start = lines[i].find_first_not_of(" \t", authenticate_match_len);
+      if ( value_start == std::string::npos ||
+           strncasecmp(lines[i].c_str() + value_start, "Digest ", 7) != 0 )
+        continue;
+      std::string lower = lines[i];
+      std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+      size_t alg = lower.find("algorithm=");
+      if ( alg == std::string::npos ) {
+        firstDigest = lines[i];
+        break;
+      }
+      size_t alg_value = alg + strlen("algorithm=");
+      if ( alg_value < lower.size() && lower[alg_value] == '"' ) alg_value++;
+      if ( lower.compare(alg_value, 3, "md5") == 0 &&
+           (alg_value + 3 >= lower.size() || lower[alg_value + 3] != '-') ) {
+        firstDigest = lines[i];
+        break;
+      }
+      if ( firstDigest.empty() ) firstDigest = lines[i];
     }
   }
+  if ( !firstDigest.empty() ) authLine = firstDigest;
   if ( !authLine.empty() ) {
     Debug(2, "Analyze auth line %s", authLine.c_str());
     authHandleHeader(TrimSpaces(authLine.substr(authenticate_match_len, authLine.length() - authenticate_match_len)));

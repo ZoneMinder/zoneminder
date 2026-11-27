@@ -106,3 +106,10 @@ TEST_CASE("Monitor::EventCauseForOpen keeps the alarm cause on a no-score packet
   REQUIRE(Monitor::EventCauseForOpen("", "", Monitor::ALARM) == "Continuous");
   REQUIRE(Monitor::EventCauseForOpen("Signal: Reacquired", "Motion: Z1", Monitor::ALARM) == "Signal: Reacquired");
 }
+
+// After signal loss the reference image is stale. It must be re-seeded on
+// reacquire for every recording mode that analyses, not only Record.
+TEST_CASE("Monitor::ReacquireNeedsRefReset follows analysing, not recording", "[Monitor][analyse]") {
+  REQUIRE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_ALWAYS));
+  REQUIRE_FALSE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_NONE));
+}

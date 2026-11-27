@@ -394,10 +394,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 
@@ -518,10 +518,10 @@ class Event extends ZM_Object {
         // instead of iterating all users to validate the auth hash
         if (!empty($_SESSION['username'])) $args['user'] = $_SESSION['username'];
       } else if ( ZM_AUTH_RELAY == 'plain' ) {
-        $args['user'] = $_SESSION['username'];
-        $args['pass'] = $_SESSION['password'];
+        $args['user'] = $_SESSION['username'] ?? '';
+        $args['pass'] = $_SESSION['password'] ?? '';
       } else if ( ZM_AUTH_RELAY == 'none' ) {
-        $args['user'] = $_SESSION['username'];
+        $args['user'] = $_SESSION['username'] ?? '';
       }
     }
 
@@ -601,10 +601,7 @@ class Event extends ZM_Object {
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
-      if ( version_compare(phpversion(), '4.3.10', '>=') )
-        $fraction = sprintf('%.3F', $scale/SCALE_BASE);
-      else
-        $fraction = sprintf('%.3f', $scale/SCALE_BASE);
+      $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
       $thumbCapturePath = preg_replace('/\.jpg$/', "-$scale.jpg", $capturePath);
@@ -657,7 +654,7 @@ class Event extends ZM_Object {
   }
 
   public function file_exists() {
-    if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return true;
     }
     if ( !defined('ZM_SERVER_ID') ) {
@@ -697,7 +694,7 @@ class Event extends ZM_Object {
   } # end public function file_exists()
 
   public function file_size() {
-    if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
     }
     if ( !defined('ZM_SERVER_ID') ) {
@@ -874,7 +871,7 @@ class Event extends ZM_Object {
     // Where the video and its log are written; the events' own storage unless a directory is given.
     $out_path = $output_dir !== '' ? $output_dir : $event_path;
     // Name is user editable; keep the output file inside the event directory.
-    $video_name = preg_replace('/^\./', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
+    $video_name = preg_replace('/^[-.]/', '_', preg_replace('/[^-A-Za-z0-9_.]/', '_', $this->Name()));
 
     $file_parts = [$video_name];
     if ( $rate ) {

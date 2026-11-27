@@ -86,6 +86,11 @@ if (!visibleMonitor($mid)) {
 }
 
 $monitor = new ZM\Monitor($mid);
+if ($mid and !$monitor->Id()) {
+  // A stale link to a monitor that does not exist
+  $view = 'error';
+  return;
+}
 
 # cycle is wether to do the countdown/move to next monitor bit.
 # showCycle is whether to show the cycle controls.
@@ -133,6 +138,15 @@ if ($hasPtzControls) {
   }
 }
 
+$showZones = false;
+if (isset($_REQUEST['showZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmWatchShowZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'] = $_COOKIE['zmWatchShowZones'] == 1;
+} else if (isset($_SESSION['zmWatchShowZones'])) {
+  $showZones = $_SESSION['zmWatchShowZones'];
+}
+
 $options = array();
 if (0) {
 if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode']=='stream')) {
@@ -144,6 +158,10 @@ if (!empty($_REQUEST['mode']) and ($_REQUEST['mode']=='still' or $_REQUEST['mode
 }
 }
 $options['mode'] = 'single';
+
+# Always emit the zone overlays so the toggle can show/hide them without a page
+# reload; #monitor.hide-zones keeps them hidden until asked for.
+$options['zones'] = canView('System');
 
 if (!empty($_REQUEST['maxfps']) and validNum($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validNum($_REQUEST['maxfps']);
@@ -268,6 +286,11 @@ echo getNavBarHTML() ?>
             <span class="material-icons md-18">switch_video</span>
         </button>
 -->
+<?php if (canView('System')) { ?>
+        <button type="button" id="toggleZonesButton" class="btn btn-<?php echo $showZones ? 'normal' : 'secondary' ?>" title="<?php echo translate(($showZones ? 'Hide' : 'Show').' Zones') ?>">
+            <span class="material-icons md-18"><?php echo $showZones ? 'layers_clear' : 'layers' ?></span>
+        </button>
+<?php } ?>
         <button type="button" id="cycleToggle" class="btn <?php echo $showCycle ? 'btn-primary':'btn-secondary'?>" title="<?php echo translate('Toggle cycle sidebar')?>">
             <span class="material-icons md-18">view_carousel</span>
         </button>
@@ -433,7 +456,7 @@ echo htmlSelect('cyclePeriod', $cyclePeriodOptions, $period, array('id'=>'cycleP
           </ul>
         </nav>
         <div id="wrapperMonitor" class="container-fluid col">
-          <div id="monitor" class="monitor hidden-shift"
+          <div id="monitor" class="monitor hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>"
 >
 <?php 
 echo $monitor->getStreamHTML($options);
@@ -475,8 +498,10 @@ echo $monitor->getStreamHTML($options);
             <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
             <i class="material-icons md-18">fullscreen</i>
             </button>
+<?php if (canView('Events')) { ?>
             <button type="button" id="allEventsBtn" title="<?php echo translate('All Events') ?>" class="avail" data-on-click="watchAllEvents"><?php echo translate('All Events') ?>
             </button>
+<?php } ?>
 <?php 
 $volume = isset($_REQUEST['volume']) ? validInt($_REQUEST['volume']) :
   (isset($_COOKIE['zmWatchVolume']) ? validInt($_COOKIE['zmWatchVolume']) : 50);
@@ -505,10 +530,11 @@ if ( $hasPtzControls ) {
 
 <!-- START table Events -->
 <?php
-if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
+// Always rendered so that moving from a WebSite monitor to a camera has a table to show
+if ( canView('Events') ) {
 ?>
       <!-- Table styling handled by bootstrap-tables -->
-      <div id="events" class="row justify-content-center table-responsive-sm">
+      <div id="events" class="row justify-content-center table-responsive-sm"<?php echo ($monitor->Type() == 'WebSite') ? ' style="display:none;"' : '' ?>>
         <table 
           id="eventList"
           data-locale="<?php echo i18n() ?>"
@@ -553,7 +579,7 @@ if ( canView('Events') && ($monitor->Type() != 'WebSite') ) {
         </table>
       </div>
 <?php
-} //end if ( canView('Events') && ($monitor->Type() != 'WebSite') )
+} //end if ( canView('Events') )
 ?>
 <!-- END table Events -->
 

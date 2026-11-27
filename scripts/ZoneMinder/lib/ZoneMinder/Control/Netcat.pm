@@ -40,6 +40,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 our ($profileToken, $address, $port, $username, $password);
@@ -133,11 +137,13 @@ sub open {
     $uri->port(80);
     $uri->path('');
     $address = $uri->host();
+    # URI returns an IPv6 host without the brackets a URL needs.
+    $address = '['.$address.']' if $address =~ /:/;
   }
 
   Debug("Using credentials for user $username");
 
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   my $res = $self->get('http://'.$address.':'.$port.'/onvif/device_service');
@@ -214,7 +220,14 @@ sub parseControlAddress {
     }
   }
   if (defined $addressport) {
-    ($address, $port) = split /:/, $addressport, 2;
+    my $p;
+    if ($addressport =~ /^(\[[^\]]*\])(?::(.*))?$/) {
+      # An IPv6 literal keeps its brackets, as the url and Host header need them.
+      ($address, $p) = ($1, $2);
+    } else {
+      ($address, $p) = split /:/, $addressport, 2;
+    }
+    $port = $p if defined $p && length $p;
   }
 }
 

@@ -26,6 +26,12 @@ if (!canView('Events')) {
 $eid = validInt($_REQUEST['eid']);
 $fid = validInt($_REQUEST['fid']);
 
+// canView('Events') above is global; a user can still be denied this event's monitor.
+if (!(new ZM\Event($eid))->canView()) {
+  $view = 'error';
+  return;
+}
+
 $focusWindow = true;
 
 xhtmlHeaders(__FILE__, translate('Stats').' - '.$eid.' - '.$fid);

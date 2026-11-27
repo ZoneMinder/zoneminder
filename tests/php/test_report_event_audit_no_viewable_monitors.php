@@ -29,6 +29,9 @@ function buildMonitorsFilters() { return array("filterBar"=>"", "displayMonitors
   }
   $user = new StubUser();
   $sql = null;
+  if (!function_exists('canView')) {
+    function canView($a, $id = null) { return true; }
+  }
   function getNavBarHTML() { return ''; }
   function check_datetime($s) { return true; }
   function validHtmlStr($s) { return $s; }

@@ -108,6 +108,7 @@ my $dbh = zmDbConnect();
 foreach my $event_id (@ARGV) {
   if ( $event_id =~ /\D/ ) {
     # Assume path to event, strip it
+    $event_id =~ s/\/+$//;
     $event_id =~ s/.*\/(\d+)/$1/; 
   }
   my $event = ZoneMinder::Event->find_one(Id=>$event_id);

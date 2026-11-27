@@ -1,6 +1,6 @@
 {
     "require": {
         "firebase/php-jwt": "^7.0",
-        "ircmaxell/password-compat": "^1.0"
+        "php": ">=8.0"
     }
 }

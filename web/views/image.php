@@ -596,9 +596,17 @@ if ( $errorText ) {
   if (!$lock) ZM\Warning("Unable to get a read lock on $path, continuing.");
 
   header('Content-type: '.$media_type);
-  header('Cache-Control: max-age=86400');
-  header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + (60 * 60))); // Default set to 1 hour
-  header('Pragma: cache');
+  $fid = $_REQUEST['fid'] ?? '';
+  if ($Event and ($fid == 'snapshot' or $fid == 'alarm') and !$Event->EndDateTime()) {
+    # Event is still recording, the file keeps being rewritten
+    header('Cache-Control: no-cache');
+    header('Expires: 0');
+    header('Pragma: no-cache');
+  } else {
+    header('Cache-Control: max-age=86400');
+    header('Expires: '.gmdate('D, d M Y H:i:s \G\M\T', time() + 86400));
+    header('Pragma: cache');
+  }
   if ((($scale==0 || $scale==100) && ($width==0) && ($height==0)) or !function_exists('imagecreatefromjpeg') or $media_type != 'image/jpeg') {
     # This is so that Save Image As give a useful filename
     if ($Event) {
@@ -662,13 +670,8 @@ ZM\Debug("Figuring out height using width: $height = ($width * $oldHeight) / $ol
         ob_start();
         $iScale = imagescale($i, $width, $height);
         imagejpeg($iScale);
-        if (PHP_MAJOR_VERSION < 8) { // imagedestroy() is deprecated since 8.0.0
-          imagedestroy($i);
-          imagedestroy($iScale);
-        } else {
-          unset($i);
-          unset($iScale);
-        }
+        unset($i);
+        unset($iScale);
         $scaled_jpeg_data = ob_get_clean();
         file_put_contents($scaled_path, $scaled_jpeg_data, LOCK_EX);
 

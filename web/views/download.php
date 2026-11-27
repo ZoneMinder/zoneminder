@@ -65,6 +65,16 @@ class downloadingGeneratedEventFile {
       if ($this->filename === '') $this->filename = "zmExport_$this->connkey.$this->fileExt";
       $this->exportRoot = isset($_REQUEST['export_root']) ? safeExportComponent($_REQUEST['export_root']) : '';
 
+      # The first path component is the export root, or the file when there is none.
+      if (!exportNameBelongsToUser($this->exportRoot ? $this->exportRoot : $this->filename)) {
+        ZM\Warning('Refusing a download that does not belong to the requesting user.');
+        $this->exportRoot = '';
+        $this->filename = '';
+        $this->filenamePath = '';
+        $this->exportDir = DIR_EXPORTS_DOWNLOAD;
+        return;
+      }
+
       if ($this->exportRoot) {
         $this->filenamePath = DIR_EXPORTS_DOWNLOAD.'/'. $this->exportRoot . '/' . $this->filename;
         $this->exportDir = DIR_EXPORTS_DOWNLOAD.'/'.$this->exportRoot;

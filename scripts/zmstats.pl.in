@@ -56,6 +56,27 @@ $dbh->do('SET SESSION TRANSACTION ISOLATION LEVEL READ UNCOMMITTED');
 
 my $server = new ZoneMinder::Server($Config{ZM_SERVER_ID});
 
+# ZM_STATS_UPDATE_INTERVAL of 0 (the integer option allows it) or a non-number
+# made sleep() return at once and the daemon ran its queries in a busy loop.
+sub statsInterval {
+  my $interval = $Config{ZM_STATS_UPDATE_INTERVAL};
+  return (defined($interval) and looks_like_number($interval) and $interval > 0) ? $interval : 60;
+}
+
+# ZM_COOKIE_LIFETIME of 0 (the integer option allows it) made the Sessions purge
+# delete every session. Like the web interface, use 3600 for anything under 60.
+sub cookie_lifetime {
+  use feature 'state';
+  state $warned = 0;
+  my $lifetime = $Config{ZM_COOKIE_LIFETIME};
+  return $lifetime if defined($lifetime) and looks_like_number($lifetime) and $lifetime >= 60;
+  if (!$warned) {
+    $warned = 1;
+    Warning('ZM_COOKIE_LIFETIME is '.(defined($lifetime) ? $lifetime : 'unset').', less than 60 seconds. Using 3600.');
+  }
+  return 3600;
+}
+
 while (!$zm_terminate) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
     # Without this a TERM while the database is down is never acted on.
@@ -63,7 +84,7 @@ while (!$zm_terminate) {
     Info('Reconnecting to db');
     if ( !($dbh = zmDbConnect()) ) {
       #What we do here is not that important, so just skip this interval
-      sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+      sleep(statsInterval());
     }
   }
   last if $zm_terminate;
@@ -262,10 +283,10 @@ while (!$zm_terminate) {
   }
 
   # Prune the Logs table if required (excluding AUDIT entries)
-  # A number less than or equal to zero means no limit
+  # A number less than or equal to zero, with or without a unit, means no limit
   $Config{ZM_LOG_DATABASE_LIMIT} =~ s/^\s+|\s+$//g if defined $Config{ZM_LOG_DATABASE_LIMIT};
   if ( $Config{ZM_LOG_DATABASE_LIMIT}
-    and !(looks_like_number($Config{ZM_LOG_DATABASE_LIMIT}) and $Config{ZM_LOG_DATABASE_LIMIT} <= 0) ) {
+    and !($Config{ZM_LOG_DATABASE_LIMIT} =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
@@ -299,7 +320,7 @@ while (!$zm_terminate) {
   # Prune AUDIT log entries separately with their own retention period
   my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} // '';
   $audit_limit =~ s/^\s+|\s+$//g;
-  if ( $audit_limit and !(looks_like_number($audit_limit) and $audit_limit <= 0) ) {
+  if ( $audit_limit and !($audit_limit =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $audit_limit =~ /^\d+$/ ) {
       # Number of rows
@@ -329,12 +350,12 @@ while (!$zm_terminate) {
     my $rows;
     do {
       # Delete any sessions that are more than a week old. Limiting to 100 because mysql sucks
-      $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - $Config{ZM_COOKIE_LIFETIME});
+      $rows = zmDbDo('DELETE FROM Sessions WHERE access < ? LIMIT 100', time - cookie_lifetime());
       Debug("Deleted $rows sessions") if $rows;
     } while ($rows and ($rows == 100) and !$zm_terminate);
   }
 
-  sleep($Config{ZM_STATS_UPDATE_INTERVAL});
+  sleep(statsInterval());
 } # end while (!$zm_terminate)
 
 Info('Stats Daemon exiting');

@@ -3,9 +3,12 @@ if (!canView('Events')) ajaxError('Insufficient permissions');
 if (empty($_REQUEST['eid'])) ajaxError('Event Id Not Provided');
 if (empty($_REQUEST['fid'])) ajaxError('Frame Id Not Provided');
 
-$eid = $_REQUEST['eid'];
-$fid = $_REQUEST['fid'];
-$row = ( isset($_REQUEST['row']) ) ? $_REQUEST['row'] : '';
+# Both are ids and also go into the HTML of the stats table, so keep only digits.
+$eid = is_scalar($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
+$fid = is_scalar($_REQUEST['fid']) ? validCardinal($_REQUEST['fid']) : '';
+if ($eid === '' or $fid === '') ajaxError('Invalid event or frame id');
+# The row goes into an element id, so keep only characters an id can hold.
+$row = (isset($_REQUEST['row']) and is_scalar($_REQUEST['row'])) ? preg_replace('/[^\w\-]/', '', $_REQUEST['row']) : '';
 $raw = isset($_REQUEST['raw']);
 $data = array();
 

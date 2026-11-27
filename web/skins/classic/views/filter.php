@@ -48,6 +48,8 @@ if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
 
 # Build filter names list for dropdown
 foreach (ZM\Filter::find(null, array('order'=>'lower(Name)')) as $Filter) {
+  # Another user's filter, with its command and email address, is not for this user to see.
+  if (!$Filter->canView()) continue;
   $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
   if ($Filter->Background()) $filterNames[$Filter->Id()] .= '*';
   if ($Filter->Concurrent()) $filterNames[$Filter->Id()] .= '&';
@@ -68,6 +70,12 @@ if ($have_query_params) {
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else if ($fid) {
+  // A filter deleted since the link was made, or not this user's to see. The
+  // blank form shown here before would have been saved as a new filter.
+  ZM\Warning("Filter $fid not found");
+  $view = 'error';
+  return;
 } else {
   ZM\Debug('Creating new empty filter');
   $filter = new ZM\Filter();
@@ -105,10 +113,27 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
+
+// Set by the execute action's redirect.
+if (isset($_REQUEST['executed'])) {
+  if ($_REQUEST['executed'] === '1') {
+    $info_message = translate('FilterExecuted');
+  } else {
+    $error_message .= translate('FilterExecuteFailed').'<br/>';
+  }
+}
 
 $focusWindow = true;
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+
+// Tags the AutoTag action can add; htmlSelect escapes the names
+$autoTagOptions = array();
+foreach (dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') as $tag) {
+  $autoTagOptions[$tag['Id']] = $tag['Name'];
+}
+$autoTagId = isset($autoTagOptions[$filter->AutoTagId()]) ? $filter->AutoTagId() : null;
 
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
@@ -327,6 +352,13 @@ if ( canEdit('System') ) {
               <input type="checkbox" id="filter[AutoCopy]" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
               <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
             </p>
+<?php if (count($autoTagOptions)) { ?>
+            <p>
+              <label for="filter[AutoTag]"><?php echo translate('FilterTagEvents') ?></label>
+              <input type="checkbox" id="filter[AutoTag]" name="filter[AutoTag]" value="1"<?php if ( $filter->AutoTag() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autotag"/>
+              <?php echo htmlSelect('filter[AutoTagId]', $autoTagOptions, $autoTagId, $filter->AutoTag() ? null : array('style'=>'display:none;')); ?>
+            </p>
+<?php } ?>
             <p>
               <label for="filter[AutoMove]"><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" id="filter[AutoMove]" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
@@ -382,7 +414,7 @@ if ( ZM_OPT_EMAIL ) {
 # show that as the placeholder rather than leaving the field looking unset.
 $default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
 ?>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
+                <input type="text" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>

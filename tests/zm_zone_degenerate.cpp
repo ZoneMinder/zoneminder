@@ -53,3 +53,19 @@ TEST_CASE("Zone: a zero-area polygon scores without dividing by zero", "[Zone]")
     }
   }
 }
+
+// A delta image larger than the monitor (a camera that came back at a bigger
+// resolution) is larger than the zone's row ranges and mask, so it is not scored.
+TEST_CASE("Zone: a delta image larger than the monitor is not scored", "[Zone]") {
+  if (!config.font_file_location) config.font_file_location = "";
+  if (!config.event_close_mode) config.event_close_mode = "idle";
+  auto monitor = std::static_pointer_cast<Monitor>(std::make_shared<TestMonitor>(64, 48));
+  auto bigger = ChangedFrame(128, 96);
+  auto same = ChangedFrame(64, 48);
+
+  Polygon polygon(std::vector<Vector2>{Vector2(10, 10), Vector2(30, 10), Vector2(30, 40), Vector2(10, 40)});
+  Zone zone(monitor, 1, "bigger", Zone::ACTIVE, polygon, 0, Zone::ALARMED_PIXELS,
+            15, 0, 1, 0, Vector2(1, 1), 1, 0, 1, 0, 0, 0);
+  REQUIRE_FALSE(zone.CheckAlarms(bigger.get()));
+  REQUIRE(zone.CheckAlarms(same.get()));
+}

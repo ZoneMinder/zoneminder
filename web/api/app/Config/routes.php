@@ -26,6 +26,9 @@
 	Router::mapResources('configs');
 	Router::mapResources('controls');
 	Router::mapResources('encoder_templates');
+	// Bulk archive takes its ids from the POST body. It must be routed before
+	// mapResources('events') so /events/archiveBulk is not read as an event id.
+	Router::connect('/events/archiveBulk', array('controller' => 'events', 'action' => 'archiveBulk'));
 	Router::mapResources('events');
 	Router::mapResources('event_data');
 	Router::mapResources('frames');
@@ -48,6 +51,16 @@
 	Router::mapResources('zone_presets');
 	Router::mapResources('zones');
 	Router::mapResources('notifications');
+
+	// Send a PTZ command to a monitor. Both shapes reach ControlsController::command().
+	Router::connect('/monitors/:id/control',
+		array('controller' => 'controls', 'action' => 'command'),
+		array('id' => '[0-9]+', 'pass' => array('id'))
+	);
+	Router::connect('/controls/command/:id',
+		array('controller' => 'controls', 'action' => 'command'),
+		array('id' => '[0-9]+', 'pass' => array('id'))
+	);
 
 	Router::parseExtensions();
 

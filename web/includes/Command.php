@@ -37,7 +37,7 @@
 //
 // Redirection is not here. It does not start a program, and refusing it would
 // stop the ordinary "... >> /var/log/mine.log" that people reasonably write.
-define('ZM_COMMAND_CHAINING', array(';', '|', '&', '`', '$('));
+define('ZM_COMMAND_CHAINING', array(';', '|', '&', '`', '$(', '<(', '>('));
 
 // The program a command invokes: its first word, with any surrounding quotes
 // removed. Null when there is not one.
@@ -91,6 +91,8 @@ function commandIsAllowed($command, $allowed) {
   foreach (ZM_COMMAND_CHAINING as $chain) {
     if (strpos($command, $chain) !== false) return false;
   }
+  // A newline separates commands in a shell just as a semicolon does.
+  if (preg_match('/[\r\n]/', $command)) return false;
 
   $program = commandProgram($command);
   if ($program === null) return false;

@@ -39,6 +39,20 @@ namespace {
   $zoneRow = false;
   function dbFetchOne($sql, $col = null, $params = array()) { return $GLOBALS['zoneRow']; }
 
+  // The view requires includes/Event.php and includes/ZonePreset.php, which pull in
+  // the real database layer; give it stubs from a temporary include path instead.
+  $stubDir = sys_get_temp_dir().'/zm-zone-view-'.getmypid();
+  @mkdir($stubDir.'/includes', 0700, true);
+  file_put_contents($stubDir.'/includes/Event.php', "<?php\n");
+  file_put_contents($stubDir.'/includes/ZonePreset.php', "<?php\nnamespace ZM;\nclass ZonePreset {\n  const BUILT_IN_PRESETS = array();\n  public static function find(\$a = array(), \$b = array()) { return array(); }\n}\n");
+  set_include_path($stubDir.PATH_SEPARATOR.get_include_path());
+  register_shutdown_function(function() use ($stubDir) {
+    @unlink($stubDir.'/includes/Event.php');
+    @unlink($stubDir.'/includes/ZonePreset.php');
+    @rmdir($stubDir.'/includes');
+    @rmdir($stubDir);
+  });
+
   function run_view($zid) {
     $_REQUEST = array('mid' => '7', 'zid' => $zid);
     $view = 'zone';

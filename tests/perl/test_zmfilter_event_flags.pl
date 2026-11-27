@@ -10,6 +10,7 @@ use strict;
 use warnings;
 use FindBin;
 use File::Temp qw(tempdir);
+use File::Basename;
 
 BEGIN {
   $INC{$_} = 1 for qw(MIME/Lite.pm Net/SMTP.pm Net/FTP.pm Archive/Tar.pm);

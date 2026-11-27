@@ -62,7 +62,7 @@ GetOptions(
   version => \$version,
   verbose => \$verbose,
   dry_run => \$dry_run,
-);
+) or pod2usage(-exitstatus => -1);
 
 if ($version) {
   print(ZoneMinder::Base::ZM_VERSION . "\n");
@@ -98,15 +98,11 @@ if (defined $interval) {
   }
 }
 
-if (!($Config{ZM_TELEMETRY_DATA} or $force)) {
-  print("ZoneMinder Telemetry Agent not enabled.  Exiting.\n");
-  exit(0);
-}
-
 print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
 $lastCheck = 0 if !defined($lastCheck) or $lastCheck eq '';
+my $wasEnabled;
 
 while (1) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
@@ -115,6 +111,18 @@ while (1) {
       #What we do here is not that important, so just skip this interval
       sleep($interval);
     }
+  }
+  # The setting can be turned off in the web UI while this daemon is running
+  # Do not exit when it is off: zmdc restarts a daemon that exits, so stay
+  # running, upload nothing and look again after the interval.
+  my $enabled = telemetryEnabled($dbh, $force);
+  if (!defined($wasEnabled) or $enabled != $wasEnabled) {
+    Info($enabled ? 'ZoneMinder Telemetry Agent enabled.' : 'ZoneMinder Telemetry Agent disabled, not uploading.');
+    $wasEnabled = $enabled;
+  }
+  if (!$enabled) {
+    sleep($interval);
+    next;
   }
   my $now = time();
   my $since_last_check = $now - $lastCheck;
@@ -150,6 +158,14 @@ exit(0);
 ###############
 # SUBROUTINES #
 ###############
+
+# Whether ZM_TELEMETRY_DATA is still on in the database
+sub telemetryEnabled {
+  my ($dbh, $force) = @_;
+  return 1 if $force;
+  my ($value) = $dbh->selectrow_array('SELECT `Value` FROM `Config` WHERE `Name` = ?', undef, 'ZM_TELEMETRY_DATA');
+  return $value ? 1 : 0;
+}
 
 # collect data to send
 sub collectData {
@@ -198,7 +214,7 @@ sub runSysCmd {
 sub sendData {
   my $msg = shift;
 
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
   if ($Config{ZM_UPDATE_CHECK_PROXY}) {
@@ -255,7 +271,7 @@ sub getUUID {
 sub getGeo {
   my $unknown = 'Unknown';
   my $endpoint = 'https://ipinfo.io/geo';
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 15);
   my $req = HTTP::Request->new(GET => $endpoint);
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;
@@ -267,7 +283,7 @@ sub getGeo {
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
     my $endpoint2 = 'https://api.ip2location.io';
-    my $ua2 = LWP::UserAgent->new;
+    my $ua2 = LWP::UserAgent->new(timeout => 15);
     my $req2 = HTTP::Request->new(GET => $endpoint2);
     my $resp2 = $ua2->request($req2);
     my $resp_msg2 = $resp2->decoded_content;
@@ -458,6 +474,8 @@ console under Options.
                 The value should be given in seconds, but can be an expression
                 such as 24*60*60.
  --version      Output the version of ZoneMinder.
+ --dry_run      With --show, print the data and exit without uploading it.
+ --verbose      Accepted for compatibility; it has no effect.
  
 
 =cut

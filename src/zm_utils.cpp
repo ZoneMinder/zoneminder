@@ -39,6 +39,47 @@
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
 
+std::string Utf8Sanitize(const std::string &str) {
+  std::string out;
+  out.reserve(str.size());
+  size_t i = 0;
+  while (i < str.size()) {
+    unsigned char c = static_cast<unsigned char>(str[i]);
+    size_t len = 0;
+    unsigned int min_cp = 0;
+    unsigned int cp = 0;
+    if (c < 0x80) {
+      out += static_cast<char>(c);
+      i++;
+      continue;
+    } else if (c >= 0xC2 && c <= 0xDF) {
+      len = 2; cp = c & 0x1F; min_cp = 0x80;
+    } else if (c >= 0xE0 && c <= 0xEF) {
+      len = 3; cp = c & 0x0F; min_cp = 0x800;
+    } else if (c >= 0xF0 && c <= 0xF4) {
+      len = 4; cp = c & 0x07; min_cp = 0x10000;
+    }
+    bool ok = len != 0 && i + len <= str.size();
+    for (size_t j = 1; ok && j < len; j++) {
+      unsigned char cc = static_cast<unsigned char>(str[i + j]);
+      if ((cc & 0xC0) != 0x80) {
+        ok = false;
+      } else {
+        cp = (cp << 6) | (cc & 0x3F);
+      }
+    }
+    if (ok && (cp < min_cp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))) ok = false;
+    if (ok) {
+      out.append(str, i, len);
+      i += len;
+    } else {
+      out += '?';
+      i++;
+    }
+  }
+  return out;
+}
+
 // Trim Both leading and trailing sets
 std::string Trim(const std::string &str, const std::string &char_set) {
   size_t start_pos = str.find_first_not_of(char_set);
@@ -119,6 +160,12 @@ std::string Join(const StringVector &values, const std::string &delim) {
     ss << values[i];
   }
   return ss.str();
+}
+
+std::string UrlHost(const std::string &host) {
+  if (host.find(':') != std::string::npos && host[0] != '[')
+    return "[" + host + "]";
+  return host;
 }
 
 std::string ClientAddress(const std::string &remote_addr,

@@ -39,7 +39,7 @@ class Tag extends AppModel {
 			'notBlank' => array(
 				'rule' => array('notBlank')),
 			'unique' => array(
-				'rule' => array('isUnique'),
+				'rule' => array('uniqueIgnoringCase'),
 				'message' => 'A tag with that name already exists')),
 		'Id' => array(
 			'numeric' => array(
@@ -52,6 +52,21 @@ class Tag extends AppModel {
 			),
 		),
 	);
+
+	// Tag names differing only in case look the same in the tag list, and the web UI reuses the
+	// existing tag instead of making another. The column is case sensitive, so isUnique and the
+	// unique index let them through. A tag keeps its own name as it is, even if it already has a
+	// twin from before this check.
+	public function uniqueIgnoringCase($check) {
+		$name = reset($check);
+		if ($this->id) {
+			$own = $this->query('SELECT Name FROM Tags WHERE Id = ?', array($this->id));
+			if ($own and $own[0]['Tags']['Name'] === $name) return true;
+		}
+		$rows = $this->query('SELECT Id FROM Tags WHERE LOWER(Name) = LOWER(?) AND Id != ? LIMIT 1',
+			array($name, $this->id ? $this->id : 0));
+		return !$rows;
+	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

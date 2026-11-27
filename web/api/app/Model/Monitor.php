@@ -58,6 +58,10 @@ class Monitor extends AppModel {
          'rule'       => 'notBlank',
          'message'    => 'Monitor Name must not be blank',
        ),
+       'characters' => array(
+         'rule'       => array('custom', '/^[\w\p{L}\p{M}\p{N}\-\.\(\)\:\/ ]+$/u'),
+         'message'    => 'Monitor Name may only contain letters, numbers, spaces and - . ( ) : /',
+       ),
     ),
     'Width' => array(
       'rule' => array('comparison', '>', 0),
@@ -75,6 +79,14 @@ class Monitor extends AppModel {
       'rule' => array('rowExists', 'Storage'),
       'message' => 'StorageId does not match a storage area',
     ),
+    'ManufacturerId' => array(
+      'rule' => array('refExists', 'Manufacturer'),
+      'message' => 'ManufacturerId does not match a manufacturer',
+    ),
+    'ModelId' => array(
+      'rule' => array('refExists', 'CameraModel'),
+      'message' => 'ModelId does not match a camera model',
+    ),
     // These codec values mimic acceptable ones for FFMPEG
     // Edit this if the list in ZM changes
     'OutputCodec' => array (
@@ -85,6 +97,14 @@ class Monitor extends AppModel {
       'validPath' => array(
         'rule' => array('validDevicePath'),
         'message' => 'Invalid device path. Must be a valid /dev/ path (e.g. /dev/video0).',
+        'allowEmpty' => true,
+        'required' => false,
+      ),
+    ),
+    'Path' => array(
+      'ffmpegProtocol' => array(
+        'rule' => array('validFfmpegPath'),
+        'message' => 'Source Path must start with a protocol such as rtsp://',
         'allowEmpty' => true,
         'required' => false,
       ),
@@ -109,16 +129,51 @@ class Monitor extends AppModel {
     ));
   }
 
+  // Foreign keys: MySQL refuses an id that matches no row, so refuse it here instead of as a 500.
+  // Empty and null mean none.
+  public function refExists($check, $model) {
+    $value = reset($check);
+    if ($value === null or $value === '') {
+      return true;
+    }
+    // AppModel::beforeValidate() already refuses an array.
+    if (!is_scalar($value)) {
+      return true;
+    }
+    return (bool)ClassRegistry::init($model)->find('first', array(
+      'conditions' => array($model.'.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
+
   public function validDevicePath($check) {
     $value = reset($check);
     if ($value === null || $value === '') {
       return true;
     }
-    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : null;
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
     if ($type !== 'Local') {
       return true;
     }
     return (bool)preg_match('#^/dev/[\w/.\-]+$#', $value);
+  }
+
+  // The console refuses an Ffmpeg source path with no protocol, which ffmpeg cannot open and zmdc
+  // then restarts zmc in a loop. Absolute paths and the scheme-less v4l2: form are valid. A Path an
+  // edit leaves as stored is not refused.
+  public function validFfmpegPath($check) {
+    $value = reset($check);
+    if ($value === null or $value === '' or !is_string($value)) {
+      return true;
+    }
+    $type = isset($this->data['Monitor']['Type']) ? $this->data['Monitor']['Type'] : ($this->id ? $this->field('Type') : null);
+    if ($type !== 'Ffmpeg') {
+      return true;
+    }
+    if ($this->id and $value === $this->field('Path')) {
+      return true;
+    }
+    return strpos($value, '://') !== false or substr($value, 0, 1) === '/' or stripos($value, 'v4l2:') === 0;
   }
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

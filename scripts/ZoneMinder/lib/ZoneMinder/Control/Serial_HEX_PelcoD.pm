@@ -45,6 +45,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ==========================================================================
 #
 # Pelco-D over HTTP_SERIAL_HEX Control Protocol
@@ -82,7 +86,7 @@ sub open {
   }
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
@@ -113,13 +117,17 @@ sub open {
       Warning('Response suggests that camera doesn\'t support PTZ. Content:('.$res->content().')');
     }
     $self->{state} = 'open';
-    return;
+    return 1;
   }
   if ($res->status_line() eq '404 Not Found') {
     #older style
     $url = 'cgi-bin/cmd/encoder?';
     $res = $self->{ua}->get($uri->canonical().$url);
     Debug("Result from getting ".$uri->canonical().$url . ':' . $res->status_line());
+    if ($res->is_success()) {
+      $self->{state} = 'open';
+      return 1;
+    }
   }
 
   if ($res->status_line() eq '401 Unauthorized') {
@@ -139,7 +147,7 @@ sub open {
             if ( $res->is_success() ) {
               Info("Auth succeeded after setting realm to $realm.  You can set this value in the Control Device field to speed up connections and remove these log entries.");
               $self->{state} = 'open';
-              return;
+              return 1;
             }
             Error('Authentication still failed after updating REALM status: '.$res->status_line);
           } else {
@@ -155,6 +163,7 @@ sub open {
   } else {
     Debug('Failed to open '.$uri->canonical().$url.' status: '.$res->status_line());
   } # end if $res->status_line() eq '401 Unauthorized'
+  return;
 } # end sub open
 
 sub printMsg

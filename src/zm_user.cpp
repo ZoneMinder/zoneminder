@@ -166,6 +166,8 @@ bool User::canAccess(int monitor_id) {
 
   if (!group_permissions_loaded) loadGroupPermissions();
 
+  // None from any group denies, as the web UI does; otherwise View or Edit from any group grants.
+  bool group_grants = false;
   for (Group_Permission &gp : group_permissions) {
     auto permission = gp.getPermission(monitor_id);
     switch (permission) {
@@ -173,11 +175,10 @@ bool User::canAccess(int monitor_id) {
       Debug(1, "Returning None from group_permission");
       return false;
     case Group_Permission::PERM_VIEW :
-      Debug(1, "Returning true because VIEW from group_permission");
-      return true;
     case Group_Permission::PERM_EDIT :
-      Debug(1, "Returning true because EDIT from group_permission");
-      return true;
+      Debug(1, "VIEW or EDIT from group_permission %d", gp.GroupId());
+      group_grants = true;
+      break;
     case Group_Permission::PERM_INHERIT :
       Debug(1, "INHERIT from group_permission %d", gp.GroupId());
       break;
@@ -186,6 +187,7 @@ bool User::canAccess(int monitor_id) {
       break;
     }
   }  // end foreach Group_Permission
+  if (group_grants) return true;
 
   // Check role permissions if user has a role
   if (role_id > 0) {
@@ -215,6 +217,7 @@ bool User::canAccess(int monitor_id) {
 
     if (!role_group_permissions_loaded) loadRoleGroupPermissions();
 
+    bool role_group_grants = false;
     for (Group_Permission &gp : role_group_permissions) {
       auto permission = gp.getPermission(monitor_id);
       switch (permission) {
@@ -222,11 +225,10 @@ bool User::canAccess(int monitor_id) {
         Debug(1, "Returning None from role_group_permission");
         return false;
       case Group_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from role_group_permission");
-        return true;
       case Group_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from role_group_permission");
-        return true;
+        Debug(1, "VIEW or EDIT from role_group_permission %d", gp.GroupId());
+        role_group_grants = true;
+        break;
       case Group_Permission::PERM_INHERIT :
         Debug(1, "INHERIT from role_group_permission %d", gp.GroupId());
         break;
@@ -235,6 +237,7 @@ bool User::canAccess(int monitor_id) {
         break;
       }
     }  // end foreach role Group_Permission
+    if (role_group_grants) return true;
   }  // end if role_id
 
   return (monitors != PERM_NONE);

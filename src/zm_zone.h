@@ -80,7 +80,11 @@ class Zone {
   unsigned int         id;
   std::string label;
   ZoneType    type;
-  Polygon     polygon;
+  Polygon     polygon;        // at the monitor's analysis resolution, as CheckAlarms sees it
+  // The same zone in full-frame coordinates, for what is drawn on or masks the
+  // captured image (privacy mask, zone image). Equal to polygon unless motion
+  // detection runs at a lower resolution than the frame (AnalysisSource=Secondary).
+  Polygon     frame_polygon;
   Rgb         alarm_rgb;
   CheckMethod    check_method;
 
@@ -205,6 +209,7 @@ class Zone {
   inline bool IsPrivacy() const { return( type == PRIVACY ); }
   inline const Image *AlarmImage() const { return image; }
   inline const Polygon &GetPolygon() const { return polygon; }
+  inline const Polygon &GetFramePolygon() const { return frame_polygon; }
   inline bool Alarmed() const { return alarmed; }
   inline bool WasAlarmed() const { return was_alarmed; }
   inline void SetAlarm() { was_alarmed = alarmed; alarmed = true; }
@@ -243,6 +248,13 @@ class Zone {
   static bool ParseCoords(const char *Coords, unsigned int width, unsigned int height, Polygon &polygon, bool &clamped);
   static int RasterArea(const Polygon &polygon, unsigned int width, unsigned int height);
   static int PercentToPixels(double percent, int area);
+  // A polygon in from_width x from_height pixel coordinates, scaled and clamped
+  // to to_width x to_height.
+  static Polygon ScalePolygon(const Polygon &polygon, unsigned int from_width, unsigned int from_height,
+                              unsigned int to_width, unsigned int to_height);
+  // A pixel-count threshold scaled by an area ratio. 0 means unset, so a count
+  // that was set never rounds down to it.
+  static int ScalePixelCount(double pixels, double area_ratio);
   static size_t Count(const std::shared_ptr<Monitor> &monitor);
   static std::vector<Zone> Load(const std::shared_ptr<Monitor> &monitor);
   // The columns Load selects, in the order LoadRow reads them. zma uses these

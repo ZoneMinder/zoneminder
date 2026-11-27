@@ -25,6 +25,7 @@
 #include "zm_analysis_thread.h"
 #include "zm_poll_thread.h"
 #include "zm_decoder_thread.h"
+#include "zm_second_stream_thread.h"
 #include "zm_event.h"
 #include "zm_fifo.h"
 #include "zm_image.h"
@@ -74,6 +75,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   friend class MonitorStream;
   friend class MonitorLinkExpression;
   friend class ONVIF;
+  friend class SecondStreamThread;
 
  public:
   typedef enum {
@@ -628,6 +630,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   RecordingSourceOption recording_source;   // Primary, Secondary, Both
 
   DecodingOption  decoding;   // Whether the monitor will decode h264/h265 packets
+  bool            secondary_analysis;   // AnalysisSource=Secondary and a SecondPath is configured: analyse the substream
   bool            RTSP2Web_enabled;      // Whether we set the h264/h265 stream up on RTSP2Web
   int             RTSP2Web_type;      // Whether we set the h264/h265 stream up on RTSP2Web
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
@@ -669,6 +672,18 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int    camera_height;
   unsigned int    width;              // Normally the same as the camera, but not if partly rotated
   unsigned int    height;             // Normally the same as the camera, but not if partly rotated
+  // Resolution motion detection runs at; 0 means width/height, which is what
+  // it is unless AnalysisSource=Secondary has set the substream's native size so
+  // zones and detection run cheaply at the substream res. Read it through
+  // AnalysisWidth()/AnalysisHeight().
+  unsigned int    analysis_width = 0;
+  unsigned int    analysis_height = 0;
+  // Substream native size once discovered from its first decoded frame (0 until
+  // then). Persisted across Load()/Reload() so a reload does not reset the
+  // analysis resolution to the full frame and force a redundant zone rebuild +
+  // reference-image reset.
+  unsigned int    substream_width = 0;
+  unsigned int    substream_height = 0;
   bool            v4l_multi_buffer;
   unsigned int    v4l_captures_per_frame;
   Orientation     orientation;        // Whether the image has to be rotated at all
@@ -888,6 +903,9 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::unique_ptr<AnalysisThread> analysis_thread;
   packetqueue_iterator  *decoder_it;
   std::unique_ptr<DecoderThread> decoder;
+  std::unique_ptr<SecondStreamThread> second_stream;  // decodes the substream for analysis (AnalysisSource=Secondary)
+  Image        secondary_image_native;   // latest substream image at its native (low) resolution, copied from the sidecar mailbox
+  uint64_t     last_secondary_sequence = 0;  // sidecar frame counter last scored, to avoid re-scoring a stale frame
   SwsContext   *convert_context;
   std::thread  close_event_thread;
   // Guards close_event_thread itself. closeEvent() runs on the analysis
@@ -1143,6 +1161,10 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
 
   unsigned int Width() const { return width; }
   unsigned int Height() const { return height; }
+  // Resolution motion detection / zones run at. Equals Width()/Height() except in
+  // AnalysisSource=Secondary, where it tracks the substream's native size.
+  unsigned int AnalysisWidth() const { return analysis_width ? analysis_width : width; }
+  unsigned int AnalysisHeight() const { return analysis_height ? analysis_height : height; }
   unsigned int Colours() const;
   unsigned int SubpixelOrder() const;
 
@@ -1318,6 +1340,19 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void ClearAlarmTracking();
   bool Analyse();
   bool setupConvertContext(const AVFrame *input_frame, const Image *image);
+  // Resolve the image to run motion detection / ref-blending against for this
+  // packet.  In secondary-analysis mode this comes from the substream sidecar
+  // (independent of whether the primary was decoded); otherwise it is the
+  // primary packet's Y-channel or colour image.  do_score is set false when the
+  // caller should skip scoring this round (no fresh/valid substream frame).
+  Image *getMotionSourceImage(const std::shared_ptr<ZMPacket> &packet, bool &do_score);
+  // Run motion detection at w x h: switch the analysis size, rebuild the zones
+  // at it with load_zones (Zone::Load in zmc) and drop the reference image so it
+  // reseeds at that size. The privacy mask is left alone; it is frame-sized.
+  // Returns false, keeping the current size and zones, when load_zones comes back
+  // empty while there are zones, so the caller retries on a later frame.
+  bool SetAnalysisResolution(unsigned int w, unsigned int h,
+                             const std::function<std::vector<Zone>()> &load_zones);
   // Write capture_image into image_buffer[index] without conversion and
   // record its AVPixelFormat in image_pixelformats[index] so reading
   // processes can adopt that format via ReadShmFrame.

@@ -450,6 +450,10 @@ class MonitorsController extends AppController {
     if ( !$this->Monitor->exists($id) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    if ( (new ZM\Monitor($id))->Deleted() ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
 
     $cmd = strtolower($this->request->params['named']['command']);
     switch ($cmd) {
@@ -549,6 +553,9 @@ class MonitorsController extends AppController {
     $monitor = $this->Monitor->find('first', array(
       'conditions' => array('Monitor.'.$this->Monitor->primaryKey => $id)
     ));
+    if (!empty($monitor['Monitor']['Deleted'])) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     $zm_monitor = new ZM\Monitor($monitor['Monitor']);
     # Reporting state needs view; starting or stopping capture is a change to
     # the monitor, so it needs edit, the same as any other mutation here.

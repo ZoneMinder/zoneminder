@@ -38,6 +38,8 @@ extern "C" {
 #include <dlfcn.h>
 
 #include <atomic>
+#include <chrono>
+#include <mutex>
 
 /*
       AVCodecID codec_id;
@@ -678,6 +680,44 @@ int setup_hwaccel(
   return 0;
 } // end setup_hwaccel
 
+namespace {
+// How long a distinct libav message is suppressed after it is printed.
+constexpr int64_t kAvLogRepeatIntervalUs = 60 * 1000 * 1000;
+
+int64_t steady_now_us() {
+  return std::chrono::duration_cast<std::chrono::microseconds>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+}  // namespace
+
+bool av_log_should_print(AvLogRepeat &state, const std::string &message,
+                         int64_t now_us, int64_t interval_us,
+                         uint64_t *suppressed_out) {
+  for (AvLogRepeat::Entry &entry : state.recent) {
+    if (entry.message != message) continue;
+    if (now_us - entry.last_logged_us < interval_us) {
+      entry.suppressed++;
+      return false;
+    }
+    if (suppressed_out) *suppressed_out = entry.suppressed;
+    entry.suppressed = 0;
+    entry.last_logged_us = now_us;
+    return true;
+  }
+
+  // Not seen before. Evict the least recently printed if the table is full.
+  if (state.recent.size() >= kAvLogRepeatTracked) {
+    size_t oldest = 0;
+    for (size_t i = 1; i < state.recent.size(); i++) {
+      if (state.recent[i].last_logged_us < state.recent[oldest].last_logged_us) oldest = i;
+    }
+    state.recent.erase(state.recent.begin() + oldest);
+  }
+  state.recent.push_back({message, now_us, 0});
+  if (suppressed_out) *suppressed_out = 0;
+  return true;
+}
+
 void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
   Logger *log = Logger::fetch();
   int log_level = 0;
@@ -716,6 +756,27 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
       if (static_cast<size_t>(length) > sizeof(logString)-1) length = sizeof(logString)-1;
       // ffmpeg logs have a carriage return, so replace it with terminator
       logString[length-1] = 0;
+
+      // Only the levels that reach the database are rate limited. Debug output
+      // goes to the file alone, and suppressing repeats there would hide the
+      // sequences debug is being read for.
+      if (log_level <= Logger::WARNING) {
+        static std::mutex repeat_mutex;
+        static AvLogRepeat repeat;
+        uint64_t suppressed = 0;
+        bool print;
+        {
+          std::lock_guard<std::mutex> lock(repeat_mutex);
+          print = av_log_should_print(repeat, logString, steady_now_us(),
+                                      kAvLogRepeatIntervalUs, &suppressed);
+        }
+        if (!print) return;
+        if (suppressed > 0) {
+          log->logPrint(false, __FILE__, __LINE__, log_level, "%s (%ju repeats suppressed)",
+                        logString, static_cast<uintmax_t>(suppressed));
+          return;
+        }
+      }
       log->logPrint(false, __FILE__, __LINE__, log_level, "%s", logString);
     } else {
       log->logPrint(false, __FILE__, __LINE__, AV_LOG_ERROR, "Can't encode log from av. fmt was %s", fmt);

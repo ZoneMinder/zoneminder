@@ -27,6 +27,7 @@ set(TEST_SOURCES
   zm_crypt.cpp
   zm_event_hardlink.cpp
   zm_event_score.cpp
+  zm_ffmpeg.cpp
   zm_ffmpeg_avdevice.cpp
   zm_fifo_stream.cpp
   zm_font.cpp

@@ -572,11 +572,13 @@ function generateAuthHash($useRemoteAddr, $force=false) {
     # otherwise the next status poll serves an IP-less hash that the IP-bound
     # validator rejects, bouncing the user to login (issue #4921).
     $remoteAddr = ($useRemoteAddr and ZM_AUTH_HASH_IPS) ? $_SESSION['remoteAddr'] : '';
-    if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or ($_SESSION['AuthHashGeneratedAt'] < $mintime)) {
+    # The timestamp is per slot: regenerating one slot must not refresh another
+    # slot's age, or a slot older than the TTL keeps being served from cache.
+    if ($force or (!isset($_SESSION['AuthHash'.$remoteAddr])) or (!isset($_SESSION['AuthHashGeneratedAt'.$remoteAddr]) or $_SESSION['AuthHashGeneratedAt'.$remoteAddr] < $mintime)) {
       $auth = calculateAuthHash($remoteAddr);
       # Don't both regenerating Auth Hash if an hour hasn't gone by yet
       $_SESSION['AuthHash'.$remoteAddr] = $auth;
-      $_SESSION['AuthHashGeneratedAt'] = $time;
+      $_SESSION['AuthHashGeneratedAt'.$remoteAddr] = $time;
       # Because we don't write out the session, it shouldn't actually get written out to disk.  However if it does, the GeneratedAt should protect us.
     } # end if AuthHash is not cached
     return $_SESSION['AuthHash'.$remoteAddr];
@@ -981,7 +983,7 @@ function zm_authenticate_request() {
         if ($user) {
           $remoteAddr = ZM_AUTH_HASH_IPS ? $_SESSION['remoteAddr'] : '';
           if (isset($_SESSION['AuthHash'.$remoteAddr]) and ($_SESSION['AuthHash'.$remoteAddr] != $requestAuth)) {
-            unset($_SESSION['AuthHashGeneratedAt']);
+            unset($_SESSION['AuthHashGeneratedAt'.$remoteAddr]);
             unset($_SESSION['AuthHash'.$remoteAddr]);
           }
           if (!empty($_COOKIE[session_name()]) and (!isset($_SESSION['username']) or ($_SESSION['username'] !== $user->Username()))) {

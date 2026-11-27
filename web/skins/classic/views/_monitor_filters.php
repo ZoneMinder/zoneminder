@@ -18,6 +18,14 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+// A multiple select posts a list of values. An element that is itself an array
+// (Status[][]=x) is no value: it raises an array to string conversion warning
+// in array_diff() and in the query binding, and is kept in the zmFilter_* cookie.
+function filterSelectionScalars($value) {
+  if (!is_array($value)) return $value;
+  return array_values(array_filter($value, 'is_scalar'));
+}
+
 // Helper function to get filter value from request or cookie
 // We get from request so that we can use bookmarks
 // Otherwise everything is done in js in cookies.
@@ -27,7 +35,7 @@ function getFilterSelection($name) {
   $cookieName = 'zmFilter_'.$name;
 
   if (isset($_REQUEST[$name])) {
-    $selectedValue = $_REQUEST[$name];
+    $selectedValue = filterSelectionScalars($_REQUEST[$name]);
     $cookieValue = json_encode($selectedValue);
     if (!isset($_COOKIE[$cookieName]) or ($_COOKIE[$cookieName] != $cookieValue)) {
       zm_setcookie($cookieName, $cookieValue);
@@ -37,7 +45,7 @@ function getFilterSelection($name) {
     if ($cookieValue && $cookieValue !== '') {
       // Try to decode JSON for array values
       $decoded = json_decode($cookieValue, true);
-      $selectedValue = ($decoded !== null) ? $decoded : $cookieValue;
+      $selectedValue = ($decoded !== null) ? filterSelectionScalars($decoded) : $cookieValue;
     }
   }
   return $selectedValue;

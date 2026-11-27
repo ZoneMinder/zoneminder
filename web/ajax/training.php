@@ -878,5 +878,5 @@ switch ($action) {
     break;
 
 }
-ajaxError('Unrecognised action '.$action.' or insufficient permissions for user '.$user->Username());
+ajaxError('Unrecognised action '.validHtmlStr($action).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

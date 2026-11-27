@@ -163,7 +163,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {

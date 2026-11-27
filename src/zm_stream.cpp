@@ -28,6 +28,7 @@
 #include <sys/file.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <thread>
 #include <unistd.h>
 
 constexpr Seconds StreamBase::MAX_STREAM_DELAY;
@@ -144,6 +145,7 @@ void StreamBase::checkCommandQueue() {
       if (nbytes < 0) {
         if (errno != EAGAIN) {
           Error("recvfrom(), errno = %d, error = %s", errno, strerror(errno));
+          std::this_thread::sleep_for(Milliseconds(100));
         }
       } else {
         Debug(2, "Message length is (%d)", nbytes);
@@ -153,9 +155,11 @@ void StreamBase::checkCommandQueue() {
       }
     } else if (connkey) {
       Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
+      std::this_thread::sleep_for(Milliseconds(250));
     } else {
       // Perfectly valid if only getting a snapshot
       Debug(1, "No sd in checkCommandQueue, comms not open.");
+      std::this_thread::sleep_for(Milliseconds(250));
     }
   } // end while !zm_terminate
 

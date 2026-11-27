@@ -38,12 +38,12 @@ jobs:
             gsoap libgsoap-dev \
             libarchive-zip-perl libclass-std-fast-perl libcrypt-eksblowfish-perl \
             libcryptx-perl libdata-dump-perl libdata-uuid-perl libdate-manip-perl \
-            libdatetime-perl libdbi-perl libdbd-mysql-perl libdevice-serialport-perl \
+            libdatetime-perl libdbi-perl libdbd-mysql-perl libdbd-sqlite3-perl libdevice-serialport-perl \
             libdigest-sha-perl libfile-slurp-perl libimage-info-perl \
             libio-interface-perl libio-socket-multicast-perl libio-socket-ssl-perl \
             libjson-maybexs-perl libmime-lite-perl libmime-tools-perl \
             libmodule-load-conditional-perl libnet-sftp-foreign-perl \
-            libnumber-bytes-human-perl libphp-serialization-perl libsoap-wsdl-perl \
+            libnumber-bytes-human-perl libphp-serialization-perl libsoap-lite-perl libsoap-wsdl-perl \
             libsys-cpu-perl libsys-meminfo-perl libsys-mmap-perl \
             liburi-encode-perl liburi-perl libwww-perl libxml-libxml-perl
 

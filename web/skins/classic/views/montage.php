@@ -320,7 +320,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             ];
             $whatDisplaySelected = 'Default'; // Default
             if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
-              if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+              if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
                 $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
               } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
                 $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);

@@ -1442,6 +1442,7 @@
     refreshOverlay();
   }
 
+  global.zoneObjectSize_stepReplay = stepReplay;
   function stepReplay(direction) {
     if (!replay || !media || !replay.frames.length) return;
     const now = media.currentTime;

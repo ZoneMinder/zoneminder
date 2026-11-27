@@ -250,6 +250,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     // Resolve a whitelisted event column name to its SQL (alias), or null.
     $whitelist = array_merge($columns, $col_alt);
     $resolve = function($col) use ($whitelist) {
+      if ($col == 'MonitorName') $col = 'Monitor';
       if (!in_array($col, $whitelist)) return null;
       if ($col == 'Tags') return 'Tags';
       if ($col == 'Monitor') return 'M.Name';

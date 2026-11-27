@@ -721,10 +721,14 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_SEEK : {
     time_to_event = Seconds(0);
-    double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
-                      | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
-    double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
-                      | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+    uint32_t int_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[1])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[2])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[3])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[4]));
+    uint32_t dec_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[5])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[6])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[7])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[8]));
 
     FPSeconds offset = FPSeconds(int_part + dec_part / 1000000.0);
     if (offset < Seconds(0)) {

@@ -21,6 +21,7 @@ var movableMonitorData = []; //Monitor data (id, width, stop (true - stop moving
 var TimerHideShow = null;
 var webSiteReloadTimers = []; // intervals reloading WebSite monitors
 var waitingMonitorsPlacedInterval = null; // pending waitingMonitorsPlaced() poll
+var monitorsPaused = false; // whether the pause-all toolbar toggle has paused the streams
 
 const presetRatio = new Map([
   ['auto', ''],
@@ -171,6 +172,16 @@ function selectLayout(new_layout_id) {
     initGridStack();
   } else { //CUSTOM
     document.getElementById("btnDeleteLayout").removeAttribute('disabled');
+    if (layout.Positions && layout.Positions.monitorStatusPosition) {
+      const statusSelect = document.getElementById('monitorStatusPosition');
+      const savedStatusPosition = layout.Positions.monitorStatusPosition;
+      const isKnownOption = statusSelect && Array.prototype.some.call(
+          statusSelect.options, (option) => option.value === savedStatusPosition);
+      if (isKnownOption) {
+        setSelected(statusSelect, savedStatusPosition);
+        changeMonitorStatusPosition();
+      }
+    }
     for (let i = 0, length = monitors.length; i < length; i++) {
       const monitor = monitors[i];
       // Need to clear the current positioning, and apply the new
@@ -334,7 +345,8 @@ function setRatioForMonitor(objStream, id=null) {
   }
 
   const height = ((currentMonitor.width / currentMonitor.height > 1) ? (objStream.clientWidth / ratio) /* landscape */ : (objStream.clientWidth * ratio)).toFixed(0);
-  if (!height) {
+  const numericHeight = Number(height);
+  if (!Number.isFinite(numericHeight) || numericHeight <= 0) {
     console.log("0 height from ", currentMonitor.width, currentMonitor.height, (currentMonitor.width / currentMonitor.height > 1), objStream.clientWidth / ratio);
   } else {
     //console.log('good height', height, objStream);
@@ -396,7 +408,7 @@ function save_layout(button) {
 
   const Positions = {};
   Positions['gridStack'] = objGridStack.save(false, false);
-  Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val(); //Not yet used when reading Layout
+  Positions['monitorStatusPosition'] = $j('#monitorStatusPosition').val();
   Positions['monitorRatio'] = {};
   $j('.select-ratio').each(function f() {
     Positions['monitorRatio'][stringToNumber(this.id)] = getSelected(this);
@@ -563,6 +575,25 @@ function playMonitors() {
   }
 }
 
+function setupPauseAllMonitors() {
+  const btn = document.getElementById('pauseAllBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    const icon = btn.querySelector('.material-icons');
+    if (monitorsPaused) {
+      playMonitors();
+      monitorsPaused = false;
+      if (icon) icon.textContent = 'pause';
+      btn.setAttribute('title', btn.getAttribute('data-title-pause-all') || 'Pause All');
+    } else {
+      pauseMonitors();
+      monitorsPaused = true;
+      if (icon) icon.textContent = 'play_arrow';
+      btn.setAttribute('title', btn.getAttribute('data-title-play-all') || 'Resume All');
+    }
+  });
+}
+
 function buildRatioSelect(objSelect) {
   presetRatio.forEach(function(value, key) {
     if (key == "auto") {
@@ -600,17 +631,14 @@ function fullscreenchanged(event) {
 } // end function fullscreenchanged(event)
 
 function calculateAverageMonitorsRatio(arrRatioMonitors) {
-  //Let's calculate the average Ratio value for the displayed monitors
-  let total = 0;
-  for (let i = 0; i < arrRatioMonitors.length; i++) {
-    total += arrRatioMonitors[i];
-  }
-  const avg = total / arrRatioMonitors.length;
+  // Ignore monitors without a usable size (0, NaN, Infinity), e.g. WebSite monitors with no width/height
+  const valid = arrRatioMonitors.filter((r) => Number.isFinite(r) && r > 0);
+  const avg = valid.length ? valid.reduce((a, b) => a + b, 0) / valid.length : 16 / 9;
 
-  // We create an array of aspect ratios from the basic set of objects and find the closest avg Ratio value in it
+  // Closest preset ratio; presets 'auto' and 'real' have an empty value and must be skipped
   const arr = [];
   presetRatio.forEach(function(value, key) {
-    arr.push(value);
+    if (value !== '') arr.push(value);
   });
   averageMonitorsRatio = arr.reduce(function(prev, curr) {
     return (Math.abs(curr - avg) < Math.abs(prev - avg) ? curr : prev);
@@ -633,6 +661,7 @@ function initPage() {
     $j("#hdrbutton").toggleClass('glyphicon-menu-down').toggleClass('glyphicon-menu-up');
     setCookie('zmMontageHeaderFlip', $j('#hdrbutton').hasClass('glyphicon-menu-up') ? 'up' : 'down');
   });
+  setupPauseAllMonitors();
   if (getCookie('zmMontageHeaderFlip') == 'down') {
     // The chosen dropdowns require the selects to be visible, so once chosen has initialized, we can hide the header
     $j("#flipMontageHeader").slideToggle("fast");

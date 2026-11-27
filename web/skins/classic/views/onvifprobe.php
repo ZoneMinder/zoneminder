@@ -131,7 +131,13 @@ function probeProfiles($device_ep, $soapversion, $username, $password) {
           // rawurlencode, not urlencode: a space would become a + that ffmpeg keeps literally.
           // Without credentials there is no userinfo at all: rtsp://:@host is not a valid URL.
           $userinfo = '';
-          if ((string)$username !== '' || (string)$password !== '') {
+          // The camera chose this URI. Only send the credentials to the host that
+          // was probed, over a scheme that uses them, never to another host.
+          $uri_host = parse_url($stream_uri, PHP_URL_HOST);
+          $probe_host = parse_url($device_ep, PHP_URL_HOST);
+          $send_credentials = in_array(strtolower($tokens[1]), array('rtsp://', 'rtsps://', 'http://', 'https://'))
+            && is_string($uri_host) && is_string($probe_host) && strcasecmp($uri_host, $probe_host) == 0;
+          if ($send_credentials && ((string)$username !== '' || (string)$password !== '')) {
             $userinfo = rawurlencode(rawurlencode((string)$username)).':'.rawurlencode(rawurlencode((string)$password)).'@';
           }
           $stream_uri = $tokens[1].$userinfo.$tokens[2];

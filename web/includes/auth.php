@@ -28,6 +28,7 @@ require_once('Role_Group_Permission.php');
 require_once('Role_Monitor_Permission.php');
 require_once(__DIR__.'/../vendor/autoload.php');
 use \Firebase\JWT\JWT;
+use \Firebase\JWT\Key;
 
 // A request parameter as a string, or null when the client did not send one it
 // can be used as. Request values are whatever arrived: "?user[]=x" makes
@@ -74,20 +75,15 @@ function migrateHash($username, $pass) {
   $password_type = password_type($user->Password());
   if ($password_type != 'mysql' and $password_type != 'mysql+bcrypt') return;
 
-  if (function_exists('password_hash')) {
-    ZM\Info("Migrating $username to bcrypt scheme");
-    // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
-    // we can modify this later to support argon2 etc as switch to its own password signature detection
-    $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
-    dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
-    # Since password field has changed, existing auth_hash is no longer valid.
-    # getAuthUser() checks it against the new hash, so build it from that one.
-    $user->Password($bcrypt_hash);
-    generateAuthHash(ZM_AUTH_HASH_IPS, true);
-  } else {
-    ZM\Info('Cannot migrate password scheme to bcrypt, as you are using PHP < 5.5');
-    return;
-  }
+  ZM\Info("Migrating $username to bcrypt scheme");
+  // let it generate its own salt, and ensure bcrypt as PASSWORD_DEFAULT may change later
+  // we can modify this later to support argon2 etc as switch to its own password signature detection
+  $bcrypt_hash = password_hash($pass, PASSWORD_BCRYPT);
+  dbQuery('UPDATE Users SET Password=? WHERE Id=?', array($bcrypt_hash, $user->Id()));
+  # Since password field has changed, existing auth_hash is no longer valid.
+  # getAuthUser() checks it against the new hash, so build it from that one.
+  $user->Password($bcrypt_hash);
+  generateAuthHash(ZM_AUTH_HASH_IPS, true);
 }
 
 // The password db/zm_create.sql gives the admin account, as the user guide
@@ -121,6 +117,22 @@ function passwordProblem($password) {
   if (isDefaultPassword($password)) return 'NewPasswordIsDefault';
   if (mb_strlen($password, 'UTF-8') < passwordMinLength()) return 'PasswordTooShort';
   return null;
+}
+
+// ZM_AUTH_HASH_TTL in hours. The Options page accepts 0, which made every auth
+// hash fail here while zms and zmu (zm_user.cpp) treat 0 as 2; use 2 as they do.
+function authHashTtl($ttl = null) {
+  static $warned = false;
+  if ($ttl === null) $ttl = defined('ZM_AUTH_HASH_TTL') ? ZM_AUTH_HASH_TTL : 2;
+  $ttl = intval($ttl);
+  if ($ttl < 1) {
+    if (!$warned) {
+      ZM\Warning("ZM_AUTH_HASH_TTL is $ttl, using 2 hours");
+      $warned = true;
+    }
+    return 2;
+  }
+  return $ttl;
 }
 
 // ZM_PASSWORD_MIN_LENGTH, or 0 on a database that doesn't have the option yet.
@@ -332,12 +344,26 @@ function userLogout() {
   zm_session_clear();
 }
 
-// ZM_AUTH_HASH_SECRET as shipped. It is public, so it must never sign or verify a token.
-// zmupdate.pl -f replaces it with a random secret. refs GHSA-wmcc-x64g-jr84
-define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
+// ZM_AUTH_HASH_SECRET_DEFAULT, the public shipped secret, is defined in config.php.
+// The secret is the HS256 token key, and php-jwt refuses an HMAC key shorter than
+// the hash (256 bits). zmupdate.pl -f extends a shorter one by repeating it.
+define('ZM_AUTH_HASH_SECRET_MIN_LENGTH', 32);
+
+function authHashSecretValid($secret) {
+  return is_string($secret) and (strlen($secret) >= ZM_AUTH_HASH_SECRET_MIN_LENGTH)
+    and ($secret !== ZM_AUTH_HASH_SECRET_DEFAULT);
+}
+
+// Where an unusable secret can be fixed. Options and zmupdate.pl -f only change the
+// Config table, so a secret set in zm.conf or conf.d has to be changed in that file.
+function authHashSecretFix($fileConfig) {
+  if (isset($fileConfig['ZM_AUTH_HASH_SECRET']['File']))
+    return 'It is set in '.$fileConfig['ZM_AUTH_HASH_SECRET']['File'].', which overrides Options and zmupdate.pl -f: change it there.';
+  return 'Set it in Options->System or run zmupdate.pl -f.';
+}
 
 function authHashSecretIsSet() {
-  return (ZM_AUTH_HASH_SECRET !== '') and (ZM_AUTH_HASH_SECRET !== ZM_AUTH_HASH_SECRET_DEFAULT);
+  return authHashSecretValid(ZM_AUTH_HASH_SECRET);
 }
 
 function validateToken($token, $allowed_token_type='access') {
@@ -346,14 +372,15 @@ function validateToken($token, $allowed_token_type='access') {
     return array(false, 'Invalid token');
   }
   if (!authHashSecretIsSet()) {
-    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default. Set it in Options->System or run zmupdate.pl -f.');
+    ZM\Error('Refusing token authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. '.authHashSecretFix(loadConfigFiles()));
     return array(false, 'AUTH_HASH_SECRET is not set');
   }
   $key = ZM_AUTH_HASH_SECRET;
   //if (ZM_AUTH_HASH_IPS) $key .= $_SERVER['REMOTE_ADDR'];
   try {
-    $decoded_token = JWT::decode($token, $key, array('HS256'));
-  } catch (Exception $e) {
+    $decoded_token = JWT::decode($token, new Key($key, 'HS256'));
+  } catch (Throwable $e) {
+    // Throwable, not Exception: php-jwt throws TypeError on a malformed header (a non-string kid).
     ZM\Error("Unable to authenticate user. error decoding JWT token:".$e->getMessage());
     return array(false, $e->getMessage());
   }
@@ -433,7 +460,7 @@ function authHashSessionAddrs() {
     isset($_SESSION['prevRemoteAddr']) ? $_SESSION['prevRemoteAddr'] : '',
     isset($_SESSION['prevRemoteAddrAt']) ? $_SESSION['prevRemoteAddrAt'] : 0,
     time(),
-    ZM_AUTH_HASH_TTL
+    authHashTtl()
   );
 }
 
@@ -477,7 +504,7 @@ function getAuthUser($auth) {
     $rowsTried = count($rows);
     foreach ($rows as $user) {
       $now = time();
-      for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+      for ($i = 0; $i < authHashTtl(); $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
         foreach ($candidateAddrs as $remoteAddr) {
           $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
@@ -500,7 +527,7 @@ function getAuthUser($auth) {
       $rowsTried += count($altRows);
       foreach ($altRows as $user) {
         $now = time();
-        for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+        for ($i = 0; $i < authHashTtl(); $i++, $now -= 3600) { // Try for last TTL hours
           $time = localtime($now);
           foreach ($candidateAddrs as $remoteAddr) {
             $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
@@ -513,7 +540,7 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".authHashTtl().'h)');
     return null;
   } // end if using auth hash
 
@@ -538,7 +565,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username()) {
     $time = time();
     # We use 1800 so that we regenerate the hash at half the TTL
-    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
+    $mintime = $time - (authHashTtl() * 1800);
     # The address baked into the hash, and the cache slot key, must agree. A
     # caller that asks for an IP-less hash ($useRemoteAddr false, e.g.
     # getZmuCommand) must not overwrite the IP-bound slot used by the browser,
@@ -817,6 +844,11 @@ function userFromSession() {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
       $user = new ZM\User(dbFetchOne($sql, NULL, array($_SESSION['username'])));
+      # A password reset ends the sessions that logged in with the old password.
+      if ($user->Id() and isset($_SESSION['passwordHash']) and !hash_equals((string)$_SESSION['passwordHash'], (string)$user->Password())) {
+        ZM\Info('The password of '.$_SESSION['username'].' changed since this session logged in, ending it');
+        $user = null;
+      }
     }
   }
   return $user;
@@ -912,10 +944,9 @@ function zm_authenticate_request() {
 
   if (ZM_OPT_USE_AUTH) {
     if (!empty($_REQUEST['token'])) {
-      // we only need to get the username here
-      // don't know the token type. That will
-      // be checked later 
-      $ret = validateToken($_REQUEST['token'], 'any');
+      // Only an access token logs in to the web UI; a refresh token is for
+      // minting access tokens at host/login.
+      $ret = validateToken($_REQUEST['token'], 'access');
       if (!$ret[0]) {
         // validateToken returns array(false, $errorMessage) on failure.
         // Assigning false to $user would leave isset($user) true, bypassing

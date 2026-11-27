@@ -1189,6 +1189,32 @@ void Image::Assign(const Image &image) {
   }
 }
 
+// Brings a box's corners inside the image. A box wholly outside it gives lo > hi, so the
+// fill loops do not run.
+static void LimitsInImage(const Box *limits, unsigned int width, unsigned int height,
+                          unsigned int &lo_x, unsigned int &lo_y, unsigned int &hi_x, unsigned int &hi_y) {
+  if (!limits) {
+    lo_x = 0;
+    lo_y = 0;
+    hi_x = width - 1;
+    hi_y = height - 1;
+    return;
+  }
+  const int max_x = static_cast<int>(width) - 1;
+  const int max_y = static_cast<int>(height) - 1;
+  if (limits->Hi().x_ < 0 || limits->Hi().y_ < 0 || limits->Lo().x_ > max_x || limits->Lo().y_ > max_y) {
+    lo_x = 1;
+    lo_y = 1;
+    hi_x = 0;
+    hi_y = 0;
+    return;
+  }
+  lo_x = std::max(0, limits->Lo().x_);
+  lo_y = std::max(0, limits->Lo().y_);
+  hi_x = std::min(limits->Hi().x_, max_x);
+  hi_y = std::min(limits->Hi().y_, max_y);
+}
+
 Image *Image::BuildHighlight(
   Rgb colour,
   unsigned int p_colours,
@@ -1212,10 +1238,8 @@ Image *Image::BuildHighlight(
   /* Set image to all black */
   high_image->Clear();
 
-  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
-  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
-  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
-  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
+  unsigned int lo_x, lo_y, hi_x, hi_y;
+  LimitsInImage(limits, width, height, lo_x, lo_y, hi_x, hi_y);
 
   // Source (this) is GRAY8 with src_linesize per row. The destination Image
   // has its own (possibly different) row stride; use that for high_buff
@@ -3261,10 +3285,8 @@ void Image::Fill( Rgb colour, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour,subpixelorder);
 
-  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
-  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
-  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
-  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
+  unsigned int lo_x, lo_y, hi_x, hi_y;
+  LimitsInImage(limits, width, height, lo_x, lo_y, hi_x, hi_y);
   // Use linesize as the row stride so non-32-aligned widths don't write
   // into padding bytes or shift subsequent rows.
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
@@ -3308,10 +3330,8 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
   /* Convert the colour's RGBA subpixel order into the image's subpixel order */
   colour = rgb_convert(colour, subpixelorder);
 
-  unsigned int lo_x = limits ? limits->Lo().x_ : 0;
-  unsigned int lo_y = limits ? limits->Lo().y_ : 0;
-  unsigned int hi_x = limits ? limits->Hi().x_ : width - 1;
-  unsigned int hi_y = limits ? limits->Hi().y_ : height - 1;
+  unsigned int lo_x, lo_y, hi_x, hi_y;
+  LimitsInImage(limits, width, height, lo_x, lo_y, hi_x, hi_y);
   // Use linesize as the row stride so non-32-aligned widths don't write
   // into padding bytes or shift subsequent rows.
   if ( zm_bytes_per_pixel(imagePixFormat) == 1 ) {
@@ -3447,8 +3467,11 @@ void Image::Fill(Rgb colour, int density, const Polygon &polygon) {
   std::vector<PolygonFill::Edge> global_edges;
   global_edges.reserve(n_coords);
   for (size_t j = 0, i = n_coords - 1; j < n_coords; i = j++) {
-    const Vector2 &p1 = polygon.GetVertices()[i];
-    const Vector2 &p2 = polygon.GetVertices()[j];
+    // Keep the vertices inside the image, as Outline does.
+    const Vector2 p1(zm::clamp(polygon.GetVertices()[i].x_, 0, static_cast<int>(width) - 1),
+                     zm::clamp(polygon.GetVertices()[i].y_, 0, static_cast<int>(height) - 1));
+    const Vector2 p2(zm::clamp(polygon.GetVertices()[j].x_, 0, static_cast<int>(width) - 1),
+                     zm::clamp(polygon.GetVertices()[j].y_, 0, static_cast<int>(height) - 1));
 
     // Do not add horizontal edges to the global edge table.
     if (p1.y_ == p2.y_)

@@ -437,7 +437,7 @@ This returns number of events per monitor that were recorded in the last day whe
 
 ::
 
-  curl "http://server/zm/api/events/consoleEvents/1%20day.json/AlarmFrames%20>=:%2010.json"
+  curl "http://server/zm/api/events/consoleEvents/1%20day/AlarmFrames%20>=:%2010.json"
 
 
 

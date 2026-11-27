@@ -23,6 +23,8 @@ const sandbox = {
   $j: () => ({html: (v) => {
     readout = v;
   }}),
+  // Covered by event-zoom-persist.test.js
+  storeEventZoom: () => {},
 };
 vm.createContext(sandbox);
 vm.runInContext(extract('panZoomEventPanzoomchange'), sandbox);

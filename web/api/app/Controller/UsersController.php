@@ -203,11 +203,15 @@ class UsersController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		# User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+		$ds = $this->User->getDataSource();
+		$ds->begin();
 		$this->loadModel('UserPreference');
 		$this->UserPreference->deleteAll(array('UserPreference.UserId' => $id), false);
 		if ($this->User->delete()) {
+			$ds->commit();
 			$message = 'The user has been deleted.';
 		} else {
+			$ds->rollback();
 			throw new InternalErrorException(__('The user could not be deleted.'));
 		}
 		$this->set(array(

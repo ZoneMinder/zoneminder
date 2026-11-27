@@ -231,10 +231,24 @@ sub runServer {
           next;
         }
 
+        chomp($message);
         my ($command, $unit_code) = split(';', $message);
+        $unit_code =~ s/\s+$// if defined($unit_code);
+
+        if ( ( $command eq 'on' || $command eq 'off' ) && !defined($unit_code) ) {
+          dPrint(ZoneMinder::Logger::ERROR, "No unit code given for '$command' command\n");
+          close(CLIENT);
+          next;
+        }
 
         my $device;
         if ( defined($unit_code) ) {
+          if ( $unit_code !~ /^\d+$/ ) {
+            dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
+            next;
+          }
+          $unit_code = int($unit_code);
           if ( $unit_code < 1 || $unit_code > 16 ) {
             dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
             close(CLIENT);

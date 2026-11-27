@@ -135,6 +135,7 @@ sub handle_input {
 }
 sub Appliance {
   my ($self, %args) = @_;
+  X10::Appliance::rec('APPLIANCE_NEW', $args{unit_code});
   return bless({unit_code=>$args{unit_code}}, 'X10::Appliance');
 }
 package X10::Event;

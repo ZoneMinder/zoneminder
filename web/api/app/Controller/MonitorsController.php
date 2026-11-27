@@ -593,7 +593,7 @@ class MonitorsController extends AppController {
     }
 
     $monitor = $this->Monitor->find('first', array(
-      'fields' => array('Id', 'Type', 'Device', 'Capturing'),
+      'fields' => array('Id', 'Type', 'Device', 'Capturing', 'ServerId'),
       'conditions' => array('Id' => $id)
     ));
 
@@ -603,6 +603,14 @@ class MonitorsController extends AppController {
       $this->set(array(
         'status' => false,
         'statustext' => 'Monitor capturing is set to None',
+        '_serialize' => array('status','statustext'),
+      ));
+      return;
+    }
+    if (defined('ZM_SERVER_ID') and ($monitor[0]['ServerId'] != ZM_SERVER_ID)) {
+      $this->set(array(
+        'status' => false,
+        'statustext' => 'Monitor is assigned to a different server',
         '_serialize' => array('status','statustext'),
       ));
       return;

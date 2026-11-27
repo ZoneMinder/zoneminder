@@ -796,6 +796,14 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
 
 } // Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY)
 
+int OpenMonitorMapFile(const char *path, bool create) {
+  if (!create) return open(path, O_RDWR);
+  mode_t old_umask = umask(0);
+  int fd = open(path, O_RDWR|O_CREAT, (mode_t)0660);
+  umask(old_umask);
+  return fd;
+}
+
 void Monitor::LoadCamera() {
   if (camera)
     return;
@@ -1023,12 +1031,7 @@ bool Monitor::connect() {
         static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED
   mem_file = stringtf("%s/zm.mmap.%u", staticConfig.PATH_MAP.c_str(), id);
-  if (purpose != CAPTURE) {
-    map_fd = open(mem_file.c_str(), O_RDWR);
-  } else {
-    umask(0);
-    map_fd = open(mem_file.c_str(), O_RDWR|O_CREAT, (mode_t)0660);
-  }
+  map_fd = OpenMonitorMapFile(mem_file.c_str(), purpose == CAPTURE);
 
   if (map_fd < 0) {
     Info("Can't open memory map file %s: %s", mem_file.c_str(), strerror(errno));

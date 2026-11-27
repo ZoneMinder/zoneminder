@@ -21,7 +21,11 @@
 #include "zm_monitor.h"
 
 #include <chrono>
+#include <cstdlib>
+#include <string>
 #include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 // Monitor::connect() returns false with shared_data still null on every one of
 // its failure paths: the mmap file cannot be opened (wrong ownership after a
@@ -75,6 +79,30 @@ TEST_CASE("Monitor shm time accessors are safe before connect()", "[Monitor]") {
   SECTION("GetStartupTime does not fault") {
     REQUIRE_NOTHROW(monitor.GetStartupTime());
   }
+}
+
+// zmc used to call umask(0) before creating its map file and never put it
+// back, so every file it made afterwards (logs, event videos) was world
+// writable.
+TEST_CASE("Creating the monitor map file leaves the umask as it was", "[Monitor]") {
+  char dir[] = "/tmp/zm_mapfile_XXXXXX";
+  REQUIRE(mkdtemp(dir) != nullptr);
+  std::string path = std::string(dir) + "/zm.mmap.1";
+
+  mode_t old_umask = umask(022);
+  int fd = OpenMonitorMapFile(path.c_str(), true);
+  mode_t after = umask(old_umask);
+  REQUIRE(fd >= 0);
+  close(fd);
+
+  REQUIRE(after == 022);
+
+  struct stat st;
+  REQUIRE(stat(path.c_str(), &st) == 0);
+  REQUIRE((st.st_mode & 0777) == 0660);
+
+  unlink(path.c_str());
+  rmdir(dir);
 }
 
 TEST_CASE("Monitor image buffer count of zero or less is raised to 2", "[Monitor]") {

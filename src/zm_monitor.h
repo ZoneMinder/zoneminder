@@ -58,6 +58,11 @@ inline void zm_curl_set_timeouts(CURL *curl) {
 
 class Group;
 class MonitorLinkExpression;
+
+// Opens the shared memory map file of a monitor. zmc (create) makes it with
+// mode 0660 regardless of its umask, then puts the umask back so the files it
+// creates later are not world-writable.
+int OpenMonitorMapFile(const char *path, bool create);
 class StreamSocket;
 
 #define SIGNAL_CAUSE "Signal"

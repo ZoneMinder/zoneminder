@@ -903,6 +903,41 @@ class Filter extends ZM_Object {
     return $this;
   } # end function addTerm
 
+  // Add a term that must hold whatever the filter's own terms say, such as the
+  // monitors the user may view. The existing terms are bracketed first: with an
+  // OR among them, "A or B and X" would still match every A.
+  // A request whose brackets are not balanced loses its terms; only the required term applies.
+  function addRequiredTerm($term) {
+    $terms = $this->terms();
+    if (count($terms)) {
+      // The request's own brackets must balance: a term that closes the added bracket early,
+      // or a negative count, would leave terms outside the limit. Drop the request's terms
+      // in that case so only the required term applies.
+      $depth = 0;
+      $valid = true;
+      foreach ($terms as $t) {
+        foreach (array('obr', 'cbr') as $k) {
+          if (isset($t[$k]) and $t[$k] !== '' and $t[$k] !== null and (!is_numeric($t[$k]) or (string)(int)$t[$k] !== (string)$t[$k] or (int)$t[$k] < 0)) $valid = false;
+        }
+        $depth += (int)($t['obr'] ?? 0);
+        $depth -= (int)($t['cbr'] ?? 0);
+        if ($depth < 0) $valid = false;
+      }
+      if ($depth != 0) $valid = false;
+      if (!$valid) {
+        Warning('Unbalanced brackets in filter terms, dropping them before adding the required term');
+        $terms = array();
+        $this->terms($terms);
+      } else {
+        $last = count($terms) - 1;
+        $terms[0]['obr'] = (int)($terms[0]['obr'] ?? 0) + 1;
+        $terms[$last]['cbr'] = (int)($terms[$last]['cbr'] ?? 0) + 1;
+        $this->terms($terms);
+      }
+    }
+    return $this->addTerm($term);
+  }
+
   function addTerms($terms, $options=null) {
     foreach ( $terms as $term ) {
       $this->addTerm($term);

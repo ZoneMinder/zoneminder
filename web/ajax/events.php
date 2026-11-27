@@ -33,7 +33,10 @@ require_once('includes/Filter.php');
 require_once getSkinFile('views/_monitor_filters.php'); // getFilteredMonitorIds()
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
 if (count( $user->unviewableMonitorIds())) {
-  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
+  // An empty list drops out of the query as a term, so a user who can view no monitor gets a term that matches nothing.
+  $viewable = $user->viewableMonitorIds();
+  if (!count($viewable)) $viewable = array(0);
+  $filter = $filter->addRequiredTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$viewable));
   // $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>'5'));
 }
 # Constrain to the monitors selected by the shared monitor-attribute filters

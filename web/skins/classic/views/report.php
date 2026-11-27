@@ -105,7 +105,7 @@ if (!$report->FilterId() or !isset($FiltersById[$report->FilterId()])) {
 
 $filter = new ZM\Filter($report->FilterId());
 if (count($user->unviewableMonitorIds())) {
-  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
+  $filter = $filter->addRequiredTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
 }
 $events = $filter->Events();
 foreach ($events as $event) {

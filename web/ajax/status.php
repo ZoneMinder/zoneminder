@@ -619,7 +619,7 @@ function getNearEvents() {
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   parseSort();
   if ( count($user->unviewableMonitorIds()) ) {
-    $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
+    $filter = $filter->addRequiredTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   }
   $filter_sql = $filter->sql();
 

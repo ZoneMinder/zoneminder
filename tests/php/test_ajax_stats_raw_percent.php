@@ -6,6 +6,13 @@
 // Run as: php tests/php/test_ajax_stats_raw_percent.php
 
 class Done extends Exception {}
+// stats.php checks the user may view the event; this one may.
+$stubdir = sys_get_temp_dir().'/zm_stats_raw_stubs_'.getmypid();
+@mkdir($stubdir.'/includes', 0700, true);
+file_put_contents($stubdir.'/includes/Event.php', "<?php\nnamespace ZM; class Event { public function __construct(\$id) {} public function Id() { return 5; } public function canView() { return true; } }\n");
+set_include_path($stubdir.PATH_SEPARATOR.get_include_path());
+register_shutdown_function(function() use ($stubdir) { @unlink($stubdir.'/includes/Event.php'); @rmdir($stubdir.'/includes'); @rmdir($stubdir); });
+function validCardinal($v) { return preg_replace('/\D/', '', $v); }
 function canView($a) { return true; }
 function ajaxError($m) { $GLOBALS['out'] = "error: $m"; throw new Done(); }
 function ajaxResponse($r) { $GLOBALS['out'] = $r; throw new Done(); }

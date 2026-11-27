@@ -3,7 +3,11 @@ if (!canView('Events')) ajaxError('Insufficient permissions');
 if (empty($_REQUEST['eid'])) ajaxError('Event Id Not Provided');
 if (empty($_REQUEST['fid'])) ajaxError('Frame Id Not Provided');
 
-$eid = $_REQUEST['eid'];
+$eid = validCardinal($_REQUEST['eid']);
+// The stats of an event on a monitor the user may not view are not theirs to read.
+require_once('includes/Event.php');
+$Event = new ZM\Event($eid);
+if (!$Event->Id() or !$Event->canView()) ajaxError('Insufficient permissions');
 $fid = $_REQUEST['fid'];
 $row = ( isset($_REQUEST['row']) ) ? $_REQUEST['row'] : '';
 $raw = isset($_REQUEST['raw']);

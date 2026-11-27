@@ -10,6 +10,10 @@ if ( canView('Events') or canView('Snapshots') ) {
       ajaxError('Video Generation Failure, no rate given');
     } else if (empty($_REQUEST['scale'])) {
       ajaxError('Video Generation Failure, no scale given');
+    } else if (!is_string($_REQUEST['videoFormat']) or !is_numeric($_REQUEST['rate'])
+      or !is_string($_REQUEST['scale']) or !(is_numeric($_REQUEST['scale']) or preg_match('/^\d+x\d+$/', $_REQUEST['scale']))
+      or (isset($_REQUEST['transform']) and !is_string($_REQUEST['transform']))) {
+      ajaxError('Video Generation Failure, invalid format, rate, scale or transform');
     } else {
       $sql = '
       SELECT E.*, M.Name AS MonitorName,M.DefaultRate,M.DefaultScale, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
@@ -25,7 +29,7 @@ if ( canView('Events') or canView('Snapshots') ) {
         or !($Event = new ZM\Event($event))->canView()) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
-        if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) ) {
+        if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'] ?? '', !empty($_REQUEST['overwrite'])) ) {
           ajaxResponse(array('response'=>$videoFile));
         } else {
           ajaxError('Video Generation Failed');

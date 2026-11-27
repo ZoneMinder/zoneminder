@@ -126,7 +126,8 @@ sub PutCmd {
       # just gives up. Create a new ua and retry.
       $self->{ua} = LWP::UserAgent->new();
       $self->{ua}->cookie_jar( {} );
-      $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+      # LWP looks the credentials up by host_port, which brackets an IPv6 host.
+      $self->{ua}->credentials($$self{address} // "$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
 
       $res = $self->{ua}->request($req);
       if (!$res->is_success) {

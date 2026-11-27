@@ -30,7 +30,9 @@ if (!isset($_REQUEST['task'])) {
     if (!empty($_REQUEST['ids'])) {
       $ids = array_map('intval', (array)$_REQUEST['ids']);
       $placeholders = implode(',', array_fill(0, count($ids), '?'));
-      dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+      if (dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids) === null) {
+        $message = 'Failed to delete the selected log entries';
+      }
     } else if (!empty($_REQUEST['all'])) {
       // Deleting by id needs one request per 100 rows, which is unusable at the
       // hundreds of thousands of rows people accumulate, and the table's
@@ -113,8 +115,9 @@ function createRequest() {
   }
 
   $levels = array_flip(ZM\Logger::$codes);
-  // OFF has no priority to log under.
-  unset($levels['OFF']);
+  // OFF has no priority to log under, and AUD is for the server's own audit
+  // records, so a request can't forge one.
+  unset($levels['OFF'], $levels['AUD']);
   if (!isset($levels[$level])) {
     ZM\Error('Unexpected logger level '.$level); // already sanitized above
     $level = 'ERR';
@@ -137,9 +140,10 @@ function logAltColumns() {
 // a filter applied removes exactly the rows the user is looking at. Rebuilding
 // the conditions separately would risk the two drifting apart, and the failure
 // mode there is deleting rows the user never saw.
-// Returns where (no leading WHERE), values, and the parsed component/level
+// Returns where (no leading WHERE), values, and the parsed component/level/monitor
 // selections queryRequest stashes in the session.
 function logFilter() {
+  global $user;
   $columns = logColumns();
   $col_alt = logAltColumns();
   $query = array('values' => array());
@@ -225,6 +229,34 @@ function logFilter() {
     foreach ($requestComponents as $component) $query['values'][] = $component;
   }
 
+  // Monitor is a single select. A camera's daemons log as zmc_mN, zma_mN,
+  // zms_mN and zmtrack_mN, so match those four Components instead of making
+  // the user learn the naming. The id is cast to int, and a monitor the user
+  // may not view matches no rows, as does a malformed id.
+  $requestMonitorId = null;
+  if (isset($_REQUEST['MonitorId'])) {
+    $rawMonitorId = $_REQUEST['MonitorId'];
+    // The empty option is "All", not monitor 0.
+    if (!is_scalar($rawMonitorId) or (string)$rawMonitorId !== '') {
+      $requested = true;
+      $monitorId = is_scalar($rawMonitorId) ? (int)$rawMonitorId : 0;
+      $requestMonitorId = $monitorId;
+      $viewable = false;
+      if (is_object($user) and method_exists($user, 'viewableMonitorIds')) {
+        $viewable = in_array($monitorId, array_map('intval', $user->viewableMonitorIds()), true);
+      }
+      if ($where) $where .= ' AND ';
+      if ($viewable) {
+        $where .= 'Component IN (?, ?, ?, ?)';
+        foreach (array('zmc_m', 'zma_m', 'zms_m', 'zmtrack_m') as $prefix) {
+          $query['values'][] = $prefix.$monitorId;
+        }
+      } else {
+        $where .= '1=0';
+      }
+    }
+  }
+
   if (!empty($_REQUEST['ServerId'])) {
     $requested = true;
     if ($where) $where .= ' AND ';
@@ -293,8 +325,10 @@ function logFilter() {
     $end_time = is_string($_REQUEST['EndDateTime']) ? strtotime($_REQUEST['EndDateTime']) : false;
     if ($end_time) {
       if ($where) $where .= ' AND ';
-      $where .= 'TimeKey <= ?';
-      $query['values'][] = $end_time;
+      // TimeKey carries fractions of a second but the view shows whole seconds,
+      // so the End time covers its whole second.
+      $where .= 'TimeKey < ?';
+      $query['values'][] = $end_time + 1;
     } else {
       ZM\Warning("Unable to parse EndDateTime ".print_r($_REQUEST['EndDateTime'], true). " into a timestamp");
     }
@@ -307,6 +341,7 @@ function logFilter() {
     'requested' => $requested,
     'components' => $requestComponents,
     'levels' => $requestLevels,
+    'monitorId' => $requestMonitorId,
   );
 }
 
@@ -373,6 +408,7 @@ function queryRequest() {
   $query['values'] = $filter['values'];
   $requestComponents = $filter['components'];
   $requestLevels = $filter['levels'];
+  $requestMonitorId = $filter['monitorId'];
 
   # An embedded panel queries a component of its own choosing, so remembering
   # what it asked for would overwrite the Log view's selection.
@@ -380,6 +416,7 @@ function queryRequest() {
     zm_session_start();
     $_SESSION['zmLogComponent'] = $requestComponents;
     $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
+    $_SESSION['zmLogMonitorId'] = $requestMonitorId;
     session_write_close();
   }
 
@@ -418,7 +455,20 @@ function queryRequest() {
     $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
     $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
-    $row['Server'] = $Server ? $Server->Name() : '';
+    $row['Server'] = $Server ? htmlspecialchars($Server->Name(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
+    $component = (string)($row['Component'] ?? '');
+    $componentHtml = htmlspecialchars($component, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    if (preg_match('/^(zmc|zma|zms|zmtrack)_m(\d+)$/', $component, $matches)) {
+      $mid = (int)$matches[2];
+      if (canView('Monitors', $mid)) {
+        if (canView('Stream')) {
+          $componentHtml = '<a href="?view=watch&mid='.$mid.'">'.$componentHtml.'</a>';
+        } else if (canEdit('Monitors', $mid)) {
+          $componentHtml = '<a href="?view=monitor&mid='.$mid.'">'.$componentHtml.'</a>';
+        }
+      }
+    }
+    $row['Component'] = $componentHtml;
     $row['Message'] = htmlspecialchars($row['Message'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));

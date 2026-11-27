@@ -38,6 +38,69 @@ class EventsController extends AppController {
     );
   }
 
+  private function renameLegacyTimeParams($params) {
+    # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
+    # This hack renames the query string params
+    foreach ( $params as $k=>$v ) {
+      if ( false !== strpos($k, 'StartTime') ) {
+        $new_k = preg_replace('/StartTime/', 'StartDateTime', $k);
+        $params[$new_k] = $params[$k];
+        unset($params[$k]);
+      }
+      if ( false !== strpos($k, 'EndTime') ) {
+        $new_k = preg_replace('/EndTime/', 'EndDateTime', $k);
+        $params[$new_k] = $params[$k];
+        unset($params[$k]);
+      }
+    }
+    return $params;
+  }
+
+  private function datetimeConditions($conditions) {
+    # DateTime is a pseudo-attribute meaning "the event was running then", so a
+    # window over it is an overlap test: the event started by the upper bound
+    # and had not finished by the lower bound. Applying the term's own operator
+    # to both StartDateTime and EndDateTime instead makes the upper bound a
+    # containment test, which drops every event that spans the end of the
+    # window -- with continuous recording that is most of them.
+    $datetime_terms = array();
+    foreach ($conditions as $k=>$v) {
+      if ( 0 === strpos($k, 'DateTime') ) {
+        $datetime_terms[$k] = $v;
+        unset($conditions[$k]);
+      }
+    }
+    if ($datetime_terms) {
+      # An event still being written has no EndDateTime, but it is not
+      # unbounded: zmc flushes Length every few seconds, so StartDateTime +
+      # Length is its effective end. Only an event with neither falls back to
+      # NOW(). Treating a missing EndDateTime as "matches any window" instead
+      # made every crash-orphaned event ever recorded match every query.
+      $effective_end = '(CASE'
+        .' WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime'
+        .' WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND)'
+        .' ELSE NOW() END)';
+      $ds = $this->Event->getDataSource();
+      foreach ($datetime_terms as $k=>$v) {
+        $op = trim(substr($k, strlen('DateTime')));
+        if ($op == '<' or $op == '<=') {
+          # Upper bound: the event must have started by then.
+          $conditions[] = array('Event.StartDateTime '.$op => $v);
+        } else if ($op == '>' or $op == '>=') {
+          # Lower bound: the event must not have ended before then.
+          $conditions[] = $effective_end.' '.$op.' '.$ds->value($v, 'string');
+        } else {
+          # Anything else (=, !=) still matches against either end.
+          $conditions[] = array('OR' => array(
+            array('Event.StartDateTime '.$op => $v),
+            array('Event.EndDateTime '.$op => $v),
+          ));
+        }
+      }
+    } // end if datetime terms
+    return $conditions;
+  }
+
   /**
    * index method
    *
@@ -69,20 +132,7 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($named_params['Tags']);
       }
-      # In 1.35.13 we renamed StartTime and EndTime to StartDateTime and EndDateTime.
-      # This hack renames the query string params
-      foreach ( $named_params as $k=>$v ) {
-        if ( false !== strpos($k, 'StartTime') ) {
-          $new_k = preg_replace('/StartTime/', 'StartDateTime', $k);
-          $named_params[$new_k] = $named_params[$k];
-          unset($named_params[$k]);
-        }
-        if ( false !== strpos($k, 'EndTime') ) {
-          $new_k = preg_replace('/EndTime/', 'EndDateTime', $k);
-          $named_params[$new_k] = $named_params[$k];
-          unset($named_params[$k]);
-        }
-      }
+      $named_params = $this->renameLegacyTimeParams($named_params);
       // Events columns, plus the two names this action resolves itself: DateTime
       // is a pseudo-attribute turned into an overlap test below, and GroupId is
       // served by the Groups_Monitors join added further down. Anything else
@@ -93,49 +143,6 @@ class EventsController extends AppController {
       $named_params = $this->FilterComponent->qualifyFields($named_params, $this->filterColumns(), array('DateTime', 'GroupId'));
       $conditions = $this->FilterComponent->buildFilter($named_params, $valid_fields);
       #ZM\Debug(print_r($conditions, true));
-      # DateTime is a pseudo-attribute meaning "the event was running then", so a
-      # window over it is an overlap test: the event started by the upper bound
-      # and had not finished by the lower bound. Applying the term's own operator
-      # to both StartDateTime and EndDateTime instead makes the upper bound a
-      # containment test, which drops every event that spans the end of the
-      # window -- with continuous recording that is most of them.
-      $datetime_terms = array();
-      foreach ($conditions as $k=>$v) {
-        if ( 0 === strpos($k, 'DateTime') ) {
-          $datetime_terms[$k] = $v;
-          unset($conditions[$k]);
-        }
-      }
-      if ($datetime_terms) {
-        # An event still being written has no EndDateTime, but it is not
-        # unbounded: zmc flushes Length every few seconds, so StartDateTime +
-        # Length is its effective end. Only an event with neither falls back to
-        # NOW(). Treating a missing EndDateTime as "matches any window" instead
-        # made every crash-orphaned event ever recorded match every query.
-        $effective_end = '(CASE'
-          .' WHEN Event.EndDateTime IS NOT NULL THEN Event.EndDateTime'
-          .' WHEN Event.Length > 0 THEN DATE_ADD(Event.StartDateTime, INTERVAL FLOOR(Event.Length) SECOND)'
-          .' ELSE NOW() END)';
-        $ds = $this->Event->getDataSource();
-        foreach ($datetime_terms as $k=>$v) {
-          $op = trim(substr($k, strlen('DateTime')));
-          if ($op == '<' or $op == '<=') {
-            # Upper bound: the event must have started by then.
-            $conditions[] = array('Event.StartDateTime '.$op => $v);
-          } else if ($op == '>' or $op == '>=') {
-            # Lower bound: the event must not have ended before then.
-            $conditions[] = $effective_end.' '.$op.' '.$ds->value($v, 'string');
-          } else {
-            # Anything else (=, !=) still matches against either end.
-            $conditions[] = array('OR' => array(
-              array('Event.StartDateTime '.$op => $v),
-              array('Event.EndDateTime '.$op => $v),
-            ));
-          }
-        }
-      } // end if datetime terms
-      #ZM\Debug(print_r($conditions, true));
-
     } else {
       $raw_params = $_REQUEST;
       // Legacy API authentication rides in the query string next to the filters.
@@ -155,9 +162,11 @@ class EventsController extends AppController {
         $tag_filter_field = 'Name';
         unset($raw_params['Tags']);
       }
+      $raw_params = $this->renameLegacyTimeParams($raw_params);
       $raw_params = $this->FilterComponent->qualifyFields($raw_params, $this->filterColumns(), array('DateTime', 'GroupId'));
       $conditions = $this->FilterComponent->buildFilter($raw_params, array_merge(array_keys($this->Event->schema()), array('DateTime', 'GroupId')));
     }
+    $conditions = $this->datetimeConditions($conditions);
     $settings = array(
       // https://github.com/ZoneMinder/ZoneMinder/issues/995
       // 'limit' => $limit['ZM_WEB_EVENTS_PER_PAGE'],
@@ -248,7 +257,13 @@ class EventsController extends AppController {
 
     $settings['conditions'] = array($conditions, $mon_options);
 
-    if (!$this->request->query('sort')) {
+    // Only paginate() reads sort and direction from the query string, so apply them here
+    // for the unpaginated find() below as well.
+    $sort = $this->request->query('sort');
+    if (is_string($sort) and in_array($sort, array_keys($this->Event->schema()), true)) {
+      $direction = $this->request->query('direction');
+      $settings['order'] = array('Event.'.$sort => (is_string($direction) and strtolower($direction) == 'desc') ? 'desc' : 'asc');
+    } else if (!$sort) {
       $settings['order'] = array('Event.Id' => 'asc');
     }
 
@@ -377,6 +392,9 @@ class EventsController extends AppController {
       return;
     }
 
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ( $this->request->is('post') ) {
       $monitorId = $this->requestField('Event', 'MonitorId');
       if ($monitorId === null) {
@@ -390,6 +408,7 @@ class EventsController extends AppController {
         $id = $this->Event->id;
       } else {
         $message = 'Error';
+        $this->response->statusCode(400);
         $id = null;
         // if there is a validation message, use it
         if (!$this->Event->validates()) {
@@ -448,6 +467,7 @@ class EventsController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Event->validationErrors ? $this->Event->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(
@@ -699,6 +719,138 @@ class EventsController extends AppController {
     $this->set(array(
       'archived' => $archiveVal,
       '_serialize' => array('archived')
+    ));
+  }
+
+  // POST /api/events/archiveBulk with ids[] and archived=1 archives, or with
+  // archived=0 unarchives, every listed event. Unlike archive() it sets the
+  // state rather than toggling it, so a mixed selection ends up all one way.
+  // Permissions follow archive(): archiving needs view, unarchiving needs edit.
+  // Events the user may not change, that no longer exist, or whose save failed
+  // are reported in refused and the remaining ids are still processed.
+  public function archiveBulk() {
+    $this->Event->recursive = -1;
+    $this->request->allowMethod('post');
+
+    if (isset($this->request->data['ids'])) {
+      $ids = $this->request->data['ids'];
+    } else if (isset($this->request->data['Event']['ids'])) {
+      $ids = $this->request->data['Event']['ids'];
+    } else {
+      $ids = null;
+    }
+    if (!is_array($ids)) {
+      throw new BadRequestException(__('ids must be an array'));
+    }
+    $archiveVal = isset($this->request->data['archived']) ? $this->request->data['archived'] : null;
+    if (!is_scalar($archiveVal) or ($archiveVal !== '0' and $archiveVal !== '1' and $archiveVal !== 0 and $archiveVal !== 1)) {
+      throw new BadRequestException(__('archived must be 0 or 1'));
+    }
+    $archiveVal = (int)$archiveVal;
+
+    $changed = array();
+    $refused = array();
+    $seen = array();
+    foreach ($ids as $id) {
+      // A request element may itself be an array; it is not an event id, and
+      // passing it on could forge a DB row instead of loading the real one.
+      if (is_array($id) or !is_numeric($id)) {
+        $refused[] = $id;
+        continue;
+      }
+      $id = (int)$id;
+      if (isset($seen[$id])) continue;
+      $seen[$id] = true;
+
+      if ($id <= 0 or !$this->Event->exists($id)) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $archived = $this->Event->find('first', array(
+        'conditions' => array('Event.Id' => $id)
+      ));
+      if (empty($archived['Event'])) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $EventObj = new ZM\Event($archived['Event']);
+      $allowed = $archiveVal ? $EventObj->canView() : $EventObj->canEdit();
+      if (!$allowed) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $this->Event->id = $id;
+      if (!$this->Event->saveField('Archived', $archiveVal)) {
+        $refused[] = $id;
+        continue;
+      }
+      $changed[] = $id;
+    }
+
+    $this->set(array(
+      'changed' => $changed,
+      'refused' => $refused,
+      '_serialize' => array('changed', 'refused')
+    ));
+  }
+
+  // POST /api/events/video/<id>.json renders the event to a video file with
+  // zmvideo.pl, as the event view's Video page does (ajax/event.php action=video),
+  // and answers the file name. Viewing the event is enough, as on that page.
+  public function video($id = null) {
+    $this->request->allowMethod('post');
+    $this->Event->recursive = -1;
+    if (!$this->Event->exists($id)) {
+      throw new NotFoundException(__('Invalid event'));
+    }
+    if (!(defined('ZM_OPT_FFMPEG') and ZM_OPT_FFMPEG)) {
+      throw new BadRequestException(__('Video generation is turned off (ZM_OPT_FFMPEG)'));
+    }
+
+    $data = $this->request->data;
+    $param = function($name) use ($data) {
+      return (isset($data[$name]) and is_scalar($data[$name])) ? trim((string)$data[$name]) : '';
+    };
+    $format = $param('videoFormat');
+    $rate = $param('rate');
+    $scale = $param('scale');
+    $transform = $param('transform');
+
+    // The formats ZM_FFMPEG_FORMATS offers, without their default markers.
+    $formats = array();
+    foreach (preg_split('/\s+/', defined('ZM_FFMPEG_FORMATS') ? ZM_FFMPEG_FORMATS : '', -1, PREG_SPLIT_NO_EMPTY) as $f) {
+      $formats[] = rtrim($f, '*');
+    }
+    if (!in_array($format, $formats, true)) {
+      throw new BadRequestException(__('videoFormat must be one of: ').implode(', ', $formats));
+    }
+    if (!preg_match('/^\d+$/', $rate) or !(int)$rate) {
+      throw new BadRequestException(__('rate must be a positive whole number'));
+    }
+    if (!preg_match('/^(\d+|\d+x\d+)$/', $scale) or !(int)$scale) {
+      throw new BadRequestException(__('scale must be a positive whole number or WxH'));
+    }
+    if (!preg_match('/^[\w=]*$/', $transform)) {
+      throw new BadRequestException(__('Invalid transform'));
+    }
+
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $id)));
+    $EventObj = new ZM\Event($event['Event']);
+    // canView() enforces the per-monitor ACL.
+    if (!$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+
+    $file = $EventObj->createVideo($format, $rate, $scale, $transform, !empty($data['overwrite']));
+    if (!$file) {
+      throw new InternalErrorException(__('Video generation failed'));
+    }
+    $this->set(array(
+      'video' => $file,
+      '_serialize' => array('video')
     ));
   }
 

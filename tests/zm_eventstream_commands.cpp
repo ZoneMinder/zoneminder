@@ -161,3 +161,21 @@ TEST_CASE("zms time= gives the time it names", "[EventStreamCmd]") {
     CHECK(StreamBase::ParseTimeParam(value.c_str()) == start + Milliseconds(10 * cs));
   }
 }
+
+TEST_CASE("A stream past the last frame of a recording event waits before it checks again", "[EventStreamCmd]") {
+  // checkEventLoaded reloads a recording event and puts the stream back on its
+  // last frame, which was sent again with no wait: a query and a frame per pass
+  // for as long as the viewer stayed on the tail.
+  const Microseconds none(0);
+  // EventStream::STREAM_PAUSE_WAIT, which is not public
+  const Microseconds poll = Milliseconds(250);
+
+  CHECK(EventStream::TailPollDelta(true, 11, 10, none) == poll);
+  CHECK(EventStream::TailPollDelta(true, 11, 10, Microseconds(30000)) == poll);
+
+  // Frames still to send, a finished event and reverse play keep their own pacing.
+  CHECK(EventStream::TailPollDelta(true, 10, 10, Microseconds(30000)) == Microseconds(30000));
+  CHECK(EventStream::TailPollDelta(true, 1, 10, none) == none);
+  CHECK(EventStream::TailPollDelta(true, 0, 10, none) == none);
+  CHECK(EventStream::TailPollDelta(false, 11, 10, Microseconds(30000)) == Microseconds(30000));
+}

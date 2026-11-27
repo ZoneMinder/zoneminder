@@ -428,6 +428,8 @@ CREATE TABLE `Filters` (
   `AutoMoveTo`	smallint(5) unsigned NOT NULL default 0,
   `AutoCopy` tinyint(3) unsigned NOT NULL default '0',
   `AutoCopyTo`	smallint(5) unsigned NOT NULL default 0,
+  `AutoTag` tinyint(3) unsigned NOT NULL default '0',
+  `AutoTagId` bigint(20) unsigned NOT NULL default 0,
   `UpdateDiskSpace` tinyint(3) unsigned NOT NULL default '0',
   `Background` tinyint(1) unsigned NOT NULL default '0',
   `Concurrent` tinyint(1) unsigned NOT NULL default '0',
@@ -1021,7 +1023,7 @@ CREATE TABLE `Users` (
   `Name`     varchar(64) NOT NULL default '',
   `Email`    varchar(64) NOT NULL default '',
   `Phone`    varchar(64) NOT NULL default '',/* Space for 2 numbers, country codes, etc */
-  `Language` varchar(8),
+  `Language` varchar(16),
   `Enabled` tinyint(3) unsigned NOT NULL default '1',
   `Stream` enum('None','View') NOT NULL default 'None',
   `Events` enum('None','View','Edit') NOT NULL default 'None',

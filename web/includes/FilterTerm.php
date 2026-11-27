@@ -384,7 +384,11 @@ class FilterTerm {
       return 'weekday(E.EndDateTime)';
     case 'Notes':
     case 'Emailed':
+    case 'Executed':
     case 'Id':
+    case 'Messaged':
+    case 'Uploaded':
+    case 'Videoed':
     case 'Name':
     case 'DiskSpace':
     case 'MonitorId':
@@ -540,8 +544,9 @@ class FilterTerm {
   // Returns [$day_start_sql, $next_day_start_sql] for a date value.
   // $value is either a quoted 'YYYY-MM-DD HH:MM:SS', CURDATE(), or NOW().
   private static function dateBounds($value) {
-    if ($value === 'CURDATE()' || $value === 'NOW()') {
-      return array($value, "$value + INTERVAL 1 DAY");
+    // NOW() is the current day, so its bounds are midnight like CURDATE()'s
+    if (in_array(strtoupper($value), array('CURDATE()', 'NOW()'), true)) {
+      return array('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
     }
     $stripped = preg_replace("/^'(.+)'$/", '$1', $value);
     if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $stripped, $m)) {
@@ -622,7 +627,7 @@ class FilterTerm {
     # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars((string)$this->val).'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -637,20 +642,7 @@ class FilterTerm {
         # The logic on this when there are multiple storage areas breaks.  We will just use the first.
         foreach ( $storage_areas as $storage ) {
           Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
-          switch ($this->op) {
-          case '=':
-            return ($storage->disk_usage_percent() == $this->val);
-          case '>':
-            return ($storage->disk_usage_percent() > $this->val);
-          case '<':
-            return ($storage->disk_usage_percent() < $this->val);
-          case '<=':
-            return ($storage->disk_usage_percent() <= $this->val);
-          case '>=':
-            return ($storage->disk_usage_percent() >= $this->val);
-          default:
-            Warning('Invalid op '.$this->op .' for DiskPercent.');
-          }
+          return $this->compare($storage->disk_usage_percent(), $this->op, $this->val);
         } # end foreach Storage Area
       } else if ( $this->attr == 'DiskBlocks' ) {
         # As with DiskPercent, we will just use the first storage area.
@@ -725,6 +717,10 @@ class FilterTerm {
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
+      'Executed',
+      'Messaged',
+      'Uploaded',
+      'Videoed',
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
@@ -799,6 +795,11 @@ class FilterTerm {
       break;
     case 'Id' :
     case 'Archived' :
+    case 'Emailed' :
+    case 'Executed' :
+    case 'Messaged' :
+    case 'Uploaded' :
+    case 'Videoed' :
     case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :

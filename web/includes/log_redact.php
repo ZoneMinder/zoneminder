@@ -52,7 +52,7 @@ function urlForLog($url) {
 // @ before the path: older installs have camera passwords with a raw @ in
 // them, which cameras and ffmpeg accept.
 function removeUserinfo($value) {
-  $value = preg_replace('#^([a-z][a-z0-9+.-]*://)[^/?\#\s]*@#i', '$1', (string)$value);
+  $value = preg_replace('#([a-z][a-z0-9+.-]*://)[^/?\#\s]*@#i', '$1', (string)$value);
   return preg_replace('#^[^\s/:@]+:[^\s/?\#]*@(?=[a-z0-9\[])#i', '', $value);
 }
 
@@ -71,7 +71,7 @@ function lastErrorForLog() {
 function logKeyKind($key) {
   $key = (string)$key;
   if (preg_match('/pass|pwd|secret/i', $key)) return 'secret';
-  if (preg_match('/^(auth|token|access_token|refresh_token|jwt|ZMSESSID|__csrf_magic)$|^AuthHash(?!GeneratedAt)/i', $key)) {
+  if (preg_match('/^(auth|jwt|sid|ZMSESSID|__csrf_magic)$|token|api[_-]?key|bearer|^AuthHash(?!GeneratedAt)/i', $key)) {
     return 'token';
   }
   return null;
@@ -80,12 +80,22 @@ function logKeyKind($key) {
 // A query string (a=1&b=2) with the values of credential parameters replaced,
 // for a string that carries one: postLoginQuery, a redirect target.
 function redactQueryString($query) {
-  return preg_replace_callback('/(^|[?&])([^=&?#]+)=([^&?#]*)/', function ($m) {
+  return preg_replace_callback('/(^|[?&;])([^=&?#;]+)=((?:[^&?#;]|;(?![^=&?#;]+=))*)/', function ($m) {
     $kind = logKeyKind(urldecode($m[2]));
     if ($kind === null) return $m[0];
     $value = ($kind === 'secret') ? '[redacted]' : logFingerprint(urldecode($m[3]));
     return $m[1].$m[2].'='.$value;
   }, (string)$query);
+}
+
+// A string with the values of "key":"value" pairs replaced the way redactForLog()
+// treats a key of that name.
+function redactJsonPairs($text) {
+  return preg_replace_callback('/("([^"\\\\]+)"\s*:\s*)"((?:[^"\\\\]|\\\\.)*)"/', function ($m) {
+    $kind = logKeyKind($m[2]);
+    if ($kind === null) return $m[0];
+    return $m[1].'"'.(($kind === 'secret') ? '[redacted]' : logFingerprint($m[3])).'"';
+  }, (string)$text);
 }
 
 // A copy of $data (such as $_REQUEST or $_SESSION) fit for print_r() into a
@@ -105,6 +115,9 @@ function redactForLog($data, $key = null) {
   }
   if (is_string($data)) {
     $data = removeUserinfo($data);
+    // JSON first: a value holding '=' would otherwise be cut by the query pass.
+    // A JSON text with credentials in it, such as a logged request body.
+    if (strpos($data, '":') !== false) $data = redactJsonPairs($data);
     // A value that is itself a query string, such as postLoginQuery.
     if (strpos($data, '=') !== false) $data = redactQueryString($data);
   }

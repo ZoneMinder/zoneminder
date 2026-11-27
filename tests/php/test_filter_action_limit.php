@@ -9,7 +9,7 @@ namespace ZM {
   class Filter {
     public static $changes = null;
     public function __construct($id = null) {}
-    public function Id($v = null) { return 0; }
+    public function Id($v = null) { return 3; }
     public function Name($v = null) { return ''; }
     public function Background() { return 0; }
     public function AutoExecute() { return 0; }
@@ -39,6 +39,7 @@ namespace {
     else { $failures++; echo "FAIL - $name (got ".var_export($got, true).", want ".var_export($want, true).")\n"; }
   }
 
+  foreach (array("FFMPEG", "UPLOAD", "EMAIL", "MESSAGE") as $opt) define("ZM_OPT_$opt", 1);
   function canView($a) { return true; }
   function validCardinal($i) { return preg_replace('/\D/', '', $i); }
   function validInt($i) { return preg_replace('/[^\-\d]/', '', $i); }

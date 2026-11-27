@@ -161,6 +161,7 @@ Requires:       perl-SOAP-WSDL
 Requires:       perl-Sys-CPU
 Requires:       perl-Sys-MemInfo
 Requires:       perl-Sys-Mmap
+Requires:       perl-XML-LibXML
 Requires:       perl-XML-Parser
 Requires:       perl-libwww-perl
 Requires:       php

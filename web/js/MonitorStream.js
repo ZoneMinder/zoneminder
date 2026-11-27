@@ -560,60 +560,140 @@ function MonitorStream(monitorData) {
       console.debug(`Stream for monitor ID=${this.id} not found. Assigning listeners is not possible.`);
       return;
     }
-    this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'play',
+
+    let streamStartedPlaying = false;
+    let checkFrameTimer = null;
+    let waitingTimer = null;
+    let initialDecodedFrames = null;
+    let initialPlaybackTime = null;
+
+    const clearPlaybackTimers = () => {
+      clearTimeout(startTimer);
+      clearInterval(checkFrameTimer);
+      clearTimeout(waitingTimer);
+      checkFrameTimer = null;
+    };
+
+    const hasDecodedFrames = () => {
+      if (stream.tagName !== 'VIDEO') return true;
+      const playbackQuality = stream.getVideoPlaybackQuality ? stream.getVideoPlaybackQuality() : null;
+      const decodedFrames = playbackQuality ? playbackQuality.totalVideoFrames : (stream.webkitDecodedFrameCount || 0);
+      if (initialDecodedFrames === null) {
+        initialDecodedFrames = decodedFrames;
+        initialPlaybackTime = stream.currentTime;
+        return false;
+      }
+      return (decodedFrames > initialDecodedFrames) || (stream.currentTime > initialPlaybackTime + 0.05);
+    };
+
+    // Fallback timeout: if no decoded frames advance within 8 seconds after
+    // starting, treat the stream as stalled, record an error, and restart.
+    const startTimer = setTimeout(() => {
+      if (!this.started || !streamSessionActive(this, playbackSessionId) || streamStartedPlaying) return;
+      if (hasDecodedFrames()) {
+        completeStreamStart();
+        return;
+      }
+      clearPlaybackTimers();
+      this.streamErrorRegistration();
+      this.restart(this.currentChannelStream);
+    }, 8000);
+
+    const completeStreamStart = () => {
+      if (!streamSessionActive(this, playbackSessionId) || streamStartedPlaying) return;
+      streamStartedPlaying = true;
+      clearPlaybackTimers();
+
+      this.writeTextInfoBlock("");
+      this.createVolumeSlider();
+
+      this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(this.getElement(), 'zm:tracksReceived',
+          (e) => {
+            if (!streamSessionActive(this, playbackSessionId)) return;
+            if (e.detail.monitorId !== this.id) return;
+
+            if (this.started) {
+              if (e.detail.status == 'success') {
+                if (!this.videoTrack ) {
+                  this.updateStreamInfo('', 'Video track missing');
+                  this.writeTextInfoBlock("Video track missing", {showImg: false});
+                }
+
+                // We'll determine whether we need a video track or just an audio track.
+                // When playing H.265, the video may not be decoded, but the audio track will play.
+                const selectorWhatDisplay = document.getElementById('whatDisplay');
+                const defaultWhatDisplay = this.whatDisplay;
+                let videoTrackRequired = true;
+
+                if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
+                  if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
+                } else {
+                  if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
+                }
+
+                if (!this.videoTrack && videoTrackRequired && (!this.selectedPlayer || this.selectedPlayer === "go2rtc")) {
+                  // Switch to a different player only when mode=Auto
+                  this.streamErrorRegistration();
+                  this.restart(this.currentChannelStream);
+                }
+                if (this.audioTrack) connectAudioMotion(this.id);
+              } else {
+                console.warn(`Error receiving audio/video tracks for monitor ID=${this.id}. [${e.detail.reason}]`, this.activePlayer, e);
+                this.streamErrorRegistration();
+                this.restart(this.currentChannelStream);
+              }
+            } else {
+              console.warn(`RACE for monitor ID=${this.id}, we received audio video tracks, but the stream has already stopped.`, this.activePlayer, e);
+            }
+          },
+          {replaceId: this.handlerEventListener['zm:tracksReceived']}
+      );
+      getTracksFromStream(this);
+    };
+
+    this.handlerEventListener['playStream'] = manageEventListener.addEventListener(stream, 'playing',
         (e) => {
           if (!streamSessionActive(this, playbackSessionId)) return;
-          this.writeTextInfoBlock("");
-          this.createVolumeSlider();
-
-          this.handlerEventListener['zm:tracksReceived'] = manageEventListener.addEventListener(this.getElement(), 'zm:tracksReceived',
-              (e) => {
-                if (!streamSessionActive(this, playbackSessionId)) return;
-                if (e.detail.monitorId !== this.id) return;
-
-                if (this.started) {
-                  if (e.detail.status == 'success') {
-                    if (!this.videoTrack ) {
-                      this.updateStreamInfo('', 'Video track missing');
-                      this.writeTextInfoBlock("Video track missing", {showImg: false});
-                    }
-
-                    // We'll determine whether we need a video track or just an audio track.
-                    // When playing H.265, the video may not be decoded, but the audio track will play.
-                    const selectorWhatDisplay = document.getElementById('whatDisplay');
-                    const defaultWhatDisplay = this.whatDisplay;
-                    let videoTrackRequired = true;
-
-                    if (!selectorWhatDisplay || (-1 !== selectorWhatDisplay.value.toLowerCase().indexOf('default'))) { // Default monitor settings
-                      if (defaultWhatDisplay && (-1 === defaultWhatDisplay.toLowerCase().indexOf('video'))) videoTrackRequired = false;
-                    } else {
-                      if (-1 === selectorWhatDisplay.value.toLowerCase().indexOf('video')) videoTrackRequired = false;
-                    }
-
-                    if (!this.videoTrack && videoTrackRequired && (!this.selectedPlayer || this.selectedPlayer === "go2rtc")) {
-                      // Switch to a different player only when mode=Auto
-                      this.streamErrorRegistration();
-                      this.restart(this.currentChannelStream);
-                    }
-                    if (this.audioTrack) connectAudioMotion(this.id);
-                  } else {
-                    console.warn(`Error receiving audio/video tracks for monitor ID=${this.id}. [${e.detail.reason}]`, this.activePlayer, e);
-                    this.streamErrorRegistration();
-                    this.restart(this.currentChannelStream);
-                  }
-                } else {
-                  console.warn(`RACE for monitor ID=${this.id}, we received audio video tracks, but the stream has already stopped.`, this.activePlayer, e);
-                }
-              },
-              {replaceId: this.handlerEventListener['zm:tracksReceived']}
-          );
-          getTracksFromStream(this);
+          clearTimeout(waitingTimer);
+          if (streamStartedPlaying) {
+            this.writeTextInfoBlock("");
+            this.createVolumeSlider();
+            return;
+          }
+          if (hasDecodedFrames()) {
+            completeStreamStart();
+          } else if (!checkFrameTimer) {
+            checkFrameTimer = setInterval(() => {
+              if (!streamSessionActive(this, playbackSessionId) || streamStartedPlaying) {
+                clearPlaybackTimers();
+                return;
+              }
+              if (hasDecodedFrames()) {
+                completeStreamStart();
+              }
+            }, 150);
+          }
         },
         {replaceId: this.handlerEventListener['playStream']}
     );
+
+    // Delay showing the Loading overlay by 1.5s on 'waiting' so brief MSE
+    // currentTime buffer adjustments do not cause the overlay to flicker.
+    this.handlerEventListener['waitingStream'] = manageEventListener.addEventListener(stream, 'waiting', (e) => {
+      if (!streamSessionActive(this, playbackSessionId) || !streamStartedPlaying) return;
+      clearTimeout(waitingTimer);
+      waitingTimer = setTimeout(() => {
+        if (!streamSessionActive(this, playbackSessionId)) return;
+        if (stream.readyState < stream.HAVE_FUTURE_DATA && !stream.paused) {
+          this.writeTextInfoBlock("Loading...");
+        }
+      }, 1500);
+    });
+
     this.handlerEventListener['pauseStream'] = manageEventListener.addEventListener(stream, 'pause',
         (e) => {
           if (!streamSessionActive(this, playbackSessionId)) return;
+          clearPlaybackTimers();
           this.writeTextInfoBlock("Paused", {showImg: false});
           // Forget the id too, or createVolumeSlider() on the next play thinks it is still registered.
           if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
@@ -622,10 +702,12 @@ function MonitorStream(monitorData) {
           }
         }
     );
+
     this.handlerEventListener['errorStream'] = manageEventListener.addEventListener(stream, 'error',
         (e) => {
           clearTimeout(this.mseWaitingErrorReset);
           if (!streamSessionActive(this, playbackSessionId)) return;
+          clearPlaybackTimers();
           const mediaErrorMsg = e?.target?.error?.message || e?.srcElement?.error?.message || 'Unknown media error';
           console.warn(`Stream playback error for monitor ID=${this.id}.`, `ERROR: ${mediaErrorMsg}`, e);
           this.writeTextInfoBlock("Error");
@@ -801,6 +883,7 @@ function MonitorStream(monitorData) {
     if (manageEventListener.removeEventListener(this.handlerEventListener['volumechange']) == this.handlerEventListener['volumechange']) this.handlerEventListener['volumechange'] = null;
     manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['errorStream']);
+    manageEventListener.removeEventListener(this.handlerEventListener['waitingStream']);
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -1193,8 +1276,6 @@ function MonitorStream(monitorData) {
     const audioStream = this.getAVStream();
     if (!volumeSlider || !audioStream) return;
 
-    //$j('#volumeControls'+this.id).show();
-    $j('#volumeControls'+this.id).removeClass('disabled');
     if (!this.handlerEventListener['volumechange']) {
       this.handlerEventListener['volumechange'] = manageEventListener.addEventListener(audioStream, 'volumechange',
           (event) => {
@@ -2122,7 +2203,7 @@ function MonitorStream(monitorData) {
           stream.src = hlsUrl.href;
         }
 
-        video_el.onplay = (event) => {
+        video_el.onplaying = (event) => {
           this.updateStreamInfo('', '');
           this.resetCountStreamErrors(this.activePlayer);
         };
@@ -2446,6 +2527,13 @@ function MonitorStream(monitorData) {
 
   this.resetCountStreamErrors = function(player) {
     if (!player) return;
+    // activePlayer is plain 'go2rtc' for every go2rtc mode, and no name below is contained in it.
+    if (player === 'go2rtc') {
+      for (const key in this.playerPriority) {
+        if (this.playerPriority[key]['name'].indexOf('go2rtc') === 0) this.playerPriority[key]['countErrors'] = 0;
+      }
+      return;
+    }
     for (const key in this.playerPriority) {
       if (-1 !== player.indexOf(this.playerPriority[key]['name'])) {
         this.playerPriority[key]['countErrors'] = 0;

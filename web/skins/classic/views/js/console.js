@@ -271,7 +271,29 @@ function processRows(rows) {
     now -= tz_difference;
 
     if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
-      functionHtml = 'Offline<br/>';
+      var last_seen = '';
+      if (row.UpdatedOn) {
+        var updated = new Date(row.UpdatedOn);
+        var updated_seconds = updated.getTime() / 1000;
+        if (!isNaN(updated_seconds)) {
+          var age_seconds = now - Math.floor(updated_seconds);
+          var age_text;
+          if (age_seconds < 3600) {
+            age_text = Math.max(1, Math.floor(age_seconds / 60)) + ' min ago';
+          } else if (age_seconds < 86400) {
+            age_text = Math.floor(age_seconds / 3600) + ' h ago';
+          } else {
+            age_text = Math.floor(age_seconds / 86400) + ' d ago';
+          }
+          // Build the age with DOM text/attr so any value is escaped for us.
+          last_seen = '<br/>' + $j('<span>')
+              .addClass('small text-nowrap text-muted')
+              .attr('title', updated.toLocaleString())
+              .text(age_text)
+              .prop('outerHTML');
+        }
+      }
+      functionHtml = 'Offline' + last_seen + '<br/>';
     } else {
       functionHtml = '';
       if (row.Analysing && row.Analysing != 'None') {
@@ -338,19 +360,14 @@ function processRows(rows) {
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = document.forms['monitorFiltersForm'];
-
-  if (selections && selections.length > 0) {
-    form.editBtn.disabled = false;
-    form.deleteBtn.disabled = false;
-    form.selectBtn.disabled = false;
-    form.cloneBtn.disabled = false;
-  } else {
-    form.editBtn.disabled = true;
-    form.deleteBtn.disabled = true;
-    form.selectBtn.disabled = true;
-    form.cloneBtn.disabled = true;
-  }
+  const form = document.forms['monitorForm'];
+  if (!form) return;
+  const any = selections && selections.length > 0;
+  form.editBtn.disabled = !any;
+  form.deleteBtn.disabled = !any;
+  form.selectBtn.disabled = !any;
+  // Clone copies a single monitor, so it needs exactly one selected row.
+  form.cloneBtn.disabled = !(selections && selections.length == 1);
 }
 
 function scanNetwork(element) {
@@ -489,23 +506,7 @@ function initPage() {
   }
 
   // Enable or disable buttons based on current selection and user rights
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
-      function() {
-        const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorForm'];
-        if (selections.length > 0) {
-          form.editBtn.disabled = false;
-          form.deleteBtn.disabled = false;
-          form.selectBtn.disabled = false;
-          form.cloneBtn.disabled = false;
-        } else {
-          form.editBtn.disabled = true;
-          form.deleteBtn.disabled = true;
-          form.selectBtn.disabled = true;
-          form.cloneBtn.disabled = true;
-        }
-      }
-  );
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table check-some.bs.table uncheck-some.bs.table load-success.bs.table', setButtonStates);
 
   // Setup automatic refresh with table refresh instead of page reload
   if (consoleRefreshTimeout > 0) {
@@ -614,6 +615,9 @@ function sortMonitors(button) {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
+  // The server assigns ascending Sequence in posted order, so reverse when sorted desc.
+  var options = table.bootstrapTable('getOptions');
+  if (options.sortName == 'Sequence' && options.sortOrder == 'desc') monitor_ids.reverse();
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
   $j.post(thisUrl + '?request=console', data)

@@ -56,10 +56,11 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
     // Accept the server address as well as its /api path; the requests below
     // append /streams to the API base.
     Go2RTC_endpoint = Go2RTCApiEndpoint(config.go2rtc_path);
-    Debug(1, "Go2RTC: Using configured endpoint: %s", Go2RTC_endpoint.c_str());
+    Debug(1, "Go2RTC: Using configured endpoint: %s", url_for_log(Go2RTC_endpoint).c_str());
   } else {
     Go2RTC_endpoint = "demo:demo@127.0.0.1:1984";
-    Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s", Go2RTC_endpoint.c_str());
+    Warning("Go2RTC: No endpoint configured in ZM_GO2RTC_PATH, using default: %s",
+            url_for_log(Go2RTC_endpoint).c_str());
   }
 
   // ZoneMinder's RTSP server only runs when ZM_MIN_RTSP_PORT is set, so without it
@@ -72,7 +73,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_restream_base_path = "rtsp://"+server.Hostname();
+      rtsp_restream_base_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_restream_base_path = "rtsp://127.0.0.1";
     }
@@ -194,7 +195,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
   std::string endpoint = Go2RTC_endpoint + "/streams?src=" + std::to_string(parent->id);
   std::string response;
 
-  Debug(2, "Go2RTC: Checking endpoint: %s", endpoint.c_str());
+  Debug(2, "Go2RTC: Checking endpoint: %s", url_for_log(endpoint).c_str());
 
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
@@ -213,7 +214,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -229,7 +230,7 @@ int Monitor::Go2RTCManager::check_Go2RTC() {
 
   response = remove_newlines(response);
   if (res != CURLE_OK) {
-    Warning("Go2RTC: Check failed - attempted %s and got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Check failed - attempted %s and got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     return -1;
   }
 
@@ -256,11 +257,16 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
     return false;
   }
 
-  // Check if auth hash is older than 50 minutes (refresh before 1-hour timeout)
+  // Auth hashes are tied to the clock hour: refresh at the top of the hour,
+  // TTL-1 hours (at least 1) after the hour the current hash was made in.
   auto now = std::chrono::system_clock::now();
   auto age = std::chrono::duration_cast<std::chrono::minutes>(now - last_auth_refresh);
+  time_t minted_t = std::chrono::system_clock::to_time_t(last_auth_refresh);
+  tm minted_tm = {};
+  localtime_r(&minted_t, &minted_tm);
 
-  if (age.count() < 50) {
+  if (now - last_auth_refresh + Minutes(minted_tm.tm_min) + Seconds(minted_tm.tm_sec)
+      < Hours(std::max(config.auth_hash_ttl - 1, 1))) {
     Debug(3, "Go2RTC: Auth hash is %jd minutes old, no refresh needed", static_cast<intmax_t>(age.count()));
     return false;
   }
@@ -399,7 +405,7 @@ int Monitor::Go2RTCManager::delete_stream(const std::string &name) {
   std::string endpoint = Go2RTC_endpoint + "/streams?src=" + name;
   std::string response;
 
-  Debug(2, "Go2RTC: DELETE request to: %s", endpoint.c_str());
+  Debug(2, "Go2RTC: DELETE request to: %s", url_for_log(endpoint).c_str());
 
   CURL *curl = curl_easy_init();
   if (!curl) {
@@ -426,7 +432,7 @@ int Monitor::Go2RTCManager::delete_stream(const std::string &name) {
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);
@@ -441,7 +447,7 @@ int Monitor::Go2RTCManager::delete_stream(const std::string &name) {
   }
   
   if (res != CURLE_OK) {
-    Warning("Go2RTC: Delete failed - attempted %s got %s", endpoint.c_str(), curl_easy_strerror(res));
+    Warning("Go2RTC: Delete failed - attempted %s got %s", url_for_log(endpoint).c_str(), curl_easy_strerror(res));
   } else {
     Debug(1, "Go2RTC: Successfully removed stream, response: %s", response.c_str());
   }
@@ -498,7 +504,7 @@ std::pair<CURLcode, std::string> Monitor::Go2RTCManager::CURL_PUT(const std::str
       (res == CURLE_SSL_CACERT || res == CURLE_SSL_PEER_CERTIFICATE || res == CURLE_SSL_CACERT_BADFILE ||
        res == CURLE_SSL_CERTPROBLEM || res == CURLE_PEER_FAILED_VERIFICATION)) {
     Warning("Go2RTC: SSL certificate verification failed for %s (%s), retrying without verification",
-            endpoint.c_str(), curl_easy_strerror(res));
+            url_for_log(endpoint).c_str(), curl_easy_strerror(res));
     ssl_verification_failed = true;
     response.clear();
     curl_easy_reset(curl);

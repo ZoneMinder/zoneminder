@@ -19,7 +19,7 @@ server {
         return 301 zm;
     }
 
-    location /cgi-bin-zm {
+    location /cgi-bin {
         gzip off;
         alias "@ZM_CGIDIR@";
 

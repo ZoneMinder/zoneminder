@@ -27,9 +27,17 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
   if ( ($action == 'zone') && isset($_REQUEST['zid']) ) {
     $zid = validInt($_REQUEST['zid']);
     $monitor = new ZM\Monitor($mid);
+    if ( !$monitor->Id() or $monitor->Deleted() ) {
+      $error_message .= 'Monitor not found.<br/>';
+      return;
+    }
 
     if ( !empty($zid) ) {
       $zone = dbFetchOne('SELECT * FROM Zones WHERE MonitorId=? AND Id=?', NULL, array($mid, $zid));
+      if ( !$zone ) {
+        $error_message .= 'Zone not found.<br/>';
+        return;
+      }
     } else {
       $zone = array();
     }
@@ -135,6 +143,9 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
           $val = number_format(max(0, min(100, floatval($val))), 2, '.', '');
         }
         $cleanData[$field] = $val;
+      } else if ( $field == 'OverloadFrames' || $field == 'ExtendAlarmFrames' ) {
+        // NOT NULL columns, a blank input (a new zone's default) saves as 0 like the zone itself
+        $cleanData[$field] = 0;
       } else {
         $cleanData[$field] = null;
       }

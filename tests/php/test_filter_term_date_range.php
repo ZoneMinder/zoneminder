@@ -114,6 +114,15 @@ function assert_sql($name, $sql, $regex, $should_match) {
   assert_sql('Date = CURDATE() upper', $sql, '/E\.StartDateTime\s*<\s*CURDATE\(\)\s*\+\s*INTERVAL\s+1\s+DAY/i', true);
 }
 
+// Date = NOW() means today, as to_days(NOW()) did
+{
+  $sql = make_term('Date', '=', 'NOW()')->sql();
+  assert_sql('Date = NOW() lower', $sql, '/E\.StartDateTime\s*>=\s*CURDATE\(\)/', true);
+  assert_sql('Date = NOW() upper', $sql, '/E\.StartDateTime\s*<\s*CURDATE\(\)\s*\+\s*INTERVAL\s+1\s+DAY/i', true);
+  $sql = make_term('Date', '<', 'now()')->sql();
+  assert_sql('Date < now() is before today', $sql, '/E\.StartDateTime\s*<\s*CURDATE\(\)/', true);
+}
+
 // Sanity: StartDateTime (non-date attr) unchanged
 {
   $sql = make_term('StartDateTime', '>=', '2026-05-06 09:42:56')->sql();

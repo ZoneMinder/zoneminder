@@ -79,6 +79,9 @@ struct FakeV4L2 {
   std::vector<int> set_inputs;
   std::map<unsigned, int> controls;
   std::vector<std::pair<unsigned, int>> ctrl_sets;
+  int queued = 0;
+  int fail_input = -1;
+  unsigned fmt_width = 64;
 };
 FakeV4L2 g_fake;
 
@@ -115,6 +118,10 @@ static int FakeIoctl(int fd, unsigned long request, void *arg) {
     return 0;
   }
   case VIDIOC_S_INPUT:
+    if (*static_cast<int *>(arg) == g_fake.fail_input) {
+      errno = EBUSY;
+      return -1;
+    }
     g_fake.set_inputs.push_back(*static_cast<int *>(arg));
     return 0;
   case VIDIOC_ENUMSTD:
@@ -138,7 +145,7 @@ static int FakeIoctl(int fd, unsigned long request, void *arg) {
   case VIDIOC_S_FMT: {
     auto *fmt = static_cast<v4l2_format *>(arg);
     fmt->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    fmt->fmt.pix.width = 64;
+    fmt->fmt.pix.width = g_fake.fmt_width;
     fmt->fmt.pix.height = 48;
     fmt->fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     fmt->fmt.pix.bytesperline = 128;
@@ -146,6 +153,24 @@ static int FakeIoctl(int fd, unsigned long request, void *arg) {
     return 0;
   }
   case VIDIOC_REQBUFS:
+    return 0;
+  case VIDIOC_QBUF:
+    g_fake.queued++;
+    return 0;
+  case VIDIOC_DQBUF: {
+    if (g_fake.queued <= 0) {
+      errno = EIO;
+      return -1;
+    }
+    g_fake.queued--;
+    auto *b = static_cast<v4l2_buffer *>(arg);
+    b->index = 0;
+    b->bytesused = 128 * 48;
+    return 0;
+  }
+  case VIDIOC_STREAMON:
+  case VIDIOC_STREAMOFF:
+  case VIDIOC_S_STD:
     return 0;
   case VIDIOC_QUERYBUF: {
     auto *b = static_cast<v4l2_buffer *>(arg);
@@ -216,6 +241,73 @@ TEST_CASE("LocalCamera: Initialise selects the configured input", "[local_camera
   REQUIRE(g_fake.set_inputs == std::vector<int>{1});
   camera->Close();
   camera.reset();
+}
+
+TEST_CASE("LocalCamera: Capture requeues the buffer when it fails after dequeue", "[local_camera]") {
+  FakeGuard fake;
+  TestMonitor monitor;
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+  auto camera = MakeLocalCamera(&monitor, 0);
+  auto other = MakeLocalCamera(&monitor, 1);
+  REQUIRE(camera->Initialise() == 0);
+  REQUIRE(camera->PrimeCapture() == 1);
+  const int queued_after_prime = g_fake.queued;
+  REQUIRE(queued_after_prime == 1);
+  auto packet = std::make_shared<ZMPacket>();
+
+  SECTION("input switch failure") {
+    g_fake.fail_input = 1;
+    REQUIRE(camera->Capture(packet) == -1);
+    REQUIRE(g_fake.queued == queued_after_prime);
+  }
+  SECTION("image larger than the monitor") {
+    g_fake.fmt_width = 128;
+    LocalCamera::v4l2_data.fmt.fmt.pix.width = 128;
+    REQUIRE(camera->Capture(packet) == -1);
+    REQUIRE(g_fake.queued == queued_after_prime);
+  }
+  camera->Close();
+  other.reset();
+  camera.reset();
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+}
+
+TEST_CASE("LocalCamera: a second camera on the same channel converts the shared capture", "[local_camera]") {
+  FakeGuard fake;
+  TestMonitor monitor;
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+  auto camera = MakeLocalCamera(&monitor, 0);
+  auto shared = MakeLocalCamera(&monitor, 0);
+  REQUIRE(camera->channel_prime);
+  REQUIRE_FALSE(shared->channel_prime);
+  REQUIRE(camera->conversion_type == 1);
+  REQUIRE(camera->Initialise() == 0);
+  REQUIRE(camera->PrimeCapture() == 1);
+
+  auto packet = std::make_shared<ZMPacket>();
+  auto shared_packet = std::make_shared<ZMPacket>();
+  REQUIRE(camera->Capture(packet) == 1);
+  REQUIRE(shared->Capture(shared_packet) == 1);
+  REQUIRE(shared_packet->image != nullptr);
+
+  camera->Close();
+  shared.reset();
+  camera.reset();
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+}
+
+TEST_CASE("LocalCamera: a destroyed camera is not kept as last_camera", "[local_camera]") {
+  // The next camera's constructor reads last_camera, so it must not dangle.
+  FakeGuard fake;
+  TestMonitor monitor;
+  auto camera = MakeLocalCamera(&monitor, 1);
+  REQUIRE(LocalCamera::last_camera == camera.get());
+  camera.reset();
+  REQUIRE(LocalCamera::last_camera == nullptr);
 }
 
 TEST_CASE("LocalCamera: control values below -1 are applied", "[local_camera]") {

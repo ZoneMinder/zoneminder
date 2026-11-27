@@ -70,6 +70,8 @@ function corsAllowedOrigin($servers=null, $minStreamingPort=null) {
   if (!preg_match('#^https?://[^/?\#@\\\\]+$#i', $origin)) return '';
   $host = parse_url($origin, PHP_URL_HOST);
   if (!$host) return '';
+  // parse_url keeps the brackets of an IPv6 host; Hostname may or may not.
+  $host = trim($host, '[]');
 
   $allowed = array();
   if (count($servers)) {
@@ -81,7 +83,7 @@ function corsAllowedOrigin($servers=null, $minStreamingPort=null) {
     $allowed[] = parse_url('http://'.$_SERVER['HTTP_HOST'], PHP_URL_HOST);
   }
   foreach ($allowed as $name) {
-    if ($name and !strcasecmp($host, $name)) return $origin;
+    if ($name and !strcasecmp($host, trim($name, '[]'))) return $origin;
   }
   return '';
 }

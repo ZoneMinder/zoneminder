@@ -36,6 +36,8 @@ foreach (array('database.php', 'FilterTerm.php', 'Monitor.php', 'Group.php', 'Gr
                'Monitor_Permission.php', 'User_Preference.php') as $stub) {
   file_put_contents($stubdir.'/'.$stub, "<?php\n");
 }
+// canEdit() asks Monitor for the monitors the user may not edit; none here.
+file_put_contents($stubdir.'/Monitor.php', "<?php\nnamespace ZM;\nclass Monitor { static function find() { return array(); } }\n");
 set_include_path($stubdir.PATH_SEPARATOR.__DIR__.'/../../web/includes'.PATH_SEPARATOR.get_include_path());
 
 function Warning($s) { /* noop */ }

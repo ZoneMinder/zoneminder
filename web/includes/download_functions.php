@@ -30,6 +30,18 @@ function videoStreamSignature($path) {
   return '';
 }
 
+# Exports are named by the user who asked for them, so every export name starts
+# with that user's id. download.php, archive.php and the existence check serve
+# only names that carry the prefix of the requesting user.
+function exportOwnerPrefix() {
+  global $user;
+  return 'u'.($user ? intval($user->Id()) : 0).'_';
+}
+
+function exportNameBelongsToUser($name) {
+  return strpos((string)$name, exportOwnerPrefix()) === 0;
+}
+
 # Remove what a failed downloadEvents() call created: its export directory and
 # the partial archive. The working directory is left first as it is about to go.
 function removeFailedDownload($export_dir, $archive_path) {
@@ -75,6 +87,8 @@ function downloadEvents(
   // DIR_EXPORTS_DOWNLOAD. Refuse a traversal component. refs GHSA-72h2-rvhv-wr5g
   $export_root = safeExportComponent($export_root);
   if ($export_root === '') $export_root = 'Export';
+  # Name the export after its owner so another user cannot reuse or fetch it.
+  $export_root = exportOwnerPrefix().$export_root;
 
   $export_dir = DIR_EXPORTS_DOWNLOAD.'/'.$export_root;
   define('DOWNLOAD_DIR_EXPORTS', $export_dir);
@@ -189,9 +203,11 @@ function downloadEvents(
       }
 
       if (!$maxTime) $maxTime = date('Y-m-d H:i:s'); # For example, we download a single non-incomlete event, but it's missing EndDateTimeSecs() due to a crash
-      $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.'.mp4';
+      # The monitor name is user-editable and must not carry a path into the output file name.
+      $monitorName = str_replace(['/', '\\', "\0"], '_', $monitor->Name());
+      $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.'.mp4';
       for ($n = 2; in_array($mergedFileName, $exportFileList); $n++) {
-        $mergedFileName = $monitor->Name().' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
+        $mergedFileName = $monitorName.' '.$minTime.' to '.$maxTime.' ('.$n.').mp4';
       }
       if (($fp = fopen('event_files.txt', 'w'))) {
         fwrite($fp, $eventFileList);

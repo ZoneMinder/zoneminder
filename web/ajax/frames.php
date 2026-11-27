@@ -52,8 +52,8 @@ if ( isset($_REQUEST['sort']) and is_string($_REQUEST['sort']) ) {
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if ( !is_scalar($_REQUEST['offset']) or ( !is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']) ) ) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -65,8 +65,8 @@ $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strto
 // Limit specifies the number of rows to return
 $limit = 0;
 if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if ( !is_scalar($_REQUEST['limit']) or ( !is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']) ) ) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -132,7 +132,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
     } else if ( $search != '' ) {
-      $search = '%' .$search. '%';
+      // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+      $search = '%' .str_replace(',', '_', $search). '%';
       $terms = array();
       foreach ( $columns as $col ) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);

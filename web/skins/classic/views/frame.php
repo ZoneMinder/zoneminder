@@ -69,13 +69,25 @@ $nav = frameNavigation($eid, (int)$Frame->FrameId());
 $alarmFrame = ( $Frame->Type() == 'Alarm' ) ? 1 : 0;
 
 if (isset($_REQUEST['scale'])) {
-  $scale = validNum($_REQUEST['scale']);
+  $scaleSelected = $_REQUEST['scale'];
 } else if (isset($_COOKIE['zmWatchScale'.$Monitor->Id()])) {
-  $scale = validNum($_COOKIE['zmWatchScale'.$Monitor->Id()]);
+  $scaleSelected = $_COOKIE['zmWatchScale'.$Monitor->Id()];
 } else if (isset($_COOKIE['zmWatchScale'])) {
-  $scale = validNum($_COOKIE['zmWatchScale']);
+  $scaleSelected = $_COOKIE['zmWatchScale'];
 } else {
-  $scale = validNum($Monitor->DefaultScale());
+  $scaleSelected = $Monitor->DefaultScale();
+}
+// $scales also offers fit_to_width and NNNpx, so keep those keys for the select and the links.
+if (!is_scalar($scaleSelected) || !array_key_exists((string)$scaleSelected, $scales)) {
+  $scaleSelected = validNum($scaleSelected);
+}
+$scaleSelected = (string)$scaleSelected;
+$scale = $scaleSelected;
+if ($scaleSelected === 'fit_to_width') {
+  $scale = 0; // frame.js fits the image to the page width
+} else if (preg_match('/^(\d+)px$/', $scaleSelected, $m)) {
+  // Max width: the percentage that gives that width, never above actual size.
+  $scale = $Event->Width() ? min(SCALE_BASE, (int)floor($m[1]*SCALE_BASE/$Event->Width())) : 0;
 }
 $scale = $scale ? $scale : 0;
 
@@ -119,7 +131,7 @@ echo getNavBarHTML();
       <form>
         <div id="scaleControl">
           <label for="scale"><?php echo translate('Scale') ?></label>
-          <?php echo htmlSelect('scale', $scales, $scale, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
+          <?php echo htmlSelect('scale', $scales, $scaleSelected, array('data-on-change'=>'changeScale','id'=>'scale')); ?>
         </div>
         <input type="hidden" name="base_width" id="base_width" value="<?php echo $Event->Width(); ?>"/>
         <input type="hidden" name="base_height" id="base_height" value="<?php echo $Event->Height(); ?>"/>
@@ -134,8 +146,8 @@ echo getNavBarHTML();
         <p id="image">
 <?php
 if ($imageData['hasAnalysisImage']) {
-  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%d&amp;show=%s" title="Click to display frame %s analysis">',
-    $Event->Id(), $Frame->FrameId(), $scale,
+  echo sprintf('<a href="?view=frame&amp;eid=%d&amp;fid=%d&scale=%s&amp;show=%s" title="Click to display frame %s analysis">',
+    $Event->Id(), $Frame->FrameId(), urlencode($scaleSelected),
     ($show=='analysis'?'capture':'analysis'),
     ($show=='analysis'?'without':'with')
   );
@@ -153,7 +165,7 @@ if ($imageData['hasAnalysisImage']) {
 if ($imageData['hasAnalysisImage']) { ?></a><?php } ?>
         </p>
 <?php
-  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.$scale.'&amp;show='.$show.'&amp;fid=';
+  $frame_url_base = '?view=frame&amp;eid='.$Event->Id().'&amp;scale='.urlencode($scaleSelected).'&amp;show='.$show.'&amp;fid=';
 ?>
         <p id="controls">
           <a id="firstLink" <?php echo $nav['first'] ? 'href="'.$frame_url_base.$nav['first'].'" class="btn-primary"' : 'class="btn-primary disabled"' ?>><?php echo translate('First') ?></a>

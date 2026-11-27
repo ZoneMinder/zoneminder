@@ -29,7 +29,8 @@ require_once('_monitor_filters.php'); // getFilterSelection() for shared zmFilte
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if (count($user->unviewableMonitorIds())) {
-  $user_monitor_ids = ' M.Id in ('.implode(',', $user->viewableMonitorIds()).')';
+  $ids = $user->viewableMonitorIds();
+  $user_monitor_ids = ' M.Id in ('.(count($ids) ? implode(',', array_map('intval', $ids)) : '0').')';
   $eventsSql .= $user_monitor_ids;
 } else {
   $eventsSql .= ' 1';

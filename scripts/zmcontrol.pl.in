@@ -32,10 +32,24 @@ use POSIX qw/strftime EPIPE EINTR/;
 use Socket;
 use Data::Dumper;
 use JSON::MaybeXS qw(decode_json);
+use B ();
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
 use constant CLIENT_READ_TIMEOUT => 5;
+
+# The method a control command names, or undef. A command from a web request must run a method
+# the control module itself defines, not an infrastructure method of ZoneMinder::Control (open,
+# close, get, post, ...) or a function imported into the module (Fatal, Error, ...).
+sub control_method {
+  my ($control, $command) = @_;
+  my $code = $control->can($command);
+  return undef if !$code;
+  my $stash = B::svref_2object($code)->GV->STASH->NAME;
+  # ZoneMinder::Control and the classes above it (Object, Base) hold internals, not commands.
+  return undef if ZoneMinder::Control->isa($stash) or !$control->isa($stash);
+  return $code;
+}
 
 $| = 1;
 
@@ -227,6 +241,8 @@ if ($options{command}) {
   $control->loadMonitor();
   if (!$control->open()) {
     Warning("Failed to open control");
+    # Not every module records the failure itself, and the retry below keys on it.
+    $control->{state} = 'closed' if ($control->{state} // '') ne 'open';
   }
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
@@ -251,7 +267,10 @@ if ($options{command}) {
       $control->keepAlive();
     }
 
-    my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+    # Not the whole $timeout: a command that arrives just before a keepAlive is
+    # due would otherwise push the next one a full interval further out.
+    my $wait = $control->can('keepAlive') ? $control->keepAliveWait($timeout) : $timeout;
+    my $nfound = select(my $rout = $rin, undef, undef, $wait);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
@@ -292,7 +311,7 @@ if ($options{command}) {
           # down. Swapping a camera for a different make leaves exactly this
           # behind: a LightOn action pointing at a protocol with no lightOn,
           # which used to die with "Can't locate object method".
-          if ( !$control->can($command) ) {
+          if ( !control_method($control, $command) ) {
             # ${id} braced: "$id's" parses as $id::s, the old package
             # separator, so the id silently vanished from the message.
             Error("Control protocol $protocol does not implement '$command',"
@@ -304,6 +323,15 @@ if ($options{command}) {
             }
             close(CLIENT);
             next;
+          }
+          # The camera was unreachable when the server started, or the module
+          # dropped its session after a failure. Nothing reopened it, so every
+          # later command failed until the server was restarted by hand.
+          if ( ($control->{state} // '') eq 'closed' ) {
+            Info("Control for monitor ${id} is closed, reopening it before '$command'");
+            if ( !eval { $control->open() } ) {
+              Warning("Failed to reopen control for monitor ${id}".($@ ? ": $@" : ''));
+            }
           }
           my $result = eval { $control->$command($params) };
           my $error = $@;
@@ -385,6 +413,7 @@ running ZoneMinder instance. Useful for testing control modules.
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+ --file [ id ]       - Audio file id to play (IPSpeaker audioPlay)
 
 =head1 EXAMPLES
 

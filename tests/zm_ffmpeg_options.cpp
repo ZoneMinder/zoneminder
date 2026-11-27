@@ -97,3 +97,68 @@ TEST_CASE("zm_parse_options on empty text gives nothing", "[ffmpeg]") {
   REQUIRE(parse("").empty());
   REQUIRE(parse("\n\n,#").empty());
 }
+
+TEST_CASE("zm_parse_options drops passlogfile", "[ffmpeg]") {
+  auto o = parse("passlogfile=/tmp/x\npreset=fast");
+  REQUIRE(o.count("passlogfile") == 0);
+  REQUIRE(o["preset"] == "fast");
+}
+
+TEST_CASE("zm_parse_options drops stats", "[ffmpeg]") {
+  auto o = parse("stats=/tmp/s\ncrf=23");
+  REQUIRE(o.count("stats") == 0);
+  REQUIRE(o["crf"] == "23");
+}
+
+TEST_CASE("zm_parse_options drops pass flags but keeps other flags", "[ffmpeg]") {
+  auto o = parse("flags=+pass1\ng=30");
+  REQUIRE(o.count("flags") == 0);
+  REQUIRE(o["g"] == "30");
+
+  auto o2 = parse("flags=+pass2");
+  REQUIRE(o2.count("flags") == 0);
+
+  auto o3 = parse("flags=+global_header");
+  REQUIRE(o3["flags"] == "+global_header");
+}
+
+TEST_CASE("zm_parse_options drops x264-params file-writing entries", "[ffmpeg]") {
+  auto o = parse("x264-params=stats=/tmp/s:pass=1:keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30");
+}
+
+TEST_CASE("zm_parse_options drops x265-params csv entries", "[ffmpeg]") {
+  auto o = parse("x265-params=csv=/tmp/c:csv-log-level=1:crf=20");
+  REQUIRE(o["x265-params"] == "crf=20");
+}
+
+TEST_CASE("zm_parse_options drops x265-params when only csv is left", "[ffmpeg]") {
+  auto o = parse("x265-params=csv=/tmp/c");
+  REQUIRE(o.count("x265-params") == 0);
+}
+
+TEST_CASE("zm_parse_options keeps x264-params without file-writing entries", "[ffmpeg]") {
+  auto o = parse("x264-params=keyint=30:min-keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30:min-keyint=30");
+}
+
+TEST_CASE("zm_parse_options drops x265-params file-writing entries", "[ffmpeg]") {
+  auto o = parse("x265-params=analysis-save=/tmp/a:analysis-load=/tmp/b:scaling-list=/tmp/l:recon=/tmp/r:no-open-gop=1");
+  REQUIRE(o["x265-params"] == "no-open-gop=1");
+}
+
+TEST_CASE("zm_parse_options drops file-writing entries spelled with _ or a leading --", "[ffmpeg]") {
+  auto o = parse("x264-params=dump_yuv=/tmp/d:keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30");
+  auto o2 = parse("x265-params=analysis_save=/tmp/a:--csv=/tmp/c:crf=20");
+  REQUIRE(o2["x265-params"] == "crf=20");
+}
+
+TEST_CASE("zm_parse_options keeps a built-in scaling-list preset and drops a scaling-list file", "[ffmpeg]") {
+  auto o = parse("x265-params=scaling-list=default:crf=20");
+  REQUIRE(o["x265-params"] == "scaling-list=default:crf=20");
+  o = parse("x264-params=scaling-list=flat:keyint=30");
+  REQUIRE(o["x264-params"] == "scaling-list=flat:keyint=30");
+  o = parse("x264-params=scaling-list=/etc/passwd:keyint=30");
+  REQUIRE(o["x264-params"] == "keyint=30");
+}

@@ -766,9 +766,9 @@ if ( $level > 1 ) {
   $cleaned = 0;
   Debug("Checking for Events with no Frames");
   my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `E`.`Archived`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
-    WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartDateTime`';
+    WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartDateTime`'.($monitor_id ? ' AND `E`.`MonitorId`=?' : '');
   if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
-    if ( $res = $selectEmptyEventsSth->execute() ) {
+    if ( $res = $selectEmptyEventsSth->execute($monitor_id ? $monitor_id : ()) ) {
       while( my $event = $selectEmptyEventsSth->fetchrow_hashref() ) {
         aud_print("Found empty event with no frame records '$event->{Id}' at $$event{StartDateTime}");
         if ($$event{Archived}) {

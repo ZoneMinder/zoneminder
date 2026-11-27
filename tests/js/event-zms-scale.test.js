@@ -68,6 +68,7 @@ function load(streamQuality) {
     setButtonState: () => {},
     secsToTime: (s) => String(s),
     checkStreamForErrors: () => false,
+    isLightboxOpen: () => false,
     zmPanZoom: {panZoom: {}},
     zmAuth: {hash: '', appendTo: (u) => u, update: () => false},
     monitorUrl: 'index.php',

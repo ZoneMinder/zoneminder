@@ -870,7 +870,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.stop = function(options = {}) {
+  this.stop = function(options = {showImg: true}) {
     // Preserve the previous starting state before clearing it.
     // This allows us to distinguish between stopping an already running
     // stream and cancelling a stream that was still starting.
@@ -884,6 +884,8 @@ function MonitorStream(monitorData) {
     manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['errorStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['waitingStream']);
+
+    if (-1 !== this.activePlayer.indexOf('zms')) options.showImg = false;
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -904,11 +906,8 @@ function MonitorStream(monitorData) {
     //this.started = false;
 
     if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
-    if (-1 !== this.activePlayer.indexOf('zms')) {
-      this.writeTextInfoBlock("Stopped", {showImg: false});
-    } else {
-      this.writeTextInfoBlock("Stopped");
-    }
+    this.writeTextInfoBlock("Stopped", {showImg: options.showImg});
+
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);

@@ -159,6 +159,9 @@ class UserPreferenceController extends AppController {
 			if (isset($data['UserPreference'])) {
 				$data = $data['UserPreference'];
 			}
+			if (!is_array($data)) {
+				throw new BadRequestException(__('UserPreference must be an object'));
+			}
 			// The row is the one in the URL, whatever Id the body names.
 			$data['Id'] = $id;
 			global $user;

@@ -27,6 +27,11 @@ TEST_CASE("Storage::FallbackSql picks another real Storage row") {
     REQUIRE(sql.find("LIMIT 1") != std::string::npos);
   }
 
+  SECTION("only picks an enabled storage area") {
+    REQUIRE(Storage::FallbackSql(3, 0).find("`Enabled`") != std::string::npos);
+    REQUIRE(Storage::FallbackSql(3, 7).find("`Enabled`") != std::string::npos);
+  }
+
   SECTION("prefers storage on the monitor's server") {
     std::string sql = Storage::FallbackSql(3, 7);
     REQUIRE(sql.find("(`ServerId` = 7) DESC") != std::string::npos);

@@ -869,7 +869,7 @@ void Event::Run() {
     // Try another
     Warning("Failed creating event dir at %s", storage->Path());
 
-    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Id` != %u", storage->Id());
+    std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Enabled` AND `Id` != %u", storage->Id());
     if (monitor->ServerId())
       sql += stringtf(" AND ServerId=%u", monitor->ServerId());
 
@@ -890,9 +890,10 @@ void Event::Run() {
     if (!storage) {
       Info("No valid local storage area found.  Trying all other areas.");
       // Try remote
-      sql = "SELECT `Id` FROM `Storage` WHERE ServerId IS NULL";
+      sql = "SELECT `Id` FROM `Storage` WHERE `Enabled` AND (ServerId IS NULL";
       if (monitor->ServerId())
         sql += stringtf(" OR ServerId != %u", monitor->ServerId());
+      sql += ")";
 
       result = zmDbFetch(sql);
       if (result) {

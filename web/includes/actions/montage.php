@@ -57,6 +57,12 @@ if ( isset($_REQUEST['object']) ) {
           ZM\Warning('Layout Id=' . validCardinal($_REQUEST['zmMontageLayout']) . ' not found for save');
           return;
         }
+        # Same preset names that a named save refuses to overwrite.
+        if ( preg_match('/^(Auto|Freeform|\d+ Wide)$/', $Layout->Name()) ) {
+          $error_message = 'A built-in layout can not be overwritten';
+          ZM\Warning($error_message);
+          return;
+        }
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
         # An admin saving someone else's layout leaves it with its owner

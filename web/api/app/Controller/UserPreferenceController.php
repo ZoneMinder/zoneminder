@@ -153,6 +153,7 @@ class UserPreferenceController extends AppController {
 			throw new NotFoundException(__('Invalid user_preference'));
 		}
 		$this->assertOwned($id);
+		$message = '';
 		if ($this->request->is(array('post', 'put'))) {
 			$data = $this->request->data;
 			if (isset($data['UserPreference'])) {
@@ -165,15 +166,19 @@ class UserPreferenceController extends AppController {
 				$data['UserId'] = $user->Id();
 			}
 			if ($this->UserPreference->save($data)) {
+				$message = 'Saved';
 			} else {
 				$this->response->statusCode(400);
+				$message = $this->UserPreference->validationErrors ? $this->UserPreference->validationErrors : 'Error';
 			}
 		} else {
 			$options = array('conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id));
 			$this->request->data = $this->UserPreference->find('first', $options);
 		}
-		$preference = $this->UserPreference;
-		$this->set(compact('user_preference'));
+		$this->set(array(
+			'message' => $message,
+			'_serialize' => array('message')
+		));
 	}
 
 /**

@@ -2018,8 +2018,15 @@ bool Monitor::TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t sect
   return (cur_sec / section_length_sec) != (prev_sec / section_length_sec);
 }
 
+std::string Monitor::EventCauseForOpen(const std::string &cause, const std::string &alarm_cause, State state) {
+  if (!cause.empty()) return cause;
+  if (state == ALARM and !alarm_cause.empty()) return alarm_cause;
+  return "Continuous";
+}
+
 void Monitor::ClearAlarmTracking() {
   EmptyPreAlarmFrames();
+  alarm_cause_.clear();
   alert_to_alarm_frame_count = alarm_frame_count;
 }
 
@@ -2650,6 +2657,8 @@ bool Monitor::Analyse() {
         const bool time_section_crossed = TimeSectionCrossed(last_section_sec_, this_section_sec, Seconds(section_length).count());
         last_section_sec_ = this_section_sec;
 
+        if (state == ALARM and !cause.empty()) alarm_cause_ = cause;
+
         if (event) {
           Debug(1, "Event %" PRIu64 ", alarm frames %d <? alarm_frame_count %d duration:%.2f close mode %d",
                 event->Id(), event->AlarmFrames(), alarm_frame_count,
@@ -2802,8 +2811,9 @@ bool Monitor::Analyse() {
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch()).count()),
                  static_cast<int64>(std::chrono::duration_cast<Seconds>(packet->timestamp.time_since_epoch() % section_length).count())
                 );
-            if ((event = openEvent(&packet_lock, cause.empty() ? "Continuous" : cause, noteSetMap, counting_boundary)) != nullptr) {
-              Info("Opened new event %" PRIu64 " %s", event->Id(), cause.empty() ? "Continuous" : cause.c_str());
+            const std::string open_cause = EventCauseForOpen(cause, alarm_cause_, state);
+            if ((event = openEvent(&packet_lock, open_cause, noteSetMap, counting_boundary)) != nullptr) {
+              Info("Opened new event %" PRIu64 " %s", event->Id(), open_cause.c_str());
             }
           }
         } else if (noteSetMap.size() > 0) {

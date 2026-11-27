@@ -790,6 +790,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   int        last_alarm_count;
   int        pre_alarm_count_ = 0;     // Alarmed frames seen while in PREALARM
   int64_t    last_section_sec_ = -1;   // Timestamp (s) of the previous packet, for CLOSE_TIME
+  std::string alarm_cause_;  // Cause of the alarm in progress, for events reopened mid-alarm
   bool       last_signal;
   // Capture assumes signal on the first packet after connect() cleared it,
   // even when the decoder measures it, so Analyse doesn't see a signal loss
@@ -1303,6 +1304,8 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   // True when the section_length boundary lies between two packet timestamps
   // (whole seconds). prev_sec < 0 means there is no previous packet. Pure.
   static bool TimeSectionCrossed(int64_t prev_sec, int64_t cur_sec, int64_t section_length_sec);
+  // Cause to record when opening an event. Pure.
+  static std::string EventCauseForOpen(const std::string &cause, const std::string &alarm_cause, State state);
   // The reference image must be re-seeded when signal returns whenever analysis is on, whatever the recording mode.
   static bool ReacquireNeedsRefReset(int analysing) { return analysing != ANALYSING_NONE; }
   // Alarm frames counted while in PREALARM. Per monitor: one zmc process can

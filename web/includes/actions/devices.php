@@ -24,11 +24,15 @@ if ( !canEdit('Devices') ) {
   return;
 } // end if !canEdit(Devices)
 
+global $error_message;
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markDids']) ) {
     foreach( $_REQUEST['markDids'] as $markDid ) {
-      dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid));
-      $refreshParent = true;
+      if ( dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid)) === null ) {
+        $error_message .= 'Error deleting device '.htmlspecialchars($markDid).': '.htmlspecialchars(dbLastError()).'<br/>';
+      } else {
+        $refreshParent = true;
+      }
     }
   }
 } // end if action

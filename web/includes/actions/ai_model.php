@@ -49,8 +49,13 @@ if ($action == 'save') {
       $error_message .= 'Error saving model: '.validHtmlStr(dbLastError()).'<br/>';
     }
   }
-  if (!$error_message)
+  if (!$error_message) {
     $redirect = '?view=options&tab=ai_models';
+  } else {
+    // The modal posts view=ai_model, which has no view file, so show the error on the options page.
+    $view = 'options';
+    $_REQUEST['tab'] = 'ai_models';
+  }
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {

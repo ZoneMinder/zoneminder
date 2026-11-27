@@ -29,6 +29,10 @@ require_once('includes/Report.php');
 
 $report_id = isset($_REQUEST['id']) ? validInt($_REQUEST['id']) : '';
 $report = new ZM\Report($report_id);
+if ($report_id and !$report->Id()) {
+  $view = 'error';
+  return;
+}
 
 xhtmlHeaders(__FILE__, translate('Reports'));
 getBodyTopHTML();
@@ -43,7 +47,7 @@ getBodyTopHTML();
         <button id="backBtn" type="button" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
         <!--<button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>-->
         <!--<button id="exportBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Export') ?>" disabled><i class="fa fa-external-link"></i></button>-->
-        <button id="saveBtn" name="action" value="save" type="submit" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Save') ?>"><i class="fa fa-save"></i></button>
+        <button id="saveBtn" name="action" value="save" type="submit" class="btn btn-normal" data-toggle="tooltip" data-placement="top"<?php echo ($report->Id() ? $report->canEdit() : canEdit('Events')) ? ' title="'.translate('Save').'"' : ' disabled="disabled" title="'.translate($report->Id() ? 'EditReportDisabled' : 'AddReportDisabled').'"' ?>><i class="fa fa-save"></i></button>
         <button id="deleteBtn" type="button" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>
       </div>
         <table class="major table table-sm">
@@ -90,7 +94,7 @@ var events = Array();
 
 <?php
 require_once('includes/Filter.php');
-if (!$report->FilterId()) {
+if (!$report->FilterId() or !isset($FiltersById[$report->FilterId()])) {
   echo '
     </script>
   </div>

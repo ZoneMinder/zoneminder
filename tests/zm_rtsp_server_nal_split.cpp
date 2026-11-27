@@ -25,6 +25,7 @@
 #include "zm_rtsp_server_stream_h264_source.h"
 #include "net/EventLoop.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
@@ -58,6 +59,19 @@ class CapturingH264Source : public H264_ZoneMinderStreamSource {
   std::condition_variable record_cv;
   bool done = false;
   std::vector<std::vector<uint8_t>> pushed;
+};
+
+// Lets a test hold the mutex the write thread waits with
+class MutexExposedSource : public ZoneMinderStreamSource {
+ public:
+  explicit MutexExposedSource(std::shared_ptr<xop::RtspServer> &server) :
+    ZoneMinderStreamSource(server, 0, xop::channel_0) {}
+  ~MutexExposedSource() override { StopAndJoin(); }
+
+  std::mutex &WaitMutex() { return mutex_; }
+
+ protected:
+  void PushFrame(const uint8_t *, size_t, int64_t, bool) override {}
 };
 
 }  // namespace
@@ -101,6 +115,28 @@ TEST_CASE("RTSP audio without a pts gets a running RTP timestamp", "[rtsp_nal_sp
   std::this_thread::sleep_for(std::chrono::milliseconds(50));
   int64_t second = ZoneMinderStreamAudioSource::RtpTimestamp(AV_NOPTS_VALUE, tb);
   CHECK(second > first);
+}
+
+TEST_CASE("RTSP source Stop waits for the write thread's mutex", "[rtsp_nal_split]") {
+  // The write thread holds this mutex between testing stop_ and waiting on the
+  // condition variable. A Stop() that does not take it can set stop_ and
+  // notify in that gap, and the thread then never wakes.
+  std::shared_ptr<xop::RtspServer> server;
+  MutexExposedSource source(server);
+  std::atomic<bool> stopped{false};
+  std::thread stopper;
+  {
+    std::lock_guard<std::mutex> lock(source.WaitMutex());
+    stopper = std::thread([&] {
+      source.Stop();
+      stopped = true;
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    CHECK_FALSE(stopped);
+  }
+  stopper.join();
+  CHECK(stopped);
+  source.StopAndJoin();
 }
 
 TEST_CASE("RTSP session with a taken stream name is refused", "[rtsp_nal_split]") {

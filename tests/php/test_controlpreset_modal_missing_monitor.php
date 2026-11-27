@@ -16,6 +16,7 @@ namespace {
   $modalFile = $root.'/web/ajax/modals/controlpreset.php';
 
   function canEdit($a) { return true; }
+  function canView($a, $mid = null) { return true; }
   // Same behaviour as web/includes/functions.php.
   function validCardinal($input) {
     if (!is_scalar($input)) return '';

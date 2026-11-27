@@ -14,6 +14,12 @@ if (!$monitor) {
   ZM\Warning("Monitor $mid not found.");
   return;
 }
+
+if (!$monitor->canView()) {
+  ZM\Warning("No permission to view monitor $mid for the settings modal.");
+  return;
+}
+
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($mid).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
 if ($zmuOutput) {

@@ -523,10 +523,14 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    if (!zm_load_avdevice()) return -1;
+    if (!zm_load_avdevice()) {
+      av_dict_free(&opts);
+      return -1;
+    }
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");
+      av_dict_free(&opts);
       return -1;
     }
     openPath = mPath.substr(7);
@@ -714,9 +718,10 @@ int FfmpegCamera::Close() {
 
   if ( mSecondFormatContext ) {
     mSecondFormatContext = nullptr;
-    mAudioStream = nullptr;
-    mAudioStreamId = -1;
   }
+  // The stream pointers point into the contexts just closed.
+  mAudioStream = nullptr;
+  mAudioStreamId = -1;
   mSecondInput.reset();
 
   return 0;

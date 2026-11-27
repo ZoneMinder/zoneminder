@@ -39,7 +39,9 @@ class Group extends AppModel {
 	public $validate = array(
 		'Name' => array(
 			'notBlank' => array(
-				'rule' => array('notBlank'))),
+				'rule' => array('notBlank'),
+				'required' => 'create',
+				'message' => 'A group needs a name')),
 		'Id' => array(
 			'numeric' => array(
 				'rule' => array('numeric'),
@@ -50,7 +52,30 @@ class Group extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'ParentId' => array(
+			'exists' => array(
+				'rule' => array('parentExists'),
+				'message' => 'ParentId does not match a group',
+			),
+		),
 	);
+
+  // ParentId is a foreign key to Groups.Id, so a missing parent is refused here
+  // instead of by MySQL as a 500. Empty and null mean no parent.
+  public function parentExists($check) {
+    $value = reset($check);
+    if ($value === null or $value === '') {
+      return true;
+    }
+    // AppModel::beforeValidate() already refuses an array.
+    if (!is_scalar($value)) {
+      return true;
+    }
+    return (bool)$this->find('first', array(
+      'conditions' => array('Group.Id' => $value),
+      'recursive' => -1,
+    ));
+  }
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

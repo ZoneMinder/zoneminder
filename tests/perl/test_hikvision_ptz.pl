@@ -17,7 +17,7 @@
 use strict;
 use warnings;
 use FindBin;
-use lib "$FindBin::Bin/../../scripts/ZoneMinder/lib";
+use lib ($ENV{ZM_LIB_DIR} // "$FindBin::Bin/../../scripts/ZoneMinder/lib");
 
 BEGIN {
   # Optional CPAN modules; only the config/firmware helpers use them.
@@ -172,6 +172,25 @@ check('zoomConTele still sends the zoom axis', body($puts[0]),
   check_ok('plain ControlAddress credentials are left alone',
     (($c->{username} // '') eq 'admin'
       and ($c->{password} // '') eq 'secret') ? 1 : 0);
+}
+
+{
+  # A raw colon in the password must not be mistaken for the user/pass
+  # separator: userinfo splits on the first colon only.
+  my $c = control(ControlAddress => 'admin:pa:ss@192.168.1.5');
+  $c->open();
+  check('raw colons in the ControlAddress password keep the username', $c->{username}, 'admin');
+  check('raw colons in the ControlAddress password keep the password', $c->{password}, 'pa:ss');
+}
+
+{
+  # Username-only userinfo: set the username, leave the password undefined.
+  my $c = control(ControlAddress => 'admin@192.168.1.5');
+  my $ok = eval { $c->open(); 1 };
+  check_ok('username-only ControlAddress does not die', $ok ? 1 : 0);
+  check('username-only ControlAddress sets the username', $c->{username}, 'admin');
+  check_ok('username-only ControlAddress leaves the password undefined',
+    !defined $c->{password} ? 1 : 0);
 }
 
 {

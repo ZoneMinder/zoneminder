@@ -26,7 +26,7 @@ function check($name, $got, $want) {
   }
 }
 
-$source = file_get_contents(__DIR__.'/../../web/api/app/Controller/UsersController.php');
+$source = file_get_contents((isset($argv[1]) ? rtrim($argv[1], '/') : __DIR__.'/../..').'/web/api/app/Controller/UsersController.php');
 
 // The precedence bug itself: no `$canX = ... or ...` / `... and ...` assignments left.
 check('no assignment combined with a low-precedence or/and',
@@ -95,6 +95,8 @@ check('bare fields next to a User entry are dropped',
 check('an empty password is not saved', data(array('User' => array('Password' => '', 'HomeView' => 'x'))),
   array('User' => array('HomeView' => 'x')));
 check('a language without a lang file is refused', data(array('User' => array('Language' => '../x'))), 'BadRequest');
+// A path that climbs out of lang/ and back to a real file is not a language name.
+check('a language that is a path is refused', data(array('User' => array('Language' => '../lang/en_gb'))), 'BadRequest');
 check('a language given as an array is refused', data(array('User' => array('Language' => array('a')))), 'BadRequest');
 check('an empty language is kept (clears it, as in the UI)', data(array('User' => array('Language' => ''))),
   array('User' => array('Language' => '')));

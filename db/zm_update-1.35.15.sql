@@ -12,7 +12,7 @@ This is important to prevent SQL Errors inserting into Frames table if PurgeWhen
 UPDATE Filters SET Query_json='{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="},{"cnj":"and","obr":"0","attr":"EndDateTime","op":"IS NOT","val":"NULL","cbr":"0"}],"limit":100,"sort_asc":1}' WHERE Query_json='{"sort_field":"Id","terms":[{"val":0,"attr":"Archived","op":"="},{"cnj":"and","val":95,"attr":"DiskPercent","op":">="}],"limit":100,"sort_asc":1}';
 
 /* Add FOREIGN KEYS After deleting lost records */
-set @exist := (select count(*) FROM information_schema.key_column_usage where table_name='Groups_Monitors' and column_name='GroupId' and referenced_table_name='Groups' and referenced_column_name='Id');
+set @exist := (select count(*) FROM information_schema.key_column_usage where table_schema=DATABASE() and table_name='Groups_Monitors' and column_name='GroupId' and referenced_table_name='Groups' and referenced_column_name='Id');
 
 set @sqlstmt := if( @exist > 1, "SELECT 'You have more than 1 FOREIGN KEY. Please do manual cleanup'", "SELECT 'Ok'");
 set @sqlstmt := if( @exist = 1, "SELECT 'FOREIGN KEY GroupId in Groups_Monitors already exists'", @sqlstmt);
@@ -31,7 +31,7 @@ PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 
 /* Add FOREIGN KEYS After deleting lost records */
-set @exist := (select count(*) FROM information_schema.key_column_usage where table_name='Groups_Monitors' and column_name='MonitorId' and referenced_table_name='Monitors' and referenced_column_name='Id');
+set @exist := (select count(*) FROM information_schema.key_column_usage where table_schema=DATABASE() and table_name='Groups_Monitors' and column_name='MonitorId' and referenced_table_name='Monitors' and referenced_column_name='Id');
 
 set @sqlstmt := if( @exist > 1, "SELECT 'You have more than 1 FOREIGN KEY. Please do manual cleanup'", "SELECT 'Ok'");
 set @sqlstmt := if( @exist = 1, "SELECT 'FOREIGN KEY MonitorId in Groups_Monitors already exists'", @sqlstmt);
@@ -50,7 +50,7 @@ PREPARE stmt FROM @sqlstmt;
 EXECUTE stmt;
 
 /* Add FOREIGN KEYS After deleting lost records */
-set @exist := (select count(*) FROM information_schema.key_column_usage where table_name='Groups' and column_name='ParentId' and referenced_table_name='Groups' and referenced_column_name='Id');
+set @exist := (select count(*) FROM information_schema.key_column_usage where table_schema=DATABASE() and table_name='Groups' and column_name='ParentId' and referenced_table_name='Groups' and referenced_column_name='Id');
 
 set @sqlstmt := if( @exist > 1, "SELECT 'You have more than 1 FOREIGN KEY. Please do manual cleanup'", "SELECT 'Ok'");
 set @sqlstmt := if( @exist = 1, "SELECT 'FOREIGN KEY ParentId in Groups already exists'", @sqlstmt);

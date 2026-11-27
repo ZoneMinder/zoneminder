@@ -119,6 +119,22 @@ function passwordProblem($password) {
   return null;
 }
 
+// ZM_AUTH_HASH_TTL in hours. The Options page accepts 0, which made every auth
+// hash fail here while zms and zmu (zm_user.cpp) treat 0 as 2; use 2 as they do.
+function authHashTtl($ttl = null) {
+  static $warned = false;
+  if ($ttl === null) $ttl = defined('ZM_AUTH_HASH_TTL') ? ZM_AUTH_HASH_TTL : 2;
+  $ttl = intval($ttl);
+  if ($ttl < 1) {
+    if (!$warned) {
+      ZM\Warning("ZM_AUTH_HASH_TTL is $ttl, using 2 hours");
+      $warned = true;
+    }
+    return 2;
+  }
+  return $ttl;
+}
+
 // ZM_PASSWORD_MIN_LENGTH, or 0 on a database that doesn't have the option yet.
 function passwordMinLength() {
   return defined('ZM_PASSWORD_MIN_LENGTH') ? max(0, intval(ZM_PASSWORD_MIN_LENGTH)) : 0;
@@ -444,7 +460,7 @@ function authHashSessionAddrs() {
     isset($_SESSION['prevRemoteAddr']) ? $_SESSION['prevRemoteAddr'] : '',
     isset($_SESSION['prevRemoteAddrAt']) ? $_SESSION['prevRemoteAddrAt'] : 0,
     time(),
-    ZM_AUTH_HASH_TTL
+    authHashTtl()
   );
 }
 
@@ -488,7 +504,7 @@ function getAuthUser($auth) {
     $rowsTried = count($rows);
     foreach ($rows as $user) {
       $now = time();
-      for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+      for ($i = 0; $i < authHashTtl(); $i++, $now -= 3600) { // Try for last TTL hours
         $time = localtime($now);
         foreach ($candidateAddrs as $remoteAddr) {
           $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
@@ -511,7 +527,7 @@ function getAuthUser($auth) {
       $rowsTried += count($altRows);
       foreach ($altRows as $user) {
         $now = time();
-        for ($i = 0; $i < ZM_AUTH_HASH_TTL; $i++, $now -= 3600) { // Try for last TTL hours
+        for ($i = 0; $i < authHashTtl(); $i++, $now -= 3600) { // Try for last TTL hours
           $time = localtime($now);
           foreach ($candidateAddrs as $remoteAddr) {
             $authKey = ZM_AUTH_HASH_SECRET.$user['Username'].$user['Password'].$remoteAddr.$time[2].$time[3].$time[4].$time[5];
@@ -524,7 +540,7 @@ function getAuthUser($auth) {
       } // end foreach user
     } // end if
 
-    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".ZM_AUTH_HASH_TTL.'h)');
+    ZM\Info('Unable to authenticate user from auth hash '.ZM\logFingerprint($auth)." (filterUser='".($filterUser ?? '')."' sessionUser='".($sessionUser ?? '')."' liveAddr='$liveAddr' candidateAddrs='".implode(',', $candidateAddrs)."' rowsTried=$rowsTried ttl=".authHashTtl().'h)');
     return null;
   } // end if using auth hash
 
@@ -549,7 +565,7 @@ function generateAuthHash($useRemoteAddr, $force=false) {
   if (ZM_OPT_USE_AUTH and (ZM_AUTH_RELAY == 'hashed') and $user and $user->Username()) {
     $time = time();
     # We use 1800 so that we regenerate the hash at half the TTL
-    $mintime = $time - (ZM_AUTH_HASH_TTL * 1800);
+    $mintime = $time - (authHashTtl() * 1800);
     # The address baked into the hash, and the cache slot key, must agree. A
     # caller that asks for an IP-less hash ($useRemoteAddr false, e.g.
     # getZmuCommand) must not overwrite the IP-bound slot used by the browser,
@@ -828,6 +844,11 @@ function userFromSession() {
         $sql = 'SELECT * FROM Users WHERE Enabled=1 AND Username=?';
       }
       $user = new ZM\User(dbFetchOne($sql, NULL, array($_SESSION['username'])));
+      # A password reset ends the sessions that logged in with the old password.
+      if ($user->Id() and isset($_SESSION['passwordHash']) and !hash_equals((string)$_SESSION['passwordHash'], (string)$user->Password())) {
+        ZM\Info('The password of '.$_SESSION['username'].' changed since this session logged in, ending it');
+        $user = null;
+      }
     }
   }
   return $user;
@@ -923,10 +944,9 @@ function zm_authenticate_request() {
 
   if (ZM_OPT_USE_AUTH) {
     if (!empty($_REQUEST['token'])) {
-      // we only need to get the username here
-      // don't know the token type. That will
-      // be checked later 
-      $ret = validateToken($_REQUEST['token'], 'any');
+      // Only an access token logs in to the web UI; a refresh token is for
+      // minting access tokens at host/login.
+      $ret = validateToken($_REQUEST['token'], 'access');
       if (!$ret[0]) {
         // validateToken returns array(false, $errorMessage) on failure.
         // Assigning false to $user would leave isset($user) true, bypassing

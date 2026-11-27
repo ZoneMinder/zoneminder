@@ -274,6 +274,42 @@ TEST_CASE("LocalCamera: Capture requeues the buffer when it fails after dequeue"
   LocalCamera::channel_count = 0;
 }
 
+TEST_CASE("LocalCamera: a second camera on the same channel converts the shared capture", "[local_camera]") {
+  FakeGuard fake;
+  TestMonitor monitor;
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+  auto camera = MakeLocalCamera(&monitor, 0);
+  auto shared = MakeLocalCamera(&monitor, 0);
+  REQUIRE(camera->channel_prime);
+  REQUIRE_FALSE(shared->channel_prime);
+  REQUIRE(camera->conversion_type == 1);
+  REQUIRE(camera->Initialise() == 0);
+  REQUIRE(camera->PrimeCapture() == 1);
+
+  auto packet = std::make_shared<ZMPacket>();
+  auto shared_packet = std::make_shared<ZMPacket>();
+  REQUIRE(camera->Capture(packet) == 1);
+  REQUIRE(shared->Capture(shared_packet) == 1);
+  REQUIRE(shared_packet->image != nullptr);
+
+  camera->Close();
+  shared.reset();
+  camera.reset();
+  LocalCamera::camera_count = 0;
+  LocalCamera::channel_count = 0;
+}
+
+TEST_CASE("LocalCamera: a destroyed camera is not kept as last_camera", "[local_camera]") {
+  // The next camera's constructor reads last_camera, so it must not dangle.
+  FakeGuard fake;
+  TestMonitor monitor;
+  auto camera = MakeLocalCamera(&monitor, 1);
+  REQUIRE(LocalCamera::last_camera == camera.get());
+  camera.reset();
+  REQUIRE(LocalCamera::last_camera == nullptr);
+}
+
 TEST_CASE("LocalCamera: control values below -1 are applied", "[local_camera]") {
   FakeGuard fake;
   TestMonitor monitor;

@@ -681,6 +681,10 @@ class Monitor extends ZM_Object {
       Warning('Attempt to control a monitor with no Id');
       return;
     }
+    if ($mode != 'stop' and $this->Deleted()) {
+      Warning('Attempt to control deleted monitor '.$this->{'Id'});
+      return;
+    }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
       if ($this->Type() == 'Local') {
         $zmcArgs = '-d '.escapeshellarg($this->{'Device'});
@@ -847,6 +851,8 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
+    } else if ($this->{'Type'} == 'File' || $this->{'Type'} == 'cURL') {
+      $source = preg_replace('/^.*\//', '', (string)$this->{'Path'});
     } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});
@@ -1065,13 +1071,17 @@ class Monitor extends ZM_Object {
 
     $group_permissions = $u->Group_Permissions();
 
-    # If denied view in any group, then can't view it.
+    # If denied in any group, then can't edit it.
+    $group_edit = false;
     foreach ($group_permissions as $permission) {
-      if (!$permission->canEditMonitor($this->{'Id'})) {
-        Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      $value = $permission->MonitorPermission($this->{'Id'});
+      if ($value == 'None') {
+        Debug("Can't edit monitor ".$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$value);
         return false;
       }
+      if ($value == 'Edit') $group_edit = true;
     }
+    if ($group_edit) return true;
     return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 

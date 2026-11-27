@@ -1,7 +1,7 @@
 <?php
 // This is the HTML representing the Save data confirmation modal on the Monitor page and other pages
 
-$saveTextKey = isset($_REQUEST['key']) ? $_REQUEST['key'] : 'ConfirmAction';
+$saveTextKey = (isset($_REQUEST['key']) and is_string($_REQUEST['key']) and $_REQUEST['key'] !== '') ? htmlspecialchars(strip_tags($_REQUEST['key']), ENT_NOQUOTES, 'UTF-8') : 'ConfirmAction';
 
 ?>  
 <div id="saveConfirm" class="modal fade" class="modal" tabindex="-1">

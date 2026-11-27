@@ -24,12 +24,16 @@ if ( !canEdit('Control') ) {
   return;
 } // end if !canEdit Controls
 
+global $error_message;
 if ( $action == 'delete' ) {
   if ( isset($_REQUEST['markCids']) ) {
     foreach( $_REQUEST['markCids'] as $markCid ) {
-      dbQuery('UPDATE Monitors SET Controllable = 0, ControlId = 0 WHERE ControlId = ?', array($markCid));
-      dbQuery('DELETE FROM Controls WHERE Id = ?', array($markCid));
-      $refreshParent = true;
+      if ( dbQuery('UPDATE Monitors SET Controllable = 0, ControlId = 0 WHERE ControlId = ?', array($markCid)) === null
+        or dbQuery('DELETE FROM Controls WHERE Id = ?', array($markCid)) === null ) {
+        $error_message .= 'Error deleting control capability '.htmlspecialchars($markCid).': '.htmlspecialchars(dbLastError()).'<br/>';
+      } else {
+        $refreshParent = true;
+      }
     }
   }
 } // end if action

@@ -114,7 +114,8 @@ int Monitor::JanusManager::check_janus() {
   if (janus_session.empty()) get_janus_session();
   if (janus_handle.empty()) get_janus_handle();
 
-  if (Use_RTSP_Restream) {
+  // Only a restream URL carrying an auth hash expires; remounting drops viewers.
+  if (Use_RTSP_Restream && config.opt_use_auth && parent->rtsp_user) {
     // Auth hashes are tied to the clock hour: refresh at the top of the hour,
     // TTL-1 hours (at least 1) after the hour the current hash was made in.
     auto age = std::chrono::steady_clock::now() - rtsp_auth_time;

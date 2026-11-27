@@ -4370,6 +4370,10 @@ void Monitor::closeEvent() {
     Debug(1, "close_event_thread: event %" PRId64 " deleted", event_id);
 
     if (!command.empty()) {
+      // The event's frame and stats rows are inserted through dbQueue; wait for
+      // them so the command finds every record of the finished event.
+      if (!dbQueue.drain(std::chrono::seconds(30)))
+        Warning("Event %" PRId64 ": database writes still pending, running EventEndCommand anyway", event_id);
       fflush(nullptr);
       if (fork() == 0) {
         Logger *log = Logger::fetch();

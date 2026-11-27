@@ -486,8 +486,8 @@ function controlCmd(event) {
     const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
     control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
-  xtell = button.getAttribute('data-xtell');
-  ytell = button.getAttribute('data-ytell');
+  xtell = parseInt(button.getAttribute('data-xtell')) || 0; // "0": that axis is not used
+  ytell = parseInt(button.getAttribute('data-ytell')) || 0;
 
   var data = {};
 

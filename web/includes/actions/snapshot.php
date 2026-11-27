@@ -22,6 +22,8 @@ require_once('includes/Snapshot.php');
 require_once('includes/Monitor.php');
 require_once(__DIR__.'/../SnapshotCreate.php');
 
+global $error_message;
+
 if ( $action == 'create' ) {
   $snapshot_id = ZM\create_snapshot_from_monitors(
     isset($_REQUEST['monitor_ids']) && is_array($_REQUEST['monitor_ids']) ? $_REQUEST['monitor_ids'] : array()
@@ -45,7 +47,10 @@ if ( isset($_REQUEST['id']) ) {
 
       $changes = $snapshot->changes(isset($_REQUEST['snapshot']) && is_array($_REQUEST['snapshot']) ? $_REQUEST['snapshot'] : array());
       if ( count($changes) ) {
-        $snapshot->save($changes);
+        if ( !$snapshot->save($changes) ) {
+          $error_message .= 'Error saving snapshot: '.validHtmlStr($snapshot->get_last_error()).'<br/>';
+          return;
+        }
         ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';

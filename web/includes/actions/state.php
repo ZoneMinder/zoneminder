@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+global $error_message;
+
 // System edit actions
 if (!canEdit('System')) {
   ZM\Warning('Need System Permission to edit states');
@@ -34,7 +36,6 @@ if ($action == 'state') {
   if (!is_string($stateName)) $stateName = '';
   // zmpkg.pl treats these names as commands, so a state with one of them could never be applied
   if (preg_match('/^(?:start|stop|restart|status|logrot|version)$/', $stateName)) {
-    global $error_message;
     ZM\Error('A run state cannot be named '.$stateName);
     $error_message .= 'A run state cannot be named '.validHtmlStr($stateName).'<br/>';
   } else if (!empty($stateName)) {
@@ -46,7 +47,11 @@ if ($action == 'state') {
     $definition = join(',', $definitions);
     if (!empty($_REQUEST['newState']))
       $_REQUEST['runState'] = $_REQUEST['newState'];
-    dbQuery('INSERT INTO `States` (`Name`, `Definition`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `Definition`=VALUES(`Definition`)', array($_REQUEST['runState'], $definition));
+    if (!dbQuery('INSERT INTO `States` (`Name`, `Definition`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `Definition`=VALUES(`Definition`)', array($_REQUEST['runState'], $definition))) {
+      $error_message .= 'Error saving state '.validHtmlStr($_REQUEST['runState']).': '.validHtmlStr(dbLastError()).'<br/>';
+      ZM\Error('Error saving state '.$_REQUEST['runState'].': '.dbLastError());
+      return;
+    }
     ZM\AuditAction('save', 'state', 0, 'Name: '.$_REQUEST['runState']);
   }
 } else if ($action == 'delete') {

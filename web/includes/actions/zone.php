@@ -20,6 +20,7 @@
 
 require_once('includes/Zone.php');
 require_once('includes/ZonePreset.php');
+global $error_message;
 
 // Monitor edit actions, require a monitor id and edit permissions for that monitor
 if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
@@ -98,9 +99,14 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
 
     if ( count($changes) ) {
       if ( $zid > 0 ) {
-        dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?', array($mid, $zid));
+        $saved = dbQuery('UPDATE Zones SET '.implode(', ', $changes).' WHERE MonitorId=? AND Id=?', array($mid, $zid));
       } else {
-        dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
+        $saved = dbQuery('INSERT INTO Zones SET MonitorId=?, '.implode(', ', $changes), array($mid));
+      }
+      if ( !$saved ) {
+        $error_message .= 'Error saving zone: '.validHtmlStr(dbLastError()).'<br/>';
+        ZM\Error('Error saving zone '.$zid.' for monitor '.$mid.': '.dbLastError());
+        return;
       }
       ZM\AuditAction(($zid > 0 ? 'update' : 'create'), 'zone', $zid, 'MonitorId: '.$mid);
       if ( daemonCheck() && ($monitor->Type() != 'WebSite') ) {

@@ -206,10 +206,18 @@ int RemoteCameraHttp::Disconnect() {
 
 int RemoteCameraHttp::SendRequest() {
   Debug(2, "Sending request: %s", request_for_log(request).c_str());
-  if ( write(sd, request.data(), request.length()) < 0 ) {
-    Error("Can't write: %s", strerror(errno));
-    Disconnect();
-    return -1;
+  const size_t request_length = request.length();
+  size_t bytes_sent = 0;
+  while ( bytes_sent < request_length ) {
+    ssize_t sent = write(sd, request.data() + bytes_sent, request_length - bytes_sent);
+    if ( sent < 0 && errno == EINTR )
+      continue;
+    if ( sent <= 0 ) {
+      Error("Can't write: %s", strerror(errno));
+      Disconnect();
+      return -1;
+    }
+    bytes_sent += static_cast<size_t>(sent);
   }
   format = UNDEF;
   state = HEADER;

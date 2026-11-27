@@ -453,7 +453,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     switch (type) {
     case STREAM_JPEG :
-      send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+      encodeJpeg(*send_image, img_buffer, &img_buffer_size);
       fputs("Content-Type: image/jpeg\r\n", stdout);
       break;
     case STREAM_RAW :
@@ -1150,7 +1150,7 @@ void MonitorStream::SingleImage(int scale) {
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
   }
-  snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
+  encodeJpeg(*snap_image, img_buffer, &img_buffer_size);
 
   fprintf(stdout,
           "Content-Length: %zu\r\n"

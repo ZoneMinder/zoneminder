@@ -33,6 +33,10 @@
 constexpr Seconds StreamBase::MAX_STREAM_DELAY;
 constexpr Milliseconds StreamBase::MAX_SLEEP;
 
+bool StreamBase::encodeJpeg(const Image &image, unsigned char *buffer, size_t *size) const {
+  return image.EncodeJpeg(buffer, size, quality);
+}
+
 StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
@@ -402,7 +406,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     size_t n_bytes = 0;
 
-    image.EncodeJpeg(buffer, &n_bytes);
+    encodeJpeg(image, buffer, &n_bytes);
 
     if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP) {
       if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {

@@ -120,6 +120,7 @@ int main(int argc, const char *argv[], char **envp) {
   unsigned int rate = 100;
   double maxfps = 0.0;
   unsigned int bitrate = 100000;
+  int quality = 0;
   unsigned int ttl = 0;
   bool  analysis_frames = false;
   EventStream::StreamMode replay = EventStream::MODE_NONE;
@@ -265,6 +266,8 @@ int main(int argc, const char *argv[], char **envp) {
       maxfps = atof(value);
     } else if ( !strcmp(name, "bitrate") ) {
       bitrate = atoi(value);
+    } else if ( !strcmp(name, "quality") ) {
+      quality = StreamBase::ParseQualityParam(value);
     } else if ( !strcmp(name, "ttl") ) {
       ttl = atoi(value);
     } else if ( !strcmp(name, "replay") ) {
@@ -423,6 +426,7 @@ int main(int argc, const char *argv[], char **envp) {
   if ( source == ZMS_MONITOR ) {
     MonitorStream stream;
     stream.setStreamScale(scale);
+    stream.setStreamQuality(quality);
     stream.setStreamReplayRate(rate);
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
@@ -455,6 +459,7 @@ int main(int argc, const char *argv[], char **envp) {
   } else if ( source == ZMS_EVENT ) {
     EventStream stream;
     stream.setStreamScale(scale);
+    stream.setStreamQuality(quality);
     stream.setStreamReplayRate(rate);
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);

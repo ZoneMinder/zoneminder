@@ -39,6 +39,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -588,6 +589,53 @@ TEST_CASE("StreamBase::setStreamReplayRate treats 0 as normal speed", "[StreamBa
   CHECK(stream.replayRate() == ZM_RATE_BASE);
   stream.setStreamReplayRate(-200);
   CHECK(stream.replayRate() == -200);
+}
+
+TEST_CASE("StreamBase: the quality= parameter of zms", "[StreamBase]") {
+  REQUIRE(StreamBase::ParseQualityParam("50") == 50);
+  REQUIRE(StreamBase::ParseQualityParam("1") == 1);
+  REQUIRE(StreamBase::ParseQualityParam("100") == 100);
+  // Out of range or not a number keeps the configured quality.
+  REQUIRE(StreamBase::ParseQualityParam("0") == 0);
+  REQUIRE(StreamBase::ParseQualityParam("101") == 0);
+  REQUIRE(StreamBase::ParseQualityParam("-5") == 0);
+  REQUIRE(StreamBase::ParseQualityParam("high") == 0);
+}
+
+TEST_CASE("StreamBase: a stream's JPEGs are encoded at its quality", "[StreamBase]") {
+  // A client on a slow link asks for quality=10 to cut the bandwidth of a
+  // stream; without it every stream used ZM_JPEG_STREAM_QUALITY.
+  EnsureImageInit();
+  const unsigned int kWidth = 320;
+  const unsigned int kHeight = 240;
+  Image image(kWidth, kHeight, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  // Detail for the encoder to spend bits on.
+  uint8_t *buf = image.WriteBuffer(kWidth, kHeight, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+  for (unsigned int i = 0; i < kWidth * kHeight * 3; i++) buf[i] = static_cast<uint8_t>((i * 7919u) ^ (i >> 5));
+
+  auto encoded_size = [&image](int quality) {
+    TestStream stream;
+    stream.setStreamQuality(quality);
+    std::vector<unsigned char> out(1 << 20);
+    size_t size = out.size();
+    REQUIRE(stream.encodeJpeg(image, out.data(), &size));
+    return size;
+  };
+
+  const int saved = config.jpeg_stream_quality;
+  config.jpeg_stream_quality = 90;
+  const size_t low = encoded_size(10);
+  const size_t high = encoded_size(90);
+  const size_t unset = encoded_size(0);
+  config.jpeg_stream_quality = saved;
+
+  REQUIRE(low < high / 2);
+  // No quality given means the configured one.
+  REQUIRE(unset == high);
+
+  TestStream stream;
+  stream.setStreamQuality(250);
+  REQUIRE(stream.streamQuality() == 0);
 }
 
 TEST_CASE("StreamBase::updateFrameRate with an unbounded maxfps", "[StreamBase]") {

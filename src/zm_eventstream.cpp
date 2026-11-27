@@ -1218,7 +1218,7 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       switch ( type ) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
-        send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+        encodeJpeg(*send_image, img_buffer, &img_buffer_size);
         fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
       case STREAM_ZIP :

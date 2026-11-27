@@ -15,7 +15,8 @@ function probe(params) {
     const name = el.attr('name');
     if (name) {
       params.data[name] = el.val();
-      setCookie('addMonitors'+name, el.val(), 3600);
+      // The password is sent with the request but not kept in a cookie.
+      if (name != 'probe_password') setCookie('addMonitors'+name, el.val(), 3600);
     }
   });
   if (zmAuth.relay) params.data['auth_relay'] = zmAuth.relay;
@@ -59,13 +60,17 @@ function streamKey(stream) {
 
 function decorateStreams(streams) {
   const rows = [];
+  const seen = {};
   for (const i in streams) {
     const stream = streams[i];
-    const key = streamKey(stream);
+    let key = streamKey(stream);
+    // A CSV can list the same url on several rows with different names, so keep each row's own entry.
+    if (seen[key]) key += '#' + i;
+    seen[key] = true;
     if (stream.Monitor) {
-      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+key+'"/>';
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
     } else if (stream.url && user.Monitors == 'Create') {
-      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+key+'"/>';
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
     }
     if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
       // The image proxy requires the CSRF token since it is exempt from the POST check.

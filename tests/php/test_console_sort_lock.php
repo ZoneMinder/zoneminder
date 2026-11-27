@@ -53,7 +53,9 @@ namespace {
     global $updates, $failNext;
     if ($failNext) throw new \RuntimeException('update failed');
     $updates[] = $params;
+    return true;
   }
+  function editableMonitor($mid) { return true; }
 
   $path = __DIR__.'/../../web/ajax/console.php';
   $src = file_get_contents($path);

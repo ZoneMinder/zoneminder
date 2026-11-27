@@ -61,6 +61,8 @@ chmod(0755, $fake);
 {
   no warnings qw(redefine once);
   *ZoneMinder::Event::Path = sub { return $dir; };
+  # GenerateVideo saves the new DiskSpace; there is no database here.
+  *ZoneMinder::Database::zmDbDo = sub { return 1; };
   $ZoneMinder::Config::Config{ZM_PATH_FFMPEG} = $fake;
   $ZoneMinder::Config::Config{ZM_FFMPEG_INPUT_OPTIONS} = '';
   $ZoneMinder::Config::Config{ZM_FFMPEG_OUTPUT_OPTIONS} = '';

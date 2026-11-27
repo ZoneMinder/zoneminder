@@ -102,6 +102,7 @@ class UserPreferenceController extends AppController {
  * @return void
  */
 	public function add() {
+    $this->request->allowMethod('post');
     $data = $this->request->data;
     if ($this->RequestHandler->requestedWith('json')) {
       $data = $this->request->input('json_decode', true) ;
@@ -147,12 +148,23 @@ class UserPreferenceController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->request->allowMethod('post', 'put');
 		if (!$this->UserPreference->exists($id)) {
 			throw new NotFoundException(__('Invalid user_preference'));
 		}
 		$this->assertOwned($id);
 		if ($this->request->is(array('post', 'put'))) {
-			if ($this->UserPreference->save($this->request->data)) {
+			$data = $this->request->data;
+			if (isset($data['UserPreference'])) {
+				$data = $data['UserPreference'];
+			}
+			// The row is the one in the URL, whatever Id the body names.
+			$data['Id'] = $id;
+			global $user;
+			if ($user and ($user->System() != 'Edit')) {
+				$data['UserId'] = $user->Id();
+			}
+			if ($this->UserPreference->save($data)) {
 			} else {
 				$this->response->statusCode(400);
 			}

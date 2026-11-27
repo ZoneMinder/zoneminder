@@ -290,20 +290,23 @@ sub UrlToZMS {
 
 sub Url {
   my $this = shift;
-  my $port = shift if @_;
+  my $port = shift;
 
   if (!$this->Id()) {
     return '';
   }
 
   my $url = $this->Protocol().'://';
-  $url .= $this->Hostname();
+  my $hostname = $this->Hostname();
+  # An IPv6 literal must be bracketed to be followed by a port.
+  $hostname = '['.$hostname.']' if $hostname =~ /:/ and $hostname !~ /^\[/;
+  $url .= $hostname;
   if ( !$port ) {
     $port = $this->Port();
   }
   if ( $this->Protocol() eq 'https' and $port == 443 ) {
   } elsif ( $this->Protocol() eq 'http' and $port == 80 ) {
-  } else {
+  } elsif ( $port ) {
     $url .= ':'.$port;
   }
   return $url;

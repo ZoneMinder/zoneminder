@@ -29,6 +29,7 @@ var ctrled = false;
 var alted = false;
 var mainContent = document.getElementById('content');
 var timeOutExtruderChange;
+var lightbox;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
@@ -313,8 +314,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
-    // Trigger autorefresh of the widget bar stats on the navbar
-    if ( $j('.navbar').length ) {
+    // Trigger autorefresh of the widget bar stats on the navbar. A refresh
+    // time of 0 means off; setInterval would treat it as "as fast as possible".
+    if ( $j('.navbar').length && navBarRefresh > 0 ) {
       setInterval(getNavBar, navBarRefresh);
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
@@ -448,6 +450,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
+    if (!html) {
+      console.error('No html received for modal ' + name);
+      return $j('#' + name);
+    }
     let modal = $j('#' + name);
 
     if (modal.length) {
@@ -458,6 +464,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     return modal;
   }
+
+  // Show the server's message when a modal request comes back as an error
+  function modalReplyFailed(evt, jqxhr, settings) {
+    if (!settings || !settings.url || settings.url.indexOf('request=modal') === -1) return;
+    const reply = jqxhr && jqxhr.responseJSON;
+    if (reply && reply.result == 'Error') {
+      alert(reply.message || 'Unable to load the dialog.');
+    }
+  }
+  $j(document).ajaxSuccess(modalReplyFailed);
 
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
@@ -1321,7 +1337,8 @@ function manageShutdownBtns(element) {
         if ( data.result == 'Error' ) {
           respText.html('<h2>Error</h2>' + data.message);
         } else if ( data.rc ) {
-          respText.html('<h2>Error</h2>' + data.output);
+          const lines = [].concat(data.output || []).map(escapeHTML);
+          respText.html('<h2>Error</h2>' + lines.join('<br/>'));
         } else {
           $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
@@ -2829,6 +2846,7 @@ function handleTouchActionGeneral(action, evt) {
 
 /* Processing any key press*/
 function handleKeydownGeneral(evt) {
+  if (isLightboxOpen()) return;
   const target = evt.target;
   const key = evt.key;
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
@@ -2860,6 +2878,10 @@ function handleMouseout(evt) {
   if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'hide');
   }
+}
+
+function isLightboxOpen() {
+  return $j('body').hasClass('glightbox-open');
 }
 
 function manageVisibilitySidebarExtruderPanel(evt, action) {
@@ -3189,6 +3211,41 @@ function initPageGeneral() {
       }
     });
   });
+
+  // Opens images in a zoomable GLightbox viewer.
+  // GLightbox inserts data-title as HTML. Use only trusted, fixed titles;
+  // never pass event or monitor text (Name, Cause, Notes).
+  if (typeof GLightbox === 'function') {
+    // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
+    document.querySelectorAll('a.glightbox').forEach((link) => {
+      if (link.href.includes('view=image')) link.dataset.type = 'image';
+
+      // Prefer data-title, falling back to the link's title and then the nested image's title.
+      const title = link.dataset.title ||
+        link.getAttribute('title') ||
+        link.querySelector('img')?.title;
+
+      if (title) {
+        // Escape HTML special characters to ensure the title is displayed as plain text by GLightbox.
+        link.dataset.title = escapeHTML(title);
+      }
+    });
+
+    try {
+      // eslint-disable-next-line new-cap
+      lightbox = GLightbox({
+        touchNavigation: true,
+        loop: true
+      });
+      if (lightbox && typeof lightbox.on === 'function') {
+        document.dispatchEvent(new CustomEvent('zm:lightboxReady', {
+          detail: lightbox
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to initialize GLightbox:', error);
+    }
+  }
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload

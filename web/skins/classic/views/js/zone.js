@@ -3,6 +3,10 @@ var playBtn = $j('#playBtn');
 var saveBtn = $j('#saveBtn');
 var cancelBtn = $j('#cancelBtn');
 var resetBtn = $j('#resetBtn');
+var undoBtn = $j('#undoBtn');
+var undoStack = [];
+var maxUndoStack = 50;
+var undoInput = null; // the point input whose edit already has an undo step
 var initialState = null; // normalised snapshot of form values taken on load, for change detection
 var initialValues = null; // raw form values as loaded, for restoring on reset
 var initialPoints = null; // snapshot of zone['Points'] taken on load
@@ -380,7 +384,13 @@ function highlightOff(index) {
   $j('#point'+index).removeClass('highlight');
 }
 
+var activePointIndex = -1;
+
 function setActivePoint(index) {
+  if ( activePointIndex >= 0 && activePointIndex != index ) {
+    unsetActivePoint(activePointIndex);
+  }
+  activePointIndex = index;
   highlightOff(index);
   $j('#row'+index).addClass('active');
   $j('#point'+index).addClass('active');
@@ -389,6 +399,90 @@ function setActivePoint(index) {
 function unsetActivePoint(index) {
   $j('#row'+index).removeClass('active');
   $j('#point'+index).removeClass('active');
+  if ( activePointIndex == index ) {
+    activePointIndex = -1;
+  }
+}
+
+/* Keyboard nudging: a selected point can be moved a coordinate unit at a time,
+ * through the same update path as typing in the point table. */
+function zoneModalOpen() {
+  if ( document.querySelector && document.querySelector('.modal.show') ) return true;
+  const modal = document.getElementById('deleteConfirm');
+  return !!(modal && modal.classList && modal.classList.contains('show'));
+}
+
+function isTextEntryTarget(target) {
+  if ( !target ) return false;
+  const tag = (target.tagName || '').toUpperCase();
+  if ( tag == 'INPUT' || tag == 'TEXTAREA' || tag == 'SELECT' ) return true;
+  return !!target.isContentEditable;
+}
+
+function nudgeSelectedPoint(dx, dy) {
+  const index = activePointIndex;
+  if ( index < 0 || index >= zone['Points'].length ) return;
+  const point = zone['Points'][index];
+
+  if ( dx ) {
+    const input = document.getElementById('newZone[Points]['+index+'][x]');
+    const target = input || {value: 0, getAttribute: function() {
+      return String(index);
+    }};
+    target.value = parseFloat(point.x) + dx;
+    updateX(target);
+    if ( input ) input.value = parseFloat(zone['Points'][index].x).toFixed(2);
+  }
+
+  if ( dy ) {
+    const input = document.getElementById('newZone[Points]['+index+'][y]');
+    const target = input || {value: 0, getAttribute: function() {
+      return String(index);
+    }};
+    target.value = parseFloat(point.y) + dy;
+    updateY(target);
+    if ( input ) input.value = parseFloat(zone['Points'][index].y).toFixed(2);
+  }
+}
+
+function onZoneKeydown(event) {
+  if ( !event ) return;
+  if ( event.ctrlKey || event.altKey || event.metaKey ) return;
+  if ( isTextEntryTarget(event.target) ) return;
+  if ( zoneModalOpen() ) return;
+
+  const step = event.shiftKey ? 10 : 1;
+  let dx = 0;
+  let dy = 0;
+  switch ( event.key ) {
+    case 'ArrowLeft': dx = -step; break;
+    case 'ArrowRight': dx = step; break;
+    case 'ArrowUp': dy = -step; break;
+    case 'ArrowDown': dy = step; break;
+    default: return;
+  }
+
+  // Only act while a point is selected. This leaves arrow keys alone for other
+  // page behaviour when none is.
+  if ( activePointIndex < 0 ) return;
+  event.preventDefault();
+  nudgeSelectedPoint(dx, dy);
+}
+
+function zonePointIndexFromNode(node) {
+  while ( node && node !== document ) {
+    if ( node.classList && node.classList.contains('zonePoint') ) {
+      const index = parseInt(node.getAttribute('data-point-index'), 10);
+      return isNaN(index) ? -1 : index;
+    }
+    node = node.parentNode;
+  }
+  return -1;
+}
+
+function onZonePointSelect(event) {
+  const index = zonePointIndexFromNode(event.target);
+  if ( index >= 0 ) setActivePoint(index);
 }
 
 function getCoordString() {
@@ -427,19 +521,24 @@ function constrainValue(value, loVal, hiVal) {
   return value;
 }
 
-function updateActivePoint(index) {
+function clampDragPosition(position, frameW, frameH) {
+  position.left = constrainValue(position.left, 0, frameW);
+  position.top = constrainValue(position.top, 0, frameH);
+}
+
+function updateActivePoint(index, position) {
   const point = $j('#point'+index);
   if (!point.length) return;
   const imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   const frameW = imageFeed.clientWidth;
   const frameH = imageFeed.clientHeight;
 
-  let point_left = parseInt(point.css('left'), 10);
+  let point_left = (position && typeof position === 'object') ? position.left : parseInt(point.css('left'), 10);
   if ( point_left < 0 ) {
     point.css('left', '0px');
     point_left = 0;
   }
-  let point_top = parseInt(point.css('top'));
+  let point_top = (position && typeof position === 'object') ? position.top : parseInt(point.css('top'));
   if ( point_top < 0 ) {
     point.css('top', '0px');
     point_top = 0;
@@ -462,6 +561,7 @@ function updateActivePoint(index) {
 } // end function updateActivePoint(index)
 
 function addPoint(index) {
+  pushUndo();
   var nextIndex = index+1;
   if ( index >= (zone['Points'].length-1) ) {
     nextIndex = 0;
@@ -478,9 +578,50 @@ function addPoint(index) {
 }
 
 function delPoint(index) {
+  pushUndo();
   zone['Points'].splice(index, 1);
   drawZonePoints();
   updateArea();
+}
+
+/* Keeps deep copies of the points so an edit can be rolled back */
+function pushUndo() {
+  undoInput = null;
+  undoStack.push(JSON.parse(JSON.stringify(zone['Points'])));
+  if ( undoStack.length > maxUndoStack ) {
+    undoStack.shift();
+  }
+  updateUndoButton();
+}
+
+// The point inputs update on every keystroke; typing one value is one step.
+function pushUndoForInput(input) {
+  if ( undoInput === input ) return;
+  pushUndo();
+  undoInput = input;
+}
+
+function updateUndoButton() {
+  undoBtn.prop('disabled', undoStack.length === 0);
+}
+
+function undo() {
+  if ( undoStack.length === 0 ) return;
+  zone['Points'] = undoStack.pop();
+  undoInput = null;
+  drawZonePoints();
+  updateArea();
+  updateUndoButton();
+}
+
+function handleUndoKeydown(event) {
+  const key = (event.key || '').toLowerCase();
+  if ( !((event.ctrlKey || event.metaKey) && key === 'z') ) return;
+  const target = event.target || {};
+  const tag = (target.tagName || '').toUpperCase();
+  if ( tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ) return;
+  event.preventDefault();
+  undo();
 }
 
 function limitPointValue(point, loVal, hiVal) {
@@ -500,6 +641,7 @@ function updateX(input) {
 
   // Empty while the value is being retyped; keep the point where it is
   if ( input.value === '' ) return;
+  pushUndoForInput(input);
   limitPointValue(input, 0, maxX);
 
   const point = $j('#point'+index);
@@ -518,6 +660,7 @@ function updateX(input) {
 function updateY(input) {
   const index = input.getAttribute('data-point-index');
   if ( input.value === '' ) return;
+  pushUndoForInput(input);
   limitPointValue(input, 0, maxY);
 
   const point = $j('#point'+index);
@@ -573,6 +716,7 @@ function checkDirty() {
 function resetChanges() {
   const form = document.zoneForm;
   // drawZonePoints re-creates the point inputs, so they are not restored here
+  pushUndo();
   zone['Points'] = JSON.parse(JSON.stringify(initialPoints));
   drawZonePoints();
 
@@ -611,6 +755,7 @@ function saveChanges(element) {
 function drawZonePoints() {
   var imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   $j('.zonePoint').remove();
+  activePointIndex = -1;
   var frameW = imageFeed.clientWidth;
   var frameH = imageFeed.clientHeight;
 
@@ -620,6 +765,7 @@ function drawZonePoints() {
       'id': 'point'+i,
       'data-point-index': i,
       'class': 'zonePoint',
+      'tabindex': '0',
       'title': 'Point '+(i+1)
     });
     div.css({
@@ -633,10 +779,15 @@ function drawZonePoints() {
     $j(imageFeed).append(div);
 
     div.draggable({
-      'containment': imageFeed,
-      'start': setActivePoint.bind(i, i),
+      'start': function() {
+        pushUndo();
+        setActivePoint(i);
+      },
       'stop': fixActivePoint.bind(i, i),
-      'drag': updateActivePoint.bind(i, i)
+      'drag': function(event, ui) {
+        clampDragPosition(ui.position, imageFeed.clientWidth, imageFeed.clientHeight);
+        updateActivePoint(i, ui.position);
+      }
     });
   }); // end $j.each point
 
@@ -868,6 +1019,13 @@ function initPage() {
   if ( el = resetBtn[0] ) {
     el.onclick = resetChanges;
   }
+
+  if ( el = undoBtn[0] ) {
+    el.onclick = undo;
+  }
+  updateUndoButton();
+
+  document.addEventListener('keydown', handleUndoKeydown);
 
   if ( el = analyseBtn[0] ) {
     el.onclick = function() {
@@ -1138,6 +1296,8 @@ document.onvisibilitychange = () => {
       }
     }, 15*1000);
   } else {
+    // Back before the 15 s ran out: the pending stop would kill a visible stream
+    TimerHideShow = clearTimeout(TimerHideShow);
     //Start monitors when show page - unless a replay or still the zone
     //tools show over the feed stopped them on purpose
     const replaying = document.querySelector('.replaying');
@@ -1150,3 +1310,9 @@ document.onvisibilitychange = () => {
 };
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+if ( typeof document !== 'undefined' && document.addEventListener ) {
+  document.addEventListener('click', onZonePointSelect);
+  document.addEventListener('focusin', onZonePointSelect);
+  document.addEventListener('keydown', onZoneKeydown);
+}

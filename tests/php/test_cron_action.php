@@ -21,7 +21,7 @@ namespace {
   function commandAllowedByConfig($s) { return true; }
   function commandRefusedMessage() { return 'refused'; }
   function cronRebuild() { return array(); }
-  function dbQuery($sql, $p = array()) { $GLOBALS['deleted'][] = $p; }
+  function dbQuery($sql, $p = array()) { $GLOBALS['deleted'][] = $p; return true; }
 
   $dir = sys_get_temp_dir().'/zm_cron_action_'.getmypid();
   mkdir($dir.'/includes', 0777, true);

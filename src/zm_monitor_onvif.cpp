@@ -1014,6 +1014,7 @@ void ONVIF::cleanup_subscription() {
 //                          Increase if getting auth errors due to clock drift between ZM and camera
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 //   renewal_enabled=false - Disable subscription renewal
+//   closes_event[=false] - Treat the camera as sending explicit alarm-off notifications
 //   expire_alarms=false - Disable per-topic alarm expiry
 //   max_alarm_duration=300 - Clear an alarm active longer than this many seconds, for cameras
 //                          that never send the alarm-off notification (default: 0, no limit)
@@ -1029,6 +1030,8 @@ void ONVIF::parse_onvif_options() {
   Debug(2, "ONVIF: Parsing options: %s", parent->onvif_options.c_str());
 
   for (const std::string &option : Split(parent->onvif_options, ',')) {
+    // Bare flag has no '=' so PairSplit would drop it; handle it before splitting.
+    if (option == "closes_event") { closes_event = true; continue; }
     auto [key, value] = PairSplit(option, '=');
     // "pull_timeout=5, subscription_timeout=120" must not lose the second option
     key = TrimSpaces(key);
@@ -1082,7 +1085,11 @@ void ONVIF::parse_onvif_options() {
       soap_log_file = value;
       Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
     } else if (key == "closes_event") {
-      closes_event = true;
+      if (value == "false" || value == "0" || value == "no") {
+        closes_event = false;
+      } else {
+        closes_event = true;
+      }
     } else if (key == "renewal_enabled") {
       if (value == "false" || value == "0" || value == "no") {
         renewal_enabled = false;
@@ -1297,6 +1304,7 @@ bool ONVIF::Renew() {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
     setHealthy(false);
+    ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
     return false;
   }
 
@@ -1318,6 +1326,7 @@ bool ONVIF::Renew() {
       soap_end(soap);
       cleanup_subscription();
       setHealthy(false);
+      ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
       return false;
     }
   }

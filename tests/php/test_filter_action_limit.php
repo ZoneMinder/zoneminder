@@ -9,7 +9,7 @@ namespace ZM {
   class Filter {
     public static $changes = null;
     public function __construct($id = null) {}
-    public function Id($v = null) { return 0; }
+    public function Id($v = null) { return 3; }
     public function Name($v = null) { return ''; }
     public function Background() { return 0; }
     public function AutoExecute() { return 0; }

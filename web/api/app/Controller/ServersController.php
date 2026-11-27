@@ -105,6 +105,7 @@ class ServersController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->Server->validationErrors ? $this->Server->validationErrors : 'Error',
       'id' => null,
@@ -138,6 +139,7 @@ class ServersController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Server->validationErrors ? $this->Server->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(
@@ -166,6 +168,12 @@ class ServersController extends AppController {
       throw new NotFoundException(__('Invalid server'));
     }
     $this->request->allowMethod('post', 'delete');
+
+    require_once __DIR__ .'/../../../includes/Server.php';
+    $inUse = ZM\Server::InUseSummary((int)$id);
+    if ( $inUse ) {
+      throw new BadRequestException(__('The server is still used by %s', $inUse));
+    }
 
     if ( $this->Server->delete() ) {
       $this->set(array(

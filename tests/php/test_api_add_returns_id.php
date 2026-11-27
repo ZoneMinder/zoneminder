@@ -23,7 +23,6 @@ if (!class_exists('NotFoundException')) { class NotFoundException extends Except
 if (!function_exists('__')) { function __($s) { return $s; } }
 eval('namespace ZM; function Error($s) {}');
 
-class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -63,11 +62,17 @@ function extract_add($file) {
   return substr($source, $start, $i - $start + 1);
 }
 
+// A failed save sets a 400 on the controller's response.
+class HarnessResponse {
+  public $code = 200;
+  function statusCode($code) { $this->code = $code; }
+}
+
 function run_add($class, $model, $method, $save_result) {
   global $user;
   $user = null;
   $h = new $class();
-  $h->request = new FakeRequest($method, array($model => array('Name' => 'x'))); $h->response = new FakeResponse;
+  $h->request = new FakeRequest($method, array($model => array('Name' => 'x')));
   $h->$model = new FakeModel();
   $h->$model->saveResult = $save_result;
   try {
@@ -87,7 +92,8 @@ foreach (array('Servers' => 'Server', 'Storage' => 'Storage', 'States' => 'State
     continue;
   }
   $class = $name.'Harness';
-  eval('class '.$class.' { public $request, $response, $'.$model.', $vars = array(), $flashed = array();
+  eval('class '.$class.' { public $request, $'.$model.', $vars = array(), $flashed = array(), $response;
+    function __construct() { $this->response = new HarnessResponse(); }
     function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
     function flash($message, $url = null) { $this->flashed[] = $message; return "FLASH"; }
     function requestField($alias, $field) { return null; }

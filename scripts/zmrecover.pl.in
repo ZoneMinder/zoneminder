@@ -410,6 +410,7 @@ Debug("@Monitors");
             $event->Height( $Monitor->Height() );
             $event->Orientation( $Monitor->Orientation() );
             $event->StorageId( $Storage->Id() );
+            $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
               my $error = $event->save({}, 1);
@@ -469,6 +470,7 @@ Debug("@Monitors");
           $event->Height( $Monitor->Height() );
           $event->Orientation( $Monitor->Orientation() );
           $event->StorageId( $Storage->Id() );
+          $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
             my $error = $event->save({}, 1);
@@ -552,10 +554,12 @@ yet.
 
 =head1 OPTIONS
 
+ -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes (the default)
      --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
+     --server_id            - Only recover the storage areas of the given server
  -s, --storage_id           - Specify a storage area to recover instead of all
  -v, --version              - Print the installed version of ZoneMinder
 

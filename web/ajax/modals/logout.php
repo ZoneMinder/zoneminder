@@ -44,7 +44,7 @@ global $CLANG;
 <?php
 require_once('includes/User.php');
 $result = dbQuery('SELECT * FROM Sessions WHERE access > ? ORDER BY access DESC LIMIT 100',
-array(time() - ZM_COOKIE_LIFETIME));
+array(time() - zmCookieLifetime()));
 if (!$result) return;
 
 $current_session = $_SESSION;

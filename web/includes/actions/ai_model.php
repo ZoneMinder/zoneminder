@@ -49,16 +49,24 @@ if ($action == 'save') {
       $error_message .= 'Error saving model: '.validHtmlStr(dbLastError()).'<br/>';
     }
   }
-  if (!$error_message)
+  if (!$error_message) {
     $redirect = '?view=options&tab=ai_models';
+  } else {
+    // The modal posts view=ai_model, which has no view file, so show the error on the options page.
+    $view = 'options';
+    $_REQUEST['tab'] = 'ai_models';
+  }
 } else if ($action == 'delete') {
   if ( !empty($_REQUEST['markIds']) ) {
     foreach ($_REQUEST['markIds'] as $Id) {
-      dbQuery('DELETE FROM AI_Models WHERE Id=?', array($Id));
+      if (!dbQuery('DELETE FROM AI_Models WHERE Id=?', array($Id))) {
+        $error_message .= 'Error deleting model: '.validHtmlStr(dbLastError()).'<br/>';
+      }
     }
-    $refreshParent = true;
+    if (!$error_message) $refreshParent = true;
   }
-  $redirect = '?view=options&tab=ai_models';
+  if (!$error_message)
+    $redirect = '?view=options&tab=ai_models';
 } else {
   ZM\Error("Unknown action $action in saving AI Model");
 }

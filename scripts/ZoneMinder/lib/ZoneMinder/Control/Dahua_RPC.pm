@@ -72,7 +72,9 @@ sub open {
   # wrong for RPC. Only honour {port} if it looks like a web port.
   my $port = ($self->{port} && $self->{port} != 554) ? $self->{port} : 80;
   # JSON-RPC auth is in-band; do not put userinfo in the URL.
-  $self->{RPCBase} = 'http://'.$self->{host}.':'.$port.'/';
+  # URI returns an IPv6 host without the brackets a URL needs.
+  my $host = $self->{host} =~ /:/ ? '['.$self->{host}.']' : $self->{host};
+  $self->{RPCBase} = 'http://'.$host.':'.$port.'/';
   $self->{rpc_id} = 0;
 
   if ($self->login()) {
@@ -161,7 +163,8 @@ sub ensure_ptz_object {
   my $self = shift;
   return $self->{ptz_object} if defined $self->{ptz_object};
   my $r = $self->rpc_call('ptz.factory.instance', { channel => 0 });
-  $self->{ptz_object} = ($r && defined $r->{result}) ? $r->{result} : undef;
+  # A refusal is "result": false with an error, which is defined but not a handle.
+  $self->{ptz_object} = ($r && defined $r->{result} && !JSON::MaybeXS::is_bool($r->{result})) ? $r->{result} : undef;
   Error('Dahua_RPC: failed to create ptz instance') if !defined $self->{ptz_object};
   return $self->{ptz_object};
 }

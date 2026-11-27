@@ -73,7 +73,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_restream_base_path = "rtsp://"+server.Hostname();
+      rtsp_restream_base_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_restream_base_path = "rtsp://127.0.0.1";
     }
@@ -257,11 +257,16 @@ bool Monitor::Go2RTCManager::refresh_auth_if_needed() {
     return false;
   }
 
-  // Check if auth hash is older than 50 minutes (refresh before 1-hour timeout)
+  // Auth hashes are tied to the clock hour: refresh at the top of the hour,
+  // TTL-1 hours (at least 1) after the hour the current hash was made in.
   auto now = std::chrono::system_clock::now();
   auto age = std::chrono::duration_cast<std::chrono::minutes>(now - last_auth_refresh);
+  time_t minted_t = std::chrono::system_clock::to_time_t(last_auth_refresh);
+  tm minted_tm = {};
+  localtime_r(&minted_t, &minted_tm);
 
-  if (age.count() < 50) {
+  if (now - last_auth_refresh + Minutes(minted_tm.tm_min) + Seconds(minted_tm.tm_sec)
+      < Hours(std::max(config.auth_hash_ttl - 1, 1))) {
     Debug(3, "Go2RTC: Auth hash is %jd minutes old, no refresh needed", static_cast<intmax_t>(age.count()));
     return false;
   }

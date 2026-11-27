@@ -1,7 +1,25 @@
 
-function showEvent(e) {
-  var eid = e.getAttribute('data-event-id');
-  var fid = e.getAttribute('data-frame-id');
+// A bar made from several small neighbouring events lists one eventId:frameId
+// per slot in data-slot-targets. Pick the one under the pointer.
+function slotTarget(el, ev) {
+  const target = {eid: el.getAttribute('data-event-id'), fid: el.getAttribute('data-frame-id')};
+  const list = el.getAttribute('data-slot-targets');
+  if (!list || !ev || typeof ev.clientX !== 'number') return target;
+  const parts = list.split(',');
+  const rect = el.getBoundingClientRect();
+  if (!(rect.width > 0)) return target;
+  let idx = Math.floor((ev.clientX - rect.left) / rect.width * parts.length);
+  idx = Math.max(0, Math.min(parts.length - 1, idx));
+  const pair = parts[idx].split(':');
+  target.eid = pair[0];
+  target.fid = pair[1];
+  return target;
+}
+
+function showEvent(e, ev) {
+  const t = slotTarget(e, ev);
+  var eid = t.eid;
+  var fid = t.fid;
   var url = '?view=event&eid='+eid+'&fid='+fid+filterQuery;
 
   window.location.href = url;
@@ -117,9 +135,10 @@ function requestFrameData(eventId, frameId) {
   }
 }
 
-function previewEvent(slot) {
-  eventId = slot.getAttribute('data-event-id');
-  frameId = slot.getAttribute('data-frame-id');
+function previewEvent(slot, ev) {
+  const t = slotTarget(slot, ev);
+  const eventId = t.eid;
+  const frameId = t.fid;
   if (events[eventId] && events[eventId]['frames'] && events[eventId]['frames'][frameId]) {
     showEventData(events[eventId], frameId);
   } else {
@@ -182,7 +201,19 @@ function divDataOnClick() {
     el.onclick = window[el.getAttribute('data-on-click-this')].bind(el, el);
     // Absent when the page was loaded with mouseover=0
     const over = el.getAttribute('data-on-mouseover-this');
-    if (over) el.onmouseover = window[over].bind(el, el);
+    if (over) {
+      el.onmouseover = window[over].bind(el, el);
+      // Moving along a merged bar changes which event is under the pointer
+      if (el.getAttribute('data-slot-targets')) {
+        el.onmousemove = function(ev) {
+          const t = slotTarget(el, ev);
+          const key = t.eid + ':' + t.fid;
+          if (el.lastPreviewKey === key) return;
+          el.lastPreviewKey = key;
+          window[over](el, ev);
+        };
+      }
+    }
   });
   document.querySelectorAll('div.tlzoom').forEach(function(el) {
     el.onclick = function(ev) {

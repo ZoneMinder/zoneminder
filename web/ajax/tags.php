@@ -11,6 +11,17 @@ switch ( $_REQUEST['action'] ) {
     $sql = 'SELECT * FROM Tags ORDER BY LastAssignedDate DESC';
     $tags = dbFetchAll($sql);
 
+    // A tag used only on events of monitors this user cannot see is left out, as in gettags.
+    $usedTags = array();
+    $visibleTags = array();
+    foreach (dbFetchAll('SELECT ET.TagId, E.MonitorId FROM Events_Tags AS ET INNER JOIN Events AS E ON E.Id = ET.EventId GROUP BY ET.TagId, E.MonitorId') as $row) {
+      $usedTags[$row['TagId']] = true;
+      if (visibleMonitor($row['MonitorId'])) $visibleTags[$row['TagId']] = true;
+    }
+    $tags = array_values(array_filter($tags, function($tag) use ($usedTags, $visibleTags) {
+      return !isset($usedTags[$tag['Id']]) or isset($visibleTags[$tag['Id']]);
+    }));
+
     // Re-sort so tags THIS user has applied recently come first, ahead of
     // the global "most recently applied by anyone" fallback order. The
     // recency list is stored server-side (User_Preferences), keyed by Tag
@@ -44,6 +55,7 @@ switch ( $_REQUEST['action'] ) {
     }
     $tagName = is_scalar($_REQUEST['tname'] ?? null) ? trim($_REQUEST['tname']) : '';
     if ($tagName === '') ajaxError('createtag requires a tag name');
+    if (mb_strlen($tagName, 'UTF-8') > 64) ajaxError('Tag names are limited to 64 characters');
 
     // Tag names differing only in case would look the same in the tag list, so reuse the existing tag.
     $dbFetchResult = dbFetchAll('SELECT * FROM Tags WHERE LOWER(Name) = LOWER(?) ORDER BY Name = ? DESC LIMIT 1', NULL, array($tagName, $tagName));
@@ -95,7 +107,7 @@ switch ( $_REQUEST['action'] ) {
     if (dbFetchOne('SELECT Id FROM Tags WHERE LOWER(Name) = LOWER(?) AND Id != ?', 'Id', array($tagName, $tagId))) {
       ajaxError('A tag named '.validHtmlStr($tagName).' already exists');
     }
-    dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId));
+    if (!dbQuery('UPDATE Tags SET Name = ? WHERE Id = ?', array($tagName, $tagId))) ajaxError('Failed to rename tag');
     ajaxResponse();
     break;
   case 'deletetag' :
@@ -108,7 +120,7 @@ switch ( $_REQUEST['action'] ) {
     if (dbFetchOne('SELECT TagId FROM Events_Tags WHERE TagId = ? LIMIT 1', 'TagId', array($tagId))) {
       ajaxError('The tag is still on events and cannot be deleted');
     }
-    dbQuery('DELETE FROM Tags WHERE Id = ?', array($tagId));
+    if (!dbQuery('DELETE FROM Tags WHERE Id = ?', array($tagId))) ajaxError('Failed to delete tag');
     ajaxResponse();
     break;
 } // end switch action

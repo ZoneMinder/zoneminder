@@ -48,9 +48,12 @@ eval "$source; 1" or die $@;
 use constant SUSPEND => 0x10;
 use constant RESUME => 0x20;
 
+my %real = map { $_ => \&{"ZoneMinder::Memory::$_"} } qw(zmMemVerify zmMemRead zmMemWrite);
+
 my $action = 0;
 {
   no warnings qw(redefine once);
+  *ZoneMinder::Memory::zmMemVerify = sub { return 1; };
   *ZoneMinder::Memory::zmMemRead = sub { return $action; };
   *ZoneMinder::Memory::zmMemWrite = sub { $action = $_[1]->{'shared_data:action'}; return 1; };
 }
@@ -71,6 +74,60 @@ check('suspend asks zmc to suspend the monitor', $action, SUSPEND);
 $action = 0;
 ZoneMinder::Memory::zmMonitorResume($monitor);
 check('resume asks zmc to resume the monitor', $action, RESUME);
+
+# A monitor whose memory is not attached yet, as zmx10 leaves every monitor
+# after reloading its tasks. As with the real backends, reading or writing a
+# detached monitor fails and logs an error.
+my $shm = '';
+my @errors;
+{
+  no warnings qw(redefine once);
+  *ZoneMinder::Memory::zmMemVerify = $real{zmMemVerify};
+  *ZoneMinder::Memory::zmMemRead = $real{zmMemRead};
+  *ZoneMinder::Memory::zmMemWrite = $real{zmMemWrite};
+  *ZoneMinder::Memory::zmMemKey = sub { return $_[0]{attached}; };
+  *ZoneMinder::Memory::zmMemAttach = sub { $_[0]{attached} = 1; return 1; };
+  *ZoneMinder::Memory::zmMemDetach = sub { delete $_[0]{attached}; };
+  *ZoneMinder::Memory::zmMemGet = sub {
+    my ($m, $offset, $size) = @_;
+    return substr($shm, $offset, $size) if $m->{attached};
+    ZoneMinder::Memory::Error("Can't read from memory for monitor $$m{Id}");
+    return undef;
+  };
+  *ZoneMinder::Memory::zmMemPut = sub {
+    my ($m, $offset, $size, $data) = @_;
+    return undef if !$m->{attached};
+    substr($shm, $offset, $size) = $data;
+    return 1;
+  };
+  *ZoneMinder::Memory::Error = sub { push @errors, $_[0]; return 1; };
+}
+
+foreach my $case (
+  [ 'enable', \&ZoneMinder::Memory::zmMonitorEnable, RESUME ],
+  [ 'disable', \&ZoneMinder::Memory::zmMonitorDisable, SUSPEND ],
+  [ 'suspend', \&ZoneMinder::Memory::zmMonitorSuspend, SUSPEND ],
+  [ 'resume', \&ZoneMinder::Memory::zmMonitorResume, RESUME ],
+) {
+  my ($name, $call, $bit) = @$case;
+  # zmc is running and has a reload request (0x04) pending
+  {
+    no warnings 'once';
+    $shm = "\0" x $ZoneMinder::Memory::mem_size;
+  }
+  my $writer = {Id => 1, Name => 'Cam', attached => 1};
+  ZoneMinder::Memory::zmMemWrite($writer, {
+    'shared_data:size' => $ZoneMinder::Memory::mem_data{shared_data}{size},
+    'trigger_data:size' => $ZoneMinder::Memory::mem_data{trigger_data}{size},
+    'shared_data:valid' => 1,
+    'shared_data:action' => 0x04,
+  }, 1);
+  @errors = ();
+  $call->({Id => 1, Name => 'Cam'});
+  check("$name on a detached monitor logs no error", join(' | ', @errors), '');
+  check("$name on a detached monitor keeps the pending reload",
+    ZoneMinder::Memory::zmMemRead($writer, 'shared_data:action'), 0x04 | $bit);
+}
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

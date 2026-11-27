@@ -38,7 +38,8 @@ if (!preg_match('/^function zmuCredentials\(.*?^}$/ms', $auth_src, $matches)) {
 
 define('ZM_OPT_USE_AUTH', true);
 define('ZM_AUTH_RELAY', 'plain');
-define('ZM_AUTH_HASH_SECRET', 'zmu-credentials-test-secret');
+// php-jwt 7 refuses an HS256 key shorter than 32 bytes.
+define('ZM_AUTH_HASH_SECRET', 'zmu-credentials-test-secret-32-bytes-long');
 
 $secretIsSet = true;
 function authHashSecretIsSet() { global $secretIsSet; return $secretIsSet; }
@@ -57,7 +58,7 @@ $args = zmuCredentials();
 check('with a secret: a token and nothing else', preg_match("/^ -T '[^']+'$/", $args), 1);
 check('with a secret: not the password, though the session has it', strpos($args, $password), false);
 preg_match("/^ -T '([^']+)'$/", $args, $m);
-$claims = (array)\Firebase\JWT\JWT::decode($m[1], ZM_AUTH_HASH_SECRET, array('HS256'));
+$claims = (array)\Firebase\JWT\JWT::decode($m[1], new \Firebase\JWT\Key(ZM_AUTH_HASH_SECRET, 'HS256'));
 check('an access token for the user', array($claims['user'], $claims['type']), array('admin', 'access'));
 check('that lives a minute', $claims['exp'] - $claims['iat'], 60);
 

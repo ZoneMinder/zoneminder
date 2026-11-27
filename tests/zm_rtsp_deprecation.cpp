@@ -79,6 +79,13 @@ TEST_CASE("Remote to Ffmpeg RTSP URL") {
     REQUIRE(Monitor::RtspUrlFromRemote("h", "", "/p", "", "") == "rtsp://h/p");
   }
 
+  SECTION("an IPv6 host is bracketed so the port is not part of the address") {
+    REQUIRE(Monitor::RtspUrlFromRemote("fd00::5", "554", "/live", "admin", "secret")
+            == "rtsp://admin:secret@[fd00::5]:554/live");
+    REQUIRE(Monitor::RtspUrlFromRemote("[fd00::5]", "554", "/live", "", "")
+            == "rtsp://[fd00::5]:554/live");
+  }
+
   SECTION("a query string in the path survives") {
     // Plenty of cameras carry ?channel=1&subtype=0; the path is copied through.
     REQUIRE(Monitor::RtspUrlFromRemote("h", "554", "/cam?channel=1&subtype=0", "", "")

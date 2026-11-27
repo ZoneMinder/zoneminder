@@ -14,6 +14,7 @@ class Filter extends ZM_Object {
   protected static $is_isnot_opTypes = null;
   protected static $archiveTypes = null;
   protected static $booleanValues = null;
+  protected static $stateTypes = null;
 
   protected $Query;
   protected $Terms;
@@ -44,6 +45,8 @@ class Filter extends ZM_Object {
     'AutoMoveTo'      =>  0,
     'AutoCopy'        =>  0,
     'AutoCopyTo'      =>  0,
+    'AutoTag'         =>  0,
+    'AutoTagId'       =>  0,
     'UpdateDiskSpace' =>  0,
     'Background'      =>  0,
     'Concurrent'      =>  0,
@@ -245,6 +248,10 @@ class Filter extends ZM_Object {
     ) as $field => $term) {
       if ($this->$field()) $auto_terms[] = $term;
     }
+    // As ZoneMinder::Filter::Sql: the tag id only goes into the SQL as digits
+    $tag_id = $this->AutoTagId();
+    if ($this->AutoTag() and is_scalar($tag_id) and preg_match('/^\s*([1-9][0-9]*)\s*$/', (string)$tag_id, $m))
+      $auto_terms[] = 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$m[1].')';
     if (count($auto_terms)) $conditions[] = '( '.implode(' or ', $auto_terms).' )';
 
     if ($this->LockRows() and $this->skip_locked())
@@ -447,10 +454,10 @@ class Filter extends ZM_Object {
           if ( ZM_AUTH_RELAY == 'hashed' ) {
             $url .= '&auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
           } else if ( ZM_AUTH_RELAY == 'plain' ) {
-            $url .= '&user='.urlencode($_SESSION['username']);
-            $url .= '&pass='.urlencode($_SESSION['password']);
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
+            $url .= '&pass='.urlencode($_SESSION['password'] ?? '');
           } else if ( ZM_AUTH_RELAY == 'none' ) {
-            $url .= '&user='.urlencode($_SESSION['username']);
+            $url .= '&user='.urlencode($_SESSION['username'] ?? '');
           }
         }
         $data = array();
@@ -983,6 +990,11 @@ class Filter extends ZM_Object {
         'DiskPercent' => translate('AttrDiskPercent'),
         #'StorageDiskSpace'   => translate('AttrStorageDiskSpace'),
         'DiskSpace'   => translate('AttrEventDiskSpace'),
+        'Emailed'     => translate('AttrEmailed'),
+        'Executed'    => translate('AttrExecuted'),
+        'Messaged'    => translate('AttrMessaged'),
+        'Uploaded'    => translate('AttrUploaded'),
+        'Videoed'     => translate('AttrVideoed'),
         'CurrentDateTime' => translate('Current DateTime'),
         'CurrentDate' => translate('Current Date'),
         'CurrentTime' => translate('Current Time'),
@@ -1030,6 +1042,22 @@ class Filter extends ZM_Object {
       );
     }
     return self::$booleanValues;
+  }
+
+  // The Events table's per-event action flags. They are tinyint(3) unsigned,
+  // so the value widget offers False (0) and True (1).
+  public static function stateAttrs() {
+    return array('Videoed', 'Uploaded', 'Emailed', 'Messaged', 'Executed');
+  }
+
+  public static function stateTypes() {
+    if (!self::$stateTypes) {
+      self::$stateTypes = array(
+        '0' => translate('False'),
+        '1' => translate('True')
+      );
+    }
+    return self::$stateTypes;
   }
 
   public static function is_isnot_opTypes() {
@@ -1105,6 +1133,7 @@ class Filter extends ZM_Object {
 
     $is_isnot_opTypes = $this->is_isnot_opTypes();
     $booleanValues = $this->booleanValues();
+    $stateTypes = $this->stateTypes();
 
     $conjunctionTypes = getFilterQueryConjunctionTypes();
     $storageareas = null;
@@ -1187,9 +1216,10 @@ class Filter extends ZM_Object {
         } else if ( $term['attr'] == 'StartTime' || $term['attr'] == 'EndTime' ) {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td><input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/></td>'.PHP_EOL;
-        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+        } else if ( $term['attr'] == 'ExistsInFileSystem' or in_array($term['attr'], self::stateAttrs()) ) {
+          $values = ($term['attr'] == 'ExistsInFileSystem') ? $booleanValues : $stateTypes;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $is_isnot_opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
-          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
+          $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", $values, $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
         } else if ( $term['attr'] == 'Group') {
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
           $html .= '<td>'.htmlSelect("filter[Query][terms][$i][val]", Group::get_dropdown_options(), $term['val'], ['class'=>'chosen chosen-full-width']).'</td>'.PHP_EOL;
@@ -1274,7 +1304,9 @@ class Filter extends ZM_Object {
     $archiveTypes = $this->archiveTypes();
     $is_isnot_opTypes = $this->is_isnot_opTypes();
     $booleanValues = $this->booleanValues();
+    $stateTypes = $this->stateTypes();
     $storageareas= null;
+    $zones = null;
     $states = array();
     foreach ( dbFetchAll('SELECT `Id`, `Name` FROM `States` ORDER BY lower(`Name`) ASC') as $state_row ) {
       $states[$state_row['Id']] = validHtmlStr($state_row['Name']);
@@ -1316,10 +1348,10 @@ class Filter extends ZM_Object {
         if (($term['attr'] == 'Tags') and (count($availableTags)<=1)) {
           continue;
         }
-        $html .= '<span class="term '.$term['attr'].'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
+        $html .= '<span class="term '.validHtmlStr($term['attr']).'"><span class="term-label-wrapper"><label>'.$attrTypes[$term['attr']].'</label>';
         $html .= html_input("filter[Query][terms][$i][attr]", 'hidden', $term['attr']);
         $html .= html_input("filter[Query][terms][$i][op]", 'hidden', $term['op']).PHP_EOL;
-        $html .= '<span>'. $term['op'].'</span></span>'.PHP_EOL;
+        $html .= '<span>'.validHtmlStr($term['op']).'</span></span>'.PHP_EOL;
         #$html .= '<span>'.htmlSelect("filter[Query][terms][$i][op]", $opTypes, $term['op']).'</span>'.PHP_EOL;
 
         if ( $term['attr'] == 'Archived' ) {
@@ -1327,7 +1359,7 @@ class Filter extends ZM_Object {
           $html .= htmlSelect("filter[Query][terms][$i][val]", $archiveTypes, $term['val'],['id'=>'filterArchived', 'class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Tags' ) {
-          $selected = isset($term['val']) ? json_decode($term['val']) : [];
+          $selected = self::decode_multi($term['val']);
           // echo '<pre>selected: '; echo $term['val']."<br/>"; print_r($selected); echo '</pre>';
           $options = ['id'=>'filterTags', 'class'=>'chosen chosen-auto-width', 'multiple'=>'multiple', 'data-placeholder'=>translate('All Tags')];
           if (isset($term['cookie'])) {
@@ -1356,7 +1388,7 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datetimepicker" name="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['id'])) {
-            $html .= ' id="'.$term['id'].'"';
+            $html .= ' id="'.validHtmlStr($term['id']).'"';
           } else {
             $html .= ' id="filter[Query][terms]['.$i.'][val]"';
           }
@@ -1366,13 +1398,13 @@ class Filter extends ZM_Object {
           $html .= ' value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'').'"';
 
           if (!isset($term['placeholder'])) $term['placeholder'] = translate('Attr'.$term['attr']);
-          $html .= ' placeholder="'.$term['placeholder'].'"/>'.PHP_EOL;
+          $html .= ' placeholder="'.validHtmlStr($term['placeholder']).'"/>'.PHP_EOL;
           $html .= '</span>';
         } else if ( $term['attr'] == 'Date' || $term['attr'] == 'StartDate' || $term['attr'] == 'EndDate' ) {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" class="term-value datepicker" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]"';
           if (isset($term['cookie'])) {
-            $html .= ' data-cookie="'.$term['cookie'].'"';
+            $html .= ' data-cookie="'.validHtmlStr($term['cookie']).'"';
           }
           $html .= ' value="'.(isset($term['val'])?validHtmlStr($term['val']):'').'" placeholder="'.translate('Attr'.$term['attr']).'"';
           $html .= '/></span>'.PHP_EOL;
@@ -1380,9 +1412,10 @@ class Filter extends ZM_Object {
           $html .= '<span class="term-value-wrapper">';
           $html .= '<input type="text" name="filter[Query][terms]['.$i.'][val]" id="filter[Query][terms]['.$i.'][val]" value="'.(isset($term['val'])?validHtmlStr(preg_replace('/(\d)T(\d)/', '$1 $2', $term['val'])):'' ).'"/>'.PHP_EOL;
           $html .= '</span>';
-        } else if ( $term['attr'] == 'ExistsInFileSystem' ) {
+        } else if ( $term['attr'] == 'ExistsInFileSystem' or in_array($term['attr'], self::stateAttrs()) ) {
+          $values = ($term['attr'] == 'ExistsInFileSystem') ? $booleanValues : $stateTypes;
           $html .= '<span class="term-value-wrapper">';
-          $html .= htmlSelect("filter[Query][terms][$i][val]", $booleanValues, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
+          $html .= htmlSelect("filter[Query][terms][$i][val]", $values, $term['val'], ['class'=>'chosen chosen-auto-width']).PHP_EOL;
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'Group') {
@@ -1456,6 +1489,14 @@ class Filter extends ZM_Object {
           $html .= $this->addButtonForFilterSelect("filter[Query][terms][$i][val]");
           $html .= '</span>';
         } else if ( $term['attr'] == 'AlarmedZoneId' ) {
+          if (!$zones) {
+            $zones = array();
+            foreach ( dbFetchAll('SELECT Zones.Id, Zones.Name, Zones.MonitorId, Monitors.Name AS MonitorName FROM Zones INNER JOIN Monitors ON Monitors.Id=Zones.MonitorId WHERE Monitors.Deleted=false ORDER BY lower(Monitors.Name), lower(Zones.Name) ASC') as $zone ) {
+              if ( visibleMonitor($zone['MonitorId']) ) {
+                $zones[$zone['Id']] = validHtmlStr($zone['MonitorName'].': '.$zone['Name']);
+              }
+            }
+          }
           $html .= '<span class="term-value-wrapper">';
           $html .= htmlSelect("filter[Query][terms][$i][val]", $zones, $term['val'],
             ['class'=>'term-value chosen chosen-auto-width', 'multiple'=>'multiple']).PHP_EOL;
@@ -1559,6 +1600,48 @@ class Filter extends ZM_Object {
     return false;
   }
 
+  public function hasAutoAction() {
+    return ($this->AutoDelete() or $this->AutoUnarchive() or $this->AutoArchive() or
+      $this->AutoMove() or $this->AutoCopy() or $this->AutoVideo() or
+      $this->AutoUpload() or $this->AutoEmail() or $this->AutoMessage());
+  }
+
+  // True when every monitor the user may not view is excluded by the terms: an
+  // AND-ed Monitor term naming only monitors the user can view. Event::canEdit()
+  // asks for monitor view plus Events edit, so view is the matching bar.
+  public function limitedToViewableMonitors($u=null) {
+    global $user;
+    if (!$u) $u = $user;
+    $restricted = false;
+    foreach (Monitor::find(['Deleted'=>false]) as $m) {
+      if (!$m->canView($u)) {
+        $restricted = true;
+        break;
+      }
+    }
+    if (!$restricted) return true;
+
+    $limited = false;
+    foreach ($this->terms() as $i => $term) {
+      if ($i and isset($term['cnj']) and strtolower($term['cnj']) == 'or') return false;
+      if (!isset($term['attr']) or $term['attr'] != 'Monitor') continue;
+      $op = empty($term['op']) ? '=' : $term['op'];
+      if (!in_array($op, ['=', '=[]', 'IN'])) continue;
+      $ids = array_filter(self::decode_multi($term['val'] ?? ''), function($v) { return $v !== '' and $v !== null; });
+      if (!count($ids)) continue;
+      $ok = true;
+      foreach ($ids as $id) {
+        $m = Monitor::find_one(['Id'=>$id]);
+        if (!$m or !$m->canView($u)) {
+          $ok = false;
+          break;
+        }
+      }
+      if ($ok) $limited = true;
+    }
+    return $limited;
+  }
+
   public function canEdit($u=null) {
     global $user;
     if (!$u) $u=$user;
@@ -1573,6 +1656,10 @@ class Filter extends ZM_Object {
     // who were already granted access above.
     if ($this->AutoExecute()) return false;
 
+    // zmfilter.pl runs a filter on every monitor, whatever its owner may edit, so
+    // a filter with an action must itself be limited to monitors the owner can edit.
+    if ($this->hasAutoAction() and !$this->limitedToViewableMonitors($u)) return false;
+
     // Users who can edit Events may run filters that change events
     // (move/copy/delete/archive/etc).
     if ($u->canEdit('Events')) return true;
@@ -1586,6 +1673,7 @@ class Filter extends ZM_Object {
         $this->AutoArchive() or
         $this->AutoMove() or
         $this->AutoCopy() or
+        $this->AutoTag() or
         $this->AutoVideo() or
         $this->AutoUpload() or
         $this->AutoEmail() or

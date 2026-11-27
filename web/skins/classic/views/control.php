@@ -32,7 +32,7 @@ if ( !empty($_REQUEST['group']) ) {
 
 $mid = !empty($_REQUEST['mid']) ? validInt($_REQUEST['mid']) : 0;
 
-$sql = "SELECT * FROM Monitors WHERE `Capturing` != 'None' AND `Controllable` = 1$groupSql ORDER BY `Sequence`";
+$sql = "SELECT * FROM Monitors WHERE `Deleted` = 0 AND `Capturing` != 'None' AND `Controllable` = 1$groupSql ORDER BY `Sequence`";
 $mids = array();
 foreach ( dbFetchAll($sql, false, $params) as $row ) {
   if ( !visibleMonitor($row['Id']) ) {

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 #
-# ZM_LOG_DATABASE_LIMIT: a number less than or equal to zero means no limit.
+# ZM_LOG_DATABASE_LIMIT: a number less than or equal to zero, with or without a
+# unit such as "0 day" or "-1 day", means no limit.
 # zmstats.pl and zmaudit.pl must leave the Logs table alone for any such value,
 # with or without surrounding spaces, prune by row count for a value of digits
 # only and by interval otherwise, and build no invalid statement and print no
@@ -79,12 +80,19 @@ foreach my $script (qw(zmstats.pl.in zmaudit.pl.in)) {
     [ 'ZM_LOG_DATABASE_LIMIT', '1000',    'count' ],
     [ 'ZM_LOG_DATABASE_LIMIT', ' 1000',   'count' ],
     [ 'ZM_LOG_DATABASE_LIMIT', '7 day',   'time' ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '7 days',  'time' ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '0 day',   0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-1 day',  0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', '-7 days', 0 ],
+    [ 'ZM_LOG_DATABASE_LIMIT', ' 0 hour ', 0 ],
     [ 'ZM_LOG_DATABASE_LIMIT', undef,     0 ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '',       0 ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1000',   'count' ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', ' 1000',  'count' ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1000 ',  'count' ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '1 year', 'time' ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '0 year', 0 ],
+    [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '-1 day', 0 ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '0',      0 ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', ' 0',     0 ],
     [ 'ZM_LOG_AUDIT_DATABASE_LIMIT', '0 ',     0 ],

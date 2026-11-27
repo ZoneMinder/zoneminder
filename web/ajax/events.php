@@ -41,6 +41,8 @@ if (count( $user->unviewableMonitorIds())) {
 # can't be expressed as event terms. Null = no such filter active. refs #4976
 $attr_monitor_ids = getFilteredMonitorIds();
 if ($attr_monitor_ids !== null) {
+  // An empty list drops out of the query as a term, so match nothing with an id no monitor has.
+  if (!count($attr_monitor_ids)) $attr_monitor_ids = array(0);
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$attr_monitor_ids));
 }
 // TODO: Why is $user->viewableMonitorIds() returning $user->unviewableMonitorIds()
@@ -88,8 +90,8 @@ if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
-  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -99,8 +101,8 @@ if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
 if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
-  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -386,7 +388,7 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
 
     if (count($advsearch) or $search != '') {
       $search_filter = new ZM\Filter();
-      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>(count($event_ids) ? $event_ids : array(0))));
 
       // There are two search bars in the log view, normal and advanced
       // Making an exuctive decision to ignore the normal search, when advanced search is in use
@@ -470,7 +472,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['Tags'] = validHtmlStr($row['Tags']);
-    $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
+    $row['Monitor'] = validHtmlStr($row['Monitor']);
+    $row['Storage'] = validHtmlStr(( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default');
     $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $returned_rows[] = $row;

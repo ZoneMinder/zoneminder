@@ -197,7 +197,13 @@ if (canEdit('Monitors')) {
       # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
       $monitor = null;
       $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
-      if ( count($existing) ) $monitor = $existing[0];
+      # Only offer a monitor the user may edit: the response carries its settings.
+      foreach ( $existing as $candidate ) {
+        if ( canEdit('Monitors', $candidate->Id()) ) {
+          $monitor = $candidate;
+          break;
+        }
+      }
 
       $monitor_fields = array(
         'Type' => 'Ffmpeg',

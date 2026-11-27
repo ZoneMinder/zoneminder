@@ -91,6 +91,8 @@ AutoMove
 AutoMoveTo
 AutoCopy
 AutoCopyTo
+AutoTag
+AutoTagId
 UpdateDiskSpace
 UserId
 Background
@@ -406,7 +408,7 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
-              } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+              } elsif ( uc($temp_value) eq 'CURDATE()' or uc($temp_value) eq 'NOW()' ) {
                 # For Date/StartDate/EndDate the value is consumed by
                 # _dateRangeSQL below; leave it raw.  For CurrentDate
                 # (left side is to_days(NOW()), a constant), preserve
@@ -552,7 +554,7 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
-    if ( ($filter_expr->{sort_field} || '') eq 'MonitorName' ) {
+    if ( ($filter_expr->{sort_field} || '') =~ /(?:^|,)\s*MonitorName\b/ ) {
       $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
       $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
     }
@@ -589,6 +591,10 @@ sub Sql {
     }
     if ( $self->{AutoExecute} ) {
       push @auto_terms, 'E.Executed = 0';
+    }
+    # The tag id goes into the SQL, so only ever as digits
+    if ( $self->{AutoTag} and ($self->{AutoTagId} // '') =~ /^\s*([1-9]\d*)\s*$/ ) {
+      push @auto_terms, 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$1.')';
     }
     if ( @auto_terms ) {
       $sql .= ($has_where ? ' AND' : ' WHERE').' ( '.join(' or ', @auto_terms).' )';
@@ -639,15 +645,39 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
         # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
         $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
-      } elsif ( $filter_expr->{sort_field} ne '' ) {
-        $sort_column = 'E.'.$filter_expr->{sort_field};
+      } else {
+        # sort_field may be a comma separated list of parts, each
+        # '<Column> [IS [NOT] NULL] [ASC|DESC]' (web/includes/Filter.php
+        # SORT_PART_RE).  Prefix every part's column with E. and keep the
+        # rest of the part, so 'EndDateTime IS NOT NULL, EndDateTime'
+        # becomes 'E.EndDateTime IS NOT NULL, E.EndDateTime'.
+        my @sort_parts = split /,/, $filter_expr->{sort_field}, -1;
+        my @sort_columns;
+        my $sort_valid = 1;
+        foreach my $sort_part ( @sort_parts ) {
+          $sort_part =~ s/^\s+|\s+$//g;
+          if ( $sort_part !~ /^([A-Za-z]\w*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?$/i ) {
+            $sort_valid = 0;
+            last;
+          }
+          my ($sort_name, $sort_rest) = $sort_part =~ /^(\w+)(.*)$/;
+          my %sort_column_map = (
+            MonitorName => 'M.Name',
+            Tags => '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))',
+            StartTime => 'E.StartDateTime',
+            EndTime => 'E.EndDateTime',
+            Secs => 'E.Length',
+          );
+          push @sort_columns, ($sort_column_map{$sort_name} || 'E.'.$sort_name).$sort_rest;
+        }
+        $sort_column = join(', ', @sort_columns) if $sort_valid;
       }
     }
     #$sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }
-    if ($filter_expr->{limit}) {
+    if ($filter_expr->{limit} and $filter_expr->{limit} =~ /^\d+$/) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
     # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole
@@ -709,8 +739,9 @@ sub getLoad {
   my $command = 'uptime';
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load averages?:\s+([\d.]+)/ms ) {
-    $load = $1;
+  # Locales with a decimal comma print "load average: 2,52, 1,58, 0,59"
+  if ( $uptime =~ /load averages?:\s+(\d+(?:[.,]\d+)?)/ms ) {
+    ($load = $1) =~ tr/,/./;
     Info("Load: $load");
   }
   return $load;
@@ -741,8 +772,9 @@ sub str_repeat {
 # $value is either 'YYYY-MM-DD HH:MM:SS' (quoted), or CURDATE()/NOW().
 sub _dateBounds {
   my $value = shift;
-  if ( $value eq 'CURDATE()' or $value eq 'NOW()' ) {
-    return ($value, "$value + INTERVAL 1 DAY");
+  # NOW() is the current day, so its bounds are midnight like CURDATE()'s
+  if ( uc($value) eq 'CURDATE()' or uc($value) eq 'NOW()' ) {
+    return ('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
   }
   my $stripped = $value;
   $stripped =~ s/^'(.+)'$/$1/;

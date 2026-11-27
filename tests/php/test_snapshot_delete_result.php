@@ -31,6 +31,7 @@ function dbQuery($sql, $values = array()) {
   return $GLOBALS['dbResult'];
 }
 function dbFetchAll() { return array(); }
+function validCardinal($input) { if (!is_scalar($input)) return ''; return preg_replace('/\D/', '', $input); }
 
 // Snapshot.php: keep only the class body, the ZM_Object stub above stands in for the parent.
 $src = file_get_contents($root.'/web/includes/Snapshot.php');

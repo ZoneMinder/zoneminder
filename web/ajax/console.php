@@ -41,6 +41,10 @@ ajaxError('Unrecognised action '.validHtmlStr($_REQUEST['action']).' or insuffic
 //
 
 function saveMonitorSequence($monitor_ids) {
+  if ( !is_array($monitor_ids) ) {
+    \ZM\Warning('The monitor order is not a list of monitor ids');
+    return false;
+  }
   # Two concurrent sorts could generate odd sorting... so lock the table.
   # LOCK TABLES commits any open transaction, so there is none to commit here.
   $dbConn = zmDbConn();
@@ -50,6 +54,10 @@ function saveMonitorSequence($monitor_ids) {
     $ids = array();
     for ( $i = 0; $i < count($monitor_ids); $i += 1 ) {
       $monitor_id = $monitor_ids[$i];
+      if ( !is_scalar($monitor_id) ) {
+        \ZM\Warning('Ignoring a monitor id that is not a value');
+        continue;
+      }
       $monitor_id = preg_replace('/^monitor_id-/', '', $monitor_id);
       if ( ( !$monitor_id ) or ! ( is_integer($monitor_id) or ctype_digit($monitor_id) ) ) {
         \ZM\Warning('Got '.$monitor_id.' from '.$monitor_ids[$i]);

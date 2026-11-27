@@ -275,15 +275,19 @@ class GroupsController extends AppController {
     $group = new ZM\Group($id);
     $this->requireMembershipEdit($group->MonitorIds());
     # Children move up to this group's parent, as deleting one in the web ui does.
-    dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
+    $ds = $this->Group->getDataSource();
+    $ds->begin();
+    $this->Group->query('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
 
 		if ( $this->Group->delete() ) {
+      $ds->commit();
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),
       ));
       return;
 		} else {
+      $ds->rollback();
       throw new InternalErrorException(__('The group could not be deleted.'));
 		}
   } // end function delete

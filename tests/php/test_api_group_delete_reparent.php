@@ -30,7 +30,7 @@ function __($s) { return $s; }
 
 // Groups table: Id => ParentId
 $groups = array();
-function dbQuery($sql, $params = array()) {
+function groups_update($sql, $params = array()) {
   global $groups;
   if (preg_match('/^UPDATE `Groups` SET `ParentId`=(\?|NULL) WHERE `ParentId`=\?$/', $sql, $m)) {
     $new = $m[1] == '?' ? $params[0] : null;
@@ -39,6 +39,8 @@ function dbQuery($sql, $params = array()) {
   }
   return true;
 }
+// The controller runs the UPDATE through the model; the original ran it through dbQuery().
+function dbQuery($sql, $params = array()) { return groups_update($sql, $params); }
 
 eval('namespace ZM; class Group {
   private $id;
@@ -47,10 +49,19 @@ eval('namespace ZM; class Group {
   function MonitorIds() { return array(); }
 }');
 
+class FakeDataSource {
+  private $snapshot = null;
+  function begin() { global $groups; $this->snapshot = $groups; }
+  function commit() { $this->snapshot = null; }
+  function rollback() { global $groups; if ($this->snapshot !== null) $groups = $this->snapshot; $this->snapshot = null; }
+}
 class FakeModel {
-  public $id;
+  public $id, $ds;
+  function __construct() { $this->ds = new FakeDataSource(); }
   function exists() { global $groups; return array_key_exists($this->id, $groups); }
   function delete() { global $groups; unset($groups[$this->id]); return true; }
+  function query($sql, $params = array()) { return groups_update($sql, $params); }
+  function getDataSource() { return $this->ds; }
 }
 class FakeRequest { function allowMethod() {} }
 eval('class FakeController { public $Group; public $request; public $out;

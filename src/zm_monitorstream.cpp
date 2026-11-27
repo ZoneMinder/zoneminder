@@ -26,6 +26,7 @@
 #include <libavutil/pixdesc.h>
 
 #include <arpa/inet.h>
+#include <cstdint>
 #include <glob.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -88,6 +89,10 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     return;
   }
 
+  // This runs on the command thread: read the clock here rather than the
+  // streaming loop's `now`.
+  const TimePoint cmd_now = std::chrono::steady_clock::now();
+
   // Check for incoming command
   switch ((MsgCommand)msg->msg_data[0]) {
   case CMD_PAUSE :
@@ -95,7 +100,7 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     stopped = false;
     paused = true;
     delayed = true;
-    last_frame_sent = now;
+    last_frame_sent = cmd_now;
     break;
   case CMD_PLAY :
     Debug(1, "Got PLAY command");
@@ -151,14 +156,18 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     }
     break;
   case CMD_MAXFPS : {
-    double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
-                      | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
-    double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
-                      | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+    uint32_t int_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[1])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[2])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[3])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[4]));
+    uint32_t dec_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[5])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[6])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[7])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[8]));
 
     maxfps = (int_part + dec_part / 1000000.0);
 
-    Debug(1, "Got MAXFPS %f", maxfps);
+    Debug(1, "Got MAXFPS %f", maxfps.load());
     break;
   }
   case CMD_SLOWFWD :
@@ -208,25 +217,25 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
     zoom += 10;
-    Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x, y, zoom);
+    Debug(1, "Got ZOOM IN command, to %d,%d zoom value %d%%", x.load(), y.load(), zoom.load());
     break;
   case CMD_ZOOMOUT :
     zoom -= 10;
-    if (zoom < 100) zoom = 100;
-    Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom);
+    if (zoom.load() < 100) zoom = 100;
+    Debug(1, "Got ZOOM OUT command resulting zoom %d%%", zoom.load());
     break;
   case CMD_ZOOMSTOP :
     zoom = 100;
-    Debug(1, "Got ZOOM OUT FULL command resulting zoom %d%%", zoom);
+    Debug(1, "Got ZOOM OUT FULL command resulting zoom %d%%", zoom.load());
     break;
   case CMD_PAN :
     x = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
     y = ((unsigned char)msg->msg_data[3]<<8)|(unsigned char)msg->msg_data[4];
-    Debug(1, "Got PAN command, to %d,%d", x, y);
+    Debug(1, "Got PAN command, to %d,%d", x.load(), y.load());
     break;
   case CMD_SCALE :
-    scale = ((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2];
-    Debug(1, "Got SCALE command, to %d", scale);
+    scale = clampScale(((unsigned char)msg->msg_data[1]<<8)|(unsigned char)msg->msg_data[2]);
+    Debug(1, "Got SCALE command, to %d", scale.load());
     break;
   case CMD_QUIT :
     Info("User initiated exit - CMD_QUIT");
@@ -286,11 +295,11 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.analysing = 0;
       status_data.score = 0;
     } else {
-      FPSeconds elapsed = now - last_fps_update;
+      FPSeconds elapsed = cmd_now - last_fps_update;
       if (elapsed.count()) {
         actual_fps = (actual_fps + (frame_count - last_frame_count) / elapsed.count())/2;
         last_frame_count = frame_count;
-        last_fps_update = now;
+        last_fps_update = cmd_now;
       }
 
       status_data.fps = actual_fps;
@@ -302,17 +311,15 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
       status_data.analysing = monitor->shared_data->analysing;
       status_data.score = monitor->shared_data->last_frame_score;
 
-      if (playback_buffer > 0)
-        status_data.buffer_level = (MOD_ADD( (temp_write_index-temp_read_index), 0, temp_image_buffer_count )*100)/temp_image_buffer_count;
-      else
-        status_data.buffer_level = 0;
+      status_data.buffer_level =
+          MonitorStreamBufferLevel(temp_write_index, temp_read_index, temp_image_buffer_count);
     }
   } // end monitor_mutex scope
   status_data.delayed = delayed;
   status_data.paused = paused;
   status_data.stopped = stopped;
   status_data.rate = replay_rate;
-  status_data.delay = FPSeconds(now - last_frame_sent).count();
+  status_data.delay = FPSeconds(cmd_now - last_frame_sent.load()).count();
   status_data.zoom = zoom;
   status_data.scale = scale;
   status_data.analysis_image = (frame_type == FRAME_ANALYSIS) &&
@@ -359,6 +366,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     Image temp_image(filepath.c_str());
     return sendFrame(&temp_image, timestamp);
   } else {
+    unzoomedFrameSent();
     int img_buffer_size = 0;
     static unsigned char img_buffer[ZM_MAX_IMAGE_SIZE];
 
@@ -373,7 +381,11 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
     // Calculate how long it takes to actually send the frame
     TimePoint send_start_time = std::chrono::steady_clock::now();
 
+    // Same part headers as sendFrame(Image *): send_raw is only set for
+    // STREAM_JPEG, which is multipart.
     if (
+      (0 > fputs("--" BOUNDARY "\r\nContent-Type: image/jpeg\r\n", stdout))
+      ||
       (0 > fprintf(stdout, "Content-Length: %d\r\nX-Timestamp: %.6f\r\n\r\n",
                    img_buffer_size, std::chrono::duration_cast<FPSeconds>(timestamp.time_since_epoch()).count()))
       ||
@@ -393,7 +405,7 @@ bool MonitorStream::sendFrame(const std::string &filepath, SystemTimePoint times
       if (frame_send_time > Milliseconds(lround(Milliseconds::period::den / maxfps))) {
         Debug(1, "Frame send time %" PRIi64 " ms too slow, throttling maxfps to %.2f",
              static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
-             maxfps);
+             maxfps.load());
       }
     }
 
@@ -410,7 +422,6 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
   }
   Image *send_image = prepareImage(image);
 
-  fputs("--" BOUNDARY "\r\n", stdout);
   // Calculate how long it takes to actually send the frame
   TimePoint send_start_time = std::chrono::steady_clock::now();
 
@@ -432,8 +443,9 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     }
     SystemTimePoint::duration delta_time =  timestamp - base_time;
 
-    /* double pts = */ vid_stream->EncodeFrame(send_image->Buffer(), send_image->Size(), config.mpeg_timed_frames, delta_time.count());
+    /* double pts = */ vid_stream->EncodeImage(*send_image, config.mpeg_timed_frames, delta_time.count());
   } else {
+    fputs("--" BOUNDARY "\r\n", stdout);
     reserveTempImgBuffer(send_image->Size());
 
     size_t img_buffer_size = 0;
@@ -483,7 +495,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
   last_frame_sent = std::chrono::steady_clock::now();
   if (maxfps > 0.0) {
-    TimePoint::duration frame_send_time = last_frame_sent - send_start_time;
+    TimePoint::duration frame_send_time = last_frame_sent.load() - send_start_time;
     TimePoint::duration maxfps_milliseconds = Milliseconds(lround(Milliseconds::period::den / maxfps));
 
     if (frame_send_time > maxfps_milliseconds) {
@@ -491,7 +503,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
       Debug(1, "Frame send time %" PRIi64 " msec too slow (> %" PRIi64 ", %.3f",
             static_cast<int64>(std::chrono::duration_cast<Milliseconds>(frame_send_time).count()),
             static_cast<int64>(std::chrono::duration_cast<Milliseconds>(maxfps_milliseconds).count()),
-            maxfps);
+            maxfps.load());
     }
   }
   return true;
@@ -524,7 +536,7 @@ void MonitorStream::runStream() {
 
   if (!monitor) {
     Error("Cannot stream monitor %d: not loaded", monitor_id);
-    if (type == STREAM_JPEG)
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
       fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
     sendTextFrame("Not connected");
     zm_terminate = true;
@@ -532,12 +544,12 @@ void MonitorStream::runStream() {
   }
 
   openComms();
+  // Declared here so it stays in scope for the join() at the end of the
+  // stream loop, but not started until the temporary buffer state below has
+  // been initialised (see the launch after the playback_buffer setup).
   std::thread command_processor;
-  if (connkey) {
-    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
-  }
 
-  if (type == STREAM_JPEG)
+  if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP)
     fputs("Content-Type: multipart/x-mixed-replace; boundary=" BOUNDARY "\r\n\r\n", stdout);
 
   updateFrameRate(monitor->GetFPS());
@@ -548,17 +560,29 @@ void MonitorStream::runStream() {
 
   TimePoint stream_start_time = std::chrono::steady_clock::now();
   when_to_send_next_frame = stream_start_time; // initialize it to now so that we spit out a frame immediately
+  TimePoint capture_wait_start{};  // when capture was first found missing, unset while it is running
 
+  // Periodic RSS trace so a runaway nph-zms can be caught in the act. refs #5006
+  TimePoint last_mem_report = stream_start_time;
+  const Seconds mem_report_interval = Seconds(30);
+
+  playback_buffer = MonitorStreamClampBuffer(playback_buffer, monitor->GetStreamReplayBuffer());
   temp_image_buffer_count = playback_buffer;
-  temp_read_index = temp_image_buffer_count;
-  temp_write_index = temp_image_buffer_count;
+  temp_read_index = temp_image_buffer_count.load();
+  temp_write_index = temp_image_buffer_count.load();
 
   std::string swap_path;
   bool buffered_playback = false;
 
-  // Last image and timestamp when paused, will be resent occasionally to prevent timeout
-  Image *paused_image = nullptr;
+  // Last image and timestamp when paused, will be resent occasionally to prevent timeout.
+  // unique_ptr because the loop below has break paths that leave the function
+  // while one of these is still held.
+  std::unique_ptr<Image> paused_image;
   SystemTimePoint paused_timestamp;
+
+  // Same, for the stopped state. See the stopped branch in the loop below.
+  std::unique_ptr<Image> stopped_image;
+  SystemTimePoint stopped_timestamp;
 
   if (connkey && (playback_buffer > 0)) {
     // 15 is the max length for the swap path suffix, /zmswap-whatever, assuming max 6 digits for monitor id
@@ -593,7 +617,7 @@ void MonitorStream::runStream() {
         Error("Unable to validate swap image path, disabling buffered playback");
       } else {
         Debug(2, "Assigning temporary buffer");
-        temp_image_buffer = new SwapImage[temp_image_buffer_count];
+        temp_image_buffer = std::make_unique<SwapImage[]>(temp_image_buffer_count);
         Debug(2, "Assigned temporary buffer");
       }
     }
@@ -601,6 +625,13 @@ void MonitorStream::runStream() {
     Debug(2, "Not using playback_buffer");
   } // end if connkey && playback_buffer
 
+  // Start the command processor only now that temp_image_buffer_count, the
+  // read/write indices and temp_image_buffer are initialised, so a command
+  // arriving early cannot observe a half-initialised stream (the original
+  // cause of the divide-by-zero in issue #4936).
+  if (connkey) {
+    command_processor = std::thread(&MonitorStream::checkCommandQueue, this);
+  }
 
   while (!zm_terminate) {
     if (feof(stdout)) {
@@ -615,7 +646,14 @@ void MonitorStream::runStream() {
 
     now = std::chrono::steady_clock::now();
 
-    bool was_paused = paused;
+    if (now - last_mem_report >= mem_report_interval) {
+      last_mem_report = now;
+      Debug(1, "mem trace m%d: rss=%zuKB frame_count=%d buffer_level=%d temp_count=%d paused=%d delayed=%d",
+           monitor_id, zm_get_rss_kb(), frame_count.load(),
+           MonitorStreamBufferLevel(temp_write_index.load(), temp_read_index.load(), temp_image_buffer_count.load()),
+           temp_image_buffer_count.load(), paused.load(), delayed.load());
+    }
+
     if (!checkInitialised()) {
       int rc = -1;
       if (!loadMonitor(monitor_id)) {
@@ -639,35 +677,83 @@ void MonitorStream::runStream() {
       // Timeout if we've never received a frame and have been waiting too long.
       // Use ttl if set, otherwise default to 60 seconds.
       Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-      if (now - stream_start_time > wait_timeout) {
-        Warning("Timed out waiting for capture daemon after %" PRIi64 " seconds",
-                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+      if (capture_wait_start == TimePoint{}) capture_wait_start = now;
+      if (now - capture_wait_start > wait_timeout) {
+        logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for capture daemon after %" PRIi64 " seconds.  ttl is %" PRIi64,
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()),
+                static_cast<int64>(std::chrono::duration_cast<Seconds>(wait_timeout).count())
+                );
         zm_terminate = true;
         continue;
       }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    if (last_read_index != monitor->image_buffer_count) capture_wait_start = TimePoint{};
     if (stopped) {
-      // In stopped state, do nothing except wait for a new command.
-      // Don't call setLastViewed() so we don't keep capture/decoding active unnecessarily.
+      // Stopped halts playback but keeps the connection, so that a later
+      // command can resume on the same process. Hold the last frame and
+      // re-send it every few seconds, as the paused state does.
+      //
+      // The write is the point: with nothing written, this branch never
+      // touches the socket, so a stream whose client has gone away is never
+      // told about it and never sees EPIPE. Since it also skipped the ttl
+      // check at the bottom of the loop, such a process had no way to exit at
+      // all and stayed until the machine was restarted. refs #4706
+      //
+      // setLastViewed is deliberately still not called: capture and decoding
+      // should not be held active for a stream that is not playing.
+      if (!stopped_image
+          && monitor->shared_data->valid
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
+        int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
+        Debug(1, "Saving stopped image from index %d", index);
+        stopped_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
+        stopped_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
+      }
+      if (now - last_frame_sent.load() > Seconds(5)) {
+        if (stopped_image) {
+          Debug(2, "Sending keepalive frame while stopped");
+          if (!sendFrame(stopped_image.get(), stopped_timestamp)) zm_terminate = true;
+        } else if (sendTextFrame("Stopped") <= 0) {
+          // Nothing captured yet to hold, but we still have to write something
+          // to notice a client that is no longer there.
+          Debug(2, "Failed to send stopped keepalive text frame");
+          zm_terminate = true;
+        }
+      }
+      // The ttl check lives at the bottom of the loop, which this branch never
+      // reaches, so a stopped stream would otherwise outlive its own deadline.
+      if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
+        Debug(2, "Stopped and now - start > ttl. break");
+        // checkCommandQueue() only returns when zm_terminate is set, and
+        // runStream() joins it below, so leaving the loop without setting it
+        // hangs in join() forever. See the two breaks at the bottom of the loop.
+        zm_terminate = true;
+        break;
+      }
       std::this_thread::sleep_for(MAX_SLEEP);
       continue;
     }
+    stopped_image.reset();
     monitor->setLastViewed();
     if (frame_type == FRAME_ANALYSIS)
       monitor->setLastAnalysisViewed();
 
     if (paused) {
-      if (!was_paused) {
+      // Commands arrive on their own thread, so paused can't be compared with
+      // its value at the top of this pass to find the moment it was set. Take
+      // the image on the first pass that sees paused without one, once
+      // capture has written a frame (as the stopped branch above does).
+      if (!paused_image
+          && (monitor->shared_data->last_write_index != monitor->image_buffer_count)) {
         int index = monitor->shared_data->last_write_index % monitor->image_buffer_count;
         Debug(1, "Saving paused image from index %d",index);
-        paused_image = new Image(*monitor->ReadShmFrame(index));
+        paused_image = zm::make_unique<Image>(*monitor->ReadShmFrame(index));
         paused_timestamp = SystemTimePoint(zm::chrono::duration_cast<Microseconds>(monitor->shared_timestamps[index]));
       }
-    } else if (paused_image) {
-      delete paused_image;
-      paused_image = nullptr;
+    } else {
+      paused_image.reset();
     }
 
     if (buffered_playback && delayed) {
@@ -687,13 +773,17 @@ void MonitorStream::runStream() {
             delayed = true;
             temp_read_index = MOD_ADD(temp_read_index, (replay_rate>=0?-1:1), temp_image_buffer_count);
           } else {
-            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / replay_rate;
-            TimePoint::duration actual_delta_time = now - last_frame_sent;
+            const int rate = replay_rate.load();
+            // Above 1x each pass moves on by several slots instead of waiting
+            // for the video time, so that the rate holds at any maxfps.
+            const int slots_per_pass = std::max(1, (abs(rate) + ZM_RATE_BASE / 2) / ZM_RATE_BASE);
+            FPSeconds expected_delta_time = ((FPSeconds(swap_image->timestamp - last_frame_timestamp)) * ZM_RATE_BASE) / rate;
+            TimePoint::duration actual_delta_time = now - last_frame_sent.load();
 
             // If the next frame is due
-            if (actual_delta_time > expected_delta_time) {
+            if (slots_per_pass > 1 || actual_delta_time > expected_delta_time) {
               // Debug( 2, "eDT: %.3lf, aDT: %.3f", expected_delta_time, actual_delta_time );
-              if ((temp_index % frame_mod) == 0) {
+              if (slots_per_pass > 1 || (temp_index % frame_mod) == 0) {
                 Debug(2, "Sending delayed frame %d", temp_index);
                 // Send the next frame
                 if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
@@ -703,7 +793,13 @@ void MonitorStream::runStream() {
                 last_frame_timestamp = swap_image->timestamp;
                 // frame_sent = true;
               }
-              temp_read_index = MOD_ADD(temp_read_index, (replay_rate > 0 ? 1 : -1), temp_image_buffer_count);
+              temp_read_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+              for (int skip = slots_per_pass - 1; skip > 0; skip--) {
+                int next_index = MOD_ADD(temp_read_index, (rate > 0 ? 1 : -1), temp_image_buffer_count);
+                if (next_index == temp_write_index || !temp_image_buffer[next_index].valid)
+                  break;
+                temp_read_index = next_index;
+              }
             }
           }
         } else if (step != 0) {
@@ -711,25 +807,40 @@ void MonitorStream::runStream() {
 
           SwapImage *swap_image = &temp_image_buffer[temp_read_index];
 
-          // Send the next frame
-          if (!sendFrame(
-                temp_image_buffer[temp_read_index].file_name,
-                temp_image_buffer[temp_read_index].timestamp)
-             ) {
-            zm_terminate = true;
-          }
-          frame_count++;
+          if (!swap_image->valid || (temp_read_index == temp_write_index)) {
+            // Nothing stored in that slot yet, or it is the slot the next
+            // live frame goes into, which holds the oldest frame once the
+            // buffer has wrapped (sending it and then hitting the check below
+            // showed the oldest frame and resumed live play): stepping forward
+            // from the newest stored frame, or back past the oldest. Stay on
+            // the current frame, as the playback branch above does.
+            temp_read_index = MOD_ADD(temp_read_index, (step>0?-1:1), temp_image_buffer_count);
+          } else {
+            // Send the next frame
+            if (!sendFrame(
+                  temp_image_buffer[temp_read_index].file_name,
+                  temp_image_buffer[temp_read_index].timestamp)
+               ) {
+              zm_terminate = true;
+            }
+            frame_count++;
 
-          last_frame_timestamp = swap_image->timestamp;
-          // frame_sent = true;
+            last_frame_timestamp = swap_image->timestamp;
+            // frame_sent = true;
+          }
           step = 0;
         } else {
           //paused?
           int temp_index = MOD_ADD(temp_read_index, 0, temp_image_buffer_count);
 
-          if (got_command || (now - last_frame_sent > Seconds(5))) {
+          if (got_command || (now - last_frame_sent.load() > Seconds(5))) {
             // Send keepalive
             Debug(2, "Sending keepalive frame %d", temp_index);
+            // got_command asks for one frame after a command. Left set, it
+            // made every later pass re-send this frame instead of every 5 s.
+            // Cleared before the send, so a command that arrives while the
+            // frame goes out asks for one more.
+            got_command = false;
             // Send the next frame
             if (!sendFrame(temp_image_buffer[temp_index].file_name, temp_image_buffer[temp_index].timestamp)) {
               zm_terminate = true;
@@ -759,7 +870,7 @@ void MonitorStream::runStream() {
       if ( now >= when_to_send_next_frame ) {
         if (!paused && !delayed) {
           Debug(2, "Sending frame index: %d(%d%%%d): frame_mod: %d frame count: %d last image count %d image count %d paused %d delayed %d",
-                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count, last_image_count, monitor->shared_data->image_count, paused, delayed);
+                index, last_write_index, monitor->image_buffer_count, frame_mod, frame_count.load(), last_image_count, monitor->shared_data->image_count.load(), paused.load(), delayed.load());
           last_read_index = last_write_index;
           last_image_count = monitor->shared_data->image_count;
           // Send the next frame
@@ -789,7 +900,7 @@ void MonitorStream::runStream() {
             break;
           }
           frame_count++;
-          if (frame_count == 0) {
+          if (frame_count == 1) {
             // Chrome will not display the first frame until it receives another.
             // Firefox is fine.  So just send the first frame twice.
             if (!sendFrame(send_image, last_frame_timestamp)) {
@@ -799,29 +910,34 @@ void MonitorStream::runStream() {
             }
           }
 
-          temp_read_index = temp_write_index;
+          temp_read_index = temp_write_index.load();
         } else {
-          if (delayed && !buffered_playback) {
+          if (delayed.load() && !buffered_playback) {
             Debug(2, "Can't delay when not buffering.");
             delayed = false;
           }
-          if (last_zoom != zoom) {
-            Debug(2, "Sending 2 frames because change in zoom %d ?= %d", last_zoom, zoom);
-            if (!sendFrame(paused_image, paused_timestamp))
+          // paused_image is only held while paused. PLAY after PAUSE leaves
+          // delayed set without a buffer for one pass of the loop, and the
+          // next live frame carries the new zoom anyway. With a buffer, the
+          // paused branch above already resends its own frame after a command.
+          if (paused_image && ((last_zoom != zoom) || (!buffered_playback && (last_scale != scale)))) {
+            Debug(2, "Sending 2 frames because change in zoom %d ?= %d or scale %d ?= %d",
+                  last_zoom, zoom.load(), last_scale, scale.load());
+            if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
-            if (!sendFrame(paused_image, paused_timestamp))
+            if (!sendFrame(paused_image.get(), paused_timestamp))
               zm_terminate = true;
             frame_count++;
             frame_count++;
           } else {
-            TimePoint::duration actual_delta_time = now - last_frame_sent;
+            TimePoint::duration actual_delta_time = now - last_frame_sent.load();
             if (actual_delta_time > Seconds(5)) {
               if (paused_image) {
                 // Send keepalive
                 Debug(2, "Sending keepalive frame because delta time %.2f s > 5 s",
                       FPSeconds(actual_delta_time).count());
                 // Send the next frame
-                if (!sendFrame(paused_image, paused_timestamp))
+                if (!sendFrame(paused_image.get(), paused_timestamp))
                   zm_terminate = true;
                 frame_count++;
               } else {
@@ -866,17 +982,18 @@ void MonitorStream::runStream() {
       } // end if buffered playback
     } else {
       Debug(3, "Waiting for capture last_write_index=%u == last_read_index=%u",
-            monitor->shared_data->last_write_index,
+            monitor->shared_data->last_write_index.load(),
             last_read_index);
 
-      if (now - last_frame_sent > Seconds(5)) {
+      if (now - last_frame_sent.load() > Seconds(5)) {
         if (last_read_index == monitor->GetImageBufferCount()) {
           sendTextFrame("Waiting for initial capture");
           // Timeout if we've never received a frame from capture
           Seconds wait_timeout = (ttl > Seconds(0)) ? std::chrono::duration_cast<Seconds>(ttl) : Seconds(60);
-          if (now - stream_start_time > wait_timeout) {
-            Warning("Timed out waiting for initial capture after %" PRIi64 " seconds",
-                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - stream_start_time).count()));
+          if (capture_wait_start == TimePoint{}) capture_wait_start = stream_start_time;
+          if (now - capture_wait_start > wait_timeout) {
+            logPrintf(Logger::WARNING + monitor->Importance(), "Timed out waiting for initial capture after %" PRIi64 " seconds",
+                    static_cast<int64>(std::chrono::duration_cast<Seconds>(now - capture_wait_start).count()));
             zm_terminate = true;
             continue;
           }
@@ -890,11 +1007,21 @@ void MonitorStream::runStream() {
     if (now >= when_to_send_next_frame) {
       // sent a frame, so update
 
+      // Snapshot both once: the command thread can change them at any point,
+      // and re-reading mid-expression could mix an old value with a new one.
+      const double max_fps = maxfps.load();
+      const int rate = replay_rate.load();
+
       double capture_fps = monitor->GetFPS();
-      double fps = ((maxfps > 0.0) && (capture_fps > maxfps)) ? maxfps : capture_fps;
+      double fps = ((max_fps > 0.0) && (capture_fps > max_fps)) ? max_fps : capture_fps;
+      // Live frames go out at fps whatever the rate. Replaying from the buffer
+      // waits longer below 1x; above 1x it keeps the pace and skips slots.
+      double rate_scale = 1.0;
+      if (delayed && rate && abs(rate) < ZM_RATE_BASE)
+        rate_scale = static_cast<double>(ZM_RATE_BASE) / abs(rate);
       double sleep_time_seconds = (1 / ((fps ? fps : 1)))    // 1 second / fps
-                                  * (replay_rate ? abs(replay_rate)/ZM_RATE_BASE : 1); // replay_rate is 100 for 1x
-      Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, maxfps, replay_rate, sleep_time_seconds);
+                                  * rate_scale;
+      Debug(3, "Using %f for maxfps.  capture_fps: %f maxfps %f * replay_rate: %d = %f", fps, capture_fps, max_fps, rate, sleep_time_seconds);
 
       sleep_time = FPSeconds(sleep_time_seconds);
       if (when_to_send_next_frame > now) {
@@ -903,8 +1030,9 @@ void MonitorStream::runStream() {
       }
 
 
-      if (last_frame_sent > now) {
-        FPSeconds elapsed = last_frame_sent - now;
+      const TimePoint sent = last_frame_sent.load();
+      if (sent > now) {
+        FPSeconds elapsed = sent - now;
         if (sleep_time > elapsed) {
           Debug(2, "Adjusting sleep time by %f elapsed", elapsed.count());
           sleep_time -= elapsed;
@@ -927,12 +1055,18 @@ void MonitorStream::runStream() {
     if (!zm_terminate)
       std::this_thread::sleep_for(sleep_time);
 
+    // Both of these have to set zm_terminate, not just break: checkCommandQueue()
+    // loops until that flag is set and runStream() joins it below, so a stream
+    // that ended on its ttl or its frame count would sit in join() forever
+    // rather than exiting. That is a way for a zms to outlive its client. refs #4706
     if (ttl > Seconds(0) && (now - stream_start_time) > ttl) {
       Debug(2, "now - start > ttl (%" PRIi64 " us). break",
             static_cast<int64>(std::chrono::duration_cast<Microseconds>(ttl).count()));
+      zm_terminate = true;
       break;
     }
     if (frames_to_send > 0 && frame_count >= frames_to_send) {
+      zm_terminate = true;
       break;
     }
   } // end while ! zm_terminate
@@ -993,7 +1127,7 @@ void MonitorStream::SingleImage(int scale) {
   int count = 10; // Give it 1 second to connect or else send text frame.
   while (count and (monitor->shared_data->last_write_index >= monitor->image_buffer_count) and !zm_terminate) {
     Debug(1, "Waiting for capture to begin. last write index %d >=? %d",
-          monitor->shared_data->last_write_index, monitor->image_buffer_count);
+          monitor->shared_data->last_write_index.load(), monitor->image_buffer_count);
     std::this_thread::sleep_for(Milliseconds(100));
     count--;
   }
@@ -1028,6 +1162,10 @@ void MonitorStream::SingleImage(int scale) {
 void MonitorStream::SingleImageRaw(int scale) {
   Image scaled_image;
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {
@@ -1053,6 +1191,10 @@ void MonitorStream::SingleImageZip(int scale) {
   Image scaled_image;
 
   std::shared_ptr<ZMPacket> snap = monitor->getSnapshot();
+  if (!snap) {
+    sendTextFrame("No image available.");
+    return;
+  }
   Image *snap_image = snap->image;
 
   if ( scale != ZM_SCALE_BASE ) {

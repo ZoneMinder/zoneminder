@@ -24,9 +24,20 @@
 #include "zm_rgb.h"
 #include "zm_utils.h"
 
+#include <algorithm>
+#include <cmath>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+
 extern "C" {
+#include <libavutil/eval.h>
+#include <libavdevice/version.h>
 #include <libavutil/pixdesc.h>
 }
+#include <dlfcn.h>
+
+#include <atomic>
 
 /*
       AVCodecID codec_id;
@@ -71,6 +82,8 @@ static CodecData enc_codecs[] = {
   { AV_CODEC_ID_H264, "h264", "h264_v4l2m2m", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P,  AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
   { AV_CODEC_ID_AV1, "av1", "av1_vaapi", AV_PIX_FMT_YUV420P, AV_PIX_FMT_VAAPI, AV_HWDEVICE_TYPE_VAAPI, nullptr, nullptr },
+  { AV_CODEC_ID_AV1, "av1", "av1_nvenc", AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
+  { AV_CODEC_ID_VP9, "vp9", "vp9_qsv", AV_PIX_FMT_YUV420P, AV_PIX_FMT_QSV, AV_HWDEVICE_TYPE_QSV, nullptr, nullptr },
 #endif
   { AV_CODEC_ID_H265, "hevc", "libx265", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
   { AV_CODEC_ID_H264, "h264", "h264", AV_PIX_FMT_YUV420P, AV_PIX_FMT_YUV420P, AV_HWDEVICE_TYPE_NONE, nullptr, nullptr },
@@ -149,11 +162,286 @@ std::list<const CodecData*> get_decoder_data(int wanted_codec, const std::string
   return results;
 }
 
+AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const AVCodec **codec_out) {
+  const AVCodec *codec = avcodec_find_decoder(codecpar->codec_id);
+  if (!codec) {
+    Debug(1, "No fallback decoder available for codec %s",
+        avcodec_get_name(codecpar->codec_id));
+    return nullptr;
+  }
+  Debug(1, "Trying fallback decoder %s for codec %s",
+      codec->name, avcodec_get_name(codecpar->codec_id));
+  AVCodecContext *ctx = avcodec_alloc_context3(codec);
+  if (!ctx) {
+    Error("Failed to allocate context for fallback decoder %s", codec->name);
+    return nullptr;
+  }
+  int ret = avcodec_parameters_to_context(ctx, codecpar);
+  if (ret < 0) {
+    Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
+  zm_dump_codec(ctx);
+  ret = avcodec_open2(ctx, codec, nullptr);
+  if (ret < 0) {
+    Error("Could not open fallback decoder %s (error '%s')",
+        codec->name, av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
+  if (codec_out) *codec_out = codec;
+  return ctx;
+}
+
 #if HAVE_LIBAVUTIL_HWCONTEXT_H
 #if LIBAVCODEC_VERSION_CHECK(57, 89, 0, 89, 0)
 
 // Callback to select hardware pixel format.
 // ctx->opaque must point to an AVPixelFormat containing the desired hw format.
+AVCodecContext *open_video_decoder(
+    AVStream *stream,
+    const std::string &decoder_name,
+    const std::string &hwaccel_name,
+    const std::string &hwaccel_device,
+    const std::string &options,
+    const std::string &label,
+    AVPixelFormat &hw_pix_fmt,
+    AVBufferRef *&hw_device_ctx) {
+  const AVCodec *codec = nullptr;
+  AVCodecContext *ctx = nullptr;
+  // Was a camera member, but only ever read at the gate below and cleared
+  // when a candidate's hwaccel fails, so the next codec attempt does not
+  // retry it. Nothing outside the open read it.
+  bool use_hwaccel = true;
+  AVDictionary *opts = nullptr;
+  int ret = 0;
+  std::list<const CodecData *>codec_data = get_decoder_data(stream->codecpar->codec_id, decoder_name.c_str());
+  if (codec_data.size() == 0 and (!decoder_name.empty() and (decoder_name != "auto"))) {
+    Warning("No decoder for codec %d found with name %s. Trying auto.", stream->codecpar->codec_id, decoder_name.c_str());
+    codec_data = get_decoder_data(stream->codecpar->codec_id, "auto");
+  }
+
+  for (auto it = codec_data.begin(); it != codec_data.end(); it ++) {
+    const CodecData *chosen_codec_data = *it;
+    Debug(1, "Found codec %s", chosen_codec_data->codec_name);
+
+    codec = avcodec_find_decoder_by_name(chosen_codec_data->codec_name);
+
+    if (!codec) {
+      codec = avcodec_find_decoder(stream->codecpar->codec_id);
+      if (!codec) {
+        // Try and get the codec from the codec context
+        Error("Can't find codec for video stream from %s", label.c_str());
+        continue;
+      }
+    }
+
+    ctx = avcodec_alloc_context3(codec);
+    ret = avcodec_parameters_to_context(ctx, stream->codecpar);
+    if (ret < 0) {
+      Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+      avcodec_free_context(&ctx);
+      continue;
+    }
+    ctx->framerate = stream->r_frame_rate;
+    ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
+
+    // libavcodec defaults thread_count to 1, making software 1080p H.264
+    // decode hit ~60ms/frame and saturate a core per camera.  Default to 2
+    // frame-threads instead.  User can override (including 0 = auto) via
+    // thread_count in monitor Options.
+    ctx->thread_count = 2;
+    ctx->thread_type = FF_THREAD_FRAME | FF_THREAD_SLICE;
+
+    // Set default options for this codec
+    if (chosen_codec_data->options_defaults) {
+      AVDictionary *opts_defaults = nullptr;
+      av_dict_parse_string(&opts_defaults, chosen_codec_data->options_defaults, "=", ",", 0);
+      AVDictionaryEntry *e = nullptr;
+      while ((e = av_dict_get(opts_defaults, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+        const AVDictionaryEntry *entry = av_dict_get(opts, e->key, nullptr, AV_DICT_MATCH_CASE);
+        if (!entry) {
+          int ret;
+          if ((ret = av_dict_set(&opts, e->key, e->value, 0)) < 0) {
+            Error("Couldn't set default Option %s set to %s", e->key, e->value);
+          }
+          Debug(1, "Option %s set to %s from default", e->key, e->value);
+        }
+      }
+      av_dict_free(&opts_defaults);
+    }
+
+    //Set user-specified options, which may override codec defaults
+    if (!options.empty()) {
+      av_dict_parse_string(&opts, options.c_str(), "=", kOptionSeparators, 0);
+      const AVDictionaryEntry *entry = av_dict_get(opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+      if (entry) {
+        char *end = nullptr;
+        errno = 0;
+        const unsigned long threads = strtoul(entry->value, &end, 10);
+        if (end == entry->value || *end != '\0' || errno != 0 || threads > INT_MAX) {
+          Warning("Ignoring invalid thread_count '%s', keeping %d", entry->value, ctx->thread_count);
+        } else {
+          ctx->thread_count = static_cast<int>(threads);
+          Debug(1, "Setting codec thread_count to %d", ctx->thread_count);
+        }
+        av_dict_set(&opts, "thread_count", nullptr, AV_DICT_MATCH_CASE);
+      }
+      // reorder_queparse for avforpts, mOpcodec
+      av_dict_set(&opts, "reorder_queue_size", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "probesize", nullptr, AV_DICT_MATCH_CASE);
+      // loop / realtime (re) are consumed by FfmpegCamera, not the decoder;
+      // strip them so avcodec_open2 doesn't report them as unrecognized.
+      av_dict_set(&opts, "loop", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "realtime", nullptr, AV_DICT_MATCH_CASE);
+      av_dict_set(&opts, "re", nullptr, AV_DICT_MATCH_CASE);
+    }
+
+    if (use_hwaccel && (hwaccel_name != "")) {
+#if HAVE_LIBAVUTIL_HWCONTEXT_H
+      // 3.2 doesn't seem to have all the bits in place, so let's require 3.4 and up
+#if LIBAVCODEC_VERSION_CHECK(57, 107, 0, 107, 0)
+      // Build the list of hw device types to try. A DecoderHWAccelName of
+      // "auto" probes every hwaccel libav offers and uses the first that both
+      // the decoder supports and whose device can be created; any other value
+      // is a comma-separated priority list of device-type names, tried in
+      // order (e.g. "cuda,vaapi"; a single name like "vaapi" is just the
+      // one-element case and behaves as before). If nothing usable is found
+      // we transparently fall back to software.
+      const bool auto_detect = (hwaccel_name == "auto");
+      const std::vector<enum AVHWDeviceType> candidate_types =
+          hwaccel_candidate_types(hwaccel_name);
+
+      for (enum AVHWDeviceType type : candidate_types) {
+        Debug(1, "Trying hwdevice %s", av_hwdevice_get_type_name(type));
+        hw_pix_fmt = AV_PIX_FMT_NONE;
+#if LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
+        // Does this decoder advertise a hw config for this device type?
+        for (int i = 0;; i++) {
+          const AVCodecHWConfig *config = avcodec_get_hw_config(codec, i);
+          if (!config) break;
+          if ((config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)
+              && (config->device_type == type)) {
+            hw_pix_fmt = config->pix_fmt;
+            Debug(1, "Decoder %s supports type %s (pix_fmt %s).",
+                codec->name, av_hwdevice_get_type_name(type),
+                zm_get_pix_fmt_name(hw_pix_fmt));
+          }
+        }  // end foreach hwconfig
+#else
+        hw_pix_fmt = find_fmt_by_hw_type(type);
+#endif
+        if (hw_pix_fmt == AV_PIX_FMT_NONE) {
+          Debug(1, "Decoder %s has no hw_pix_fmt for %s, skipping.",
+              codec->name, av_hwdevice_get_type_name(type));
+          continue;
+        }
+
+        ret = av_hwdevice_ctx_create(&hw_device_ctx, type,
+            (hwaccel_device != "" ? hwaccel_device.c_str() : nullptr), nullptr, 0);
+        if (ret < 0 and hwaccel_device != "")
+          ret = av_hwdevice_ctx_create(&hw_device_ctx, type, nullptr, nullptr, 0);
+        if (ret < 0) {
+          Warning("Failed to create %s hwaccel device: %s",
+              av_hwdevice_get_type_name(type), av_make_error_string(ret).c_str());
+          hw_pix_fmt = AV_PIX_FMT_NONE;
+          hw_device_ctx = nullptr;
+          continue;  // try the next candidate
+        }
+
+        // Success: wire up hardware decoding and stop searching.
+        Info("Using %s hardware decoding for %s",
+            av_hwdevice_get_type_name(type), codec->name);
+        ctx->hwaccel_flags |= AV_HWACCEL_FLAG_IGNORE_LEVEL;
+        // Set opaque to point to our hw_pix_fmt so callback can access it
+        ctx->opaque = &hw_pix_fmt;
+        ctx->get_format = get_hw_format;
+        ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
+        break;
+      }  // end foreach candidate type
+
+      if (hw_pix_fmt == AV_PIX_FMT_NONE) {
+        // "auto" asks us to probe, so finding nothing is unremarkable. But if
+        // the admin named hwaccels explicitly and none of them worked, this
+        // monitor now decodes on the CPU and nothing else will ever say so:
+        // a default install does not log Debug, and we only get here once, at
+        // capture start. That silence hides a dead GPU for as long as nobody
+        // wonders why the load average doubled.
+        if (auto_detect) {
+          Debug(1, "No usable hardware decoder found; falling back to software decoding.");
+        } else {
+          Warning("None of the requested hwaccels (%s) are usable for %s; "
+              "falling back to software decoding.",
+              hwaccel_name.c_str(), codec->name);
+        }
+        use_hwaccel = false;
+      }
+#else
+      Debug(1, "AVCodec not new enough for hwaccel");
+#endif
+#else
+      Warning("HWAccel support not compiled in.");
+#endif
+    }  // end if hwaccel_name
+
+    ret = avcodec_open2(ctx, codec, &opts);
+
+    // Declared here rather than at the top: in the camera this shared a
+    // variable with the input-open above, which is the only reason it was not
+    // local already.
+    AVDictionaryEntry *e = nullptr;
+    while ((e = av_dict_get(opts, "", e, AV_DICT_IGNORE_SUFFIX)) != nullptr) {
+      Warning("Option %s not recognized by ffmpeg", e->key);
+    }
+    av_dict_free(&opts);
+
+    if (ret < 0) {
+      Error("Unable to open codec for video stream from %s", label.c_str());
+      avcodec_free_context(&ctx);
+      ctx = nullptr;
+      continue;
+    }
+    Debug(1, "Thread count? %d", ctx->thread_count);
+    zm_dump_codec(ctx);
+    break;
+  } // end foreach codec
+
+  if (!ctx) {
+    Debug(1, "Failed with known codecs, trying harder");
+    ctx = open_fallback_decoder(stream->codecpar, &codec);
+  }
+  return ctx;
+}
+
+std::vector<enum AVHWDeviceType> hwaccel_candidate_types(const std::string &hwaccel_name) {
+  std::vector<enum AVHWDeviceType> candidates;
+  if (hwaccel_name.empty()) return candidates;
+
+  const bool auto_detect = (hwaccel_name == "auto");
+
+  // Walked even when not auto-detecting: the list of what this build offers is
+  // the first thing wanted when a named hwaccel turns out not to exist.
+  enum AVHWDeviceType available = AV_HWDEVICE_TYPE_NONE;
+  while ((available = av_hwdevice_iterate_types(available)) != AV_HWDEVICE_TYPE_NONE) {
+    Debug(1, "Available hwdevice type %s", av_hwdevice_get_type_name(available));
+    if (auto_detect) candidates.push_back(available);
+  }
+  if (auto_detect) return candidates;
+
+  for (const std::string &token : Split(hwaccel_name, ',')) {
+    const std::string name = TrimSpaces(token);
+    if (name.empty()) continue;
+    const enum AVHWDeviceType named = av_hwdevice_find_type_by_name(name.c_str());
+    if (named == AV_HWDEVICE_TYPE_NONE) {
+      Warning("Unknown hwaccel device type '%s', skipping.", name.c_str());
+    } else {
+      candidates.push_back(named);
+    }
+  }
+  return candidates;
+}
+
 enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *pix_fmts) {
   if (!ctx->opaque) {
     Error("get_hw_format called with null opaque pointer");
@@ -166,10 +454,20 @@ enum AVPixelFormat get_hw_format(AVCodecContext *ctx, const enum AVPixelFormat *
     if (*p == hw_pix_fmt) return *p;
   }
 
-  Error("Failed to get HW surface format for %s.", av_get_pix_fmt_name(hw_pix_fmt));
-  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++)
-    Error("Available HW surface format was %s.", av_get_pix_fmt_name(*p));
+  // The hardware can't decode this stream, so let libavcodec decode it in software.
+  for (const enum AVPixelFormat *p = pix_fmts; *p != AV_PIX_FMT_NONE; p++) {
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(*p);
+    if (desc && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL)) {
+      static std::atomic<bool> warned{false};
+      if (!warned.exchange(true))
+        Warning("Hardware surface format %s not offered for this stream, decoding in software as %s.",
+            av_get_pix_fmt_name(hw_pix_fmt), av_get_pix_fmt_name(*p));
+      return *p;
+    }
+  }
 
+  Error("Failed to get HW surface format for %s and no software format is offered.",
+      av_get_pix_fmt_name(hw_pix_fmt));
   return AV_PIX_FMT_NONE;
 }
 #if !LIBAVUTIL_VERSION_CHECK(56, 22, 0, 14, 0)
@@ -205,6 +503,120 @@ static enum AVPixelFormat find_fmt_by_hw_type(const enum AVHWDeviceType type) {
 #endif
 #endif
 
+// Encoder options can name files the encoder then creates or overwrites as the
+// zmc user (two-pass stats, csv logs, reconstructed frames). The options come
+// from the monitor's EncoderParameters, so an account that can edit monitors
+// must not be able to point them at arbitrary paths. Returns the value to use,
+// empty when the whole option has to go.
+static std::string zm_filter_file_option(const std::string &key, const std::string &value) {
+  static const char *const file_keys[] = {"passlogfile", "stats", "dump-yuv", "recon", nullptr};
+  for (const char *const *k = file_keys; *k; k++) {
+    if (key == *k) return "";
+  }
+  if ((key == "flags" or key == "flags2") and (value.find("pass1") != std::string::npos or value.find("pass2") != std::string::npos)) {
+    return "";
+  }
+  if (key == "x264-params" or key == "x265-params" or key == "x264opts") {
+    static const char *const param_keys[] = {
+      "stats", "pass", "csv", "csv-log-level", "analysis-load", "analysis-save", "analysis-reuse-file",
+      "scaling-list", "recon", "recon-y4m-exec", "dump-yuv", "qpfile", "lambda-file", "zonefile",
+      "multi-pass-opt-analysis", "multi-pass-opt-distortion", nullptr};
+    std::string out;
+    size_t pos = 0;
+    while (pos <= value.size()) {
+      size_t end = value.find(':', pos);
+      if (end == std::string::npos) end = value.size();
+      const std::string item = value.substr(pos, end - pos);
+      // libx264 and libx265 read '_' as '-' and x265 also drops a leading "--",
+      // so compare the name in the form the library will use.
+      std::string name = item.substr(0, item.find('='));
+      if (name.compare(0, 2, "--") == 0) name.erase(0, 2);
+      std::replace(name.begin(), name.end(), '_', '-');
+      bool deny = false;
+      for (const char *const *k = param_keys; *k; k++) {
+        if (name == *k) deny = true;
+      }
+      // scaling-list also accepts built-in presets, which do not name a file
+      if (deny and name == "scaling-list") {
+        const size_t eq = item.find('=');
+        if (eq != std::string::npos) {
+          const std::string preset = item.substr(eq + 1);
+          if (preset == "off" or preset == "none" or preset == "flat" or preset == "jvt" or preset == "default") deny = false;
+        }
+      }
+      if (deny) {
+        Warning("Ignoring file option '%s' in encoder option %s", name.c_str(), key.c_str());
+      } else if (!item.empty()) {
+        if (!out.empty()) out += ':';
+        out += item;
+      }
+      pos = end + 1;
+    }
+    return out;
+  }
+  return value;
+}
+
+int zm_parse_options(AVDictionary **pm, const std::string &options, const char *separators) {
+  const std::string key_terminators = std::string("=") + separators;
+  const bool hash_comments = strchr(separators, '#') != nullptr;
+  const char *p = options.c_str();
+  int result = 0;
+
+  while (*p) {
+    if (hash_comments) {
+      p += strspn(p, " \t\r");
+      if (*p == '#') {
+        p += strcspn(p, "\n");
+        if (*p) p++;
+        continue;
+      }
+    }
+    char *key = av_get_token(&p, key_terminators.c_str());
+    if (!key) return AVERROR(ENOMEM);
+    char *value = nullptr;
+    if (*p == '=') {
+      p++;
+      // av_get_token() skips leading whitespace, newlines included, which would
+      // pull the next entry in as the value of an empty one
+      p += strspn(p, " \t\r");
+      if (*p && !strchr(separators, *p)) {
+        value = av_get_token(&p, separators);
+        if (!value) {
+          av_free(key);
+          return AVERROR(ENOMEM);
+        }
+      }
+    }
+    const std::string safe = (*key and value and *value) ? zm_filter_file_option(key, value) : std::string();
+    if (*key and value and *value and safe.empty()) {
+      Warning("Ignoring option '%s' as it would write a file", key);
+    } else if (*key) {
+      if (value and *value) {
+        int ret = av_dict_set(pm, key, safe.c_str(), 0);
+        if (ret < 0) result = ret;
+      } else {
+        Warning("Ignoring option '%s' as it has no value", key);
+      }
+    } else if (value) {
+      Warning("Ignoring option with value '%s' as it has no name", value);
+    }
+    av_free(key);
+    av_free(value);
+    if (hash_comments and *p == '#') p += strcspn(p, "\n");
+    if (*p) p++;
+  }
+  return result;
+}
+
+bool zm_parse_option_number(const char *text, uint64_t &out) {
+  char *end = nullptr;
+  double value = av_strtod(text, &end);
+  if (end == text or *end or !std::isfinite(value) or value < 0 or value >= 9.2e18) return false;
+  out = static_cast<uint64_t>(value);
+  return true;
+}
+
 int setup_hwaccel(
     AVCodecContext *codec_ctx,
     const CodecData *codec_data,
@@ -216,13 +628,22 @@ int setup_hwaccel(
   if (codec_data->hwdevice_type == AV_HWDEVICE_TYPE_NONE) {
     return 0;
   }
-  int ret = av_hwdevice_ctx_create(&hw_device_ctx,
-      codec_data->hwdevice_type,
-      device.empty() ? codec_data->hwdevice_default : device.c_str(),
-      nullptr, 0);
-  if (0>ret) {
-    Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
-    return ret;
+  int ret = 0;
+  // Reuse a device context the caller already owns (one cached on the Monitor
+  // and shared across events) when it supplies one; only open the render node
+  // ourselves when it does not. Creating and destroying a device per event
+  // leaked a /dev/dri/renderD128 fd each time on some VAAPI drivers (refs
+  // #5300). The reference handed in is consumed here either way (unref'd at the
+  // end), matching the create path's previous ownership.
+  if (!hw_device_ctx) {
+    ret = av_hwdevice_ctx_create(&hw_device_ctx,
+        codec_data->hwdevice_type,
+        device.empty() ? codec_data->hwdevice_default : device.c_str(),
+        nullptr, 0);
+    if (0>ret) {
+      Error("Failed to create hwdevice_ctx %s", av_make_error_string(ret).c_str());
+      return ret;
+    }
   }
   codec_ctx->get_format = get_hw_format;
   codec_ctx->hw_device_ctx = av_buffer_ref(hw_device_ctx);
@@ -303,6 +724,36 @@ void log_libav_callback(void *ptr, int level, const char *fmt, va_list vargs) {
 }
 
 static bool bInit = false;
+
+// libavdevice pulls in libavfilter and its dependencies (on some distros OpenBLAS,
+// which starts a thread per core), so it is only loaded when a V4L2 input needs it.
+bool zm_load_avdevice() {
+  static const bool loaded = []() {
+#ifdef __APPLE__
+    const std::string soname = stringtf("libavdevice.%d.dylib", LIBAVDEVICE_VERSION_MAJOR);
+#else
+    const std::string soname = stringtf("libavdevice.so.%d", LIBAVDEVICE_VERSION_MAJOR);
+#endif
+    void *handle = dlopen(soname.c_str(), RTLD_NOW | RTLD_GLOBAL);
+#ifdef ZM_AVDEVICE_DIR
+    // Where cmake found it, for installs off the default search path (Homebrew)
+    if (!handle) handle = dlopen((ZM_AVDEVICE_DIR "/" + soname).c_str(), RTLD_NOW | RTLD_GLOBAL);
+#endif
+    if (!handle) {
+      Error("Cannot load %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    void (*register_all)() = nullptr;
+    *reinterpret_cast<void **>(&register_all) = dlsym(handle, "avdevice_register_all");
+    if (!register_all) {
+      Error("Cannot find avdevice_register_all in %s: %s", soname.c_str(), dlerror());
+      return false;
+    }
+    register_all();
+    return true;
+  }();
+  return loaded;
+}
 
 void FFMPEGInit() {
 
@@ -413,6 +864,14 @@ void zm_dump_codecpar(const AVCodecParameters *par) {
   static_cast<int>(par->chroma_location),
   static_cast<int>(par->video_delay)
        );
+}
+
+void zm_clear_incompatible_codec_tag(const AVOutputFormat *format, AVCodecParameters *par) {
+  unsigned int tag;
+  if (format->codec_tag
+      and av_codec_get_id(format->codec_tag, par->codec_tag) != par->codec_id
+      and av_codec_get_tag2(format->codec_tag, par->codec_id, &tag))
+    par->codec_tag = 0;
 }
 
 void zm_dump_codec(const AVCodecContext *codec) {
@@ -569,12 +1028,71 @@ enum AVPixelFormat fix_deprecated_pix_fmt(enum AVPixelFormat fmt) {
     return AV_PIX_FMT_YUV444P;
   case AV_PIX_FMT_YUVJ440P :
     return AV_PIX_FMT_YUV440P;
+  case AV_PIX_FMT_YUVJ411P :
+    return AV_PIX_FMT_YUV411P;
   case AV_PIX_FMT_NONE :
   case AV_PIX_FMT_YUVJ420P :
     return AV_PIX_FMT_YUV420P;
   default:
     return fmt;
   }
+}
+
+bool pix_fmt_is_jpeg_range(enum AVPixelFormat fmt) {
+  // The deprecated YUVJ* formats carry full-range (0-255) luma/chroma, as
+  // opposed to the limited/broadcast range (16-235) of their non-J equivalents.
+  switch (fmt) {
+  case AV_PIX_FMT_YUVJ411P:
+  case AV_PIX_FMT_YUVJ420P:
+  case AV_PIX_FMT_YUVJ422P:
+  case AV_PIX_FMT_YUVJ440P:
+  case AV_PIX_FMT_YUVJ444P:
+    return true;
+  default:
+    return false;
+  }
+}
+
+static bool pix_fmt_is_planar_yuv(enum AVPixelFormat fmt) {
+  // Non-J YUV formats (limited range by swscale default), not RGB or gray.
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(fix_deprecated_pix_fmt(fmt));
+  return desc && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL | AV_PIX_FMT_FLAG_BAYER))
+         && desc->nb_components >= 3;
+}
+
+void zm_sws_set_ranges(struct SwsContext *ctx,
+                       enum AVPixelFormat original_src_fmt,
+                       enum AVPixelFormat original_dst_fmt) {
+  // swscale assumes limited (MPEG) range by default. When a side of the
+  // conversion was a full-range JPEG format (YUVJ*) that got mapped to its
+  // non-J equivalent by fix_deprecated_pix_fmt(), swscale would otherwise
+  // treat full-range samples as limited (or crush full-range output into
+  // limited range) and wash the colours out. Tell it which sides are full
+  // range. Pass the ORIGINAL (pre-fix) formats.
+  const bool src_full = pix_fmt_is_jpeg_range(original_src_fmt);
+  const bool dst_full = pix_fmt_is_jpeg_range(original_dst_fmt);
+  // sws_getCachedContext() keeps the same context across a YUVJ420P ->
+  // YUV420P change, because both map to one format. A range set for the
+  // earlier frame must therefore be put back to limited for a plain YUV side.
+  const bool src_yuv = pix_fmt_is_planar_yuv(original_src_fmt);
+  const bool dst_yuv = pix_fmt_is_planar_yuv(original_dst_fmt);
+  if (!src_full && !dst_full && !src_yuv && !dst_yuv) return;
+
+  int *inv_table, *table;
+  int srcRange, dstRange, brightness, contrast, saturation;
+  // Returns < 0 when the conversion does not expose colorspace details (e.g.
+  // RGB->RGB); nothing to correct in that case.
+  if (sws_getColorspaceDetails(ctx, &inv_table, &srcRange, &table, &dstRange,
+                               &brightness, &contrast, &saturation) < 0)
+    return;
+  bool changed = false;
+  const int want_src = src_full ? 1 : 0;
+  const int want_dst = dst_full ? 1 : 0;
+  if ((src_full || src_yuv) && srcRange != want_src) { srcRange = want_src; changed = true; }
+  if ((dst_full || dst_yuv) && dstRange != want_dst) { dstRange = want_dst; changed = true; }
+  if (!changed) return;
+  sws_setColorspaceDetails(ctx, inv_table, srcRange, table, dstRange,
+                           brightness, contrast, saturation);
 }
 
 bool is_video_stream(const AVStream * stream) {

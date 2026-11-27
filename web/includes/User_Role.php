@@ -6,6 +6,7 @@ require_once('Object.php');
 require_once('Group.php');
 
 class User_Role extends ZM_Object {
+  protected static $setters = array('Monitor_Permissions');
   protected static $table = 'User_Roles';
 
   protected $defaults = array(

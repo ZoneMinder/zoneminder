@@ -10,6 +10,8 @@ ifeq ($(DEB_BUILD_ARCH_OS),hurd)
 ARGS:= -DZM_NO_MMAP=ON
 endif
 
+AVDEVICE_MAJOR := $(shell pkg-config --modversion libavdevice | cut -d. -f1)
+
 %:
 	dh $@ --buildsystem=cmake --builddirectory=dbuild \
             --with sphinxdoc,apache2,linktree
@@ -30,6 +32,9 @@ override_dh_auto_configure:
             -DZM_DIR_EVENTS="/var/cache/zoneminder/events"    \
             -DZM_PATH_SHUTDOWN="/sbin/shutdown"        \
             -DZM_PATH_ZMS="/zm/cgi-bin/nph-zms"
+
+override_dh_gencontrol:
+	dh_gencontrol -- -Vzm:avdevice=libavdevice$(AVDEVICE_MAJOR)
 
 override_dh_clean:
 	dh_clean $(MANPAGES1)

@@ -19,7 +19,7 @@ MQTT::MQTT(Monitor *monitor) :
 
 void MQTT::connect() {
   if (config.mqtt_username[0]) {
-    Debug(1, "MQTT setting username to %s, password to %s", config.mqtt_username, config.mqtt_password);
+    Debug(1, "MQTT setting username to %s", config.mqtt_username);
     int rc = mosqpp::mosquittopp::username_pw_set(config.mqtt_username, config.mqtt_password);
     if (MOSQ_ERR_SUCCESS != rc) {
       Warning("MQTT username pw set returns %d %s", rc, mosquitto_strerror(rc));
@@ -51,7 +51,7 @@ void MQTT::on_connect(int rc) {
 }
 
 void MQTT::on_message(const struct mosquitto_message *message) {
-  Debug(1, "MQTT: Have message %s: %s", message->topic, static_cast<const char *>(message->payload));
+  Debug(1, "MQTT: Have message %s: %.*s", message->topic, message->payloadlen, static_cast<const char *>(message->payload));
 }
 
 void MQTT::on_subscribe(int mid, int qos_count, const int *granted_qos) {

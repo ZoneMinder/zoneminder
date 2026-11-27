@@ -2,11 +2,12 @@
 namespace ZM;
 
 class Group extends ZM_Object {
+  protected static $setters = array('depth', 'Permissions');
   protected static $table = 'Groups';
   protected static $permissions = array();
   protected $defaults = array(
       'Id'              =>  null,
-      'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/', 'default'=>'Group'),
+      'Name'            => array('type'=>'text','filter_regexp'=>'/[^\w\-\.\(\)\:\/ ]/u', 'default'=>'Group'),
       'ParentId'        =>  null,
       );
   protected static $monitor_ids_cache = array();
@@ -20,17 +21,19 @@ class Group extends ZM_Object {
   }
 
   public function delete() {
-    if ( property_exists($this, 'Id') ) {
-      dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($this->{'Id'}));
-      dbQuery('UPDATE `Groups` SET `ParentId`=NULL WHERE `ParentId`=?', array($this->{'Id'}));
-      dbQuery('DELETE FROM `Groups` WHERE Id=?', array($this->{'Id'}));
-      if ( isset($_COOKIE['zmGroup']) ) {
-        if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
-          unset($_COOKIE['zmGroup']);
-          zm_setcookie('zmGroup', '');
-        }
+    if ( !property_exists($this, 'Id') or !$this->{'Id'} ) return false;
+    if ( !dbQuery('DELETE FROM `Groups_Monitors` WHERE `GroupId`=?', array($this->{'Id'})) ) return false;
+    # Children move up to this group's parent, read now as an earlier delete may have moved this group.
+    $row = dbFetchOne('SELECT `ParentId` FROM `Groups` WHERE `Id`=?', NULL, array($this->{'Id'}));
+    if ( !dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($row ? $row['ParentId'] : null, $this->{'Id'})) ) return false;
+    if ( !dbQuery('DELETE FROM `Groups` WHERE Id=?', array($this->{'Id'})) ) return false;
+    if ( isset($_COOKIE['zmGroup']) ) {
+      if ( $this->{'Id'} == $_COOKIE['zmGroup'] ) {
+        unset($_COOKIE['zmGroup']);
+        zm_setcookie('zmGroup', '');
       }
     }
+    return true;
   } # end function delete()
 
   public function depth( $new = null ) {
@@ -46,6 +49,35 @@ class Group extends ZM_Object {
     }
     return $this->{'depth'};
   } // end public function depth
+
+  // Group membership feeds per-monitor access through Groups_Permissions, so moving a monitor
+  // into or out of a group can grant access to it or lift a deny. Such a change needs edit on
+  // every monitor it moves. Ids that are not monitors are ignored.
+  public static function canEditMembership($monitor_ids, $u=null) {
+    require_once(__DIR__.'/Monitor.php');
+    foreach (array_unique($monitor_ids) as $mid) {
+      $monitor = Monitor::find_one(array('Id'=>$mid));
+      if ($monitor and !$monitor->canEdit($u)) return false;
+    }
+    return true;
+  }
+
+  // A group can sit under no parent, or under an existing group that is neither itself nor
+  // one of its own descendants; anything else makes a loop that depth() never leaves.
+  public static function validParent($group_id, $parent_id) {
+    if ($parent_id === null or $parent_id === '') return true;
+    if (!is_scalar($parent_id) or !ctype_digit((string)$parent_id)) return false;
+    $seen = array();
+    $Parent = Group::find_one(array('Id'=>$parent_id));
+    if (!$Parent) return false;
+    while ($Parent) {
+      if ($group_id and $Parent->Id() == $group_id) return false;
+      if (isset($seen[$Parent->Id()])) break;
+      $seen[$Parent->Id()] = true;
+      $Parent = $Parent->ParentId() ? Group::find_one(array('Id'=>$Parent->ParentId())) : null;
+    }
+    return true;
+  }
 
   public function MonitorIds( ) {
     if (!property_exists($this, 'MonitorIds')) {
@@ -98,7 +130,6 @@ class Group extends ZM_Object {
     }
 
 # This  array is indexed by parent_id
-    global $children;
     $children = array();
 
     foreach ( $Groups as $id=>$Group ) {
@@ -109,21 +140,21 @@ class Group extends ZM_Object {
       }
     } # end foreach
 
-    function get_options($Group) {
-      global $children;
+    # A named function declared here is declared again on every call, which is fatal.
+    $get_options = function($Group) use (&$get_options, &$children) {
       $options = array($Group->Id() => str_repeat('&nbsp;&nbsp;&nbsp;', $Group->depth()) . $Group->Name());
       if ( isset($children[$Group->Id()]) ) {
         foreach ( $children[$Group->Id()] as $child ) {
-          $options += get_options($child);
+          $options += $get_options($child);
         }
       }
       return $options;
-    } # end function get_options
+    }; # end function get_options
 
     $group_options = array();
     foreach ( $Groups as $id=>$Group ) {
       if ( ! $Group->ParentId() ) {
-        $group_options += get_options($Group);
+        $group_options += $get_options($Group);
       }
     }
     return $group_options;
@@ -132,17 +163,28 @@ class Group extends ZM_Object {
   public static function get_group_sql($group_id) {
     $groupSql = '';
     if ( $group_id ) {
-      if ( is_array($group_id) ) {
-        $group_id_sql_part = ' IN ('.implode(',', array_map(function(){return '?';}, $group_id ) ).')';
+      # The selection can outlive its group (the filter cookie after a delete).
+      $selected = is_array($group_id) ? array_values($group_id) : array($group_id);
+      $group_id = dbFetchAll('SELECT `Id` FROM `Groups` WHERE `Id` IN ('.implode(',', array_map(function(){return '?';}, $selected)).')', 'Id', $selected);
+    }
+    if ( $group_id ) {
+      $group_ids = is_array($group_id) ? array_values($group_id) : array($group_id);
 
-        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`'.$group_id_sql_part, 'MonitorId', $group_id);
-
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId`'.$group_id_sql_part.')', 'MonitorId', $group_id));
-      } else { 
-        $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($group_id));
-
-        $MonitorIds = array_merge($MonitorIds, dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN (SELECT `Id` FROM `Groups` WHERE `ParentId` = ?)', 'MonitorId', array($group_id)));
+      $all_ids = $group_ids;
+      $seen = array_flip($all_ids);
+      $parent_ids = $group_ids;
+      while (count($parent_ids)) {
+        $child_ids = dbFetchAll('SELECT `Id` FROM `Groups` WHERE `ParentId` IN ('.implode(',', array_map(function(){return '?';}, $parent_ids)).')', 'Id', $parent_ids);
+        $parent_ids = array();
+        foreach ($child_ids as $child_id) {
+          if (isset($seen[$child_id])) continue;
+          $seen[$child_id] = true;
+          $all_ids[] = $child_id;
+          $parent_ids[] = $child_id;
+        }
       }
+
+      $MonitorIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId` IN ('.implode(',', array_map(function(){return '?';}, $all_ids)).')', 'MonitorId', $all_ids);
       $groupSql = " find_in_set( M.Id, '".implode(',', $MonitorIds)."' )";
     }
     return $groupSql;

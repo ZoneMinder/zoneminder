@@ -23,6 +23,7 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 
+#include <algorithm>
 #include <cmath>
 #include <sys/file.h>
 #include <sys/socket.h>
@@ -36,6 +37,9 @@ StreamBase::~StreamBase() {
   delete vid_stream;
   delete[] temp_img_buffer;
   closeComms();
+  // The monitor's zones each hold a shared_ptr back to it, so releasing ours
+  // alone never frees it. disconnect() clears the zones, as zmc does on exit.
+  if (monitor) monitor->disconnect();
 }
 
 bool StreamBase::loadMonitor(int p_monitor_id) {
@@ -99,19 +103,25 @@ void StreamBase::updateFrameRate(double fps) {
     return;
   }
 
+  // Snapshot once so the loop below cannot see maxfps change underneath it.
+  const double max_fps = maxfps.load();
+  const int rate = replay_rate.load();
+
   base_fps = fps;
-  effective_fps = (base_fps*abs(replay_rate))/ZM_RATE_BASE;
+  effective_fps = (base_fps*abs(rate))/ZM_RATE_BASE;
   frame_mod = 1;
   Debug(3, "FPS:%.2f, MaxFPS:%.2f, BaseFPS:%.2f, EffectiveFPS:%.2f, FrameMod:%d, replay_rate(%d)",
-        fps, maxfps, base_fps, effective_fps, frame_mod, replay_rate);
-  if (maxfps > 0.0) {
+        fps, max_fps, base_fps, effective_fps, frame_mod, rate);
+  if (max_fps > 0.0) {
     // Min frame repeat?
     // We want to keep the frame skip easy... problem is ... if effective = 31 and max = 30 then we end up with 15.5 fps.
-    while ( (int)effective_fps > (int)maxfps ) {
+    // Compare as doubles: casting an infinite or huge maxfps to int is undefined and
+    // wraps to INT_MIN, which never lets this loop finish.
+    while (std::floor(effective_fps) > std::floor(max_fps)) {
       effective_fps /= 2.0;
       frame_mod *= 2;
       Debug(3, "Changing fps to be < max %.2f EffectiveFPS:%.2f, FrameMod:%d",
-            maxfps, effective_fps, frame_mod);
+            max_fps, effective_fps, frame_mod);
     }
   }
 } // void StreamBase::updateFrameRate(double fps)
@@ -119,9 +129,12 @@ void StreamBase::updateFrameRate(double fps) {
 void StreamBase::checkCommandQueue() {
   while (!zm_terminate) {
     // Update modified time of the socket .lock file so that we can tell which ones are stale.
-    if (now - last_comm_update > Hours(1)) {
+    // This is the command thread: read the clock here rather than the
+    // streaming loop's `now`.
+    TimePoint cmd_now = std::chrono::steady_clock::now();
+    if (cmd_now - last_comm_update > Hours(1)) {
       touch(sock_path_lock);
-      last_comm_update = now;
+      last_comm_update = cmd_now;
     }
 
     if (sd >= 0) {
@@ -135,7 +148,8 @@ void StreamBase::checkCommandQueue() {
       } else {
         Debug(2, "Message length is (%d)", nbytes);
         processCommand(&msg);
-        got_command = true;
+        // A status query doesn't change the picture, so it doesn't need a frame.
+        if (msg.msg_data[0] != CMD_QUERY) got_command = true;
       }
     } else if (connkey) {
       Warning("No sd in checkCommandQueue, comms not open for connkey %06d?", connkey);
@@ -144,40 +158,114 @@ void StreamBase::checkCommandQueue() {
       Debug(1, "No sd in checkCommandQueue, comms not open.");
     }
   } // end while !zm_terminate
+
+  // Nothing reads the socket from here on, but the stream thread can take a
+  // while to wind down (blocked writing to a client that has gone away, say),
+  // and the destructor that would otherwise close it runs only after that.
+  // Until then a command sent to us is accepted and never answered, so
+  // web/ajax/stream.php sits out its whole MSG_TIMEOUT before reporting a
+  // timeout. Closing now makes it see a missing socket and report no_socket
+  // straight away. sd is only used from this thread, and closeComms() leaves
+  // nothing for the destructor's call to do.
+  closeComms();
 }  // end void StreamBase::checkCommandQueue()
 
-Image *StreamBase::prepareImage(Image *image) {
+int StreamBase::preScaleDimensions(int base_width, int base_height, int &width, int &height) const {
+  // Any zoom crops before scaling and needs the full resolution to crop out of.
+  if (zoom.load() != ZM_SCALE_BASE) return 0;
+
+  const int cur_scale = scale.load();
+  if (cur_scale == ZM_SCALE_BASE) return 0;
+
+  const int scaled_width = (base_width * cur_scale) / ZM_SCALE_BASE;
+  const int scaled_height = (base_height * cur_scale) / ZM_SCALE_BASE;
+  // CMD_SCALE stores whatever the client sent, so 0 gets here. Image::Scale
+  // refuses a zero factor, but converting straight to 0x0 would instead put a
+  // negative av_image_get_buffer_size result into an unsigned size and allocate
+  // on it, so leave anything degenerate to the path that already rejects it.
+  if ((scaled_width <= 0) or (scaled_height <= 0)) return 0;
+  if (av_image_check_size(scaled_width, scaled_height, 0, nullptr) < 0) return 0;
+
+  width = scaled_width;
+  height = scaled_height;
+  return cur_scale;
+}
+
+Image *StreamBase::prepareImage(Image *image, int pre_scaled_by) {
+  if (pre_scaled_by) {
+    // The caller produced the image at exactly the size to send, folding the
+    // scale into a colour conversion it had to do anyway. Send it untouched.
+    //
+    // The command thread can change scale or zoom between the caller reading
+    // them and this call, in which case this one frame goes out at the scale it
+    // was built for and without any new zoom, and the next frame is built from
+    // the new values. Scaling here instead would apply the scale a second time
+    // (a 50% frame of a 640px source would go out at 160px, not 320px), and
+    // cropping here would do it in the reduced image's coordinates and leave
+    // last_crop in the wrong units for every later frame. refs #3681
+    Debug(3, "Sending pre-scaled %dx%d, scale %d", image->Width(), image->Height(), pre_scaled_by);
+    last_scale = pre_scaled_by;
+    unzoomedFrameSent();
+    return image;
+  }
+
   /* zooming should happen before scaling to preserve quality
    * scale is relative to base dimensions, and represents the rough ratio between desired view size and base dimensions
    */
   bool image_copied = false;
 
-  if (zoom != 100) {
+  // Snapshot the pan/zoom/scale state once. The command thread can change any
+  // of these at any point, and the crop below is derived from all three
+  // together, so re-reading them mid-calculation could mix a new zoom with an
+  // old click position and produce a crop that matches neither.
+  const int cur_zoom = zoom.load();
+  const int cur_scale = scale.load();
+  const unsigned short cur_x = x.load();
+  const unsigned short cur_y = y.load();
+
+  if (cur_zoom == ZM_SCALE_BASE) {
+    // Not zoomed, so a later zoom-in starts from the whole frame
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
+
+  if (cur_zoom != 100) {
     int base_image_width = image->Width(),
         base_image_height = image->Height(),
-        disp_image_width = image->Width() * scale/ZM_SCALE_BASE,
-        disp_image_height = image->Height() * scale / ZM_SCALE_BASE;
+        disp_image_width = image->Width() * cur_scale/ZM_SCALE_BASE,
+        disp_image_height = image->Height() * cur_scale / ZM_SCALE_BASE;
     /* x and y are scaled by web UI to base dimensions units.
      * When zooming, we blow up the image by the amount 150 for first zoom, right? 150%, then cut out a base sized chunk
      * However if we have zoomed before, then we are zooming into the previous cutout
      * The box stored in last_crop should be in base_image units, So we need to turn x,y into percentages, then apply to last_crop
      */
-    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    if (!last_crop.Hi().x_ && !last_crop.Hi().y_) {
+      last_crop = Box({0, 0}, {base_image_width, base_image_height});
+    } else if (last_crop_width && (last_crop_width != base_image_width || last_crop_height != base_image_height)) {
+      // Keep the same part of the picture in the new frame's coordinates.
+      Debug(2, "Rescaling crop from %dx%d to %dx%d", last_crop_width, last_crop_height,
+            base_image_width, base_image_height);
+      last_crop = Box({last_crop.Lo().x_ * base_image_width / last_crop_width,
+                       last_crop.Lo().y_ * base_image_height / last_crop_height},
+                      {last_crop.Hi().x_ * base_image_width / last_crop_width,
+                       last_crop.Hi().y_ * base_image_height / last_crop_height});
+    }
 
-    double x_percent = static_cast<double>(x * ZM_SCALE_BASE) / base_image_width;
-    double y_percent = static_cast<double>(y * ZM_SCALE_BASE) / base_image_height;
-    Debug(2, "click percent %dx%d => %.2fx%.2f", x, y, x_percent, y_percent);
+    // A click sent before a change of resolution can lie outside this frame.
+    double x_percent = static_cast<double>(std::min<int>(cur_x, base_image_width) * ZM_SCALE_BASE) / base_image_width;
+    double y_percent = static_cast<double>(std::min<int>(cur_y, base_image_height) * ZM_SCALE_BASE) / base_image_height;
+    Debug(2, "click percent %dx%d => %.2fx%.2f", cur_x, cur_y, x_percent, y_percent);
 
     // If we were previously zoomed in, then the coordinate percentages are into the crop, so calculate the click coordinates in base image
     int crop_x = last_crop.Lo().x_ + (x_percent * last_crop.Width() / ZM_SCALE_BASE);
     int crop_y = last_crop.Lo().y_ + (y_percent * last_crop.Height() / ZM_SCALE_BASE);
-    Debug(2, "crop click %dx%d => %dx%d out of %dx%d", x, y, crop_x, crop_y, last_crop.Width(), last_crop.Height());
+    Debug(2, "crop click %dx%d => %dx%d out of %dx%d", cur_x, cur_y, crop_x, crop_y, last_crop.Width(), last_crop.Height());
 
-    int zoom_image_width = base_image_width * zoom / ZM_SCALE_BASE,
-        zoom_image_height = base_image_height * zoom / ZM_SCALE_BASE,
-        click_x = crop_x * zoom / ZM_SCALE_BASE,
-        click_y = crop_y * zoom / ZM_SCALE_BASE;
-    Debug(2, "adjusted click %dx%d * %d zoom => %dx%d out of %dx%d", x, y, zoom, click_x, click_y, zoom_image_width, zoom_image_height);
+    int zoom_image_width = base_image_width * cur_zoom / ZM_SCALE_BASE,
+        zoom_image_height = base_image_height * cur_zoom / ZM_SCALE_BASE,
+        click_x = crop_x * cur_zoom / ZM_SCALE_BASE,
+        click_y = crop_y * cur_zoom / ZM_SCALE_BASE;
+    Debug(2, "adjusted click %dx%d * %d zoom => %dx%d out of %dx%d", cur_x, cur_y, cur_zoom, click_x, click_y, zoom_image_width, zoom_image_height);
 
     // These can go out of image. Resulting size will be less than base image. That's ok.
     // We don't want to center it, we want to keep the relative offset from center where the click is.
@@ -222,8 +310,17 @@ Image *StreamBase::prepareImage(Image *image) {
     }
 
     Debug(3, "Cropping to %d,%d -> %d,%d %dx%din blown up image", lo_x, lo_y, hi_x, hi_y, hi_x-lo_x, hi_y-lo_y);
-    // Scaled back to base_image dimensions
-    last_crop = Box({lo_x*ZM_SCALE_BASE/zoom, lo_y*ZM_SCALE_BASE/zoom}, {hi_x*ZM_SCALE_BASE/zoom, hi_y*ZM_SCALE_BASE/zoom});
+    // Scaled back to base_image dimensions; kept while the view is unchanged, since redoing it rounds towards 0,0.
+    if ((cur_zoom != last_zoom) || (cur_x != last_x) || (cur_y != last_y))
+      last_crop = Box({lo_x*ZM_SCALE_BASE/cur_zoom, lo_y*ZM_SCALE_BASE/cur_zoom}, {hi_x*ZM_SCALE_BASE/cur_zoom, hi_y*ZM_SCALE_BASE/cur_zoom});
+    last_crop_width = base_image_width;
+    last_crop_height = base_image_height;
+    // Zooming in and out at an edge shrinks the crop a little each time, until it
+    // leaves the frame or turns inside out. Keep it in the frame, else use the whole frame.
+    last_crop = Box({std::max(last_crop.Lo().x_, 0), std::max(last_crop.Lo().y_, 0)},
+                    {std::min(last_crop.Hi().x_, base_image_width - 1), std::min(last_crop.Hi().y_, base_image_height - 1)});
+    if ((last_crop.Lo().x_ >= last_crop.Hi().x_) || (last_crop.Lo().y_ >= last_crop.Hi().y_))
+      last_crop = Box({0, 0}, {base_image_width - 1, base_image_height - 1});
 
     Debug(3, "Cropping to %d,%d -> %d,%d", last_crop.Lo().x_, last_crop.Lo().y_, last_crop.Hi().x_, last_crop.Hi().y_);
     if ( !image_copied ) {
@@ -234,23 +331,32 @@ Image *StreamBase::prepareImage(Image *image) {
     }
     image->Crop(last_crop);
     image->Scale(disp_image_width, disp_image_height);
-  } else if (scale != ZM_SCALE_BASE) {
-    Debug(3, "scaling by %d from %dx%d", scale, image->Width(), image->Height());
+  } else if (cur_scale != ZM_SCALE_BASE) {
+    Debug(3, "scaling by %d from %dx%d", cur_scale, image->Width(), image->Height());
+    // The source may be a shared-memory frame we must not modify, so scale
+    // into a reusable scratch image instead of in place.
     static Image copy_image;
-    copy_image.Assign(*image);
-    image = &copy_image;
-    image_copied = true;
-    image->Scale(scale);
+    unsigned int new_width = (image->Width() * cur_scale) / ZM_SCALE_BASE;
+    unsigned int new_height = (image->Height() * cur_scale) / ZM_SCALE_BASE;
+    if (av_image_check_size(new_width, new_height, 0, nullptr) >= 0
+        && copy_image.ScaleFrom(*image, new_width, new_height)) {
+      image = &copy_image;
+      image_copied = true;
+    } else {
+      Debug(1, "Cannot scale %dx%d by %d, sending unscaled", image->Width(), image->Height(), cur_scale);
+    }
   }
   Debug(3, "Sending %dx%d", image->Width(), image->Height());
 
-  last_scale = scale;
-  last_zoom = zoom;
-  last_x = x;
-  last_y = y;
+  // Record what was actually rendered, not whatever the command thread may
+  // have set since.
+  last_scale = cur_scale;
+  last_zoom = cur_zoom;
+  last_x = cur_x;
+  last_y = cur_y;
 
   return image;
-}  // end Image *StreamBase::prepareImage(Image *image)
+}  // end Image *StreamBase::prepareImage(Image *image, int pre_scaled_by)
 
 bool StreamBase::sendTextFrame(const char *frame_text) {
   int width = 640;
@@ -267,7 +373,7 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
     labelsize = monitor->LabelSize();
   }
   Debug(2, "Sending %dx%dx%dx%d * %d scale text frame '%s'",
-        width, height, colours, subpixelorder, scale, frame_text);
+        width, height, colours, subpixelorder, scale.load(), frame_text);
 
   Image image(width, height, colours, subpixelorder);
   image.Clear();
@@ -288,14 +394,17 @@ bool StreamBase::sendTextFrame(const char *frame_text) {
         return false;
       }
     }
-    /* double pts = */ vid_stream->EncodeFrame(image.Buffer(), image.Size());
+    // The text is drawn at the current monitor's size and colours, which need
+    // not be those the stream was opened with: event frames are RGB24, and
+    // gapless playback can move to another monitor (refs #4186).
+    /* double pts = */ vid_stream->EncodeImage(image);
   } else {
     static unsigned char buffer[ZM_MAX_IMAGE_SIZE];
     size_t n_bytes = 0;
 
     image.EncodeJpeg(buffer, &n_bytes);
 
-    if (type == STREAM_JPEG) {
+    if (type == STREAM_JPEG || type == STREAM_RAW || type == STREAM_ZIP) {
       if (0 > fputs("--" BOUNDARY "\r\n", stdout)) {
         Debug(1, "Error sending  --" BOUNDARY "\r\n");
         return false;
@@ -331,9 +440,10 @@ void StreamBase::openComms() {
     unsigned int length = snprintf(
                             sock_path_lock,
                             sizeof(sock_path_lock),
-                            "%s/zms-%06d.lock",
+                            "%s/zms-%06d-%d.lock",
                             staticConfig.PATH_SOCKS.c_str(),
-                            connkey
+                            connkey,
+                            owner
                           );
     if ( length >= sizeof(sock_path_lock) ) {
       Warning("Socket lock path was truncated.");
@@ -374,9 +484,10 @@ void StreamBase::openComms() {
     length = snprintf(
                loc_sock_path,
                sizeof(loc_sock_path),
-               "%s/zms-%06ds.sock",
+               "%s/zms-%06d-%ds.sock",
                staticConfig.PATH_SOCKS.c_str(),
-               connkey
+               connkey,
+               owner
              );
     if ( length >= sizeof(loc_sock_path) ) {
       Warning("Socket path was truncated.");
@@ -395,7 +506,7 @@ void StreamBase::openComms() {
       Fatal("Can't bind: %s", strerror(errno));
     }
 
-    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey);
+    snprintf(rem_sock_path, sizeof(rem_sock_path), "%s/zms-%06d-%dw.sock", staticConfig.PATH_SOCKS.c_str(), connkey, owner);
     strncpy(rem_addr.sun_path, rem_sock_path, sizeof(rem_addr.sun_path));
     rem_addr.sun_family = AF_UNIX;
 
@@ -413,9 +524,35 @@ void StreamBase::closeComms() {
       close(sd);
       sd = -1;
     }
-    // Can't delete any files because another zms might have come along and opened them and is waiting on the lock.
+    // Remove our command socket, but only while we still hold the lock, and only
+    // if we actually got the lock.
+    //
+    // Note this is zms-<connkey>-<owner>s.sock, not the .lock file. A second zms sharing
+    // this connkey and owner is blocked in flock(LOCK_EX) on the .lock file, and the first
+    // thing it does after winning that lock is unlink this very path itself
+    // ("Unlink before bind" in openComms()). It never reads our socket file, so
+    // removing it here only does early what our successor would do anyway.
+    //
+    // Ordering matters: if we unlinked after releasing the lock we could delete
+    // a socket the successor had already bound, leaving it unreachable.
+    //
+    // The lock_fd guard matters because openComms() carries on and binds even
+    // when it fails to take the lock, so without it a lockless zms could delete
+    // a socket belonging to the zms that does hold the lock. Leaking the file in
+    // that case is no worse than the behaviour before this check existed.
+    //
+    // This is worth doing because web/ajax/stream.php uses file_exists() on this
+    // path to decide whether zms is listening. A socket left behind by an exited
+    // zms makes that check succeed, so the sendto() fails with ECONNREFUSED
+    // instead of waiting for the new process to bind, and the command is lost.
+    if ( (lock_fd >= 0) && loc_sock_path[0]
+         && (unlink(loc_sock_path) < 0) && (errno != ENOENT) ) {
+      Warning("Failed to unlink '%s': %s", loc_sock_path, strerror(errno));
+    }
+    // Don't unlink sock_path_lock: another zms may already be waiting on it.
     if ( lock_fd >= 0 ) {
       close(lock_fd); //close it rather than unlock it in case it got deleted.
+      lock_fd = -1;
     }
   }
 } // end void StreamBase::closeComms

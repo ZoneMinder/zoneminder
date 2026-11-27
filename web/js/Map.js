@@ -22,6 +22,18 @@ function _classCallCheck(instance, Constructor) {
   }
 }
 
+// The popup is set as HTML by Leaflet, so every value from the API is escaped.
+function mapPopupEscape(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;'})[c]);
+}
+
+function mapPopupHtml(thisUrl, id, name, res, fps, url_to_zms, events) {
+  const mid = encodeURIComponent(id);
+  return '<a href="'+mapPopupEscape(thisUrl)+'?view=watch&mid='+mid+'">'+mapPopupEscape(name)+'</a><br>Resolution: '+mapPopupEscape(res)+
+      '<br>FPS: '+mapPopupEscape(fps)+'<br><a href="?view=watch&mid='+mid+'"><img width="400" style="width: 200px;" src="'+mapPopupEscape(url_to_zms)+
+      '"/></a><br/>Events: '+mapPopupEscape(events);
+}
+
 var ZMMap = function() {
   function ZMMap(json) {
     _classCallCheck(this, ZMMap);
@@ -88,6 +100,7 @@ var ZMMap = function() {
               const div_error = document.getElementById("progress-error");
 
               const pins = [];
+              const bounds = [];
 
               for (let i=0, len = monitors.monitors.length; i<len; i++) {
                 const monitor = monitors.monitors[i].Monitor;
@@ -118,37 +131,37 @@ var ZMMap = function() {
                 }
                 const monitor_status = monitors["monitors"][i]["Monitor_Status"];
                 const event_summary = monitors["monitors"][i]["Event_Summary"];
-                const server = new Server(Servers[monitor.ServerId]);
+                const server = new Server(Servers[monitor.ServerId] || Servers[0]);
 
                 const id = monitor["Id"];
                 const fps = monitor_status["CaptureFPS"];
                 const res = monitor["Width"]+"x"+monitor["Height"];
                 const events = event_summary["TotalEvents"];
 
-                const url_to_zms = server.urlToZMS()+'?scale=60&mode=single&monitor='+id+(auth_relay?'&'+auth_relay:'');
-                const popup = '<a href="'+thisUrl+'?view=watch&mid='+monitor.Id+'">'+monitor.Name+'</a><br>Resolution: '+res+'<br>FPS: '+fps+'<br><a href="?view=watch&mid='+id+'"><img width="400" style="width: 200px;" src="'+url_to_zms+'"/></a><br/>Events: '+events;
-                if (event_summary.TotalEvents > 0) {
-                  if (monitor_status.Status == 'Connected') {
-                    L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoConectada})
-                        .addTo(this.map).bindPopup(popup);
-                    //.addTo(map).bindTooltip(popup);
-                    cant_connected += 1;
-                  } else {
-                    L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoDesconectada})
-                        .addTo(this.map).bindPopup(popup);
-                    //.addTo(map).bindTooltip(popup);
-                    cant_disconnected += 1;
-                  }
+                const url_to_zms = zmAuth.appendTo(server.urlToZMS()+'?scale=60&mode=single&monitor='+id);
+                const popup = mapPopupHtml(thisUrl, id, monitor.Name, res, fps, url_to_zms, events);
+                if (monitor_status.Status == 'Connected') {
+                  L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoConectada})
+                      .addTo(this.map).bindPopup(popup);
+                  //.addTo(map).bindTooltip(popup);
+                  cant_connected += 1;
+                } else if (event_summary.TotalEvents > 0) {
+                  L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoDesconectada})
+                      .addTo(this.map).bindPopup(popup);
+                  //.addTo(map).bindTooltip(popup);
+                  cant_disconnected += 1;
                 } else {
                   L.marker([monitor.Latitude, monitor.Longitude], {icon: this.iconoError})
                       .addTo(this.map).bindPopup(popup);
                   cant_error += 1;
                 }
+                bounds.push([monitor.Latitude, monitor.Longitude]);
                 total_cameras += 1;
               } // end foreach monitor
-              const percent_connected = Number.parseFloat(((cant_connected*100)/total_cameras)).toFixed(2);
-              const percent_disconnected = Number.parseFloat(((cant_disconnected*100)/total_cameras)).toFixed(2);
-              const percent_error = Number.parseFloat(((cant_error*100)/total_cameras)).toFixed(2);
+              if (bounds.length) this.map.fitBounds(bounds, {maxZoom: 12});
+              const percent_connected = Number.parseFloat(total_cameras ? (cant_connected*100)/total_cameras : 0).toFixed(2);
+              const percent_disconnected = Number.parseFloat(total_cameras ? (cant_disconnected*100)/total_cameras : 0).toFixed(2);
+              const percent_error = Number.parseFloat(total_cameras ? (cant_error*100)/total_cameras : 0).toFixed(2);
 
               div_connected.style.width = percent_connected+"%";
               div_connected.innerHTML = percent_connected+"%";

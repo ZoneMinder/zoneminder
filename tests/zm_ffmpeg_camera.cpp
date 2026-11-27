@@ -1,0 +1,273 @@
+/*
+ * This file is part of the ZoneMinder Project. See AUTHORS file for Copyright information
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "zm_catch2.h"
+
+#include "zm_ffmpeg_camera.h"
+#include "zm_monitor.h"
+#include "zm_packet.h"
+#include "zm_time.h"
+#include "zm_utils.h"
+
+#include <filesystem>
+#include <memory>
+#include <string>
+
+// ComputeRealtimePace() is the pure decision behind FfmpegCamera's "realtime=1"
+// (ffmpeg -re style) pacing: given the current packet timestamp, the active
+// anchor timestamp, the wall-clock time elapsed since that anchor, and the
+// discontinuity cap, it decides whether to re-anchor and how long to sleep.
+static const Microseconds kCap = std::chrono::duration_cast<Microseconds>(Seconds(10));
+
+TEST_CASE("ComputeRealtimePace: sleeps the full interval when no time has elapsed") {
+  // 40ms into the stream with zero wall-clock elapsed -> wait the whole 40ms.
+  RealtimePaceDecision d = ComputeRealtimePace(40000, 0, Microseconds(0), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(40000));
+}
+
+TEST_CASE("ComputeRealtimePace: sleeps only the remaining interval when partially elapsed") {
+  // Target is 40ms ahead of the anchor, 15ms has already passed -> sleep 25ms.
+  RealtimePaceDecision d = ComputeRealtimePace(40000, 0, Microseconds(15000), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(25000));
+}
+
+TEST_CASE("ComputeRealtimePace: non-zero anchor only the delta matters") {
+  // Anchor at 1s, packet at 1.040s, 10ms elapsed -> 30ms remaining.
+  RealtimePaceDecision d = ComputeRealtimePace(1040000, 1000000, Microseconds(10000), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(30000));
+}
+
+TEST_CASE("ComputeRealtimePace: behind schedule delivers immediately without re-anchoring") {
+  // Only 40ms into the stream but 100ms of wall-clock has passed: we are behind,
+  // so deliver now (no sleep) and keep the anchor so we can catch back up.
+  RealtimePaceDecision d = ComputeRealtimePace(40000, 0, Microseconds(100000), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(0));
+}
+
+TEST_CASE("ComputeRealtimePace: exactly on schedule does not sleep") {
+  RealtimePaceDecision d = ComputeRealtimePace(40000, 0, Microseconds(40000), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(0));
+}
+
+TEST_CASE("ComputeRealtimePace: backward timestamp re-anchors instead of sleeping") {
+  // A timestamp before the anchor (discontinuity/reset) must never produce a
+  // negative sleep; it re-anchors so pacing restarts from the new position.
+  RealtimePaceDecision d = ComputeRealtimePace(500000, 1000000, Microseconds(0), kCap);
+  REQUIRE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(0));
+}
+
+TEST_CASE("ComputeRealtimePace: gap beyond the cap re-anchors instead of stalling") {
+  // 30s ahead of schedule with a 10s cap is treated as a discontinuity, not a
+  // genuine 30s frame interval, so we re-anchor rather than sleep 30s.
+  RealtimePaceDecision d =
+    ComputeRealtimePace(30 * 1000000LL, 0, Microseconds(0), kCap);
+  REQUIRE(d.reanchor);
+  REQUIRE(d.sleep == Microseconds(0));
+}
+
+TEST_CASE("ComputeRealtimePace: a delay right at the cap still sleeps") {
+  // Boundary: delay == cap is allowed (only delays strictly greater re-anchor).
+  RealtimePaceDecision d = ComputeRealtimePace(10 * 1000000LL, 0, Microseconds(0), kCap);
+  REQUIRE_FALSE(d.reanchor);
+  REQUIRE(d.sleep == kCap);
+}
+
+// The Options field is entered as a textarea so an option can go on its own
+// line, but ffmpeg gets it as one string. av_dict_parse_string() takes a set of
+// pair separator characters, so this needs no parsing of our own - but only if
+// the newlines are actually in that set. With just "," a newline is swallowed
+// into the preceding value and every option after the first is lost. These
+// exercise kOptionSeparators itself, the value FfmpegCamera passes.
+static AVDictionary *parse_options(const char *options, const char *pairs_sep) {
+  AVDictionary *opts = nullptr;
+  REQUIRE(av_dict_parse_string(&opts, options, "=", pairs_sep, 0) == 0);
+  return opts;
+}
+
+static std::string dict_get(AVDictionary *opts, const char *key) {
+  const AVDictionaryEntry *e = av_dict_get(opts, key, nullptr, AV_DICT_MATCH_CASE);
+  return e ? e->value : "";
+}
+
+TEST_CASE("ffmpeg options separated by newlines parse as separate entries") {
+  SECTION("newline separated") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\nstimeout=5000000", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp");
+    REQUIRE(dict_get(opts, "stimeout") == "5000000");
+    av_dict_free(&opts);
+  }
+
+  SECTION("comma separated still works") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp,stimeout=5000000", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp");
+    av_dict_free(&opts);
+  }
+
+  SECTION("crlf, blank lines and a trailing newline are not empty entries") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\r\n\r\nstimeout=5000000\n", kOptionSeparators);
+    REQUIRE(av_dict_count(opts) == 2);
+    REQUIRE(dict_get(opts, "stimeout") == "5000000");
+    av_dict_free(&opts);
+  }
+
+  SECTION("a comma-only separator would lose everything after the first newline") {
+    AVDictionary *opts = parse_options("rtsp_transport=tcp\nstimeout=5000000", ",");
+    REQUIRE(av_dict_count(opts) == 1);
+    REQUIRE(dict_get(opts, "rtsp_transport") == "tcp\nstimeout=5000000");
+    av_dict_free(&opts);
+  }
+}
+
+namespace {
+
+class SecondPathMonitor : public Monitor {
+ public:
+  explicit SecondPathMonitor(const std::string &path) : Monitor() { second_path = path; }
+};
+
+const char *kVideoOnly = "data/mp4/video-only.mp4";
+const char *kWithAudio = "data/mp4/sidx-abs.mp4";
+
+std::unique_ptr<Camera> MakeCamera(const Monitor *monitor, const std::string &second_path) {
+  return std::make_unique<FfmpegCamera>(monitor, kVideoOnly, second_path, "", "", "", "",
+                                        160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+}
+
+}  // namespace
+
+TEST_CASE("FfmpegCamera: Close releases the secondary input") {
+  SecondPathMonitor monitor(kWithAudio);
+  auto camera = MakeCamera(&monitor, kWithAudio);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  camera->Close();
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  // Destroying a camera with an open secondary input must not free it twice.
+  camera.reset();
+}
+
+TEST_CASE("FfmpegCamera: a failed secondary reopen leaves no audio stream behind") {
+  const std::string second = "data/mp4/second-input.mp4";
+  std::filesystem::copy_file(kWithAudio, second, std::filesystem::copy_options::overwrite_existing);
+  SecondPathMonitor monitor(second);
+  auto camera = MakeCamera(&monitor, second);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  std::filesystem::remove(second);
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  camera.reset();
+}
+
+TEST_CASE("FfmpegCamera: a re-prime onto a stream without audio drops the old audio stream") {
+  const std::string primary = "data/mp4/reprime-primary.mp4";
+  std::filesystem::copy_file(kWithAudio, primary, std::filesystem::copy_options::overwrite_existing);
+  SecondPathMonitor monitor("");
+  auto camera = std::make_unique<FfmpegCamera>(&monitor, primary, "", "", "", "", "",
+                                               160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+  REQUIRE(camera->getAudioStreamId() >= 0);
+
+  std::filesystem::copy_file(kVideoOnly, primary, std::filesystem::copy_options::overwrite_existing);
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() == nullptr);
+  REQUIRE(camera->getAudioStreamId() == -1);
+
+  camera.reset();
+  std::filesystem::remove(primary);
+}
+
+TEST_CASE("FfmpegCamera: video packets from the secondary input are not delivered as video") {
+  // The secondary input is only there for its audio. Its video stream carries
+  // the same picture as the primary, and handing those packets on would queue
+  // every frame twice and feed a second video stream's timestamps into the
+  // primary's.
+  SecondPathMonitor monitor(kWithAudio);
+  auto camera = MakeCamera(&monitor, kWithAudio);
+
+  REQUIRE(camera->PrimeCapture() == 1);
+  REQUIRE(camera->getAudioStream() != nullptr);
+
+  int delivered = 0;
+  for (int i = 0; i < 400 and delivered < 100; i++) {
+    auto packet = std::make_shared<ZMPacket>();
+    int ret = camera->Capture(packet);
+    if (ret < 0) break;
+    if (ret == 0) continue;
+    delivered++;
+    if (packet->codec_type == AVMEDIA_TYPE_VIDEO) {
+      REQUIRE(packet->stream == camera->getVideoStream());
+    }
+  }
+  REQUIRE(delivered > 0);
+}
+
+TEST_CASE("FfmpegCamera: priming a v4l2 path twice opens it as v4l2 both times") {
+  // The "v4l2://" scheme is only meaningful to us. Stripping it from the
+  // member leaves a bare device node on the next reconnect, which no longer
+  // matches the V4L2 check and is opened without the video4linux2 format.
+  SecondPathMonitor monitor("");
+  const std::string path = "v4l2:///dev/zm-no-such-video-device";
+  auto camera = std::make_unique<FfmpegCamera>(&monitor, path, "", "", "", "", "",
+                                               160, 120, ZM_COLOUR_RGB24, -1, -1, -1, -1, true, true);
+  REQUIRE(camera->PrimeCapture() <= 0);
+  REQUIRE(static_cast<FfmpegCamera *>(camera.get())->Path() == path);
+  REQUIRE(camera->PrimeCapture() <= 0);
+  REQUIRE(static_cast<FfmpegCamera *>(camera.get())->Path() == path);
+}
+
+TEST_CASE("FindForcedInputFormat: input_format forces the demuxer and is consumed") {
+  AVDictionary *opts = nullptr;
+  av_dict_set(&opts, "input_format", "mjpeg", 0);
+  av_dict_set(&opts, "tls_verify", "0", 0);
+  auto format = FindForcedInputFormat(&opts);
+  REQUIRE(format != nullptr);
+  REQUIRE(std::string(format->name).find("mjpeg") != std::string::npos);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  REQUIRE(av_dict_get(opts, "tls_verify", nullptr, 0) != nullptr);
+  av_dict_free(&opts);
+}
+
+TEST_CASE("FindForcedInputFormat: unknown name or no key leaves ffmpeg to probe") {
+  AVDictionary *opts = nullptr;
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  av_dict_set(&opts, "input_format", "no-such-demuxer", 0);
+  REQUIRE(FindForcedInputFormat(&opts) == nullptr);
+  REQUIRE(av_dict_get(opts, "input_format", nullptr, 0) == nullptr);
+  av_dict_free(&opts);
+}

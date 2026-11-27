@@ -27,6 +27,11 @@ $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 $GLOBALS['dbConn'] = false;
 require_once('logger.php');
 
+// PDO::MYSQL_ATTR_* is deprecated since PHP 8.5 in favour of Pdo\Mysql::ATTR_*, which exists from 8.4.
+function dbMysqlAttr($name) {
+  return defined('Pdo\\Mysql::ATTR_'.$name) ? constant('Pdo\\Mysql::ATTR_'.$name) : constant('PDO::MYSQL_ATTR_'.$name);
+}
+
 function dbConnect() {
   global $dbConn;
 
@@ -48,13 +53,24 @@ function dbConnect() {
   }
   $dsn .= 'dbname='.ZM_DB_NAME.';charset=utf8mb4';
 
+  // From PHP 8.1, pdo_mysql returns integers and floats as PHP ints and floats
+  // with emulated prepares too, as it does with server-side ones. There, let
+  // PDO bind the parameters itself: one round trip per statement instead of
+  // three (prepare, execute, close). Older PHP would return every value as a
+  // string, so it keeps server-side prepares. Emulated prepares would accept
+  // several statements in one string, so that is turned off.
+  $emulatePrepares = PHP_VERSION_ID >= 80100;
+
   try {
-    $dbOptions = null;
+    $dbOptions = array();
+    if ( $emulatePrepares ) {
+      $dbOptions[dbMysqlAttr('MULTI_STATEMENTS')] = false;
+    }
     if ( defined('ZM_DB_SSL_CA_CERT') and ZM_DB_SSL_CA_CERT ) {
-      $dbOptions = array(
-        PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
-        PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
-        PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
+      $dbOptions += array(
+        dbMysqlAttr('SSL_CA')   => ZM_DB_SSL_CA_CERT,
+        dbMysqlAttr('SSL_KEY')  => ZM_DB_SSL_CLIENT_KEY,
+        dbMysqlAttr('SSL_CERT') => ZM_DB_SSL_CLIENT_CERT,
       );
       // Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
       // is set: truthy verifies, false-y (0/false/no/off) allows a self-signed
@@ -65,16 +81,14 @@ function dbConnect() {
       if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') ) {
         $verify_value = strtolower(trim((string)ZM_DB_SSL_VERIFY_SERVER_CERT));
         if ( $verify_value !== '' ) {
-          $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+          $dbOptions[dbMysqlAttr('SSL_VERIFY_SERVER_CERT')] =
             !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
         }
       }
-      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
-    } else {
-      $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS);
     }
+    $dbConn = new PDO($dsn, ZM_DB_USER, ZM_DB_PASS, $dbOptions);
 
-    $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+    $dbConn->setAttribute(PDO::ATTR_EMULATE_PREPARES, $emulatePrepares);
     $dbConn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
   } catch(PDOException $ex) {
     global $error_message;
@@ -85,14 +99,45 @@ function dbConnect() {
   return $dbConn;
 }  // end function dbConnect
 
-if ( !dbConnect() ) {
-  include('views/no_database_connection.php');
-  exit();
+// $dbConn is tri-state: false means no connection has been attempted, null means
+// an attempt was made and failed, and a PDO means we are connected.
+//
+// Connecting happens on first use rather than when this file is included. Every
+// model in web/includes requires database.php, so connecting at include time
+// meant that merely loading a class opened a socket - and, on failure, rendered
+// an error page and killed the request from inside a library include. Deferring
+// it means code that only needs the functions here never touches the database.
+
+// Return the connection, opening it if needed. A request that cannot reach the
+// database cannot be served, so this renders the error view and stops, which is
+// what including this file used to do - just at the point a query is actually
+// attempted.
+function zmDbConn() {
+  global $dbConn;
+  if ($dbConn === false) dbConnect();
+  if (!$dbConn) {
+    // Absolute path: the previous relative include only resolved when the cwd
+    // was web/, so it failed for anything served out of web/api/.
+    include(__DIR__.'/../views/no_database_connection.php');
+    exit();
+  }
+  return $dbConn;
+}
+
+// As above, but returns null instead of ending the request. For callers that
+// have something useful to do without a database - the logger falls back to
+// error_log() - and must not turn a logging call into a fatal error.
+function zmDbConnOrNull() {
+  global $dbConn;
+  if ($dbConn === false) dbConnect();
+  return $dbConn ? $dbConn : null;
 }
 
 function dbDisconnect() {
   global $dbConn;
-  $dbConn = null;
+  // false, not null: this is "no longer connected", not "connecting failed", so
+  // a later query is free to open a new connection.
+  $dbConn = false;
 }
 
 function dbLogOff() {
@@ -123,7 +168,8 @@ function dbLog($sql, $update=false) {
 }
 
 function dbError($sql) {
-  global $dbConn;
+  $dbConn = zmDbConnOrNull();
+  if (!$dbConn) return '';
   $error = $dbConn->errorInfo();
   if (!$error[0])
     return '';
@@ -134,27 +180,48 @@ function dbError($sql) {
 }
 
 function dbEscape( $string ) {
-  global $dbConn;
-  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
-    return $dbConn->quote(stripslashes($string));
-  else
-    return $dbConn->quote($string);
+  $dbConn = zmDbConn();
+  return $dbConn->quote($string);
+}
+
+// The bound values of a failed statement, for its Error line: those go to the
+// Logs table, which every System=View user can read, and the values of a
+// Users or Monitors write are password hashes and camera passwords. They are
+// logged only when SQL debugging (ZM_DB_DEBUG) is on; positional values have
+// no names to redact by.
+function dbParamsForLog($params) {
+  if (!$params) return '';
+  if (defined('ZM_DB_DEBUG')) return implode(',', $params);
+  return count($params).' values, logged with ZM_DB_DEBUG';
 }
 
 function dbQuery($sql, $params=NULL, $debug = false) {
-  global $dbConn;
+  $dbConn = zmDbConn();
   if (dbLog($sql, true))
     return;
   $result = NULL;
   try {
     if (isset($params)) {
       if (!$result = $dbConn->prepare($sql)) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        // Read before logging: a DB log target writes through the same
+        // connection, which replaces its errorInfo, and calls dbQuery, which
+        // clears dbLastError.
+        $error = implode(' ', $dbConn->errorInfo());
+        ZM\Error("SQL: Error preparing $sql: $error");
+        $GLOBALS['dbLastError'] = $error;
         return NULL;
       }
 
-      if (!$result->execute($params)) {
+      // Integers are bound as integers, so that LIMIT ? still works when
+      // prepares are emulated (a string would be quoted).
+      foreach ($params as $key => $value) {
+        // A bool bound as a string is '' for false, which strict mode rejects for a number column.
+        $type = is_int($value) ? PDO::PARAM_INT : (is_bool($value) ? PDO::PARAM_BOOL : PDO::PARAM_STR);
+        $result->bindValue(is_int($key) ? $key + 1 : $key, $value, $type);
+      }
+      if (!$result->execute()) {
         ZM\Error("SQL: Error executing $sql: " . print_r($result->errorInfo(), true));
+        $GLOBALS['dbLastError'] = implode(' ', $result->errorInfo());
         return NULL;
       }
     } else {
@@ -163,7 +230,10 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       }
       $result = $dbConn->query($sql);
       if ( ! $result ) {
-        ZM\Error("SQL: Error preparing $sql: " . $pdo->errorInfo);
+        // Read before logging, as for prepare() above.
+        $error = implode(' ', $dbConn->errorInfo());
+        ZM\Error("SQL: Error running $sql: $error");
+        $GLOBALS['dbLastError'] = $error;
         return NULL;
       }
     }
@@ -171,16 +241,24 @@ function dbQuery($sql, $params=NULL, $debug = false) {
       ZM\Debug('SQL: '.$sql.' '.($params?implode(',',$params):'').' rows: '.$result->rowCount());
     }
   } catch(PDOException $e) {
-    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . ($params?implode(',',$params):''));
+    ZM\Error("SQL-ERR '".$e->getMessage()."', statement was '".$sql."' params:" . dbParamsForLog($params));
+    $GLOBALS['dbLastError'] = $e->getMessage();
     return NULL;
   }
+  $GLOBALS['dbLastError'] = null;
   return $result;
+}
+
+// Human-readable text of the most recent dbQuery() failure, or '' if the last
+// query succeeded. Only meaningful immediately after dbQuery() returns NULL.
+function dbLastError() {
+  return isset($GLOBALS['dbLastError']) ? $GLOBALS['dbLastError'] : '';
 }
 
 function dbFetchOne($sql, $col=false, $params=NULL) {
   $result = dbQuery($sql, $params);
   if ( !$result ) {
-    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? 'params: ' . join(',',$params) : ''));
+    ZM\Error("SQL-ERR dbFetchOne no result, statement was '".$sql."'".($params ? ' params: ' . dbParamsForLog($params) : ''));
     return false;
   }
   if ( !$result->rowCount() ) {
@@ -191,7 +269,7 @@ function dbFetchOne($sql, $col=false, $params=NULL) {
   if ( $result && ($dbRow = $result->fetch(PDO::FETCH_ASSOC)) ) {
     if ( $col ) {
       if ( ! array_key_exists($col, $dbRow) ) {
-        ZM\Warning("$col does not exist in the returned row " . print_r($dbRow, true));
+        ZM\Warning("$col does not exist in the returned row " . print_r(ZM\redactForLog($dbRow), true));
         return false;
       }
       return $dbRow[$col];
@@ -205,7 +283,7 @@ function dbFetchAll($sql, $col=false, $params=NULL) {
   $dbRows = array();
   $result = dbQuery($sql, $params);
   if ( ! $result ) {
-    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? 'params: '.join(',', $params) : ''));
+    ZM\Error("SQL-ERR dbFetchAll no result, statement was '".$sql."'".($params ? ' params: '.dbParamsForLog($params) : ''));
     return $dbRows;
   }
 
@@ -218,6 +296,7 @@ function dbFetchAssoc($sql, $indexCol, $dataCol=false) {
   $result = dbQuery($sql);
 
   $dbRows = array();
+  if ( !$result ) return $dbRows;
   while( $dbRow = $result->fetch(PDO::FETCH_ASSOC) )
     $dbRows[$dbRow[$indexCol]] = $dataCol ? $dbRow[$dataCol] : $dbRow;
   return $dbRows;
@@ -239,11 +318,11 @@ function dbFetchNext($result, $col=false) {
 
 function dbNumRows($sql, $params=NULL) {
   $result = dbQuery($sql, $params);
-  return $result->rowCount();
+  return $result ? $result->rowCount() : 0;
 }
 
 function dbInsertId() {
-  global $dbConn;
+  $dbConn = zmDbConn();
   return $dbConn->lastInsertId();
 }
 

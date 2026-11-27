@@ -54,9 +54,27 @@ TEST_CASE("FontVariant: construction") {
     REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
   }
 
+  SECTION("height is zero") {
+    constexpr uint8 height = 0;
+    constexpr uint8 width = 10;
+    constexpr uint8 padding = 2;
+    std::vector<uint64> bitmap;
+
+    REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
+  }
+
   SECTION("width out of range") {
     constexpr uint8 height = 10;
     constexpr uint8 width = FontVariant::kMaxCharWidth + 1;
+    constexpr uint8 padding = 2;
+    std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
+
+    REQUIRE_THROWS(variant = FontVariant(height, width, padding, bitmap));
+  }
+
+  SECTION("width is zero") {
+    constexpr uint8 height = 10;
+    constexpr uint8 width = 0;
     constexpr uint8 padding = 2;
     std::vector<uint64> bitmap(FontVariant::kMaxNumCodePoints * height);
 

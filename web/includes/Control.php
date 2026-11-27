@@ -40,6 +40,7 @@ class Control extends ZM_Object {
     'HasTurboTilt' => 0,
     'TurboTiltSpeed' => NULL,
     'CanZoom' => 0,
+    'CanAutoZoom' => 0,
     'CanZoomAbs' => 0,
     'CanZoomRel' => 0,
     'CanZoomCon' => 0,
@@ -100,12 +101,15 @@ class Control extends ZM_Object {
     'MaxWhiteSpeed' => NULL,
     'CanLight' => 0,
     'CanIndicatorLight' => 0,
+    'CanAudioPlay' => 0,
+    'MinAudioFile' => NULL,
+    'MaxAudioFile' => NULL,
+    'CanAudioVolume' => 0,
     'HasPresets' => 0,
     'NumPresets' => 0,
     'HasHomePreset' => 0,
     'CanSetPresets' => 0,
     'Name' => 'New',
-    'Type' => 'Local',
     'Protocol' => NULL
     );
 
@@ -128,6 +132,11 @@ class Control extends ZM_Object {
     $cmds['LightOff'] = 'lightOff';
     $cmds['IndicatorLightOn']  = 'indicatorLightOn';
     $cmds['IndicatorLightOff'] = 'indicatorLightOff';
+
+    $cmds['AudioPlay'] = 'audioPlay';
+    $cmds['AudioStop'] = 'audioStop';
+    $cmds['AudioVolumeUp'] = 'audioVolumeUp';
+    $cmds['AudioVolumeDown'] = 'audioVolumeDown';
 
     $cmds['PresetSet'] = 'presetSet';
     $cmds['PresetGoto'] = 'presetGoto';
@@ -200,6 +209,7 @@ class Control extends ZM_Object {
       }
       $cmds['WhiteIn'] = $cmds['WhiteRoot'].'In';
       $cmds['WhiteOut'] = $cmds['WhiteRoot'].'Out';
+      $cmds['WhiteStop'] = 'whiteStop';
       $cmds['WhiteAuto'] = 'whiteAuto';
       $cmds['WhiteMan'] = 'whiteMan';
     }

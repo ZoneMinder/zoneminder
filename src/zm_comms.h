@@ -342,12 +342,14 @@ class UnixSocket : virtual public Socket {
 
  protected:
   bool resolveLocal(const char *serv, const char *proto) {
+    delete mLocalAddr;
     SockAddrUnix *addr = new SockAddrUnix;
     mLocalAddr = addr;
     return addr->resolve(serv, proto);
   }
 
   bool resolveRemote(const char *path, const char *proto) {
+    delete mRemoteAddr;
     SockAddrUnix *addr = new SockAddrUnix;
     mRemoteAddr = addr;
     return addr->resolve(path, proto);
@@ -507,18 +509,21 @@ class TcpSocket : virtual public Socket {
   const char *getProtocol() const override { return "tcp"; }
 };
 
+// NOTE: Socket is a virtual base, so the most-derived class must initialize
+// it directly; delegating through TcpSocket alone would leave the accepted
+// descriptor unset (mSd == -1).
 class TcpInetSocket : virtual public TcpSocket, virtual public InetSocket {
  public:
   TcpInetSocket() = default;
   TcpInetSocket(const TcpInetSocket &socket, int newSd)
-    : TcpSocket(socket, newSd) {}
+    : Socket(socket, newSd), TcpSocket(socket, newSd) {}
 };
 
 class TcpUnixSocket : virtual public TcpSocket, virtual public UnixSocket {
  public:
   TcpUnixSocket() = default;
   TcpUnixSocket(const TcpUnixSocket &socket, int newSd)
-    : TcpSocket(socket, newSd) {}
+    : Socket(socket, newSd), TcpSocket(socket, newSd) {}
 };
 
 class TcpInetClient : public TcpInetSocket {

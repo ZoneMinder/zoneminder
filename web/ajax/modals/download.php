@@ -16,8 +16,8 @@ if (!file_exists(ZM_DIR_EXPORTS)) {
 }
 chmod(ZM_DIR_EXPORTS, 0700);
 
-$eid = isset($_REQUEST['eid']) ? $_REQUEST['eid'] : '';
-$eids = isset($_REQUEST['eids']) ? $_REQUEST['eids'] : array();
+$eid = isset($_REQUEST['eid']) ? validCardinal($_REQUEST['eid']) : '';
+$eids = (isset($_REQUEST['eids']) and is_array($_REQUEST['eids'])) ? $_REQUEST['eids'] : array();
 $generated = isset($_REQUEST['generated']) ? $_REQUEST['generated'] : '';
 $exportFileName = 'zmDownload';
 
@@ -29,19 +29,20 @@ if (isset($_REQUEST['filter'])) {
 }
 
 if ($filter) {
-  if (isset($_REQUEST['MonitorId'])) {
+  if (isset($_REQUEST['MonitorId']) and is_array($_REQUEST['MonitorId'])) {
     $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $_REQUEST['MonitorId']), 'cnj' => 'and'));
   }
-  if (isset($_REQUEST['GroupId'])) {
+  if (isset($_REQUEST['GroupId']) and is_array($_REQUEST['GroupId'])) {
     $monitor_ids = [];
     foreach ($_REQUEST['GroupId'] as $group_id) {
       $group = ZM\Group::find_one(['Id'=>$group_id]);
       if ($group) {
-        $monitor_ids += $group->MonitorIds();
+        $monitor_ids = array_merge($monitor_ids, $group->MonitorIds());
         $exportFileName .= ' '.$group->Name();
       }
     }
-    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',', $monitor_ids), 'cnj' => 'and'));
+    # An empty value drops the term, which would export every event. Monitor 0 matches nothing.
+    $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => count($monitor_ids) ? implode(',', array_unique($monitor_ids)) : '0', 'cnj' => 'and'));
   }
 }
 $total_size = 0;
@@ -100,7 +101,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     $result .= '<input type="hidden" name="id" value="' .validInt($eid). '"/>'.PHP_EOL;
 
     $Event = new ZM\Event($eid);
-    if (!$Event->Id()) {
+    if (!$Event->Id() or !$Event->canView()) {
       ZM\Error('Invalid event id');
       $result .= '<div class="error">Invalid event id</div>'.PHP_EOL;
     } else {
@@ -108,22 +109,28 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
     }
   } else if (!empty($eids)) {
     $total_size = 0;
+    $viewable_count = 0;
     foreach ($eids as $eid) {
       if (!validInt($eid)) {
         ZM\Warning("Invalid event id in eids[] $eid");
         continue;
       }
       $Event = new ZM\Event($eid);
+      # Events of monitors the user cannot view are not counted, as downloadEvents() leaves them out.
+      if (!$Event->Id() or !$Event->canView()) continue;
+      $viewable_count++;
       $total_size += $Event->DiskSpace();
       if (!$filter)
         $result .= '<input type="hidden" name="eids[]" value="' .validInt($eid). '"/>'.PHP_EOL;
     }
     unset($eid);
-    $result .= 'Downloading ' . count($eids) . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
+    $result .= 'Downloading ' . $viewable_count . ' events.  Resulting file should be approximately ' . human_filesize($total_size).PHP_EOL;
     $result .= '<br>Free space on disk \''.ZM_DIR_EXPORTS.'\': ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS)).PHP_EOL;
-    $result .= '<br>Will remain free: ' . human_filesize(disk_free_space(ZM_DIR_EXPORTS) - $total_size).PHP_EOL;
+    # human_filesize() does not scale a negative size, so a download larger than the free space showed as bytes.
+    $remaining = disk_free_space(ZM_DIR_EXPORTS) - $total_size;
+    $result .= '<br>Will remain free: ' . ($remaining < 0 ? '-' : '') . human_filesize(abs($remaining)).PHP_EOL;
     if (count($eids) > 1000 and !$filter) {
-      $results .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
+      $result .= '<span class="warning">Warning: Too many recordings specified.  Download may fail.  Please select fewer recordings</span>';
     }
   } else {
     $result .= '<div class="warning">There are no events found.  Resulting download will be empty.</div>';
@@ -138,7 +145,7 @@ if ($exportFileName == 'zmDownload') $exportFileName .= '-'.$connkey;
           </div>
           <div class="exportFormat">
             <label><?php echo translate('ExportFormat') ?></label>
-            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive" checked="checked"/>
+            <input type="radio" id="exportFormatNoArchive" name="exportFormat" value="noArchive"/>
             <label for="exportFormatNoArchive"><?php echo translate('mp4') ?></label>
             <input type="radio" id="exportFormatTar" name="exportFormat" value="tar"/>
             <label for="exportFormatTar"><?php echo translate('ExportFormatTar') ?></label>

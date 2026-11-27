@@ -59,7 +59,7 @@ our %CamParams = ();
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
-use JSON;
+use JSON::MaybeXS qw(encode_json decode_json);
 
 sub new {
   my $class = shift;
@@ -86,7 +86,11 @@ sub open {
   $$self{username} = 'admin' unless $$self{username};
   $$self{password} = '' unless $$self{password};
   $$self{port} = 80 unless $$self{port};
-  $$self{protocol} = 'http';
+  $$self{protocol} = ($$self{uri} and $$self{uri}->scheme eq 'https') ? 'https' : 'http';
+  if ($$self{protocol} eq 'https') {
+    # Cameras use a self-signed certificate
+    $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+  }
   
   Debug("Reolink HTTP: Using credentials for $$self{host}:$$self{port}, user: $$self{username}");
   
@@ -116,6 +120,12 @@ sub close {
   $self->{state} = 'closed';
 }
 
+# URI returns an IPv6 host without the brackets a URL needs.
+sub url_host {
+  my $self = shift;
+  return $$self{host} =~ /:/ ? '['.$$self{host}.']' : $$self{host};
+}
+
 sub login {
   my $self = shift;
   
@@ -134,7 +144,7 @@ sub login {
   };
   
   my $json = encode_json([$login_cmd]);
-  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+  my $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
 
   $self->printMsg($json, 'Tx');
 
@@ -160,7 +170,7 @@ sub login {
       }
 
       # Retry with the redirected URL
-      $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+      $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
       Debug("Reolink retrying login at: $url");
       $req = HTTP::Request->new(POST => $url);
       $req->content_type('application/json');
@@ -171,7 +181,10 @@ sub login {
 
   if ($res->is_success) {
     my $content = $res->decoded_content;
-    Debug("Login response: $content");
+    # The answer carries the session token as Token.name.
+    my $logged = $content;
+    $logged =~ s/("name"\s*:\s*")([^"]*)/$1.logFingerprint($2)/ge;
+    Debug("Login response: $logged");
     
     my $response;
     eval {
@@ -188,7 +201,7 @@ sub login {
 		    $$self{token_lease_time} = $result->{value}->{Token}->{leaseTime} || 3600;
 		    $$self{token_expiry} = time() + $$self{token_lease_time};
 
-		    Debug("Reolink login successful, token: $$self{token}, expires in: $$self{token_lease_time}s");
+		    Debug('Reolink login successful, token: '.logFingerprint($$self{token}).", expires in: $$self{token_lease_time}s");
 		    return !undef;
 	    } else {
 		    my $code = $result->{code} || 'unknown';
@@ -216,7 +229,7 @@ sub logout {
     param => {}
   };
   
-  $self->sendApiCmd($logout_cmd);
+  $self->sendApiCmd($logout_cmd, 1);
   
   $$self{token} = 'null';
   $$self{token_expiry} = 0;
@@ -237,7 +250,9 @@ sub ensureToken {
 sub sendApiCmd {
   my $self = shift;
   my $cmd = shift;
+  my $retried = shift;
   my $result = undef;
+  my $token_rejected = 0;
 
   # Ensure we have a valid token
   return undef unless $self->ensureToken();
@@ -249,7 +264,7 @@ sub sendApiCmd {
   $self->printMsg($json, 'Tx');
   
   # Construct URL with token
-  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
+  my $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
   
   my $req = HTTP::Request->new(POST => $url);
   $req->content_type('application/json');
@@ -270,11 +285,21 @@ sub sendApiCmd {
           my $code = $response->[0]->{code};
           my $detail = $response->[0]->{error}->{detail} || 'unknown error';
           Error("API returned error code $code: $detail");
+          # rspCode -6 is 'please login first': the camera dropped our token
+          # (reboot, session limit, lease cut short), whatever our own expiry says.
+          $token_rejected = 1 if defined($response->[0]->{error}) and ($response->[0]->{error}->{rspCode} // 0) == -6;
+          $result = undef;
         }
       }
     };
   } else {
     Error('Camera control command FAILED: '.$res->status_line().' for '.$cmds[0]->{cmd});
+  }
+
+  if ($token_rejected and !$retried) {
+    Debug('Token rejected by camera, logging in again');
+    $$self{token} = 'null';
+    return $self->sendApiCmd($cmd, 1);
   }
 
   return $result;
@@ -299,6 +324,21 @@ sub reboot {
 
 # PTZ Control Commands
 
+# A client that passes autostop expects the camera to be left still once the
+# monitor's AutoStopTimeout has run out. Without this a move keeps going and
+# motion detection stays suspended until something else sends a stop.
+sub _autoStopAfter {
+  my $self = shift;
+  my $params = shift;
+  my $stop = shift;
+
+  return unless $self->getParam($params, 'autostop', 0);
+  return unless $self->{Monitor}->{AutoStopTimeout};
+
+  usleep($self->{Monitor}->{AutoStopTimeout});
+  $self->$stop($params);
+}
+
 sub moveConUp {
   my $self = shift;
   my $params = shift;
@@ -318,6 +358,7 @@ sub moveConUp {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDown {
@@ -339,6 +380,7 @@ sub moveConDown {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConLeft {
@@ -360,6 +402,7 @@ sub moveConLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConRight {
@@ -381,6 +424,7 @@ sub moveConRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConUpLeft {
@@ -402,6 +446,7 @@ sub moveConUpLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConUpRight {
@@ -423,6 +468,7 @@ sub moveConUpRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDownLeft {
@@ -444,6 +490,7 @@ sub moveConDownLeft {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveConDownRight {
@@ -465,6 +512,7 @@ sub moveConDownRight {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'moveStop');
 }
 
 sub moveStop {
@@ -507,6 +555,7 @@ sub zoomConTele {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'zoomStop');
 }
 
 sub zoomConWide {
@@ -528,12 +577,14 @@ sub zoomConWide {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'zoomStop');
 }
 
 sub zoomStop {
   my $self = shift;
   
   Debug('Zoom Stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
   
   my $cmd = {
     cmd => 'PtzCtrl',
@@ -569,6 +620,7 @@ sub focusConNear {
   };
   
   $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'focusStop');
 }
 
 sub focusConFar {
@@ -589,6 +641,26 @@ sub focusConFar {
     }
   };
   
+  $self->sendApiCmd($cmd);
+  $self->_autoStopAfter($params, 'focusStop');
+}
+
+sub focusStop {
+  my $self = shift;
+
+  Debug('Focus Stop');
+  $$self{Monitor}->resumeMotionDetection() if !$self->{Monitor}->{ModectDuringPTZ};
+
+  my $cmd = {
+    cmd => 'PtzCtrl',
+    action => 0,
+    param => {
+      channel => $$self{channel},
+      op => 'Stop',
+      speed => 0
+    }
+  };
+
   $self->sendApiCmd($cmd);
 }
 
@@ -642,10 +714,12 @@ sub presetSet {
     cmd => 'SetPtzPreset',
     action => 0,
     param => {
-      channel => $$self{channel},
-      enable => 1,
-      id => int($preset),
-      name => "Preset$preset"
+      PtzPreset => {
+        channel => $$self{channel},
+        enable => 1,
+        id => int($preset),
+        name => "Preset$preset"
+      }
     }
   };
   

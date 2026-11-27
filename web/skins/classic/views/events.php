@@ -25,49 +25,73 @@ if ( !canView('Events') || (!empty($_REQUEST['execute']) && !canEdit('Events')) 
 
 require_once('includes/Event.php');
 require_once('includes/Filter.php');
+require_once('_monitor_filters.php'); // getFilterSelection() for shared zmFilter_* cookies
 
 $eventsSql = 'SELECT E.*,M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId) WHERE';
 if (count($user->unviewableMonitorIds())) {
-  $user_monitor_ids = ' M.Id in ('.implode(',', $user->viewableMonitorIds()).')';
+  $ids = $user->viewableMonitorIds();
+  $user_monitor_ids = ' M.Id in ('.(count($ids) ? implode(',', array_map('intval', $ids)) : '0').')';
   $eventsSql .= $user_monitor_ids;
 } else {
   $eventsSql .= ' 1';
 }
 
 $filter = isset($_REQUEST['filter_id']) ? new ZM\Filter(validCardinal($_REQUEST['filter_id'])) : new ZM\Filter();
-if ( isset($_REQUEST['filter'])) {
+if ( isset($_REQUEST['filter']) && is_array($_REQUEST['filter']) ) {
   $filter->set($_REQUEST['filter']);
 }
  
 if (!$filter->Id()) {
-  $num_terms = count($filter->terms());
+  $sharedMonitorId = getFilterSelection('MonitorId');
+  if (is_array($sharedMonitorId)) $sharedMonitorId = implode(',', $sharedMonitorId);
+  $sharedGroupId = getFilterSelection('GroupId');
+  if (is_array($sharedGroupId)) $sharedGroupId = implode(',', $sharedGroupId);
+
+  # The zmFilter_* cookies remember what was last selected in console, montage
+  # and montagereview. They are a convenience for the default, filter-less page:
+  # a filter given in the request is authoritative and must not be widened or
+  # narrowed by them (issue #5026). Deciding here keeps it in the layer that
+  # knows what was requested - Filter renders the value it is handed and looks
+  # nothing up. Terms keep their cookie name either way, so edits still persist.
+  $use_stored = !isset($_REQUEST['filter']);
+  $storedMonitorId = $use_stored ? $sharedMonitorId : '';
+  $storedGroupId   = $use_stored ? $sharedGroupId : '';
+  $storedNotes     = ($use_stored and isset($_COOKIE['eventsNotes'])) ? $_COOKIE['eventsNotes'] : '';
+  $storedTags      = ($use_stored and isset($_COOKIE['eventsTags'])) ? $_COOKIE['eventsTags'] : '';
+  $storedArchived  = ($use_stored and isset($_COOKIE['zmFilterArchived'])) ? $_COOKIE['zmFilterArchived'] : '';
+  $storedEndTime   = ($use_stored and isset($_COOKIE['zmFilter_EndDateTime'])) ? $_COOKIE['zmFilter_EndDateTime'] : '';
+  # The only one with a default of its own: the list opens on the last hour.
+  $storedStartTime = $use_stored
+    ? (empty($_COOKIE['zmFilter_StartDateTime'])
+        ? date('Y-m-d H:i:s', time()-3600) : $_COOKIE['zmFilter_StartDateTime'])
+    : '';
+
   if (!$filter->has_term('Monitor')) {
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=', 'val'=>'', 'cookie'=>'eventsMonitor'), 0);
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Monitor', 'op'=> '=',
+      'val'=> $storedMonitorId, 'cookie'=>'zmFilter_MonitorId'), 0);
   }
   if (ZM\Group::find_one() and !$filter->has_term('Group'))
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Group', 'op'=> '=', 'cookie'=>'eventsGroup'), 0);
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Group', 'op'=> '=',
+      'val'=> $storedGroupId, 'cookie'=>'zmFilter_GroupId'), 0);
   if (!$filter->has_term('Notes')) {
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE',
+      'val'=> $storedNotes, 'cookie'=>'eventsNotes'));
   }
   if (!$filter->has_term('StartDateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=', 
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeStart']) ? $_COOKIE['eventsStartDateTimeStart'] : date('Y-m-d h:i:s', time()-3600)),
-      'cnj' => 'and', 'cookie'=>'eventsStartDateTimeStart'));
+    $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '>=',
+      'val' => $storedStartTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
   if (!$filter->has_term('StartDateTime', '<=')) {
     $filter->addTerm(array('attr' => 'StartDateTime', 'op' => '<=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsStartDateTimeEnd']) ? $_COOKIE['eventsStartDateTimeEnd'] : ''),
-      'cnj' => 'and', 'cookie'=>'eventsEndDateTimeEnd'));
+      'val' => $storedEndTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
     $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
-      'cnj' => 'and', 'cookie'=>'eventsTags'));
+      'val' => $storedTags, 'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
   if (!$filter->has_term('Archived')) {
     $filter->addTerm(array('attr' => 'Archived', 'op' => '=',
-      'val' => $num_terms ? '' : (isset($_COOKIE['zmFilterArchived']) ? $_COOKIE['zmFilterArchived'] : ''),
-      'cnj' => 'and', 'cookie'=>'zmFilterArchived'));
+      'val' => $storedArchived, 'cnj' => 'and', 'cookie'=>'zmFilterArchived'));
   }
   $filter->sort_terms(['Group','Monitor','StartDateTime','EndDateTime','Notes','Tags','Archived']);
   #$filter->addTerm(array('cnj'=>'and', 'attr'=>'AlarmFrames', 'op'=> '>', 'val'=>'10'));
@@ -93,6 +117,7 @@ echo getNavBarHTML();
               <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
               <button id="tlineBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ShowTimeline') ?>" ><i class="fa fa-history"></i></button>
               <button id="filterBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Filter') ?>"><i class="fa fa-filter"></i></button>
+              <button id="tagsBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('ManageTags') ?>"><i class="fa fa-tags"></i></button>
               <a class="btn" href="#" data-flip-control-object="#fieldsTable"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
             </div>
           </div> <!-- .col-sm-1-->

@@ -5,6 +5,36 @@
 #include "zm_camera.h"
 #include "zm_swscale.h"
 
+// Names tried when loading libvncclient. The unversioned name only exists
+// when the -dev package is installed; the runtime package (which is all the
+// ZoneMinder packages depend on) ships just the versioned soname.
+static const char *const zm_libvnc_names[] = {
+  "libvncclient.so",
+  "libvncclient.so.1",
+  "libvncclient.so.0",
+  nullptr
+};
+
+// Returns the first handle load() gives for one of the names, or nullptr.
+template <typename Loader>
+void *zm_libvnc_open(Loader load) {
+  for (const char *const *name = zm_libvnc_names; *name; ++name) {
+    if (void *handle = load(*name)) return handle;
+  }
+  return nullptr;
+}
+
+// Replaces a VNC framebuffer after a server resize. The capture buffer pointer
+// is updated too so Capture() never reads the freed old buffer.
+template <typename Alloc, typename Free>
+bool zm_libvnc_replace_framebuffer(uint8_t *&frameBuffer, uint8_t *&published,
+                                   int width, int height, Alloc alloc, Free release) {
+  if (frameBuffer) release(frameBuffer);
+  frameBuffer = alloc(static_cast<size_t>(width) * height * 4);
+  published = frameBuffer;
+  return frameBuffer != nullptr;
+}
+
 #if HAVE_LIBVNC
 #include <rfb/rfbclient.h>
 

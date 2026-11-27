@@ -119,7 +119,6 @@ $SLANG = array(
     'BadDevice'            => 'Device must be set to a valid value',
     'BadFPSReportInterval' => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadFormat'            => 'Format must be set to an integer of zero or more',
-    'BadFrameSkip'         => 'Frame skip count must be an integer of zero or more',
     'BadHeight'            => 'Height must be set to a valid value',
     'BadHost'              => 'Host must be set to a valid ip address or hostname, do not include http://',
     'BadImageBufferCount'  => 'Image buffer size must be an integer of 2 or more',
@@ -341,7 +340,6 @@ $SLANG = array(
     'Frame'                => 'Cadru',
     'FrameId'              => 'Nr. cadru',
     'FrameRate'            => 'Frecv. cadre',
-    'FrameSkip'            => 'Omite cadre',
     'Frames'               => 'Cadre',
     'Func'                 => 'Func',
     'Function'             => 'Func&#355;ie',
@@ -387,7 +385,6 @@ $SLANG = array(
     'Last'                 => 'Ultim',
     'Layout'               => 'Layout',                 // Added - 2009-02-08
     'Level'                => 'Level',                  // Added - 2011-06-16
-    'Libvlc'               => 'Libvlc',
     'LimitResultsPost'     => 'rezultate',
     'LimitResultsPre'      => 'Limiteaz&#259; la primele',
     'Line'                 => 'Line',                   // Added - 2011-06-16
@@ -576,7 +573,6 @@ $SLANG = array(
     'ProfileProbeIntro'    => 'The list below shows the existing stream profiles of the selected camera .<br/><br/>Select the desired entry from the list below.<br/><br/>Please note that ZoneMinder cannot configure additional profiles and that choosing a camera here may overwrite any values you already have configured for the current monitor.<br/><br/>', // Added - 2015-04-18
     'Progress'             => 'Progress',               // Added - 2015-04-18
     'Protocol'             => 'Protocol',
-    'RTSPDescribe'         => 'Use RTSP Response Media URL', // Added - 2018-08-30
     'RTSPTransport'        => 'RTSP Transport Protocol', // Added - 2018-08-30
     'Rate'                 => 'Rate',
     'Real'                 => 'Real',
@@ -832,10 +828,6 @@ $OLANG = array(
     'AUTH_HASH_SECRET' => array(
         'Prompt' => "Secret folosit pentru codarea informa&#355;iilor de autentificare",
         'Help' => "C&#226;nd ZoneMinder ruleaz&#259; &#238;n mod de autentificare codat (hashed), necesit&#259; generarea string-urilor de codare care con&#355;in informa&#355;ii criptate ca utilizatorii &#351;i parolele. De&#351;i acest string este destul de sigur, ad&#259;ugarea unui string aleator &#238;mbun&#259;t&#259;&#355;e&#351;te securitatea."
-    ),
-    'OPT_FAST_DELETE' => array(
-        'Prompt' => "La &#351;tergerea evenimentelor &#351;terge numai informa&#355;iile din baza de date",
-        'Help' => "&#206;n mod normal un eveniment creat ca rezultat al unei alarme este compus din unul sau mai multe tabele &#238;n baza de date plus fi&#351;ierele asociate. C&#226;nd &#351;terge&#355;i evenimente din broswer poate dura mult dac&#259; &#351;terge&#355;i mai multe evenimente concomitent. Este recomandat s&#259; activa&#355;i aceast&#259; op&#355;iune, care va &#351;terge doar informa&#355;iile din baza de date. Evenimentele nu vor mai ap&#259;rea la vizualizare, &#351;i vor fi &#351;terse de daemon-ul zmaudit mai t&#226;rziu."
     ),
     'SHM_KEY' => array(
         'Prompt' => "Cheie memorie comuna, modifica&#355;i numai &#238;n cazul conflictelor cu alte aplica&#355;ii",
@@ -1345,12 +1337,6 @@ $OLANG = array(
 		          "\"allowed_media_types=video\" Set datatype to request fromcam (audio, video, data)~~~~".
 		          "\"reorder_queue_size=nnn\" Set number of packets to buffer for handling of reordered packets~~~~".
 		          "\"loglevel=debug\" Set verbosity of FFmpeg (quiet, panic, fatal, error, warning, info, verbose, debug)"
-	),
-	'OPTIONS_LIBVLC' => array(
-		'Help' => "Parameters in this field are passed on to libVLC. Multiple parameters can be separated by ,~~ ".
-		          "Examples (do not enter quotes)~~~~".
-		          "\"--rtp-client-port=nnn\" Set local port to use for rtp data~~~~". 
-		          "\"--verbose=2\" Set verbosity of libVLC"
 	),
 
 

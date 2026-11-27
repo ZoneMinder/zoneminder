@@ -2,9 +2,77 @@
 
 require_once('logger.php');
 
+// In a multi-server setup only the server that records a monitor can drive its
+// camera: zmcontrol.pl runs there. When that is another server, returns the URL
+// that hands it this same control request, or null to handle it here. The other
+// server checks the permissions and builds the command itself. A request that
+// was forwarded once is handled where it lands, so two servers that disagree
+// about the monitor's server don't pass it back and forth.
+function remoteControlUrl($monitor, $request) {
+  if ( !defined('ZM_SERVER_ID') or !ZM_SERVER_ID ) return null;
+  if ( !$monitor->ServerId() or ($monitor->ServerId() == ZM_SERVER_ID) ) return null;
+  if ( !empty($request['forwarded']) ) return null;
+
+  $server = $monitor->Server();
+  if ( !$server->Id() ) return null;
+
+  // Forward only the known control parameters, rebuilt as a fresh request. An
+  // allowlist rather than a denylist, so nothing else the caller sent -- the
+  // credentials this request came with (the other server learns who is asking
+  // from the auth relay below), a stray key, a value PHP folded in from a
+  // cookie -- rides along to the other server.
+  $params = array('view'=>'request', 'request'=>'control');
+  foreach ( array('id', 'control', 'xge', 'yge', 'x', 'y', 'scale', 'preset', 'newLabel', 'action', 'aid', 'response') as $name ) {
+    if ( isset($request[$name]) ) $params[$name] = $request[$name];
+  }
+  $params['forwarded'] = 1;
+  $url = $server->UrlToIndex().'?'.http_build_query($params);
+  $auth_relay = get_auth_relay();
+  if ( $auth_relay ) $url .= '&'.$auth_relay;
+  return $url;
+}
+
+// Sends a control request to the server that records the monitor and returns
+// its reply, or false when that server can't be reached or answers with an
+// error status. A control click is interactive, so cap the wait rather than
+// letting an unreachable server hang the request for default_socket_timeout.
+function forwardControlRequest($url) {
+  $context = stream_context_create(array(
+    'ssl'=>array('verify_peer'=>false, 'verify_peer_name'=>false),
+    'http'=>array('timeout'=>15, 'ignore_errors'=>true),
+  ));
+  // $http_response_header is deprecated since PHP 8.5, so read the status line from the stream.
+  $fp = @fopen($url, 'r', false, $context);
+  $reply = $fp ? stream_get_contents($fp) : false;
+  if ( $reply === false ) {
+    if ( $fp ) fclose($fp);
+    ZM\Error('Could not forward the control request to '.strtok($url, '?'));
+    return false;
+  }
+  $meta = stream_get_meta_data($fp);
+  fclose($fp);
+  $status = isset($meta['wrapper_data'][0]) ? $meta['wrapper_data'][0] : null;
+  // ignore_errors=true returns the body even on a 4xx/5xx; treat anything but a
+  // 2xx (e.g. a login redirect's HTML when the auth relay was rejected) as a
+  // failure rather than relaying it to the browser as a control reply.
+  if ( is_string($status) && !preg_match('#^HTTP/\S+\s+2\d\d#', $status) ) {
+    ZM\Error('Control request to '.strtok($url, '?').' answered '.$status);
+    return false;
+  }
+  return $reply;
+}
+
 function buildControlCommand($monitor) {
   $ctrlCommand = '';
   $control = $monitor->Control();
+
+  // control names the control module method zmcontrol calls, and the options are parsed back
+  // out of this string by spaces, so refuse anything that is not a plain method name.
+  // refs GHSA-qcm7-vq92-f86f
+  if ( !isset($_REQUEST['control']) or !preg_match('/^[A-Za-z][A-Za-z0-9_]*$/', $_REQUEST['control']) ) {
+    ZM\Warning('Invalid control command');
+    return '';
+  }
 
   if ( isset($_REQUEST['xge']) || isset($_REQUEST['yge']) ) {
     $slow = 0.9; // Threshold for slow speed/timeouts
@@ -33,7 +101,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
+              if ( !$control->HasFocusSpeed() || $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
             }
             break;
          }
@@ -52,7 +120,7 @@ function buildControlCommand($monitor) {
         case 'Con' :
           if ( $monitor->AutoStopTimeout() ) {
             $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
-            if ($speed < $slowSpeed) $ctrlCommand .= ' --autostop';
+            if ( !$control->HasZoomSpeed() || $speed < $slowSpeed ) $ctrlCommand .= ' --autostop';
           }
           break;
         }
@@ -150,9 +218,12 @@ function buildControlCommand($monitor) {
               'DownRight' => 'UpRight',
             ),
           );
-          $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-          $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
-          $dirn = $new_dirn;
+          // Only direction names are in the table; a stop command is left as it is.
+          if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
+            $new_dirn = $conversions[$monitor->Orientation()][$dirn];
+            $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
+            $dirn = $new_dirn;
+          }
         }
 
         if ( $control->HasPanSpeed() && $xFactor ) {
@@ -160,8 +231,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -173,8 +243,7 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -228,7 +297,7 @@ function buildControlCommand($monitor) {
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
         $tempY = $y;
-        $y = $height - $x;
+        $y = $width - $x;
         $x = $tempY;
         break;
       case 'ROTATE_180' :
@@ -237,7 +306,7 @@ function buildControlCommand($monitor) {
         break;
       case 'ROTATE_270' :
         $tempX = $x;
-        $x = $width - $y;
+        $x = $height - $y;
         $y = $tempX;
         break;
       case 'FLIP_HORI' :
@@ -253,14 +322,18 @@ function buildControlCommand($monitor) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -269,7 +342,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
@@ -312,8 +385,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -324,8 +396,7 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -333,25 +404,35 @@ function buildControlCommand($monitor) {
         }
         if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
           $panStep = intval(round($control->MinPanStep()+(($control->MaxPanStep()-$control->MinPanStep())*$xFactor)));
-          $ctrlCommand .= ' --panstep='.$panStep.' --panspeed='.$panSpeed;
+          $ctrlCommand .= ' --panstep='.$panStep;
+          if ( $control->HasPanSpeed() && isset($panSpeed) ) {
+            $ctrlCommand .= ' --panspeed='.$panSpeed;
+          }
         }
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
           $tiltStep = intval(round($control->MinTiltStep()+(($control->MaxTiltStep()-$control->MinTiltStep())*$yFactor)));
-          $ctrlCommand .= ' --tiltstep='.$tiltStep.' --tiltspeed='.$tiltSpeed;
+          $ctrlCommand .= ' --tiltstep='.$tiltStep;
+          if ( $control->HasTiltSpeed() && isset($tiltSpeed) ) {
+            $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          }
         }
       }
     } elseif ( $_REQUEST['control'] == 'moveConMap' ) {
       $x = deScale( $_REQUEST['x'], $_REQUEST['scale'] );
       $y = deScale( $_REQUEST['y'], $_REQUEST['scale'] );
 
-      $halfWidth = $monitor->Width() / 2;
-      $halfHeight = $monitor->Height() / 2;
+      $halfWidth = $monitor->ViewWidth() / 2;
+      $halfHeight = $monitor->ViewHeight() / 2;
+      if ( !$halfWidth or !$halfHeight ) {
+        ZM\Error('Cannot map a click on a monitor with no width or height');
+        return '';
+      }
       $xFactor = ($x - $halfWidth)/$halfWidth;
       $yFactor = ($y - $halfHeight)/$halfHeight;
 
       switch ( $monitor->Orientation() ) {
       case 'ROTATE_90' :
-        $tempYFactor = $y;
+        $tempYFactor = $yFactor;
         $yFactor = -$xFactor;
         $xFactor = $tempYFactor;
         break;
@@ -360,7 +441,7 @@ function buildControlCommand($monitor) {
         $yFactor = -$yFactor;
         break;
       case 'ROTATE_270' :
-        $tempXFactor = $x;
+        $tempXFactor = $xFactor;
         $xFactor = -$yFactor;
         $yFactor = $tempXFactor;
         break;
@@ -403,8 +484,7 @@ function buildControlCommand($monitor) {
             if ( $xFactor >= $turbo ) {
               $panSpeed = $control->TurboPanSpeed();
             } else {
-              $xFactor = $xFactor/$turbo;
-              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+              $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
             }
           } else {
             $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -415,18 +495,21 @@ function buildControlCommand($monitor) {
             if ( $yFactor >= $turbo ) {
               $tiltSpeed = $control->TurboTiltSpeed();
             } else {
-              $yFactor = $yFactor/$turbo;
-              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+              $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
             }
           } else {
             $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
           }
         }
         if ( preg_match( '/(Left|Right)$/', $dirn ) ) {
-          $ctrlCommand .= ' --panspeed='.$panSpeed;
+          if ( $control->HasPanSpeed() && isset($panSpeed) ) {
+            $ctrlCommand .= ' --panspeed='.$panSpeed;
+          }
         }
         if ( preg_match( '/^(Up|Down)/', $dirn ) ) {
-          $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          if ( $control->HasTiltSpeed() && isset($tiltSpeed) ) {
+            $ctrlCommand .= ' --tiltspeed='.$tiltSpeed;
+          }
         }
         if ( $monitor->AutoStopTimeout() ) {
           $slowPanSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$slow)));
@@ -437,6 +520,8 @@ function buildControlCommand($monitor) {
         }
       }
     } else {
+      $x = intval($_REQUEST['x']);
+      $y = intval($_REQUEST['y']);
       $slow = 0.9; // Threshold for slow speed/timeouts
       $turbo = 0.9; // Threshold for turbo speed
       $long_y = 48;
@@ -471,7 +556,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinFocusSpeed()+(($control->MaxFocusSpeed()-$control->MinFocusSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) {
+              if ( !$control->HasFocusSpeed() || $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
               }
             }
@@ -500,7 +585,7 @@ function buildControlCommand($monitor) {
           case 'Con' :
             if ( $monitor->AutoStopTimeout() ) {
               $slowSpeed = intval(round($control->MinZoomSpeed()+(($control->MaxZoomSpeed()-$control->MinZoomSpeed())*$slow)));
-              if ( $speed < $slowSpeed ) {
+              if ( !$control->HasZoomSpeed() || $speed < $slowSpeed ) {
                 $ctrlCommand .= ' --autostop';
               }
             }
@@ -638,9 +723,12 @@ function buildControlCommand($monitor) {
                 'DownRight' => 'UpRight',
               ),
             );
-            $new_dirn = $conversions[$monitor->Orientation()][$dirn];
-            $_REQUEST['control'] = preg_replace( "/_$dirn\$/", "_$new_dirn", $_REQUEST['control'] );
-            $dirn = $new_dirn;
+            // Only direction names are in the table; a stop command is left as it is.
+            if ( isset($conversions[$monitor->Orientation()][$dirn]) ) {
+              $new_dirn = $conversions[$monitor->Orientation()][$dirn];
+              $_REQUEST['control'] = preg_replace( "/$dirn\$/", "$new_dirn", $_REQUEST['control'] );
+              $dirn = $new_dirn;
+            }
           }
 
           if ( $control->HasPanSpeed() && $xFactor ) {
@@ -648,8 +736,7 @@ function buildControlCommand($monitor) {
               if ( $xFactor >= $turbo ) {
                 $panSpeed = $control->TurboPanSpeed();
               } else {
-                $xFactor = $xFactor/$turbo;
-                $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
+                $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*($xFactor/$turbo))));
               }
             } else {
               $panSpeed = intval(round($control->MinPanSpeed()+(($control->MaxPanSpeed()-$control->MinPanSpeed())*$xFactor)));
@@ -661,8 +748,7 @@ function buildControlCommand($monitor) {
               if ( $yFactor >= $turbo ) {
                 $tiltSpeed = $control->TurboTiltSpeed();
               } else {
-                $yFactor = $yFactor/$turbo;
-                $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
+                $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*($yFactor/$turbo))));
               }
             } else {
               $tiltSpeed = intval(round($control->MinTiltSpeed()+(($control->MaxTiltSpeed()-$control->MinTiltSpeed())*$yFactor)));
@@ -695,19 +781,36 @@ function buildControlCommand($monitor) {
       }
     }
   } else {
-    if ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
+    if ( preg_match( '/^audioPlay(\d+)$/', $_REQUEST['control'], $matches ) ) {
+      // The sound to play is carried in the command name, as presets are,
+      // because a control button has no way to send a separate parameter.
+      $_REQUEST['control'] = 'audioPlay';
+      $ctrlCommand .= ' --file='.$matches[1];
+    } elseif ( preg_match( '/^presetGoto(\d+)$/', $_REQUEST['control'], $matches ) ) {
       $_REQUEST['control'] = 'presetGoto';
       $ctrlCommand .= ' --preset='.$matches[1];
-    } elseif ( $_REQUEST['control'] == 'presetGoto' && !empty($_REQUEST['preset']) ) {
+    } elseif ( $_REQUEST['control'] == 'presetGoto' && isset($_REQUEST['preset']) && $_REQUEST['preset'] !== '' ) {
+      // Control modules look the preset up in SQL and send it to the camera.
+      if ( !ctype_digit((string)$_REQUEST['preset']) ) {
+        ZM\Warning('Invalid preset');
+        return '';
+      }
       $ctrlCommand .= ' --preset='.$_REQUEST['preset'];
     } elseif ( $_REQUEST['control'] == 'presetSet' ) {
+      // Saving a preset overwrites the one stored on the camera, which a user who may
+      // only view Control must not do.
+      if ( !canEdit('Control') ) {
+        ZM\Warning('Saving a preset requires Control edit permission');
+        return '';
+      }
+      $preset = validInt($_REQUEST['preset']);
       if ( canEdit( 'Control' ) ) {
-        $preset = validInt($_REQUEST['preset']);
-        $newLabel = validJsStr($_REQUEST['newLabel']);
+        // Stored as typed: it is escaped where it is output, and the query is prepared.
+        $newLabel = (isset($_REQUEST['newLabel']) and is_string($_REQUEST['newLabel'])) ? $_REQUEST['newLabel'] : '';
         $row = dbFetchOne(
           'SELECT * FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset`=?',
           NULL, array($monitor->Id(), $preset));
-        if ( $newLabel != $row['Label'] ) {
+        if ( $newLabel != ($row ? $row['Label'] : '') ) {
           if ( $newLabel ) {
             dbQuery('REPLACE INTO `ControlPresets` (`MonitorId`, `Preset`, `Label`) VALUES ( ?, ?, ? )',
               array($monitor->Id(), $preset, $newLabel));
@@ -716,11 +819,12 @@ function buildControlCommand($monitor) {
               array($monitor->Id(), $preset));
           }
         }
-        $ctrlCommand .= ' --preset='.$preset;
       }
       $ctrlCommand .= ' --preset='.$preset;
     } elseif ( $_REQUEST['control'] == 'moveMap' ) {
-      $ctrlCommand .= " --xcoord=$x --ycoord=$y";
+      // moveMap with both x and y is handled above.
+      ZM\Warning('moveMap needs x and y');
+      return '';
     }
   }
   $ctrlCommand .= ' --command='.$_REQUEST['control'];

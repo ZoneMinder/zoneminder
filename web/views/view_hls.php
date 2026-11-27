@@ -17,7 +17,7 @@ if (empty($_REQUEST['eid'])) {
   die('Missing eid parameter');
 }
 
-$Event = new ZM\Event($_REQUEST['eid']);
+$Event = new ZM\Event(validCardinal($_REQUEST['eid']));
 if (!$Event->Id()) {
   header('HTTP/1.1 404 Not Found');
   die('Event not found');
@@ -58,9 +58,9 @@ if (ZM_OPT_USE_AUTH) {
   if (ZM_AUTH_RELAY == 'hashed') {
     $auth_query = '&auth=' . generateAuthHash(ZM_AUTH_HASH_IPS);
   } else if (ZM_AUTH_RELAY == 'plain') {
-    $auth_query = '&user=' . $_SESSION['username'] . '&pass=' . $_SESSION['password'];
+    $auth_query = '&user=' . urlencode($_SESSION['username'] ?? '') . '&pass=' . urlencode($_SESSION['password'] ?? '');
   } else if (ZM_AUTH_RELAY == 'none') {
-    $auth_query = '&user=' . $_SESSION['username'];
+    $auth_query = '&user=' . urlencode($_SESSION['username'] ?? '');
   }
 }
 

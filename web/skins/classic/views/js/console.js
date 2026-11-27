@@ -1,5 +1,11 @@
 "use strict";
 const table = $j('#consoleTable');
+// Upper bound for the Columns dropdown height, matching bootstrap-table's own
+// stylesheet. There is deliberately no lower bound: the menu scrolls, so a short
+// one is still usable, whereas forcing a minimum taller than the room available
+// makes Popper shove the menu back up over the clipped area.
+const MAX_COLUMNS_MENU_HEIGHT = 300;
+const COLUMNS_MENU_GAP = 10;
 var ajax = null;
 var monitors = {}; // Store monitors by ID for function modal
 var lastFooter = null; // Cached footer payload for re-applying after column toggles
@@ -74,10 +80,7 @@ function updateFooter(footer) {
 
 // Called by bootstrap-table to retrieve monitor data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (ajax) ajax.abort();
 
   // Get filter selections from the form and add to params.data
@@ -198,7 +201,10 @@ function processRows(rows) {
     // Store original ID for later use
     row._id = mid;
 
-    var stream_available = canView.Stream && (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
+    // A deleted monitor has no capture daemon, so any fps left on its stale
+    // status row does not mean there is a stream to link to.
+    var stream_available = !row.Deleted && canView.Stream &&
+      (row.Type == 'WebSite' || (row.CaptureFPS && row.Capturing != 'None'));
 
     // Determine status classes
     var source_class = 'infoText';
@@ -206,10 +212,16 @@ function processRows(rows) {
     // FPS report interval: 60 seconds base + 30 seconds buffer for FPSReportInterval
     var fps_report_seconds = 90;
 
-    if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
+    if (row.Deleted) {
+      // Only reachable via the Deleted entry in the Status filter. Nothing is
+      // running for it, so the fps checks below say nothing useful.
+      source_class = 'errorText';
+      source_class_reason = 'Deleted';
+    } else if ((!row.Status || row.Status == 'NotRunning') && row.Type != 'WebSite') {
       source_class = 'errorText';
       source_class_reason = 'Not Running';
-    } else {
+    } else if (row.Capturing != 'Ondemand') {
+      // An on-demand monitor only captures while someone is watching, so no fps is normal
       if (row.CaptureFPS == '0.00') {
         source_class = 'errorText';
         source_class_reason = 'No capture FPS';
@@ -240,6 +252,10 @@ function processRows(rows) {
       nameHtml += row.Name;
     }
 
+    if (row.Deleted) {
+      nameHtml += ' <span class="errorText">(deleted)</span>';
+    }
+
     // Add groups
     if (row.Groups) {
       nameHtml += '<br/><div class="small text-nowrap text-muted">' + row.Groups + '</div>';
@@ -254,8 +270,30 @@ function processRows(rows) {
     var tz_difference = (-1 * date.getTimezoneOffset() * 60) - server_utc_offset;
     now -= tz_difference;
 
-    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() < now - fps_report_seconds * 1000)) {
-      functionHtml = 'Offline<br/>';
+    if (!row.UpdatedOn || (new Date(row.UpdatedOn).getTime() / 1000 < now - fps_report_seconds)) {
+      var last_seen = '';
+      if (row.UpdatedOn) {
+        var updated = new Date(row.UpdatedOn);
+        var updated_seconds = updated.getTime() / 1000;
+        if (!isNaN(updated_seconds)) {
+          var age_seconds = now - Math.floor(updated_seconds);
+          var age_text;
+          if (age_seconds < 3600) {
+            age_text = Math.max(1, Math.floor(age_seconds / 60)) + ' min ago';
+          } else if (age_seconds < 86400) {
+            age_text = Math.floor(age_seconds / 3600) + ' h ago';
+          } else {
+            age_text = Math.floor(age_seconds / 86400) + ' d ago';
+          }
+          // Build the age with DOM text/attr so any value is escaped for us.
+          last_seen = '<br/>' + $j('<span>')
+              .addClass('small text-nowrap text-muted')
+              .attr('title', updated.toLocaleString())
+              .text(age_text)
+              .prop('outerHTML');
+        }
+      }
+      functionHtml = 'Offline' + last_seen + '<br/>';
     } else {
       functionHtml = '';
       if (row.Analysing && row.Analysing != 'None') {
@@ -322,19 +360,14 @@ function processRows(rows) {
 
 function setButtonStates() {
   const selections = table.bootstrapTable('getSelections');
-  const form = document.forms['monitorFiltersForm'];
-
-  if (selections && selections.length > 0) {
-    form.editBtn.disabled = false;
-    form.deleteBtn.disabled = false;
-    form.selectBtn.disabled = false;
-    form.cloneBtn.disabled = false;
-  } else {
-    form.editBtn.disabled = true;
-    form.deleteBtn.disabled = true;
-    form.selectBtn.disabled = true;
-    form.cloneBtn.disabled = true;
-  }
+  const form = document.forms['monitorForm'];
+  if (!form) return;
+  const any = selections && selections.length > 0;
+  form.editBtn.disabled = !any;
+  form.deleteBtn.disabled = !any;
+  form.selectBtn.disabled = !any;
+  // Clone copies a single monitor, so it needs exactly one selected row.
+  form.cloneBtn.disabled = !(selections && selections.length == 1);
 }
 
 function scanNetwork(element) {
@@ -418,74 +451,6 @@ function reloadWindow() {
   }
 }
 
-// Manage the the Function modal and its buttons
-function manageFunctionModal(evt) {
-  evt.preventDefault();
-
-  if ( !canEdit.Events ) {
-    enoperm();
-    return;
-  }
-
-  if ( ! $j('#modalFunction').length ) {
-    // Load the Function modal on page load
-    $j.getJSON(thisUrl + '?request=modal&modal=function')
-        .done(function(data) {
-          insertModalHtml('modalFunction', data.html);
-          // Manage the CANCEL modal buttons
-          $j('.funcCancelBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#modalFunction').modal('hide');
-          });
-          // Manage the SAVE modal buttons
-          $j('.funcSaveBtn').click(function(evt) {
-            evt.preventDefault();
-            $j('#function_form').submit();
-          });
-
-          manageFunctionModal(evt);
-        })
-        .fail(logAjaxFail);
-    return;
-  }
-
-  var mid = evt.currentTarget.getAttribute('data-mid');
-  monitor = monitors[mid];
-  if ( !monitor ) {
-    console.error("No monitor found for mid " + mid);
-    return;
-  }
-
-  var function_form = document.getElementById('function_form');
-  if ( !function_form ) {
-    console.error("Unable to find form with id function_form");
-    return;
-  }
-  function_form.elements['newFunction'].onchange=function() {
-    $j('#function_help div').hide();
-    $j('#'+this.value+'Help').show();
-    if ( this.value == 'Monitor' || this.value == 'None' ) {
-      $j('#FunctionAnalysisEnabled').hide();
-    } else {
-      $j('#FunctionAnalysisEnabled').show();
-    }
-    if ( this.value == 'Record' || this.value == 'Nodect' ) {
-      $j('#FunctionDecodingEnabled').show();
-    } else {
-      $j('#FunctionDecodingEnabled').hide();
-    }
-  };
-  function_form.elements['newFunction'].value = monitor.Function;
-  function_form.elements['newFunction'].onchange();
-
-  function_form.elements['newEnabled'].checked = monitor.Enabled == '1';
-  function_form.elements['newDecodingEnabled'].checked = monitor.DecodingEnabled == '1';
-  function_form.elements['mid'].value = mid;
-  document.getElementById('function_monitor_name').innerHTML = monitor.Name;
-
-  $j('#modalFunction').modal('show');
-} // end function manageFunctionModal
-
 function exportMonitors() {
   var link = document.createElement('a');
   link.href = thisUrl + '?request=console&task=export';
@@ -541,23 +506,7 @@ function initPage() {
   }
 
   // Enable or disable buttons based on current selection and user rights
-  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table',
-      function() {
-        const selections = table.bootstrapTable('getSelections');
-        const form = document.forms['monitorForm'];
-        if (selections.length > 0) {
-          form.editBtn.disabled = false;
-          form.deleteBtn.disabled = false;
-          form.selectBtn.disabled = false;
-          form.cloneBtn.disabled = false;
-        } else {
-          form.editBtn.disabled = true;
-          form.deleteBtn.disabled = true;
-          form.selectBtn.disabled = true;
-          form.cloneBtn.disabled = true;
-        }
-      }
-  );
+  table.on('check.bs.table uncheck.bs.table check-all.bs.table uncheck-all.bs.table check-some.bs.table uncheck-some.bs.table load-success.bs.table', setButtonStates);
 
   // Setup automatic refresh with table refresh instead of page reload
   if (consoleRefreshTimeout > 0) {
@@ -581,7 +530,6 @@ function initPage() {
   // Setup the thumbnail video animation after table loads
   table.on('post-body.bs.table', function() {
     if (!isMobile()) initThumbAnimation();
-    $j('.functionLnk').click(manageFunctionModal);
   });
 
   // Re-apply cached footer totals when columns are toggled, because
@@ -615,7 +563,46 @@ function initPage() {
       inner.html('<a href="?view=zones">' + text + '</a>');
     }
   });
+
+  constrainColumnsDropdown();
 } // end function initPage
+
+// #monitorList and its .bootstrap-table are overflow:hidden so the table body
+// scrolls on its own, which means anything Popper moves above the toolbar gets
+// clipped. In a short window Popper would flip the Columns menu up, or shift it
+// up to keep its full 300px inside the viewport, hiding the first entries. Keep
+// it anchored below the button and only ever as tall as the room beneath it.
+function constrainColumnsDropdown() {
+  var toggle = $j('#monitorList .fixed-table-toolbar .columns button.dropdown-toggle');
+  if (!toggle.length) return;
+
+  toggle.attr('data-flip', 'false');
+
+  // The show class lands on .keep-open, the toggle's parent, not on .columns.
+  toggle.parent().on('show.bs.dropdown', function() {
+    sizeColumnsMenu(toggle);
+  });
+
+  // Popper repositions an open menu on resize but keeps the max-height it was
+  // given when it opened, so a window dragged shorter pulls the menu back over
+  // the clipped area. Re-measure whenever the menu is open as the window changes.
+  $j(window).on('resize', function() {
+    if (!toggle.parent().hasClass('show')) return;
+    sizeColumnsMenu(toggle);
+  });
+}
+
+function sizeColumnsMenu(toggle) {
+  var menu = toggle.parent().find('.dropdown-menu');
+  if (!menu.length) return;
+  // Leave a small gap so the menu never sits flush against the window edge.
+  var available = window.innerHeight - toggle[0].getBoundingClientRect().bottom - COLUMNS_MENU_GAP;
+  menu.css('max-height', Math.max(0, Math.min(MAX_COLUMNS_MENU_HEIGHT, available)) + 'px');
+  // Let Popper re-place the menu against the height we just set. On first open
+  // Popper does not exist yet, and positions itself correctly straight after.
+  var dropdown = toggle.data('bs.dropdown');
+  if (dropdown && dropdown._popper) dropdown._popper.scheduleUpdate();
+}
 
 function sortMonitors(button) {
   if (button.classList.contains('btn-success')) {
@@ -628,6 +615,9 @@ function sortMonitors(button) {
 
 function applySort(event, ui) {
   var monitor_ids = $j(this).sortable('toArray');
+  // The server assigns ascending Sequence in posted order, so reverse when sorted desc.
+  var options = table.bootstrapTable('getOptions');
+  if (options.sortName == 'Sequence' && options.sortOrder == 'desc') monitor_ids.reverse();
   var data = {monitor_ids: monitor_ids, action: 'sort'};
 
   $j.post(thisUrl + '?request=console', data)

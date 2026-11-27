@@ -168,8 +168,8 @@ our %mem_data = (
     recording        => { type=>'uint8', seq=>$mem_seq++ },
     signal           => { type=>'uint8', seq=>$mem_seq++ },
     format           => { type=>'uint8', seq=>$mem_seq++ },
-    reserved1        => { type=>'uint8', seq=>$mem_seq++ },
-    reserved2        => { type=>'uint8', seq=>$mem_seq++ },
+    audio_level      => { type=>'uint8', seq=>$mem_seq++ },
+    audio_alarm      => { type=>'uint8', seq=>$mem_seq++ },
     imagesize        => { type=>'uint32', seq=>$mem_seq++ },
     last_frame_score => { type=>'uint32', seq=>$mem_seq++ },
     audio_frequency  => { type=>'uint32', seq=>$mem_seq++ },
@@ -182,9 +182,13 @@ our %mem_data = (
     last_analysis_viewed_time => { type=>'time_t64', seq=>$mem_seq++ },
     control_state    => { type=>'uint8[256]', seq=>$mem_seq++ },
     alarm_cause      => { type=>'int8[256]', seq=>$mem_seq++ },
-    video_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
-    audio_fifo       => { type=>'int8[64]', seq=>$mem_seq++ },
+    stream_socket_path => { type=>'int8[64]', seq=>$mem_seq++ }, # was video_fifo; now the media stream socket path
+    reserved_path2   => { type=>'int8[64]', seq=>$mem_seq++ }, # retired audio_fifo; kept reserved at this offset/size, free for future reuse
     janus_pin        => { type=>'int8[64]', seq=>$mem_seq++ },
+    last_analysis_index => { type=>'int32', seq=>$mem_seq++ },
+    analysis_image_count => { type=>'int32', seq=>$mem_seq++ },
+    audio_level_until => { type=>'uint32', seq=>$mem_seq++ },
+    onvif_status     => { type=>'uint32', seq=>$mem_seq++ }, # 0 not in use, 1 not subscribed, 2 subscribed
   }
   },
   trigger_data => { type=>'TriggerData', seq=>$mem_seq++, 'contents'=> {
@@ -563,22 +567,25 @@ sub zmGetMonitorActions {
 sub zmMonitorEnable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
-  $action |= ACTION_SUSPEND;
+  $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmMonitorDisable {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
-  $action |= ACTION_RESUME;
+  $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
 }
 
 sub zmMonitorSuspend {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_SUSPEND;
   zmMemWrite($monitor, {'shared_data:action' => $action});
@@ -587,6 +594,7 @@ sub zmMonitorSuspend {
 sub zmMonitorResume {
   my $monitor = shift;
 
+  return undef if !zmMemVerify($monitor);
   my $action = zmMemRead($monitor, 'shared_data:action');
   $action |= ACTION_RESUME;
   zmMemWrite($monitor, {'shared_data:action' => $action});

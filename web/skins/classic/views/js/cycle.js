@@ -6,54 +6,93 @@ const pauseBtn = $j('#pauseBtn');
 const playBtn = $j('#playBtn');
 var monitor;
 
+function cycleIsPaused() {
+  try {
+    return sessionStorage.getItem('zmCyclePaused') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function cycleSetPaused(paused) {
+  try {
+    if (paused) {
+      sessionStorage.setItem('zmCyclePaused', '1');
+    } else {
+      sessionStorage.removeItem('zmCyclePaused');
+    }
+  } catch {
+    // sessionStorage unavailable; the pause just does not persist.
+  }
+}
+
 function nextCycleView() {
-  window.location.replace('?view=cycle&mid='+nextMid+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+nextMid+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePause() {
   clearInterval(intervalId);
+  cycleSetPaused(true);
   pauseBtn.prop('disabled', true);
   playBtn.prop('disabled', false);
 }
 
 function cycleStart() {
-  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  // The play button can be reached without a pause in between, and the old id
+  // is unrecoverable once overwritten. refs #5135
+  clearInterval(intervalId);
+  cycleSetPaused(false);
+  // A refresh time of 0 means off.
+  if (cycleRefreshTimeout > 0) {
+    intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  }
   pauseBtn.prop('disabled', false);
   playBtn.prop('disabled', true);
 }
 
 function cycleNext() {
-  monIdx ++;
-  if ( monIdx >= monitorData.length ) {
-    monIdx = 0;
+  if (!monitorData.length) return;
+  // Do not move monIdx: a second click before the page unloads would skip a monitor.
+  let idx = Number(monIdx) + 1;
+  if ( idx >= monitorData.length ) {
+    idx = 0;
   }
-  if ( !monitorData[monIdx] ) {
-    console.log('No monitorData for ' + monIdx);
+  if ( !monitorData[idx] ) {
+    console.log('No monitorData for ' + idx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[idx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function cyclePrev() {
-  monIdx --;
-  if ( monIdx < 0 ) {
-    monIdx = monitorData.length - 1;
+  if (!monitorData.length) return;
+  let idx = Number(monIdx) - 1;
+  if ( idx < 0 ) {
+    idx = monitorData.length - 1;
   }
-  if ( !monitorData[monIdx] ) {
-    console.log('No monitorData for ' + monIdx);
+  if ( !monitorData[idx] ) {
+    console.log('No monitorData for ' + idx);
   }
 
-  window.location.replace('?view=cycle&mid='+monitorData[monIdx].id+'&mode='+mode+'&'+auth_relay, cycleRefreshTimeout);
+  window.location.replace(zmAuth.appendTo('?view=cycle&mid='+monitorData[idx].id+'&mode='+mode), cycleRefreshTimeout);
 }
 
 function initCycle() {
-  intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  if (!monitorData.length) return;
+  if (cycleIsPaused()) {
+    pauseBtn.prop('disabled', true);
+    playBtn.prop('disabled', false);
+  } else if (cycleRefreshTimeout > 0) {
+    // A refresh time of 0 means off.
+    intervalId = setInterval(nextCycleView, cycleRefreshTimeout);
+  }
   monitor = new MonitorStream(monitorData[monIdx]);
   monitor.setScale($j('#scale').val(), $j('#width').val(), $j('#height').val());
   monitor.start();
 }
 
 function changeSize() {
+  if (!monitor) return;
   var width = $j('#width').val();
   var height = $j('#height').val();
 
@@ -91,6 +130,7 @@ function changeScale() {
 } // end function changeScale()
 
 function applyScale() {
+  if (!monitor) return;
   var scale = $j('#scale').val();
   var width = $j('#width').val();
   var height = $j('#height').val();

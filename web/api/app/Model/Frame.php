@@ -17,9 +17,15 @@ class Frame extends AppModel {
 /**
  * Primary key field
  *
+ * The real key is (EventId, FrameId), which CakePHP 2 cannot express. EventId
+ * is its leftmost column, and is what Event's dependent hasMany cascade
+ * resolves Frames by, so deleting an event deletes exactly its frames.
+ * FramesController addresses single frames by both columns and never relies
+ * on save(), exists() or delete() by this key.
+ *
  * @var string
  */
-	public $primaryKey = 'Id';
+	public $primaryKey = 'EventId';
 
 /**
  * Validation rules
@@ -37,7 +43,7 @@ class Frame extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notBlank'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -55,7 +61,7 @@ class Frame extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notBlank'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,

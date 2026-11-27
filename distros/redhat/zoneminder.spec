@@ -21,7 +21,7 @@
 %global zmtargetdistro %{?rhel:el%{rhel}}%{!?rhel:fc%{fedora}}
 
 Name: zoneminder
-Version: 1.39.11
+Version: 1.39.20
 Release: 1%{?dist}
 Summary: A camera monitoring and analysis tool
 Group: System Environment/Daemons
@@ -75,7 +75,6 @@ BuildRequires: perl(Expect)
 BuildRequires: perl(Sys::Syslog)
 BuildRequires: gcc 
 BuildRequires: gcc-c++
-BuildRequires: vlc-devel
 BuildRequires: libcurl-devel
 BuildRequires: libv4l-devel
 BuildRequires: desktop-file-utils
@@ -115,18 +114,29 @@ ZoneMinder user base.
 Summary: Common files for ZoneMinder, not tied to a specific web server
 
 Requires: php-mysqli
-Requires: php-common
+Requires: php-common >= 8.0
 Requires: php-gd
 Requires: php-intl
+Requires: php-mbstring
 Requires: php-process
 Requires: php-json
 Requires: php-pecl-apcu
 Requires: net-tools
+# arp-scan powers the optional "probe network for cameras" feature. A weak
+# dependency rather than a hard one: the monitor probe degrades gracefully when
+# it is absent, and EPEL 10 has no arp-scan package, where a hard Requires would
+# make the package uninstallable.
+Recommends: arp-scan
 Requires: psmisc
 Requires: polkit
 Requires: libjpeg-turbo
-Requires: vlc-core
 Requires: %{_bindir}/ffmpeg
+# zmc loads libavdevice at runtime, so rpm cannot detect it from the binary
+%if "%{__isa_bits}" == "64"
+Requires: libavdevice.so.%(pkg-config --modversion libavdevice | cut -d. -f1)()(64bit)
+%else
+Requires: libavdevice.so.%(pkg-config --modversion libavdevice | cut -d. -f1)
+%endif
 Requires: perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 Requires: perl(DBD::mysql)
 Requires: perl(Archive::Tar)
@@ -137,6 +147,7 @@ Requires: perl(Net::SMTP)
 Requires: perl(Net::FTP)
 Requires: perl(LWP::Protocol::https)
 Requires: perl(Module::Load::Conditional)
+Requires: perl(XML::LibXML)
 Requires: ca-certificates
 Requires: zip
 %{?systemd_requires}

@@ -54,6 +54,10 @@ sub open
 
     use Device::SerialPort;
     $self->{port} = new Device::SerialPort( $self->{Monitor}->{ControlDevice} );
+    if ( !$self->{port} ) {
+      Error( "Failed to open serial port ".$self->{Monitor}->{ControlDevice}.' reason:'.$! );
+      return undef;
+    }
     $self->{port}->baudrate(2400);
     $self->{port}->databits(8);
     $self->{port}->parity('none');
@@ -69,7 +73,7 @@ sub open
 sub close {
     my $self = shift;
     $self->{state} = 'closed';
-    $self->{port}->close();
+    $self->{port}->close() if $self->{port};
 }
 
 sub printMsg
@@ -460,7 +464,7 @@ sub focusConNear
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -478,7 +482,7 @@ sub focusConFar
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setFocusSpeed( 0 );
+        $self->focusStop();
     }
 }
 
@@ -526,7 +530,7 @@ sub irisConClose
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 
@@ -536,12 +540,12 @@ sub irisConOpen
     my $params = shift;
     my $autostop = $self->getParam( $params, 'autostop', 0 );
     Debug( "Iris Open" );
-    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x80, 0x00, 0x00 );
+    my @msg = ( SYNC, $self->{Monitor}->{ControlAddress}, 0x02, 0x00, 0x00, 0x00 );
     $self->sendCmd( \@msg );
     if( $autostop && $self->{Monitor}->{AutoStopTimeout} )
     {
         usleep( $self->{Monitor}->{AutoStopTimeout} );
-        $self->_setIrisSpeed( 0 );
+        $self->irisStop();
     }
 }
 

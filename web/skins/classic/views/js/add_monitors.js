@@ -15,10 +15,11 @@ function probe(params) {
     const name = el.attr('name');
     if (name) {
       params.data[name] = el.val();
-      setCookie('addMonitors'+name, el.val(), 3600);
+      // The password is sent with the request but not kept in a cookie.
+      if (name != 'probe_password') setCookie('addMonitors'+name, el.val(), 3600);
     }
   });
-  if (auth_relay) params.data['auth_relay'] = auth_relay;
+  if (zmAuth.relay) params.data['auth_relay'] = zmAuth.relay;
 
   $j.ajax({
     url: thisUrl + '?view=request&request=add_monitors&action=probe',
@@ -26,31 +27,13 @@ function probe(params) {
     timeout: 0,
     success: function(data) {
       if (data.result == 'Error') {
+        table.bootstrapTable('hideLoading');
         alert(data.message);
         return;
       }
 
       if (data.Streams && data.Streams.length) {
-        for ( i in data.Streams ) {
-          const stream = data.Streams[i];
-          if (stream.Monitor) {
-            stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          } else if (stream.url && user.Monitors == 'Create') {
-            stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-          }
-          if (ZM_WEB_LIST_THUMBS && stream.camera.mjpegstream) {
-            console.log("Setting thumbnail stream to " + stream.camera.mjpegstream);
-            //stream.Thumbnail = '<img src="'+stream.camera.mjpegstream+'"/>';
-            stream.Thumbnail = '<img src="?view=image&proxy='+stream.camera.mjpegstream+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
-          } else {
-            console.log(stream.camera);
-          }
-          if (stream.url) {
-            ProbeResults[stream.url] = stream;
-          }
-        } // end for each Stream
-
-        const rows = data.Streams;
+        const rows = decorateStreams(data.Streams);
         // rearrange the result into what bootstrap-table expects
         params.success({total: rows.length, totalNotFiltered: rows.length, rows: rows});
       } else {
@@ -58,6 +41,7 @@ function probe(params) {
       }
     },
     error: function(jqXHR) {
+      table.bootstrapTable('hideLoading');
       console.log("error", jqXHR);
       //logAjaxFail(jqXHR);
       //$j('#eventTable').bootstrapTable('refresh');
@@ -65,58 +49,50 @@ function probe(params) {
   });
 }
 
-function onvif_probe() {
+// Add the buttons/Thumbnail columns bootstrap-table expects and remember each
+// stream by url so addMonitor() can find it. Shared by the network probe and
+// the CSV import.
+function streamKey(stream) {
+  // Remote cameras only have a relative Path, so the same url can belong to several hosts.
+  const monitor = stream.camera && stream.camera.monitor;
+  return (monitor && monitor.Host ? monitor.Host + '|' : '') + stream.url;
 }
 
-function getProbeResponse( respObj, respText ) {
-  if ( respObj.Streams && respObj.Streams.length ) {
-    parseStreams( respObj.Streams );
-  } else {
-    var results_div = $j('#results')[0];
-    if ( ! results_div ) {
-      console.log("No results div found.");
-      return;
+function decorateStreams(streams) {
+  const rows = [];
+  const seen = {};
+  for (const i in streams) {
+    const stream = streams[i];
+    let key = streamKey(stream);
+    // A CSV can list the same url on several rows with different names, so keep each row's own entry.
+    if (seen[key]) key += '#' + i;
+    seen[key] = true;
+    if (stream.Monitor) {
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
+    } else if (stream.url && user.Monitors == 'Create') {
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
     }
-    results_div.innerHTML = 'No streams found.';
-    //console.log("No streams: " + respText);
-  }
-} // end function getProbeResponse
-
-function parseStreams( Streams ) {
-  ProbeResults = Array();
-
-  const results_div = $j('#results')[0];
-  if ( ! results_div ) {
-    console.log("No results div found.");
-    return;
-  }
-  results_div.innerHTML = '';
-  var html = '';
-
-  for ( i in Streams ) {
-    const stream = Streams[i];
-    if ( stream.url ) {
-      html += '<p>'+stream.description;
-      if ( stream.Monitor ) {
-        html += ' is already entered into the system by Monitor ' + stream.Monitor.Id + ' ' + stream.Monitor.Name + '<br/>';
-        html += '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-      } else {
-        html += '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+stream.url+'"/>';
-      }
-      html += '</p>';
-      ProbeResults[stream.url] = stream;
-    } else {
-      //console.log(stream);
+    if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
+      // The image proxy requires the CSRF token since it is exempt from the POST check.
+      let src = '?view=image&proxy='+encodeURIComponent(stream.camera.mjpegstream);
+      if (ZM_ENABLE_CSRF_MAGIC === '1') src += '&'+csrfMagicName+'='+encodeURIComponent(csrfMagicToken);
+      stream.Thumbnail = '<img src="'+src+'" width="'+ZM_WEB_LIST_THUMB_WIDTH+'"/>';
     }
+    if (stream.url) {
+      ProbeResults[key] = stream;
+    }
+    rows.push(stream);
   } // end for each Stream
+  return rows;
+}
 
-  results_div.innerHTML = html;
+function onvif_probe() {
 }
 
 function addMonitor(btn) {
   url = btn.getAttribute('data-url');
   if (!url) {
-    alert('No url in button');
+    window.location.assign('?view=monitor');
     return;
   }
   if (!ProbeResults[url]) {
@@ -128,14 +104,14 @@ function addMonitor(btn) {
     urlString = '?view=monitor&mid='+Stream.Monitor.Id;
   } else {
     const Monitor = Stream.camera.monitor;
-    urlString = '?view=monitor&newMonitor[Path]='+url;
+    urlString = '?view=monitor&newMonitor[Path]='+encodeURIComponent(Stream.url);
     keys = Object.keys( Monitor );
     for (i in Monitor) {
       if (!Monitor[i]) continue;
       if (Monitor[i] == 'null') {
         Monitor[i]='';
       }
-      urlString += '&newMonitor['+i+']='+Monitor[i];
+      urlString += '&newMonitor['+i+']='+encodeURIComponent(Monitor[i]);
     }
   }
   window.location.assign(urlString);
@@ -143,20 +119,29 @@ function addMonitor(btn) {
 
 function import_csv() {
   const form = $j('#importModalForm')[0];
-  var formData = new FormData( form );
-  console.log(formData);
+  const formData = new FormData(form);
 
-  $j.ajax({
-    url: thisUrl+"?request=add_monitors&action=import",
-    type: 'POST',
-    data: formData,
-    processData: false, // tell jQuery not to process the data
-    contentType: false, // tell jQuery not to set contentType
-    done: function(data) {
-      const json = JSON.parse(data);
-      parseStreams(json.Streams);
-    }
-  });
+  // Use fetch, not $j.ajax: csrf-magic.js overrides XMLHttpRequest.send and does
+  // `csrfMagicName + '=' + token + '&' + data`, which stringifies a FormData body
+  // to "[object FormData]" and drops the uploaded file, so the backend sees no
+  // file. fetch is not wrapped by csrf-magic. The __csrf_magic hidden input is
+  // part of the form, so FormData(form) still carries the token as a real
+  // multipart field.
+  fetch(thisUrl+'?view=request&request=add_monitors&action=import', {
+    method: 'POST',
+    body: formData,
+  })
+      .then((resp) => resp.json())
+      .then((data) => {
+        if (data.result == 'Error') {
+          alert(data.message);
+          return;
+        }
+        $j('#ImportMonitorsModal').modal('hide');
+        const rows = decorateStreams(data.Streams ? data.Streams : []);
+        table.bootstrapTable('load', {total: rows.length, totalNotFiltered: rows.length, rows: rows});
+      })
+      .catch(logAjaxFail);
 }
 
 function importMonitors() {
@@ -176,7 +161,7 @@ function initPage() {
   $j('#url').on('input', probe);
 
   // Manage the EDIT button
-  document.getElementById('importBtn').addEventListener('click', function onEditClick(evt) {
+  $j('#importBtn').on('click', function onEditClick(evt) {
     evt.preventDefault();
     $j.ajax({
       method: 'GET',

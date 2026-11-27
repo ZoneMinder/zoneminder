@@ -20,6 +20,85 @@
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "url.hpp"
+#include "zm_amcrest_parse.h"
+#include "zm_utils.h"
+
+// Parsing of the eventManager.cgi multipart stream. Kept out of the libcurl
+// guard so it can be tested without a camera.
+namespace zm {
+namespace amcrest {
+
+static const std::string kBoundary = "--myboundary";
+static const std::string kCrLf = "\r\n";
+
+static bool IsMessage(const std::string &line) {
+  return line == "Heartbeat" or line.compare(0, 5, "Code=") == 0;
+}
+
+std::string GetCommand(const std::string &content) {
+  StringVector lines = Split(content, kCrLf);
+  // A part carries Content-Type/Content-Length headers, a blank line, then the message.
+  for (const std::string &line : lines) {
+    if (IsMessage(line)) return line;
+  }
+  bool in_body = false;
+  for (const std::string &line : lines) {
+    if (line.empty()) {
+      in_body = true;
+    } else if (in_body) {
+      return line;
+    }
+  }
+  return "";
+}
+
+bool NextEvent(std::string &buffer, std::string &command) {
+  command.clear();
+  size_t start = buffer.find(kBoundary);
+  if (start == std::string::npos) {
+    // Nothing to act on; keep only a tail that may be the start of a boundary.
+    size_t keep = 0;
+    for (size_t len = std::min(buffer.size(), kBoundary.size() - 1); len > 0; len--) {
+      if (buffer.compare(buffer.size() - len, len, kBoundary, 0, len) == 0) {
+        keep = len;
+        break;
+      }
+    }
+    buffer.erase(0, buffer.size() - keep);
+    return false;
+  }
+  buffer.erase(0, start);
+
+  size_t content_start = buffer.find(kCrLf);
+  if (content_start == std::string::npos) return false;
+  content_start += kCrLf.size();
+  size_t next = buffer.find(kBoundary, content_start);
+  size_t end = (next == std::string::npos) ? buffer.size() : next;
+
+  // The camera sends the next boundary only with the next part, so act on a
+  // part as soon as its message line is complete instead of waiting for it.
+  size_t pos = content_start;
+  while (pos < end) {
+    size_t eol = buffer.find(kCrLf, pos);
+    if (eol == std::string::npos or eol > end) break;
+    std::string line = buffer.substr(pos, eol - pos);
+    if (IsMessage(line)) {
+      command = line;
+      buffer.erase(0, eol + kCrLf.size());
+      return true;
+    }
+    pos = eol + kCrLf.size();
+  }
+  if (next == std::string::npos) return false;
+
+  // A complete part with no message we know.
+  command = GetCommand(buffer.substr(content_start, next - content_start));
+  buffer.erase(0, next);
+  return true;
+}
+
+}  // namespace amcrest
+}  // namespace zm
 
 #if HAVE_LIBCURL
 
@@ -34,24 +113,44 @@ Monitor::AmcrestAPI::AmcrestAPI(Monitor *parent_) :
 
 Monitor::AmcrestAPI::~AmcrestAPI() {
   if (Amcrest_handle != nullptr) {  // potentially clean up the old handle
-    curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    if (curl_multi != nullptr) {
+      curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    }
     curl_easy_cleanup(Amcrest_handle);
+    Amcrest_handle = nullptr;
   }
-  if (curl_multi != nullptr) curl_multi_cleanup(curl_multi);
+  if (curl_multi != nullptr) {
+    curl_multi_cleanup(curl_multi);
+    curl_multi = nullptr;
+  }
 }
 
 int Monitor::AmcrestAPI::start() {
+  healthy = false;
+  alarmed = false;
+  response.clear();
+
   // init the transfer and start it in multi-handle
-  int running_handles;
+  int running_handles = 0;
   CURLMcode curl_error;
   if (Amcrest_handle != nullptr) {  // potentially clean up the old handle
-    curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    if (curl_multi != nullptr) {
+      curl_multi_remove_handle(curl_multi, Amcrest_handle);
+    }
     curl_easy_cleanup(Amcrest_handle);
+    Amcrest_handle = nullptr;
+  }
+
+  if (curl_multi == nullptr) {
+    Warning("AMCREST curl_multi is null");
+    return -1;
   }
 
   Url full_url(parent->onvif_url.empty() ? parent->path : parent->onvif_url);
   full_url.scheme("http");
-  full_url.path("/cgi-bin/eventManager.cgi?action=attach&heartbeat=5&codes=[All]");
+  // path() would percent-encode a ? into the path, so the query is set on its own.
+  full_url.path("/cgi-bin/eventManager.cgi");
+  full_url.set_query({{"action", "attach"}, {"heartbeat", "5"}, {"codes", "[All]"}});
   Debug(1, "AMCREST url is %s", full_url.str().c_str());
   Amcrest_handle = curl_easy_init();
   if (!Amcrest_handle) {
@@ -70,6 +169,9 @@ int Monitor::AmcrestAPI::start() {
   curl_error = curl_multi_add_handle(curl_multi, Amcrest_handle);
   if (curl_error != CURLM_OK) {
     Warning("AMCREST error of %i", curl_error);
+    curl_easy_cleanup(Amcrest_handle);
+    Amcrest_handle = nullptr;
+    return -1;
   }
   curl_error = curl_multi_perform(curl_multi, &running_handles);
   if (curl_error == CURLM_OK) {
@@ -93,6 +195,7 @@ int Monitor::AmcrestAPI::start() {
     healthy = true;
     Debug(1, "AMCREST Healthy");
   } else {
+    healthy = false;
     Warning("AMCREST Response: %s", response.c_str());
     Warning("AMCREST Seeing %i streams, and error of %i, url: %s",
             running_handles, curl_error, full_url.str().c_str());
@@ -101,33 +204,18 @@ int Monitor::AmcrestAPI::start() {
     Warning("AMCREST Response code: %lu", response_code);
   }
 
-  return 0;
-}
-
-std::string get_command(const std::string &content) {
-  StringVector lines = Split(content, "\r\n");
-  std::string command;
-
-  for (auto line_it = lines.begin(); line_it != lines.end(); line_it++) {
-    std::string line = *line_it;
-
-    if (line == "Heartbeat") return line;
-    if (line.empty() and !command.empty()) break;
-    //if (line.substr(0,4) == "Code") {
-    //}
-    command += line;
-  }
-  return command;
+  return healthy ? 0 : -1;
 }
 
 void Monitor::AmcrestAPI::WaitForMessage() {
-  int open_handles;
-  int transfers;
+  int open_handles = 0;
+  int transfers = 0;
   CURLMcode curl_error;
 
   // Tells us how many handles are open
   curl_error = curl_multi_perform(curl_multi, &open_handles);
-  if (open_handles == 0) {
+  if (curl_error != CURLM_OK || open_handles == 0) {
+    healthy = false;
     start();  // http transfer ended, need to restart.
     return;
   }
@@ -138,31 +226,20 @@ void Monitor::AmcrestAPI::WaitForMessage() {
   if (curl_error != CURLM_OK) {
     healthy = false;
     Debug(1, "Error code %d", curl_error);
+    return;
   }
 
   Debug(2, "AMCREST: response: %s", response.c_str());
-  // FIXME need to implement proper parsing
-  std::string boundary = "--myboundary";
-  std::string br = "\r\n";
 
-  while (!response.empty() and !zm_terminate) {
-    auto boundary_it = response.find(boundary);
-    Debug(1, "AMCREST: boundary %zu", boundary_it);
-    if (boundary_it == std::string::npos) {
-      // Might not be a boundary, might just hit the end
-      boundary_it = response.size();
-    }
-
-    std::string content = response.substr(0, boundary_it);
-    Debug(1, "AMCREST: content (%s) ending at %zu", content.c_str(), boundary_it);
-    std::string command = get_command(content);
+  std::string command;
+  while (!zm_terminate && zm::amcrest::NextEvent(response, command)) {
     Debug(1, "AMCREST: command: %s", command.c_str());
 
     if (command.empty()) {
     } else if (command == "Heartbeat") {
     } else if (command.find("action=Start") != std::string::npos) {
       // Event Start
-      Debug(1, "AMCREST Triggered on with %s", response.c_str());
+      Debug(1, "AMCREST Triggered on with %s", command.c_str());
       if (!alarmed) {
         Debug(1, "AMCREST Triggered Event");
         alarmed = true;
@@ -173,12 +250,6 @@ void Monitor::AmcrestAPI::WaitForMessage() {
     } else {
       Debug(1, "AMCREST unhandled message: %s", command.c_str());
     }
-    boundary_it = response.find(br, boundary_it);
-    Debug(1, "AMCREST Found br at %zu", boundary_it);
-    boundary_it += 2;
-    Debug(1, "AMCREST Remainder: %s", response.c_str());
-    response = response.substr(boundary_it, response.size());
-    Debug(1, "AMCREST Remainder: %s", response.c_str());
   } // end while
 }
 

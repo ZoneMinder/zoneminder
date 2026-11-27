@@ -59,6 +59,10 @@ use URI;
 use URI::Escape;
 use IO::Socket::SSL;
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # =========================================================================
 #  Config types — maps category names to ONVIF SOAP endpoints/actions
 # =========================================================================
@@ -162,13 +166,13 @@ my %config_types = (
   'ImagingSettings' => {
     endpoint => '/onvif/imaging',
     action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetImagingSettings',
-    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetImagingSettings></s:Body>',
+    body     => '<s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"><GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>__VIDEO_SOURCE_TOKEN__</VideoSourceToken></GetImagingSettings></s:Body>',
     writable => 1,
   },
   'ImagingOptions' => {
     endpoint => '/onvif/imaging',
     action   => 'http://www.onvif.org/ver20/imaging/wsdl/GetOptions',
-    body     => '<s:Body><GetOptions xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>000</VideoSourceToken></GetOptions></s:Body>',
+    body     => '<s:Body><GetOptions xmlns="http://www.onvif.org/ver20/imaging/wsdl"><VideoSourceToken>__VIDEO_SOURCE_TOKEN__</VideoSourceToken></GetOptions></s:Body>',
   },
   # --- PTZ service (/onvif/PTZ) ---
   'PTZConfigurations' => {
@@ -197,12 +201,20 @@ my %config_types = (
 #  open / close
 # =========================================================================
 
+# URI hands the host of http://[fe80::1]:80 back without its brackets, which a
+# URL and a Host header need around an IPv6 literal.
+sub _host_port {
+  my ($host, $port) = @_;
+  $host = "[$host]" if $host =~ /:/;
+  return $host . ':' . $port;
+}
+
 sub open {
   my $self = shift;
   $self->loadMonitor();
 
   # --- UserAgent with SSL verification (will fall back if needed) --------
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(
     verify_hostname => 1,
@@ -226,7 +238,7 @@ sub open {
       # Rebuild BaseURL without any path that guess_credentials may include
       my $scheme = ($$self{uri} && $$self{uri}->scheme()) ? $$self{uri}->scheme() : 'http';
       $scheme = 'http' if $scheme eq 'rtsp';
-      $$self{BaseURL} = $scheme . '://' . $$self{host} . ':' . $$self{port};
+      $$self{BaseURL} = $scheme . '://' . _host_port($$self{host}, $$self{port});
     } else {
       Warning('Failed to determine camera address from ControlAddress or Path');
     }
@@ -287,7 +299,7 @@ sub _parse_control_address {
   $$self{onvif_path} = ($path && $path ne '/') ? $path : '/onvif/PTZ';
 
   # Base URL without path
-  $$self{BaseURL} = $uri->scheme . '://' . $$self{host} . ':' . $$self{port};
+  $$self{BaseURL} = $uri->scheme . '://' . _host_port($$self{host}, $$self{port});
 
   Debug('ONVIF open: base=' . $$self{BaseURL}
     . ' path=' . $$self{onvif_path}
@@ -344,7 +356,7 @@ sub sendCmd {
 
   my $req = HTTP::Request->new(POST => $url);
   $req->header('content-type'     => 'application/soap+xml; charset=utf-8; action="' . $action . '"');
-  $req->header('Host'             => $$self{host} . ':' . $$self{port});
+  $req->header('Host'             => _host_port($$self{host}, $$self{port}));
   $req->header('content-length'   => length($msg));
   $req->header('accept-encoding'  => 'gzip, deflate');
   $req->header('connection'       => 'Close');
@@ -378,14 +390,50 @@ sub sendCmd {
 #  Imaging — Brightness / Contrast
 # =========================================================================
 
+# The imaging calls address a VideoSource token, which is a *different*
+# namespace from the media ProfileToken held in ControlDevice: on an AMLINK
+# AL5M-T5171EW the profiles are 'MediaProfile00000' while the video source is
+# '00000'. This used to be hardcoded to '000', which such cameras reject with
+# "The requested VideoSource does not exist.", so it is read from
+# GetVideoSources instead. Pure function so it is testable without a camera
+# (see t/onvif_video_source.t).
+sub video_source_token_from_xml {
+  my ($xml) = @_;
+  return undef if !defined $xml;
+  # First VideoSources element wins; multi-sensor devices list one per sensor.
+  return $xml =~ m{<(?:\w+:)?VideoSources\b[^>]*\btoken=["']([^"']*)["']} ? $1 : undef;
+}
+
+# Discover and cache the video source token, falling back to the conventional
+# '000' only for this call so a camera that is briefly unreachable at startup
+# gets another chance rather than caching the wrong token for the daemon's life.
+sub _video_source_token {
+  my $self = shift;
+  return $$self{videoSourceToken} if defined $$self{videoSourceToken};
+
+  my $res = $self->sendCmd('/onvif/media',
+    '<s:Body><GetVideoSources xmlns="http://www.onvif.org/ver10/media/wsdl"/></s:Body>',
+    'http://www.onvif.org/ver10/media/wsdl/GetVideoSources');
+
+  my $token = $res ? video_source_token_from_xml($res->decoded_content) : undef;
+  if (defined $token) {
+    Debug("ONVIF video source token: $token");
+    $$self{videoSourceToken} = $token;
+    return $token;
+  }
+  Debug('Could not discover ONVIF video source token, using 000');
+  return '000';
+}
+
 sub getCamParams {
   my $self = shift;
   $$self{CamParams} = {} if !$$self{CamParams};
 
+  my $token = $self->_video_source_token();
   my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <GetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $token . '</VideoSourceToken>
   </GetImagingSettings>
 </s:Body>';
 
@@ -408,10 +456,11 @@ sub getCamParams {
 sub _setImaging {
   my ($self, $param, $value) = @_;
 
+  my $token = $self->_video_source_token();
   my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $token . '</VideoSourceToken>
     <ImagingSettings>
       <' . $param . ' xmlns="http://www.onvif.org/ver10/schema">' . $value . '</' . $param . '>
     </ImagingSettings>
@@ -518,6 +567,10 @@ sub get_config {
     my $ct = $config_types{$category};
     my $body = $$ct{body};
     $body =~ s/__PROFILE_TOKEN__/$$self{profileToken}/g;
+    if ($body =~ /__VIDEO_SOURCE_TOKEN__/) {
+      my $vs_token = $self->_video_source_token();
+      $body =~ s/__VIDEO_SOURCE_TOKEN__/$vs_token/g;
+    }
     my $res = $self->sendCmd($$ct{endpoint}, $body, $$ct{action});
     if (!$res) {
       Warning("Failed to get config for $category");
@@ -561,7 +614,7 @@ sub set_config {
       my $body = '
 <s:Body xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <SetImagingSettings xmlns="http://www.onvif.org/ver20/imaging/wsdl">
-    <VideoSourceToken>000</VideoSourceToken>
+    <VideoSourceToken>' . $self->_video_source_token() . '</VideoSourceToken>
     <ImagingSettings>' . $fields . '</ImagingSettings>
     <ForcePersistence>true</ForcePersistence>
   </SetImagingSettings>
@@ -710,7 +763,7 @@ sub _auto_stop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # --- Directional continuous moves ----------------------------------------
@@ -745,7 +798,7 @@ sub moveStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 sub zoomStop {
@@ -762,7 +815,7 @@ sub zoomStop {
 </s:Body>';
 
   $self->sendCmd($$self{onvif_path}, $body,
-    'http://www.onvif.org/ver20/ptz/wsdl/ContinuousMove');
+    'http://www.onvif.org/ver20/ptz/wsdl/Stop');
 }
 
 # =========================================================================
@@ -774,6 +827,9 @@ sub moveMap {
   my $params = shift;
   my $x = $self->getParam($params, 'xcoord');
   my $y = $self->getParam($params, 'ycoord');
+  # ONVIF positions are normalised to -1..1, the click arrives in image pixels
+  $x = sprintf('%.4f', 2 * $x / ($self->{Monitor}->{Width} || 1) - 1);
+  $y = sprintf('%.4f', 1 - 2 * $y / ($self->{Monitor}->{Height} || 1));
   Debug("AbsoluteMove to $x, $y");
 
   my $body = '
@@ -899,7 +955,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = ZoneMinder::Control::ONVIF->new();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(
     verify_hostname => 1,

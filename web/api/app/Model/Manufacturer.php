@@ -49,7 +49,14 @@ class Manufacturer extends AppModel {
 		),
 		'Name' => array(
 			'notBlank' => array(
-				'rule' => array('notBlank'))),
+				'rule' => array('notBlank'),
+				// The column has no default, so a manufacturer added without a name is refused by MySQL.
+				'required' => 'create',
+				'message' => 'Name is required',
+				'last' => true),
+			'unique' => array(
+				'rule' => array('isUnique'),
+				'message' => 'A manufacturer with that name already exists')),
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

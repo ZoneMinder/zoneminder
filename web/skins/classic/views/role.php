@@ -28,7 +28,8 @@ require_once('includes/Group.php');
 require_once('includes/Role_Group_Permission.php');
 
 if (isset($_REQUEST['rid']) and $_REQUEST['rid']) {
-  if (!($Role = new ZM\User_Role(validCardinal($_REQUEST['rid'])))) {
+  $Role = new ZM\User_Role(validCardinal($_REQUEST['rid']));
+  if (!$Role->Id()) {
     $view = 'error';
     return;
   }
@@ -50,7 +51,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=role">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=roles' ?>"/>
         <input type="hidden" name="rid" value="<?php echo validHtmlStr($Role->Id()) ?>"/>
         <div id="header">
           <div class="float-left pl-3 pt-1">
@@ -72,7 +73,7 @@ echo getNavBarHTML();
                   <tbody>
                     <tr>
                       <th scope="row"><?php echo translate('Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="role[Name]" placeholder="<?php echo translate('NewRole') ?>" value="<?php echo validHtmlStr($Role->Name()); ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="role[Name]" placeholder="<?php echo translate('NewRole') ?>" value="<?php echo validHtmlStr($Role->Name()); ?>" maxlength="64"/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Description') ?></th>
@@ -138,9 +139,11 @@ if (canEdit('Groups')) {
   # This array is indexed by parent_id
   $children = array();
   foreach ($groups as $id=>$group) {
-    if (!isset($children[$group->ParentId()]))
-      $children[$group->ParentId()] = array();
-    $children[$group->ParentId()][] = $group;
+    // From PHP 8.5, using 'null' as an array offset is deprecated
+    $parentId = $group->ParentId() ?? '';
+    if (!isset($children[$parentId]))
+      $children[$parentId] = array();
+    $children[$parentId][] = $group;
     if ($max_depth < $group->depth())
       $max_depth = $group->depth();
   }
@@ -179,8 +182,8 @@ if (canEdit('Groups')) {
     }
     return $html;
   }
-  if (isset($children[null])) {
-    foreach ($children[null] as $group) {
+  if (isset($children[''])) {
+    foreach ($children[''] as $group) {
       echo group_line($group);
     }
   }

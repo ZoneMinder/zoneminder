@@ -19,36 +19,53 @@
 //
 
 // If there is an action on an event, then we must have an id.
-if ( !empty($_REQUEST['eid']) ) {
+if ( empty($_REQUEST['eid']) ) {
   ZM\Warning('No eid in action on event view');
   return;
 }
 
-// Event scope actions, view permissions only required
-if ( canEdit('Events') ) {
+// Event scope actions. Require edit on this event, which includes access to its monitor.
+global $error_message;
+$event = new ZM\Event(validCardinal($_REQUEST['eid']));
+if ( $event->Id() and $event->canEdit() ) {
+  $_REQUEST['eid'] = $event->Id();
+  $failMessage = '';
 
   if ( ($action == 'rename') && isset($_REQUEST['eventName']) ) {
-    dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid']));
-    ZM\AuditAction('rename', 'event', $_REQUEST['eid'], 'Name: '.$_REQUEST['eventName']);
+    if ( dbQuery('UPDATE Events SET Name=? WHERE Id=?', array($_REQUEST['eventName'], $_REQUEST['eid'])) === null ) {
+      $failMessage = 'Error renaming event '.$_REQUEST['eid'].': '.htmlspecialchars(dbLastError()).'<br/>';
+    } else {
+      ZM\AuditAction('rename', 'event', $_REQUEST['eid'], 'Name: '.$_REQUEST['eventName']);
+    }
   } else if ( $action == 'eventdetail' ) {
-      dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
+    if ( dbQuery('UPDATE Events SET Cause=?, Notes=? WHERE Id=?',
         array(
           $_REQUEST['newEvent']['Cause'],
           $_REQUEST['newEvent']['Notes'],
           $_REQUEST['eid']
         )
-      );
-    ZM\AuditAction('update', 'event', $_REQUEST['eid'], 'Detail update');
-    $refreshParent = true;
-    $closePopup = true;
-  } else if ( $action == 'archive' ) {
-      dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $_REQUEST['eid']));
-  } else if ( $action == 'unarchive' ) {
-      dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $_REQUEST['eid']));
+      ) === null ) {
+      $failMessage = 'Error updating event '.$_REQUEST['eid'].': '.htmlspecialchars(dbLastError()).'<br/>';
+    } else {
+      ZM\AuditAction('update', 'event', $_REQUEST['eid'], 'Detail update');
+      $refreshParent = true;
+      $closePopup = true;
+    }
+  } else if ( $action == 'archive' or $action == 'unarchive' ) {
+    if ( dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(($action == 'archive') ? 1 : 0, $_REQUEST['eid'])) === null ) {
+      $failMessage = 'Error updating event '.$_REQUEST['eid'].': '.htmlspecialchars(dbLastError()).'<br/>';
+    }
   } else if ( $action == 'delete' ) {
-    deleteEvent($_REQUEST['eid']);
-    ZM\AuditAction('delete', 'event', $_REQUEST['eid'], '');
-    $refreshParent = true;
+    if ( deleteEvent($_REQUEST['eid']) ) {
+      ZM\AuditAction('delete', 'event', $_REQUEST['eid'], '');
+      $refreshParent = true;
+    } else {
+      $failMessage = 'Error deleting event '.$_REQUEST['eid'].'<br/>';
+    }
   }
-} // end if canEdit(Events)
+  if ( $failMessage !== '' ) {
+    ZM\Warning(strip_tags($failMessage));
+    $error_message .= $failMessage;
+  }
+} // end if event canEdit
 ?>

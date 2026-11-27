@@ -174,6 +174,15 @@ inline YUV brg_to_yuv(Rgb colour) {
   return (static_cast<uint8_t>(Y)<<16) + (static_cast<uint8_t>(U) << 8) + static_cast<uint8_t>(V);
 }
 
+// Luma (Y) a decoder writes for an RGB colour: ITU-R BT.601, rounded, in the
+// limited (16-235) range of YUV420P/YUV422P or the full (0-255) range of the
+// J formats and GRAY8.
+inline uint8_t rgb_to_luma(uint8_t r, uint8_t g, uint8_t b, bool full_range) {
+  if (full_range)
+    return static_cast<uint8_t>(0.299 * r + 0.587 * g + 0.114 * b + 0.5);
+  return static_cast<uint8_t>(16 + (65.481 * r + 128.553 * g + 24.966 * b) / 255 + 0.5);
+}
+
 #define Y_VAL(v)  (((v)>>16)&0xff)
 #define U_VAL(v)  (((v)>>8)&0xff)
 #define V_VAL(v)  ((v)&0xff)

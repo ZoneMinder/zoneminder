@@ -31,13 +31,29 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use POSIX qw/strftime EPIPE EINTR/;
 use Socket;
 use Data::Dumper;
+use JSON::MaybeXS qw(decode_json);
+use B ();
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
+use constant CLIENT_READ_TIMEOUT => 5;
+
+# The method a control command names, or undef. A command from a web request must run a method
+# the control module itself defines, not an infrastructure method of ZoneMinder::Control (open,
+# close, get, post, ...) or a function imported into the module (Fatal, Error, ...).
+sub control_method {
+  my ($control, $command) = @_;
+  my $code = $control->can($command);
+  return undef if !$code;
+  my $stash = B::svref_2object($code)->GV->STASH->NAME;
+  # ZoneMinder::Control and the classes above it (Object, Base) hold internals, not commands.
+  return undef if ZoneMinder::Control->isa($stash) or !$control->isa($stash);
+  return $code;
+}
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -64,6 +80,7 @@ GetOptions(
   'panstep=i'     =>\$options{panstep},
   'tiltstep=i'    =>\$options{tiltstep},
   'preset=i'      =>\$options{preset},
+  'file=i'        =>\$options{file},
   'autostop'      =>\$options{autostop},
 ) or pod2usage(-exitstatus => -1);
 
@@ -92,6 +109,9 @@ if ($protocol) {
       ControlDevice   => $device // '',
       ControlAddress  => $address // '',
       AutoStopTimeout => $options{autostop} // 0,
+      # There is no shared memory in this mode, so motion detection can't be
+      # suspended; without this, modules that suspend it die on every move.
+      ModectDuringPTZ => 1,
     },
   }, $module;
 
@@ -100,6 +120,9 @@ if ($protocol) {
   }
 
   Info("Direct protocol mode: $module -> $command");
+  if (!$control->can($command)) {
+    Fatal("$module does not implement '$command'");
+  }
   my $result = $control->$command(\%options);
 
   if (defined $result) {
@@ -152,10 +175,42 @@ if ($options{command}) {
     shutdown(CLIENT, 1);
   } else {
     Error("Unable to connect to zmcontrol server at $sock_file");
+    # Callers such as the cron entries of scheduled actions need to know the
+    # command was not delivered.
+    exit(1);
   }
 } else {
   # We are the server
   require ZoneMinder::Monitor;
+
+  # Only one control server per monitor. Nothing used to stop a second one, and
+  # it would unlink the live socket further down and bind its own, leaving the
+  # first listening on an unlinked inode that no client can reach while both
+  # still held the camera's control connection open. Take the lock before
+  # anything talks to the camera or the socket.
+  # The lock is a separate file rather than the socket itself so that a socket
+  # left behind by a killed server does not block startup for good.
+  # refs #4423
+  my $lock_file = $Config{ZM_PATH_SOCKS}.'/zmcontrol-'.$id.'.lock';
+  # Held for the lifetime of the process: the lock is released when $lock_fh
+  # goes out of scope, and this block runs until the server exits.
+  my ($lock_fh, $lock_status, $lock_pid) = acquireExclusiveLock($lock_file);
+  if (!$lock_fh) {
+    if ($lock_status eq 'held') {
+      Error("Another zmcontrol server is already running for monitor $id"
+        .(defined($lock_pid) ? " (pid $lock_pid)" : '').', exiting');
+    } else {
+      Error("Can't take the control server lock at $lock_file, so not starting."
+        .' It has to be writable by the user zmcontrol.pl runs as, so check its'
+        .' ownership if it was created by a hand run as another user.');
+    }
+    # zmdc starts us with keepalive, so a non-zero exit here is retried with a
+    # backoff capped at ZM_MAX_RESTART_DELAY rather than staying dead. That is
+    # what we want while a duplicate is still up, since it clears itself once
+    # the other server goes. A lock file we cannot open never clears on its own,
+    # which is why that case says what to look at.
+    exit(1);
+  }
 
   my $monitor = ZoneMinder::Monitor->find_one(Id=>$id);
   Fatal("Unable to load control data for monitor $id") if !$monitor;
@@ -186,6 +241,8 @@ if ($options{command}) {
   $control->loadMonitor();
   if (!$control->open()) {
     Warning("Failed to open control");
+    # Not every module records the failure itself, and the retry below keys on it.
+    $control->{state} = 'closed' if ($control->{state} // '') ne 'open';
   }
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
@@ -201,33 +258,91 @@ if ($options{command}) {
   # does not expire between commands (Dahua cameras expire after ~60s idle).
   my $timeout = $control->can('keepAlive') ? 30 : MAX_COMMAND_WAIT;
   while (!$zm_terminate) {
-    my $nfound = select(my $rout = $rin, undef, undef, $timeout);
+    # Checked every time round rather than only when select times out. A busy
+    # monitor never reaches the idle branch below, and used to hold a session
+    # the camera had already expired, so its next command came back
+    # undecodable. Here so that the 'next' paths in the command handling
+    # cannot skip it.
+    if ($control->can('keepAlive') and $control->keepAliveDue($timeout)) {
+      $control->keepAlive();
+    }
+
+    # Not the whole $timeout: a command that arrives just before a keepAlive is
+    # due would otherwise push the next one a full interval further out.
+    my $wait = $control->can('keepAlive') ? $control->keepAliveWait($timeout) : $timeout;
+    my $nfound = select(my $rout = $rin, undef, undef, $wait);
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = '';
+        my $deadline = time() + CLIENT_READ_TIMEOUT;
+        while ( (my $wait = $deadline - time()) > 0 ) {
+          vec(my $cin = '', fileno(CLIENT), 1) = 1;
+          last if select(my $cout = $cin, undef, undef, $wait) <= 0;
+          last if !sysread(CLIENT, $message, 4096, length($message));
+        }
 
         if ( !$message ) {
           close(CLIENT);
           next;
         }
 
-        my $params = jsonDecode($message);
+        my $params = eval { decode_json($message) };
+        if ( ref($params) ne 'HASH' ) {
+          Error("Ignoring malformed control message '$message'");
+          close(CLIENT);
+          next;
+        }
         Debug(Dumper($params));
 
         my $command = $params->{command};
         if ( $command eq 'quit' ) {
           close(CLIENT);
           last;
+        } elsif ( $command and $command !~ /^[A-Za-z]\w*$/ ) {
+          # The name comes from a web request and is called as a method; a qualified name
+          # (Package::sub) would call a sub outside the control module. refs GHSA-qcm7-vq92-f86f
+          Warning('Invalid control command');
+          close(CLIENT);
         } elsif ( $command ) {
-          my $result = $control->$command($params);
+          # A monitor's actions and ui buttons are configured independently of
+          # its control protocol, so a command the protocol does not implement
+          # is a configuration mistake, not a reason to take the control server
+          # down. Swapping a camera for a different make leaves exactly this
+          # behind: a LightOn action pointing at a protocol with no lightOn,
+          # which used to die with "Can't locate object method".
+          if ( !control_method($control, $command) ) {
+            # ${id} braced: "$id's" parses as $id::s, the old package
+            # separator, so the id silently vanished from the message.
+            Error("Control protocol $protocol does not implement '$command',"
+              ." ignoring it. Check monitor ${id}'s control type and the"
+              .' actions configured against it.');
+            if ( $params->{wants_response} ) {
+              local $SIG{PIPE} = 'IGNORE';
+              print(CLIENT jsonEncode({result => undef, error => "unsupported command $command"}));
+            }
+            close(CLIENT);
+            next;
+          }
+          # The camera was unreachable when the server started, or the module
+          # dropped its session after a failure. Nothing reopened it, so every
+          # later command failed until the server was restarted by hand.
+          if ( ($control->{state} // '') eq 'closed' ) {
+            Info("Control for monitor ${id} is closed, reopening it before '$command'");
+            if ( !eval { $control->open() } ) {
+              Warning("Failed to reopen control for monitor ${id}".($@ ? ": $@" : ''));
+            }
+          }
+          my $result = eval { $control->$command($params) };
+          my $error = $@;
+          Error("Control command '$command' failed: $error") if $error;
           # Opt-in response: only write back when the caller asked for one, so
           # fire-and-forget callers (which have already closed their end) never
           # get a write -> no SIGPIPE. Ignore PIPE defensively in case a query
           # client gave up before reading.
           if ( $params->{wants_response} ) {
             local $SIG{PIPE} = 'IGNORE';
-            print(CLIENT jsonEncode({result => $result}));
+            print(CLIENT jsonEncode($error ? {result => undef, error => "$command failed: $error"} : {result => $result}));
           }
           close(CLIENT);
         } else {
@@ -247,8 +362,7 @@ if ($options{command}) {
         Fatal("Can't select: $!");
       }
     } else {
-      Debug('Select timed out');
-      $control->keepAlive() if $control->can('keepAlive');
+      Debug(3, 'Select timed out');
     }
   } # end while !$zm_terminate
   Info("Control server $id/$protocol exiting");
@@ -299,6 +413,7 @@ running ZoneMinder instance. Useful for testing control modules.
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+ --file [ id ]       - Audio file id to play (IPSpeaker audioPlay)
 
 =head1 EXAMPLES
 

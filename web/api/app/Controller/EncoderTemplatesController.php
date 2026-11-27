@@ -12,7 +12,17 @@ class EncoderTemplatesController extends AppController {
   public function index() {
     $this->EncoderTemplate->recursive = -1;
     $conditions = array();
+    if ($this->request->params['named']) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EncoderTemplate->schema()));
+    }
     if (!empty($this->request->query['Encoder'])) {
+      // A name or a list of names; a list inside the list would be written into the SQL as the word Array.
+      foreach ((array)$this->request->query['Encoder'] as $name) {
+        if (is_array($name)) {
+          throw new BadRequestException(__('Encoder must be a name or a list of names'));
+        }
+      }
       $conditions['EncoderTemplate.Encoder'] = $this->request->query['Encoder'];
     }
     $templates = $this->EncoderTemplate->find('all', array(
@@ -40,12 +50,16 @@ class EncoderTemplatesController extends AppController {
   }
 
   public function add() {
+    if (!$this->request->is('post')) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ($this->request->is('post')) {
       global $user;
       $canEdit = (!$user) || ($user->System() == 'Edit');
       if (!$canEdit) {
         throw new UnauthorizedException(__('Insufficient privileges'));
       }
+      $this->pinRequestId($this->EncoderTemplate, null);
       $this->EncoderTemplate->create();
       if ($this->EncoderTemplate->save($this->request->data)) {
         $this->set(array(
@@ -54,6 +68,7 @@ class EncoderTemplatesController extends AppController {
           '_serialize' => array('message', 'id'),
         ));
       } else {
+        $this->response->httpCodes(array(422 => 'Unprocessable Entity'));
         $this->response->statusCode(422);
         $this->set(array(
           'message' => 'Error',
@@ -73,13 +88,15 @@ class EncoderTemplatesController extends AppController {
     if (!$this->EncoderTemplate->exists($id)) {
       throw new NotFoundException(__('Invalid encoder template'));
     }
-    $this->EncoderTemplate->id = $id;
+    $this->request->allowMethod('post', 'put');
+    $this->pinRequestId($this->EncoderTemplate, $id);
     if ($this->EncoderTemplate->save($this->request->data)) {
       $this->set(array(
         'message' => 'Saved',
         '_serialize' => array('message'),
       ));
     } else {
+      $this->response->httpCodes(array(422 => 'Unprocessable Entity'));
       $this->response->statusCode(422);
       $this->set(array(
         'message' => 'Error',

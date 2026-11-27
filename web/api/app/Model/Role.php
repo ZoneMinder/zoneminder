@@ -9,8 +9,13 @@ class Role extends AppModel {
     public $validate = array(
         'Name' => array(
             'required' => array(
-                'rule' => array('notEmpty'),
+                'rule' => array('notBlank'),
+                'required' => 'create',
                 'message' => 'A role name is required'
+            ),
+            'unique' => array(
+                'rule' => array('isUnique'),
+                'message' => 'A role with that name already exists'
             )
         )
     );
@@ -59,6 +64,9 @@ class Role extends AppModel {
       'className' => 'User',
       'foreignKey' => 'RoleId',
       'dependent' => false,
+      # Associated records skip User::beforeFind(), so name the columns here
+      # to keep Password and TokenMinExpiry out of role responses.
+      'fields' => array('Id', 'Username', 'Name', 'Email', 'Phone', 'Language', 'Enabled', 'RoleId'),
     ),
   );
 

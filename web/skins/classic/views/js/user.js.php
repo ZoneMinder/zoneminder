@@ -8,7 +8,7 @@ foreach ($monitors as $m) {
 ?>
 monitors[monitors.length] = {
   'id': <?php echo $m->Id() ?>,
-  'name': '<?php echo $m->Name() ?>'  
+  'name': '<?php echo validJsStr($m->Name()) ?>'  
 };
 <?php
 } // end foreach monitor
@@ -24,3 +24,15 @@ groups[groups.length] = {
 <?php
 } // end foreach group
 ?>
+<?php
+global $User;
+$role = $User->Role();
+$role_data = null;
+if ($role) {
+  $role_data = array('monitors'=>$role->Monitors(), 'monitor_permissions'=>new stdClass(), 'group_permissions'=>new stdClass());
+  foreach ($role->Monitor_Permissions() as $p) $role_data['monitor_permissions']->{$p->MonitorId()} = $p->Permission();
+  foreach ($role->Group_Permissions() as $p) $role_data['group_permissions']->{$p->GroupId()} = $p->Permission();
+}
+?>
+const role = <?php echo json_encode($role_data) ?>;
+const permissionStrings = <?php echo json_encode(array('None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create'))) ?>;

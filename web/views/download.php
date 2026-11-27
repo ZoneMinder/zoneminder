@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+require_once('includes/download_functions.php');
+
 class downloadingGeneratedEventFile {
     private $filenamePath;
     private $exportDir;
@@ -35,19 +37,19 @@ class downloadingGeneratedEventFile {
 
       switch ($this->fileType) {
         case 'tar.gz':
-          $this->mimetype = 'gzip';
+          $this->mimetype = 'application/gzip';
           $this->fileExt = 'tar.gz';
           break;
         case 'tar':
-          $this->mimetype = 'tar';
+          $this->mimetype = 'application/x-tar';
           $this->fileExt = 'tar';
           break;
         case 'zip':
-          $this->mimetype = 'zip';
+          $this->mimetype = 'application/zip';
           $this->fileExt = 'zip';
           break;
         case 'mp4':
-          $this->mimetype = 'mp4';
+          $this->mimetype = 'video/mp4';
           $this->fileExt = 'mp4';
           break;
         default:
@@ -56,10 +58,22 @@ class downloadingGeneratedEventFile {
       }
 
       $this->connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
-      $this->filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$this->connkey.$this->fileExt";
-      $this->filename = str_replace('/', '', $this->filename); # protect system files. must be a filename, not a path
-      $this->exportRoot = isset($_REQUEST['export_root'])?$_REQUEST['export_root']."/":"";
-      $this->exportRoot = str_replace('/', '', $this->exportRoot); # protect system files. must be a export_root, not a path
+      # Both must be a single path component, not a path. Stripping only '/' used
+      # to leave '..' intact, so export_root=.. climbed out of the downloads
+      # directory into an arbitrary-file read and delete (GHSA-fvx4-86xp-9v22).
+      $this->filename = isset($_REQUEST['file']) ? safeExportComponent($_REQUEST['file']) : '';
+      if ($this->filename === '') $this->filename = "zmExport_$this->connkey.$this->fileExt";
+      $this->exportRoot = isset($_REQUEST['export_root']) ? safeExportComponent($_REQUEST['export_root']) : '';
+
+      # The first path component is the export root, or the file when there is none.
+      if (!exportNameBelongsToUser($this->exportRoot ? $this->exportRoot : $this->filename)) {
+        ZM\Warning('Refusing a download that does not belong to the requesting user.');
+        $this->exportRoot = '';
+        $this->filename = '';
+        $this->filenamePath = '';
+        $this->exportDir = DIR_EXPORTS_DOWNLOAD;
+        return;
+      }
 
       if ($this->exportRoot) {
         $this->filenamePath = DIR_EXPORTS_DOWNLOAD.'/'. $this->exportRoot . '/' . $this->filename;
@@ -77,15 +91,20 @@ class downloadingGeneratedEventFile {
     public function removeTmpFiles () {
       if ($this->handle) fclose($this->handle);
 
-      unlink($this->exportDir.'/'.$this->filename.'.lock'); # Delete download flag file
-      unlink($this->filenamePath); # Delete the downloaded file
+      # Silenced: this runs at shutdown, after the body has been sent, so a
+      # warning about an already-missing file would be appended to the download.
+      @unlink($this->exportDir.'/'.$this->filename.'.lock'); # Delete download flag file
+      # Refuse to delete anything the request managed to point outside the
+      # downloads directory (GHSA-fvx4-86xp-9v22).
+      if (pathWithinExportDir($this->filenamePath, DIR_EXPORTS_DOWNLOAD))
+        @unlink($this->filenamePath); # Delete the downloaded file
       # We try to delete the directory (if it is not the main export directory) where the downloaded file was stored.
       if ($this->exportDir != ZM_DIR_EXPORTS)
         if (@rmdir($this->exportDir)) @rmdir(DIR_EXPORTS_DOWNLOAD);
     }
 
     public function download() {
-      if (is_readable($this->filenamePath)) {
+      if (is_readable($this->filenamePath) and pathWithinExportDir($this->filenamePath, DIR_EXPORTS_DOWNLOAD)) {
         # Let's set a flag that the file has started downloading and mark the download start time.
         # In the future, we will delete generated files that have not started downloading within XX minutes.
         file_put_contents($this->exportDir.'/'.$this->filename.'.lock', strtotime(date("Y-m-d H:i:s")), LOCK_EX);
@@ -94,9 +113,9 @@ class downloadingGeneratedEventFile {
           ob_end_clean();
         }
 
-        header("Content-Type: application/$this->mimetype");
-        header("Content-Length: ". filesize($this->filenamePath).";");
-        header('Content-Disposition: attachment; filename=' . basename($this->filename));
+        header("Content-Type: $this->mimetype");
+        header('Content-Length: '.filesize($this->filenamePath));
+        header('Content-Disposition: '.contentDispositionAttachment($this->filename));
         header('Content-Transfer-Encoding: binary');
         header("Connection: close"); # Close connection after downloading
         @ini_set( 'max_execution_time', 0 );
@@ -121,7 +140,7 @@ class downloadingGeneratedEventFile {
         }
       } else {
         header('HTTP/1.0 204 No Content'); # So that there is no blank page! And we need to visually indicate that the file is missing!
-        ZM\Error($filenamePath.' does not exist or is not readable.');
+        ZM\Error($this->filenamePath.' does not exist or is not readable.');
       }
     }
 }

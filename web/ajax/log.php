@@ -30,7 +30,39 @@ if (!isset($_REQUEST['task'])) {
     if (!empty($_REQUEST['ids'])) {
       $ids = array_map('intval', (array)$_REQUEST['ids']);
       $placeholders = implode(',', array_fill(0, count($ids), '?'));
-      dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids);
+      if (dbQuery('DELETE FROM Logs WHERE Id IN (' . $placeholders . ')', $ids) === null) {
+        $message = 'Failed to delete the selected log entries';
+      }
+    } else if (!empty($_REQUEST['all'])) {
+      // Deleting by id needs one request per 100 rows, which is unusable at the
+      // hundreds of thousands of rows people accumulate, and the table's
+      // check-all only ever selects the current page. This clears the lot in one
+      // statement. It is a separate parameter rather than "no ids given" so a
+      // malformed request that lost its ids cannot empty the table by accident.
+      $filter = logFilter();
+      if ($filter['where'] !== '') {
+        // A filter is applied, so clear what the view is showing rather than the
+        // whole table. Same builder as the query, so the rows deleted are the
+        // rows that were on screen.
+        if (dbQuery('DELETE FROM Logs WHERE '.$filter['where'], $filter['values']) === null) {
+          $message = 'Failed to delete the filtered log entries';
+        }
+      } else if ($filter['requested']) {
+        // Filtering was asked for but none of it survived parsing, so we have no
+        // idea which rows were meant. Truncating here would destroy the whole
+        // table on the strength of a mistyped date, and the browser has already
+        // told the user it was only clearing the filtered rows.
+        $message = 'Cannot clear logs: the filter could not be interpreted. Check the date fields.';
+      } else if (dbQuery('TRUNCATE TABLE Logs') === null) {
+        // Nothing filtered, so empty the table outright. TRUNCATE beats a row by
+        // row DELETE at this size and nothing has a foreign key onto Logs. It
+        // also resets the Logs AUTO_INCREMENT, which the DELETE fallback does not.
+        // TRUNCATE needs DROP, which the packaged installs grant, so fall back for
+        // installs that were granted DML only.
+        if (dbQuery('DELETE FROM Logs') === null) {
+          $message = 'Failed to clear the log table';
+        }
+      }
     }
   }
 } else {
@@ -71,9 +103,21 @@ function createRequest() {
   }
 
   ZM\logInit(array('id'=>'web_js'));
-  $line = empty($_POST['line']) ? NULL : validInt($_POST['line']);
+  // Firefox reports the location as "line:column" (e.g. 1500:28).  validInt()
+  // only strips non-digit characters, so it splices the two together into
+  // 150028, which overflows the smallint Logs.Line column and makes this
+  // endpoint die with a 500 -- the log request fails on the very error it was
+  // sent to report.  Take the leading line number and clamp it to the column.
+  $line = NULL;
+  if (!empty($_POST['line']) and is_scalar($_POST['line'])
+      and preg_match('/\d+/', (string)$_POST['line'], $line_matches)) {
+    $line = min((int)$line_matches[0], 65535);
+  }
 
   $levels = array_flip(ZM\Logger::$codes);
+  // OFF has no priority to log under, and AUD is for the server's own audit
+  // records, so a request can't forge one.
+  unset($levels['OFF'], $levels['AUD']);
   if (!isset($levels[$level])) {
     ZM\Error('Unexpected logger level '.$level); // already sanitized above
     $level = 'ERR';
@@ -81,24 +125,244 @@ function createRequest() {
   ZM\Logger::fetch()->logPrint($levels[$level], $message, $file, $line);
 }
 
+// The dB columns in the log table the view works with.
+function logColumns() {
+  return array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+}
+
+// Columns shown in the log view that are not dB columns.
+function logAltColumns() {
+  return array('DateTime', 'Server');
+}
+
+// Build the WHERE clause for whatever the Log view is currently filtered to.
+// queryRequest() and the delete task both go through this so a "clear all" with
+// a filter applied removes exactly the rows the user is looking at. Rebuilding
+// the conditions separately would risk the two drifting apart, and the failure
+// mode there is deleting rows the user never saw.
+// Returns where (no leading WHERE), values, and the parsed component/level/monitor
+// selections queryRequest stashes in the session.
+function logFilter() {
+  global $user;
+  $columns = logColumns();
+  $col_alt = logAltColumns();
+  $query = array('values' => array());
+  $likes = array();
+  $where = '';
+  // Whether the request asked to filter at all, which is deliberately not the
+  // same as whether the filter produced any SQL. Values get dropped here when
+  // they do not parse (an unparseable date, an unknown level code), and the
+  // delete task must not read the resulting empty clause as "nothing was
+  // filtered" and empty the whole table. See #4727.
+  $requested = false;
+   // There are two search bars in the log view, normal and advanced
+  // Making an exuctive decision to ignore the normal search, when advanced search is in use
+  // Alternatively we could try to do both
+  //
+  // Advanced search contains an array of "column name" => "search text" pairs
+  // Bootstrap table sends json_ecoded array, which we must decode
+  $advsearch = (isset($_REQUEST['filter']) and is_string($_REQUEST['filter'])) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
+  // json_decode can return null, and count(null) is a fatal error on PHP 8.
+  $advsearch = is_array($advsearch) ? $advsearch : array();
+  // Search contains a user entered string to search on
+  $search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
+  // An unreadable filter or search is still a filter, so the delete must not truncate on it.
+  if (isset($_REQUEST['filter']) and !is_string($_REQUEST['filter'])) $requested = true;
+  if (isset($_REQUEST['search']) and !is_string($_REQUEST['search'])) $requested = true;
+  if (count($advsearch)) {
+    $requested = true;
+    foreach ($advsearch as $col=>$text) {
+      // Real columns only. DateTime and Server are built in PHP after the rows
+      // come back, so matching on them produces SQL against columns the Logs
+      // table does not have. The advanced search form offers them because the
+      // view declares them as fields, and the resulting statement fails.
+      if ($col === 'Server' and is_scalar($text)) {
+        // The Logs table only holds ServerId, so match the name through Servers.
+        array_push($likes, 'ServerId IN (SELECT Id FROM Servers WHERE Name LIKE ?)');
+        array_push($query['values'], addcslashes((string)$text, '\\%_'));
+        continue;
+      }
+      if (!in_array($col, $columns, true)) {
+        ZM\Error("'$col' is not a searchable column name");
+        continue;
+      }
+      // Don't use wildcards on advanced search. The text is literal, so a "_" or
+      // "%" in it is escaped rather than read as a LIKE wildcard.
+      //$text = '%' .$text. '%';
+      if (!is_scalar($text)) continue;
+      $text = addcslashes((string)$text, '\\%_');
+      array_push($likes, $col.' LIKE ?');
+      array_push($query['values'], $text);
+    }
+    // Every requested column was rejected above. That used to build the
+    // malformed 'WHERE ()', which the query errored out on. Now that the delete
+    // shares this clause it matters much more: an empty $where here would read
+    // as "no filter applied" and truncate the whole table. Match nothing
+    // instead, which is what a search for a column that does not exist means.
+    $where = $likes ? '(' .implode(' AND ', $likes). ')' : '1=0';
+
+  } else if ($search != '') {
+    $requested = true;
+    // The box is plain text, so escape LIKE wildcards: searching "_" would
+    // otherwise match every row.
+    $search = '%' .addcslashes($search, '\\%_'). '%';
+    foreach ( $columns as $col ) {
+      array_push($likes, $col.' LIKE ?');
+      array_push($query['values'], $search);
+    }
+    $where = '(' .implode(' OR ', $likes). ')';
+  }
+
+  // Component is a multi-select: accept a scalar (legacy) or an array of
+  // component names and match any of them.
+  $requestComponents = array();
+  if (isset($_REQUEST['Component'])) {
+    foreach ((array)$_REQUEST['Component'] as $component) {
+      if (is_scalar($component) && (string)$component !== '') $requestComponents[] = (string)$component;
+    }
+  }
+  if (count($requestComponents)) {
+    $requested = true;
+    if ($where) $where .= ' AND ';
+    $placeholders = implode(', ', array_fill(0, count($requestComponents), '?'));
+    $where .= 'Component IN (' . $placeholders . ')';
+    foreach ($requestComponents as $component) $query['values'][] = $component;
+  }
+
+  // Monitor is a single select. A camera's daemons log as zmc_mN, zma_mN,
+  // zms_mN and zmtrack_mN, so match those four Components instead of making
+  // the user learn the naming. The id is cast to int, and a monitor the user
+  // may not view matches no rows, as does a malformed id.
+  $requestMonitorId = null;
+  if (isset($_REQUEST['MonitorId'])) {
+    $rawMonitorId = $_REQUEST['MonitorId'];
+    // The empty option is "All", not monitor 0.
+    if (!is_scalar($rawMonitorId) or (string)$rawMonitorId !== '') {
+      $requested = true;
+      $monitorId = is_scalar($rawMonitorId) ? (int)$rawMonitorId : 0;
+      $requestMonitorId = $monitorId;
+      $viewable = false;
+      if (is_object($user) and method_exists($user, 'viewableMonitorIds')) {
+        $viewable = in_array($monitorId, array_map('intval', $user->viewableMonitorIds()), true);
+      }
+      if ($where) $where .= ' AND ';
+      if ($viewable) {
+        $where .= 'Component IN (?, ?, ?, ?)';
+        foreach (array('zmc_m', 'zma_m', 'zms_m', 'zmtrack_m') as $prefix) {
+          $query['values'][] = $prefix.$monitorId;
+        }
+      } else {
+        $where .= '1=0';
+      }
+    }
+  }
+
+  if (!empty($_REQUEST['ServerId'])) {
+    $requested = true;
+    if ($where) $where .= ' AND ';
+    $where .= 'ServerId = ?';
+    $query['values'][] = $_REQUEST['ServerId'];
+  }
+/* We have an indexed 'Level', not 'Code'.
+  if (!empty($_REQUEST['level'])) {
+    if ($where) $where .= ' AND ';
+    $where .= 'Code = ?';
+    $query['values'][] = $_REQUEST['level'];
+  }
+*/
+  // Level is a multi-select: accept a scalar (legacy) or an array of level codes
+  // ('DBG', 'INF', ...). Keep only recognized codes and match any of them.
+  $level_codes = array_flip(ZM\Logger::$codes);
+  $requestLevels = array();
+  if (isset($_REQUEST['level'])) {
+    foreach ((array)$_REQUEST['level'] as $level) {
+      if (!is_scalar($level) or (string)$level === '') continue;
+      // Asked for, whether or not we recognise it.
+      $requested = true;
+      if (isset($level_codes[(string)$level])) {
+        $requestLevels[(string)$level] = $level_codes[(string)$level];
+      }
+    }
+  }
+  if (count($requestLevels)) {
+    if ($where) $where .= ' AND ';
+    // Daemons log debug levels 1 to 9 as DB1 to DB9.
+    $exactLevels = array();
+    $debugLevel = null;
+    foreach ($requestLevels as $code => $level) {
+      if ($code == 'DBG') {
+        $debugLevel = $level;
+      } else {
+        $exactLevels[] = $level;
+      }
+    }
+    $terms = array();
+    if (count($exactLevels)) {
+      $placeholders = implode(', ', array_fill(0, count($exactLevels), '?'));
+      $terms[] = ' Level IN (' . $placeholders . ')';
+      foreach ($exactLevels as $level) $query['values'][] = $level;
+    }
+    if ($debugLevel !== null) {
+      $terms[] = 'Level >= ?';
+      $query['values'][] = $debugLevel;
+    }
+    $where .= count($terms) > 1 ? '(' . implode(' OR ', $terms) . ')' : $terms[0];
+  }
+
+  if (!empty($_REQUEST['StartDateTime'])) {
+    $requested = true;
+    $start_time = is_string($_REQUEST['StartDateTime']) ? strtotime($_REQUEST['StartDateTime']) : false;
+    if ($start_time) {
+      if ($where) $where .= ' AND ';
+      $where .= 'TimeKey >= ?';
+      $query['values'][] = $start_time;
+    } else {
+      ZM\Warning("Unable to parse StartDateTime ".print_r($_REQUEST['StartDateTime'], true). " into a timestamp");
+    }
+  }
+  if (!empty($_REQUEST['EndDateTime'])) {
+    $requested = true;
+    $end_time = is_string($_REQUEST['EndDateTime']) ? strtotime($_REQUEST['EndDateTime']) : false;
+    if ($end_time) {
+      if ($where) $where .= ' AND ';
+      // TimeKey carries fractions of a second but the view shows whole seconds,
+      // so the End time covers its whole second.
+      $where .= 'TimeKey < ?';
+      $query['values'][] = $end_time + 1;
+    } else {
+      ZM\Warning("Unable to parse EndDateTime ".print_r($_REQUEST['EndDateTime'], true). " into a timestamp");
+    }
+  }
+
+
+  return array(
+    'where' => $where,
+    'values' => $query['values'],
+    'requested' => $requested,
+    'components' => $requestComponents,
+    'levels' => $requestLevels,
+    'monitorId' => $requestMonitorId,
+  );
+}
+
 function queryRequest() {
   // Offset specifies the starting row to return, used for pagination
   $offset = 0;
   if (isset($_REQUEST['offset'])) {
-    if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-      ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+    if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+      ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
     } else {
-      $offset = $_REQUEST['offset'];
+      $offset = (int)$_REQUEST['offset'];
     }
   }
 
   // Limit specifies the number of rows to return
   $limit = 100;
   if (isset($_REQUEST['limit'])) {
-    if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-      ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+    if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+      ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
     } else {
-      $limit = $_REQUEST['limit'];
+      $limit = (int)$_REQUEST['limit'];
     }
   }
   // The table we want our data from
@@ -107,25 +371,26 @@ function queryRequest() {
   $nameMainQuery = 't1'; # To optimize queries using a subquery
   $nameSubQuery = 't2';
 
-  // The names of the dB columns in the log table we are interested in
-  $columns = array('Id', 'TimeKey', 'Component', 'ServerId', 'Pid', 'Code', 'Message', 'File', 'Line');
+  $columns = logColumns();
   $columnsContext = $columns;
-  // The names of columns shown in the log view that are NOT dB columns in the database
-  $col_alt = array('DateTime', 'Server');
+  $col_alt = logAltColumns();
 
   $sort = 'TimeKey';
-  if (isset($_REQUEST['sort'])) {
+  if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
     $sort = $_REQUEST['sort'];
     if ($sort == 'DateTime') $sort = 'TimeKey';
     if ($sort == 'Server') $sort = 'ServerId';
+    // Code is a label, so sorting it as text puts DB1, ERR, FAT, INF, PNC and
+    // WAR in alphabetical order. Sort by the level it stands for.
+    if ($sort == 'Code') $sort = 'Level';
   }
-  if (!in_array($sort, array_merge($columns, $col_alt))) {
+  if (!in_array($sort, array_merge($columns, $col_alt, array('Level')))) {
     ZM\Error('Invalid sort field: ' . $sort);
     return;
   }
 
   // Order specifies the sort direction, either asc or desc
-  $order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+  $order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
   if ($nameMainQuery !== '' && $nameSubQuery !== '') {
     array_walk($columnsContext, function(&$value, $key, $nameMainQuery) {
@@ -138,91 +403,22 @@ function queryRequest() {
   $data = array();
   $query = array();
   $query['values'] = array();
-  $likes = array();
-  $where = '';
-   // There are two search bars in the log view, normal and advanced
-  // Making an exuctive decision to ignore the normal search, when advanced search is in use
-  // Alternatively we could try to do both
-  //
-  // Advanced search contains an array of "column name" => "search text" pairs
-  // Bootstrap table sends json_ecoded array, which we must decode
-  $advsearch = isset($_REQUEST['filter']) ? json_decode($_REQUEST['filter'], JSON_OBJECT_AS_ARRAY) : array();
-  // Search contains a user entered string to search on
-  $search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
-  if (count($advsearch)) {
-    foreach ($advsearch as $col=>$text) {
-      if (!in_array($col, array_merge($columns, $col_alt))) {
-        ZM\Error("'$col' is not a searchable column name");
-        continue;
-      }
-      // Don't use wildcards on advanced search
-      //$text = '%' .$text. '%';
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $text);
-    }
-    $where = '(' .implode(' OR ', $likes). ')';
+  $filter = logFilter();
+  $where = $filter['where'];
+  $query['values'] = $filter['values'];
+  $requestComponents = $filter['components'];
+  $requestLevels = $filter['levels'];
+  $requestMonitorId = $filter['monitorId'];
 
-  } else if ($search != '') {
-    $search = '%' .$search. '%';
-    foreach ( $columns as $col ) {
-      array_push($likes, $col.' LIKE ?');
-      array_push($query['values'], $search);
-    }
-    $where = '(' .implode(' OR ', $likes). ')';
+  # An embedded panel queries a component of its own choosing, so remembering
+  # what it asked for would overwrite the Log view's selection.
+  if (empty($_REQUEST['embedded'])) {
+    zm_session_start();
+    $_SESSION['zmLogComponent'] = $requestComponents;
+    $_SESSION['zmLogFilterLevel'] = array_keys($requestLevels);
+    $_SESSION['zmLogMonitorId'] = $requestMonitorId;
+    session_write_close();
   }
-
-  $requestComponent = (isset($_REQUEST['Component']) && !empty($_REQUEST['Component']) && is_scalar($_REQUEST['Component'])) ? (string) $_REQUEST['Component'] : '';
-  if (!empty($requestComponent)) {
-    if ($where) $where .= ' AND ';
-    $where .= 'Component = ?';
-    $query['values'][] = $requestComponent;
-  }
-
-  if (!empty($_REQUEST['ServerId'])) {
-    if ($where) $where .= ' AND ';
-    $where .= 'ServerId = ?';
-    $query['values'][] = $_REQUEST['ServerId'];
-  }
-/* We have an indexed 'Level', not 'Code'.
-  if (!empty($_REQUEST['level'])) {
-    if ($where) $where .= ' AND ';
-    $where .= 'Code = ?';
-    $query['values'][] = $_REQUEST['level'];
-  }
-*/
-  $L = (isset($_REQUEST['level']) && !empty($_REQUEST['level']) && is_scalar($_REQUEST['level'])) ? (string) $_REQUEST['level'] : '';
-  $level_codes = array_flip(ZM\Logger::$codes);
-  if (!empty($L) && isset($level_codes[$L])) {
-    if ($where) $where .= ' AND ';
-    $where .= ' Level = ?';
-    $query['values'][] = $level_codes[$L];
-  }
-
-  if (!empty($_REQUEST['StartDateTime'])) {
-    $start_time = strtotime($_REQUEST['StartDateTime']);
-    if ($start_time) {
-      if ($where) $where .= ' AND ';
-      $where .= 'TimeKey >= ?';
-      $query['values'][] = $start_time;
-    } else {
-      ZM\Warning("Unable to parse StartDateTime ".$_REQUEST['StartDateTime']. " into a timestamp");
-    }
-  }
-  if (!empty($_REQUEST['EndDateTime'])) {
-    $end_time = strtotime($_REQUEST['EndDateTime']);
-    if ($end_time) {
-      if ($where) $where .= ' AND ';
-      $where .= 'TimeKey <= ?';
-      $query['values'][] = $end_time;
-    } else {
-      ZM\Warning("Unable to parse EndDateTime ".$_REQUEST['EndDateTime']. " into a timestamp");
-    }
-  }
-
-  zm_session_start();
-  $_SESSION['zmLogComponent'] = $requestComponent;
-  $_SESSION['zmLogFilterLevel'] = isset($level_codes[$L]) ? $L : '';
-  session_write_close();
 
   if ($where) $where = ' WHERE '.$where;
 
@@ -240,13 +436,13 @@ function queryRequest() {
       JOIN (
         SELECT Id 
         FROM `'.$table.'` '.$where. ' 
-        ORDER BY ' .$sort. ' ' .$order. ' 
+        ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' 
         LIMIT ?, ?
       ) AS ' .$nameSubQuery. ' 
       ON ' .$nameMainQuery. '.Id=' .$nameSubQuery. '.Id 
-      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order;
+      ORDER BY ' .$nameMainQuery. '.' .$sort. ' ' .$order. ', ' .$nameMainQuery. '.Id ' .$order;
   } else {
-    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ' LIMIT ?, ?';
+    $query['sql'] = 'SELECT ' .$col_str. ' FROM `' .$table. '` ' .$where. ' ORDER BY ' .$sort. ' ' .$order. ', Id ' .$order. ' LIMIT ?, ?';
   }
 
   array_push($query['values'], $offset, $limit);
@@ -259,9 +455,22 @@ function queryRequest() {
     $row['DateTime'] = empty($row['TimeKey']) ? '' : $dateTimeFormatter->format(intval($row['TimeKey']));
     $Server = $row['ServerId'] ? ZM\Server::find_one(array('Id'=>$row['ServerId'])) : null;
 
-    $row['Server'] = $Server ? $Server->Name() : '';
+    $row['Server'] = $Server ? htmlspecialchars($Server->Name(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') : '';
+    $component = (string)($row['Component'] ?? '');
+    $componentHtml = htmlspecialchars($component, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    if (preg_match('/^(zmc|zma|zms|zmtrack)_m(\d+)$/', $component, $matches)) {
+      $mid = (int)$matches[2];
+      if (canView('Monitors', $mid)) {
+        if (canView('Stream')) {
+          $componentHtml = '<a href="?view=watch&mid='.$mid.'">'.$componentHtml.'</a>';
+        } else if (canEdit('Monitors', $mid)) {
+          $componentHtml = '<a href="?view=monitor&mid='.$mid.'">'.$componentHtml.'</a>';
+        }
+      }
+    }
+    $row['Component'] = $componentHtml;
+    $row['Message'] = htmlspecialchars($row['Message'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
     // Strip out all characters that are not ASCII 32-126 (yes, 126)
-    $row['Message'] = preg_replace('/[^\x20-\x7E]/', '', htmlspecialchars($row['Message']));
     $row['File'] = preg_replace('/[^\x20-\x7E]/', '', strip_tags($row['File']));
     $rows[] = $row;
   }

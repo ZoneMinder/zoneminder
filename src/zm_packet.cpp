@@ -26,6 +26,8 @@ extern "C" {
 #include <libavutil/pixdesc.h>
 }
 
+#include <memory>
+
 using namespace std;
 AVPixelFormat target_format = AV_PIX_FMT_NONE;
 
@@ -93,6 +95,23 @@ ZMPacket::~ZMPacket() {
   delete analysis_image;
   delete image;
   delete y_image;
+}
+
+void ZMPacket::release_frames() {
+  // y_image points into in_frame's Y plane, so it goes first.
+  delete y_image;
+  y_image = nullptr;
+  in_frame = nullptr;
+  hw_frame = nullptr;
+}
+
+void ZMPacket::release_decoded() {
+  release_frames();
+  delete image;
+  image = nullptr;
+  delete analysis_image;
+  analysis_image = nullptr;
+  out_frame = nullptr;
 }
 
 ssize_t ZMPacket::ram() {
@@ -275,36 +294,45 @@ Image *ZMPacket::set_image(Image *i) {
 }
 
 Image *ZMPacket::get_y_image() {
-  if (!y_image) {
-    if (!in_frame) {
-      Error("Can't get y_image without frame, maybe need to decode first");
-      return nullptr;
-    }
+  if (y_image) return y_image;
 
-    // Check if the pixel format has a Y channel accessible in data[0]
-    // This requires a planar YUV format (not RGB, not packed YUV)
-    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format));
-    if (!desc) {
-      Error("Unable to get pixel format descriptor for format %d", in_frame->format);
-      return nullptr;
-    }
-
-    // Must not be RGB (no Y channel) and must be planar (Y is in data[0])
-    if (desc->flags & AV_PIX_FMT_FLAG_RGB) {
-      Error("Cannot get Y image from RGB format %s", desc->name);
-      return nullptr;
-    }
-    if (!(desc->flags & AV_PIX_FMT_FLAG_PLANAR)) {
-      Error("Cannot get Y image from non-planar format %s (Y is interleaved)", desc->name);
-      return nullptr;
-    }
-
+  const AVPixFmtDescriptor *desc = in_frame ? av_pix_fmt_desc_get(static_cast<AVPixelFormat>(in_frame->format)) : nullptr;
+  // data[0] is a usable Y plane only for 8-bit planar YUV
+  const bool plain_y = desc && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)
+                       && !(desc->flags & (AV_PIX_FMT_FLAG_RGB | AV_PIX_FMT_FLAG_PAL
+                                           | AV_PIX_FMT_FLAG_BITSTREAM | AV_PIX_FMT_FLAG_HWACCEL))
+                       && desc->comp[0].depth == 8 && desc->comp[0].step == 1;
+  if (plain_y) {
     // Wrap the decoder's Y plane with its real stride (linesize[0]). The plane
     // is packed at the decoder's alignment, which may be smaller than the
     // FFALIGN(width,32) a plain Image would assume; recording the true stride
     // keeps stride-aware reads (motion analysis) and Rotate/Flip correct.
     y_image = new Image(in_frame->width, in_frame->linesize[0], in_frame->height,
                         1, ZM_SUBPIX_ORDER_NONE, in_frame->data[0], 0);
+    return y_image;
+  }
+
+  // Gray, high bit depth and other software frames: convert the decoded frame
+  if (desc && in_frame->data[0] && !(desc->flags & AV_PIX_FMT_FLAG_HWACCEL)) {
+    std::unique_ptr<Image> luma(new Image(in_frame->width, in_frame->height,
+                                          ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE));
+    if (luma->Assign(in_frame.get())) {
+      y_image = luma.release();
+      return y_image;
+    }
+  }
+
+  // Otherwise (cameras like RemoteCameraHttp that only fill image) convert the image to greyscale.
+  if (!image) {
+    Error("Can't get y_image without frame or image, maybe need to decode first");
+    return nullptr;
+  }
+  av_frame_ptr frame{av_frame_alloc()};
+  if (!frame || image->PopulateFrame(frame.get()) < 0) return nullptr;
+  y_image = new Image(image->Width(), image->Height(), ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  if (!y_image->Assign(frame.get())) {
+    delete y_image;
+    y_image = nullptr;
   }
   return y_image;
 }
@@ -361,7 +389,7 @@ AVFrame *ZMPacket::get_out_frame(int width, int height, AVPixelFormat format) {
 
 std::unique_lock<std::mutex> ZMPacket::lock() {
   std::unique_lock<std::mutex> lck_(mutex_, std::defer_lock);
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
@@ -369,33 +397,36 @@ std::unique_lock<std::mutex> ZMPacket::lock() {
 };
 
 void ZMPacket::lock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "locking packet %d %p %d owns %d", image_index, this, locked.load(), lck_.owns_lock());
   lck_.lock();
   locked = true;
   Debug(4, "packet %d locked", image_index);
 };
 
 bool ZMPacket::trylock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked, lck_.owns_lock());
-  locked = lck_.try_lock();
-  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, locked, lck_.owns_lock());
-  return locked;
+  Debug(4, "TryLocking packet %d %p locked: %d owns: %d", image_index, this, locked.load(), lck_.owns_lock());
+  // A failed try_lock must not touch `locked`: another thread holds the
+  // mutex, and the caller's result must not depend on what others write.
+  const bool got = lck_.try_lock();
+  if (got) locked = true;
+  Debug(4, "TryLocking packet %d %p %d, owns: %d", image_index, this, got, lck_.owns_lock());
+  return got;
 };
 
 void ZMPacket::unlock(std::unique_lock<std::mutex> &lck_) {
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   locked = false;
   lck_.unlock();
-  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, lck_.owns_lock());
+  Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), lck_.owns_lock());
   condition_.notify_all();
 };
 
 void ZMPacket::unlock() {
   if (locked) {
-    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Debug(4, "packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
     our_lck_.unlock();
   } else {
-    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked, our_lck_.owns_lock());
+    Error("Attempt to unlock already unlocked packet %d unlocked, %p, locked %d, owns %d", image_index, this, locked.load(), our_lck_.owns_lock());
   }
 }
 

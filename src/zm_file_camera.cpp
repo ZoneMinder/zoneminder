@@ -20,6 +20,7 @@
 #include "zm_file_camera.h"
 
 #include "zm_packet.h"
+#include "zm_signal.h"
 #include <sys/stat.h>
 
 FileCamera::FileCamera(
@@ -85,7 +86,7 @@ int FileCamera::PreCapture() {
   // This waits until 1 second has passed since it was modified. Effectively limiting fps to 60.
   // Which is kinda bogus. If we were writing to this jpg constantly faster than we are monitoring it here
   // we would never break out of this loop
-  while ((time(nullptr) - statbuf.st_mtime) < 1) {
+  while (!zm_terminate and (time(nullptr) - statbuf.st_mtime) >= 0 and (time(nullptr) - statbuf.st_mtime) < 1) {
     std::this_thread::sleep_for(Milliseconds(100));
   }
   return 0;
@@ -99,7 +100,15 @@ int FileCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->codec_type = AVMEDIA_TYPE_VIDEO;
   zm_packet->packet->stream_index = mVideoStreamId;
   zm_packet->stream = mVideoStream;
-  return zm_packet->image->ReadJpeg(path, colours, subpixelorder) ? 1 : -1;
+  if (!zm_packet->image->ReadJpeg(path, colours, subpixelorder)) return -1;
+  // Whoever can write the file controls its dimensions. Everything downstream is sized for
+  // the monitor, so refuse a file that does not match rather than pass a different size on.
+  if (zm_packet->image->Width() != Width() || zm_packet->image->Height() != Height()) {
+    Error("File %s is %ux%u but the monitor is %ux%u", path.c_str(),
+          zm_packet->image->Width(), zm_packet->image->Height(), Width(), Height());
+    return -1;
+  }
+  return 1;
 }
 
 int FileCamera::PostCapture() {

@@ -31,10 +31,7 @@ var params =
 
 // Called by bootstrap-table to retrieve zm event data
 function ajaxRequest(params) {
-  if (document.visibilityState == 'hidden') {
-    table.bootstrapTable('hideLoading');
-    return;
-  }
+  if (deferTableRequestWhileHidden(table)) return;
   if (params.data && params.data.filter) {
     params.data.advsearch = params.data.filter;
     delete params.data.filter;
@@ -42,6 +39,8 @@ function ajaxRequest(params) {
   $j.getJSON(thisUrl + '?view=request&request=reports&task=query', params.data)
       .done(function(data) {
         if (data.result == 'Error') {
+          // Returning without params.success() would leave the table loading.
+          table.bootstrapTable('hideLoading');
           alert(data.message);
           return;
         }
@@ -49,9 +48,10 @@ function ajaxRequest(params) {
         // rearrange the result into what bootstrap-table expects
         params.success({total: data.total, totalNotFiltered: data.totalNotFiltered, rows: rows});
       })
-      .fail(function(jqXHR) {
-        logAjaxFail(jqXHR);
-        $j('#reportsTable').bootstrapTable('refresh');
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Refreshing here would re-run the failing request without end.
+        table.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
       });
 }
 
@@ -98,6 +98,14 @@ function deleteReports(ids) {
 
   $j.getJSON(thisUrl + '?request=reports&task=delete&ids[]='+chunk.join('&ids[]='))
       .done( function(data) {
+        if (data.result == 'Error') {
+          alert(data.message);
+          $j('#reportsTable').bootstrapTable('refresh');
+          return;
+        }
+        if (Array.isArray(data.message) && data.message.length) {
+          alert(data.message.join("\n"));
+        }
         if (!ids.length) {
           $j('#reportsTable').bootstrapTable('refresh');
         } else {
@@ -115,19 +123,22 @@ function deleteReports(ids) {
       });
 }
 
+// Enable or disable buttons based on current selection and user rights
+function updateToolbarButtons() {
+  const selections = table.bootstrapTable('getSelections');
+
+  viewBtn.prop('disabled', !(selections.length && canView.Events));
+  deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
+}
+
 function initPage() {
   // Init the bootstrap-table
   table.bootstrapTable({icons: icons});
 
-  // enable or disable buttons based on current selection and user rights
+  // The table drops its selection on every reload without any uncheck event, so
+  // the buttons are re-evaluated after each load as well as on selection changes.
   table.on('check.bs.table uncheck.bs.table ' +
-  'check-all.bs.table uncheck-all.bs.table',
-  function() {
-    selections = table.bootstrapTable('getSelections');
-
-    viewBtn.prop('disabled', !(selections.length && canView.Events));
-    deleteBtn.prop('disabled', !(selections.length && canEdit.Events));
-  });
+  'check-all.bs.table uncheck-all.bs.table post-body.bs.table', updateToolbarButtons);
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);

@@ -1,5 +1,6 @@
 <?php
   global $filterQuery;
+  global $navFilterQuery;
   global $monitors;
   global $minTime;
   global $midTime;
@@ -10,6 +11,7 @@
   global $monFrameSlots;
 ?>
 var filterQuery = '<?php echo validJsStr($filterQuery) ?>';
+var navFilterQuery = '<?php echo validJsStr($navFilterQuery) ?>';
 var events = {};
 
 <?php
@@ -26,18 +28,18 @@ foreach ($monitors as $monitor) {
   $firstEvent = reset($monEventSlots[$monitor->Id()])['event'];
 
   $jsMonitor['FirstEventId'] = $firstEvent['Id'];
-  echo 'events['.$firstEvent['Id'].']='.json_encode($firstEvent).';'.PHP_EOL;
+  echo 'events['.$firstEvent['Id'].']='.json_encode($firstEvent, JSON_INVALID_UTF8_SUBSTITUTE).';'.PHP_EOL;
 
   $jsMonitors[$monitor->Id()] = $jsMonitor;
 }
 ?>
-var monitors = <?php echo json_encode($jsMonitors) ?>;
+var monitors = <?php echo json_encode($jsMonitors, JSON_INVALID_UTF8_SUBSTITUTE) ?>;
 
 var archivedString = "<?php echo translate('Archived') ?>";
 
-var minTime = '<?php echo $minTime?>';
-var midTime = '<?php echo $midTime?>';
-var maxTime = '<?php echo $maxTime?>';
-var range = '<?php echo $range?>';
-var zoomout_range = '<?php (int)($range*$majXScale['zoomout']) ?>';
+var minTime = '<?php echo validJsStr($minTime) ?>';
+var midTime = '<?php echo validJsStr($midTime) ?>';
+var maxTime = '<?php echo validJsStr($maxTime) ?>';
+var range = '<?php echo validJsStr($range) ?>';
+var zoomout_range = '<?php echo (int)($range*$majXScale['zoomout']) ?>';
 

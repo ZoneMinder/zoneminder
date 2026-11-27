@@ -6,15 +6,15 @@ ZoneMinder provides the facility to control cameras from the web interface and t
 Definition of Capabilities
   For each camera model you use, an entry in the camera capabilities table must be created. These indicate what functions the camera supports and ensure that the interface presents only those capabilities that the camera supports. There are a very large number of capabilities that may be supported and it is very important that the entries in this table reflect the actual abilities of the camera. A small number of example capabilities are included in ZoneMinder, these can be used ‘as is’ or modified.
 
-Control Scripts
-  ZoneMinder itself does not generally provide the ability to send commands to cameras or receive responses. What it does is mediate motion requests from the web interface into a standard set of commands which are passed to a script defined in the control capability. Example scripts are provided in ZoneMinder which support a number of serial or network protocols but it is likely that for many cameras new scripts will have to be created. These can be modelled on the example ones, or if control commands already exist from other applications, then the script can just act as a ‘glue’ layer between ZoneMinder and those commands.
+Control Modules
+  ZoneMinder itself does not generally provide the ability to send commands to cameras or receive responses. What it does is mediate motion requests from the web interface into a standard set of commands which are passed to the control protocol module named in the control capability. Example modules are provided in ZoneMinder which support a number of serial or network protocols but it is likely that for many cameras new modules will have to be created. These can be modelled on the example ones, or if control commands already exist from other applications, then the module can just act as a ‘glue’ layer between ZoneMinder and those commands.
 
 It should be emphasised that the control and capability elements of ZoneMinder are not intended to be able to support every camera out of the box. Some degree of development is likely to be required for many cameras.
 
 Controlling Monitors
 ====================
 
-If you have defined your system as having controllable monitors and you are looking at a monitor that is configured for control, then clicking on the ‘Control’ link along the top of the window will change the short event listing area to a control area. The capabilities you have defined earlier determine exactly what is displayed in this window. Generally you will have a Pan/Tilt control area along with one or subsidiary areas such as zoom or focus control to the side. If you have preset support then these will be near the bottom of the window. The normal method of controlling the monitor is by clicking on the appropriate graphics which then send a command via the control script to the camera itself. This may sometimes take a noticeable delay before the camera responds.
+If you have defined your system as having controllable monitors and you are looking at a monitor that is configured for control, then clicking on the ‘Control’ link along the top of the window will change the short event listing area to a control area. The capabilities you have defined earlier determine exactly what is displayed in this window. Generally you will have a Pan/Tilt control area along with one or subsidiary areas such as zoom or focus control to the side. If you have preset support then these will be near the bottom of the window. The normal method of controlling the monitor is by clicking on the appropriate graphics which then send a command via the control module to the camera itself. This may sometimes take a noticeable delay before the camera responds.
 
 It is usually the case that the control arrows are sensitive to where you click on them. If you have a camera that allows different speeds to be used for panning or zooming etc then clicking near the point of the arrow will invoke the faster speed whilst clicking near the base of the arrow will be slower. If you have defined continuous motion then ongoing activities can be stopped by clicking on the area between the arrows, which will either be a graphic in the case of pan/tilt controls or a word in the case of zoom and focus controls etc.
 
@@ -22,7 +22,7 @@ Certain control capabilities such as mapped motion allow direct control by click
 
 Control Flow
 ^^^^^^^^^^^^
-Having a basic understanding of how camera control works in ZoneMinder will go a long way in debugging issues in the future. It is important to note that many of the 'camera control' scripts are user contributed and it is entirely possible that they break in a future version upgrade. 
+Having a basic understanding of how camera control works in ZoneMinder will go a long way in debugging issues in the future. It is important to note that many of the 'camera control' modules are user contributed and it is entirely possible that they break in a future version upgrade. 
 
 * ZoneMinder relies on 'control protocols' for specific camera models. These 'control' protocols are nothing but perl packages located in ``/usr/share/perl5/ZoneMinder/Control/`` (in Ubuntu distributions) that are invoked by ZoneMinder when you invoke a PTZ operation
 
@@ -48,10 +48,8 @@ Main Tab
 --------
 Name
   This is the name of the control capability, it will usually make sense to name capabilities after the camera model or protocol being used.
-Type
-  Whether the capability uses a local (usually serial) or network control protocol.
-Command
-  This is the full path to a script or application that will map the standard set of ZoneMinder control commands to equivalent control protocol command. This may be one of the shipped example zmcontrol-\*.pl scripts or something else entirely.
+Protocol
+  This is the name of the control protocol module that will map the standard set of ZoneMinder control commands to equivalent control protocol commands, for example ``ONVIF`` or ``PelcoD``. It is the name of one of the perl modules in ``ZoneMinder/Control/`` without the ``.pm`` extension. If it is left empty the Name is used instead.
 Can Wake
   This is the first of the actual capability definitions. Checking this box indicates that a protocol command exists to wake up the camera from a sleeping state.
 Can Sleep
@@ -141,35 +139,35 @@ Has Home Preset
 Can Set Presets
   The camera supports setting preset locations via its control protocol.
 
-Control Scripts
+Control Modules
 ^^^^^^^^^^^^^^^
-The second key element to controlling cameras with ZoneMinder is ensuring that an appropriate control script or application is present. A small number of sample scripts are included with ZoneMinder and can be used directly or as the basis for development. Control scripts are run atomically, that is to say that one requested action from the web interface results in one execution of the script and no state information is maintained. If your protocol requires state information to be preserved then you should ensure that your scripts do this as ZoneMinder has no concept of the state of the camera in control terms.
+The second key element to controlling cameras with ZoneMinder is ensuring that an appropriate control protocol module is present. A number of modules are included with ZoneMinder and can be used directly or as the basis for development. zmcontrol.pl runs as a server for each controllable monitor: it loads the module once and calls one of its methods for each requested action from the web interface, so a module can keep state such as an open serial port or a login session between commands. ZoneMinder itself has no concept of the state of the camera in control terms.
 
-If you are writing a new control script then you need to ensure that it supports the parameters that ZoneMinder will pass to it. If you already have scripts or applications that control your cameras, the ZoneMinder control script will just act as glue to convert the parameters passed into a form that your existing application understands. If you are writing a script to support a new protocol then you will need to convert the parameters passed into the script to equivalent protocol commands. If you have carefully defined your control capabilities above then you should only expect commands that correspond to those capabilities.
+If you are writing a new control module then you need to ensure that it supports the parameters that ZoneMinder will pass to it. If you already have scripts or applications that control your cameras, the control module will just act as glue to convert the parameters passed into a form that your existing application understands. If you are writing a module to support a new protocol then you will need to convert the parameters passed to the module to equivalent protocol commands. If you have carefully defined your control capabilities above then you should only expect commands that correspond to those capabilities.
 
-The standard set of parameters passed to control scripts is defined below,
+The standard set of parameters is defined below. A module method receives them as keys of a hash reference, for example ``$params->{speed}``. The --device and --address options are only used by the zmcontrol.pl --protocol test mode; otherwise a module reads the monitor's control device and address from ``$self->{Monitor}{ControlDevice}`` and ``$self->{Monitor}{ControlAddress}``.
 
   --device=<device> : This is the control device from the monitor definition. Absent if no device is specified.
 
   --address=<address> : This is the control address from the monitor definition. This will usually be a hostname or ip address for network cameras or a simple numeric camera id for other cameras.
 
-  --autostop=<timeout> : This indicates whether an automatic timeout should be applied to '''stop''' the given command. It will only be included for '''continuous''' commands, as listed below, and will be a timeout in decimal seconds, probably fractional.
+  --autostop : This indicates that an automatic timeout should be applied to stop the given command. It is a flag and takes no value; the timeout is the monitor's Auto Stop Timeout, set in decimal seconds on its Control tab. It will only be included for the moveCon, zoomCon and focusCon commands listed below, only when that timeout is set and, if the camera has speed settings, only for speeds below 90% of the speed range.
 
-  --command=<command> : This specifies the command that the script should execute. Valid commands are given below.
+  --command=<command> : This specifies the command, the module method, that should be executed. Valid commands are given below.
 
-  --xcoord=<x>, --ycoord=<y> : This specifies the x and/or y coordinates for commands which require them. These will normally be absolute or mapped commands.
+  --xcoord=<x>, --ycoord=<y> : This specifies the x and y coordinates on the image for the moveMap command.
 
-  --width=<width>'', ''--height=<height> : This specifies the width and height of the current image, for mapped motion commands where the coordinates values passed must have a context.
+  --speed=<speed> : This specifies the speed that the command should use, if appropriate. It is used by the zoom, focus, iris and white balance commands; moveCon, moveRel and moveAbs use --panspeed and --tiltspeed instead.
 
-  --speed=<speed> : This specifies the speed that the command should use, if appropriate.
+  --panspeed=<speed>, --tiltspeed=<speed> : This indicates the specific pan and tilt speeds for the moveCon, moveRel and moveAbs commands which may allow a different motion rate for horizontal and vertical components.
 
-  --panspeed=<speed>'', ''--tiltspeed=<speed> : This indicates the specific pan and tilt speeds for diagonal movements which may allow a different motion rate for horizontal and vertical components.
+  --step=<step> : This specifies the amount of motion that the command should use, if appropriate. It is used by the relative and absolute zoom, focus, iris and white balance commands; moveRel and moveAbs use --panstep and --tiltstep instead.
 
-  --step=<step> : This specifies the amount of motion that the command should use, if appropriate. Normally used for relative commands only.
-
-  --panstep=<step>'', ''--tiltstep=<step> : This indicates the specific pan and tilt steps for diagonal movements which may allow a different amount of motion for horizontal and vertical components.
+  --panstep=<step>, --tiltstep=<step> : This indicates the specific pan and tilt steps for the moveRel and moveAbs commands which may allow a different amount of motion for horizontal and vertical components.
 
   --preset=<preset> : This specifies the particular preset that relevant commands should operate on.
+
+  --file=<file> : This specifies the number of the sound that the audioPlay command should play.
 
 The *command* option listed above may take one of the following commands as a parameter.
 
@@ -179,45 +177,61 @@ sleep
   Send the camera to sleep.
 reset
   Reset the camera.
-move_map
+reboot
+  Reboot the camera.
+lightOn, lightOff
+  Switch the camera's light on or off.
+indicatorLightOn, indicatorLightOff
+  Switch the camera's indicator light on or off.
+lightStatus, indicatorLightStatus
+  Return the state of the light or of the indicator light as a hash, with WhiteLight (for lightStatus) or Enable (for indicatorLightStatus) set to "On" or "Off". The watch page asks for these to show the state on its light buttons.
+audioPlay
+  Play the sound given by the --file option.
+audioStop
+  Stop any sound which may be playing.
+audioVolumeUp, audioVolumeDown
+  Raise or lower the audio volume.
+moveMap
   Move mapped to a specified location on the image.
-move_pseudo_map
-  As move_map above. Pseudo-mapped motion can be used when mapped motion is not supported but relative motion is in which case mapped motion can be roughly approximated by careful calibration.
-move_abs_<direction>
-  Move to a specified absolute location. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "up", "down", "left", "right", "upleft", "upright", "downleft" or "downright".
-move_rel_<direction>
+moveAbs<direction>
+  Move to a specified absolute location. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Up", "Down", "Left", "Right", "UpLeft", "UpRight", "DownLeft" or "DownRight".
+moveRel<direction>
   Move a specified amount in the given direction. 
-move_con_<direction>
+moveCon<direction>
   Move continuously in the given direction until told to stop.
-move_stop
+moveStop
   Stop any motion which may be in progress. 
-zoom_abs_<direction>
-  Zoom to a specified absolute zoom position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "tele" or "wide".
-zoom_rel_<direction>
+zoomAbs<direction>
+  Zoom to a specified absolute zoom position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Tele" or "Wide".
+zoomRel<direction>
   Zoom a specified amount in the given direction.
-zoom_con_<direction>
+zoomCon<direction>
   Zoom continuously in the given direction until told to stop.
-zoom_stop
+zoomStop
   Stop any zooming which may be in progress.
-focus_auto
+zoomAuto
+  Set zooming to be automatic.
+zoomMan
+  Set zooming to be manual.
+focusAuto
   Set focusing to be automatic.
-focus_man
+focusMan
   Set focusing to be manual.
-focus_abs_<direction>
-  Focus to a specified absolute focus position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "near" or "far".
-focus_rel_<direction>
+focusAbs<direction>
+  Focus to a specified absolute focus position. The direction element gives a hint to the direction to go but can be omitted. If present it will be one of "Near" or "Far".
+focusRel<direction>
   Focus a specified amount in the given direction.
-focus_con_<direction>
+focusCon<direction>
   Focus continuously in the given direction until told to stop.
-focus_stop
+focusStop
   Stop any focusing which may be in progress.
-white_<subcommand>
-  As per the focus commands, except that direction may be "in" or "out".
-iris_<subcommand>
-  As per the focus commands, except that direction may be "open" or "close".
-preset_set
+white<subcommand>
+  As per the focus commands, except that direction may be "In" or "Out".
+iris<subcommand>
+  As per the focus commands, except that direction may be "Open" or "Close".
+presetSet
   Set the given preset to the current location.
-preset_goto
+presetGoto
   Move to the given preset.
-preset_home
+presetHome
   Move to the "home" preset.

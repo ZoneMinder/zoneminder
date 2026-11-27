@@ -42,6 +42,10 @@ It can also apply and configure upgrades etc, including on the fly upgrades.
                                      If interactive will try once, print out result and quit.
  -f, --freshen                     - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
  --migrate-events                  - Update database structures as per USE_DEEP_STORAGE setting.
+ --rename                          - Rename event image files from the old capture-NNN.jpg and
+                                     analyse-NNN.jpg form to NNN-capture.jpg and NNN-analyse.jpg
+ --zone-fix                        - For zones in percent units, multiply the Min/Max Alarm, Filter
+                                     and Blob thresholds by the monitor area over the zone area
  -v <version>, --version=<version> - Force upgrade to the current version from <version>
  -u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
  -p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
@@ -86,7 +90,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)?$Config{ZM_DIR_EVENTS}
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -134,15 +138,13 @@ if ($updateDir) {
   }
 }
 
-my $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 } );
-die "Unable to connect to db\n" if !$dbh;
-
-#When putting the user and password on the command line, we will enclose in quotes, so escape any quotes.
+# ZoneMinder::Config already connected with the zm.conf credentials; reconnect when they differ
+my $reconnect = ( $dbUser ne $Config{ZM_DB_USER} or $dbPass ne $Config{ZM_DB_PASS} );
 $Config{ZM_DB_USER} = $dbUser;
-$dbUser =~ s/'/\\'/g;
 $Config{ZM_DB_PASS} = $dbPass;
-# we escape dbpass with single quotes so that $ in the password has no effect, but dbpass could have a ' in it.
-$dbPass =~ s/'/\\'/g;
+
+my $dbh = zmDbConnect($reconnect, { mysql_multi_statements=>1 } );
+die "Unable to connect to the database. Check ZM_DB_HOST, ZM_DB_NAME, ZM_DB_USER and ZM_DB_PASS in zm.conf and conf.d, and that the database server is running, or give the database user with --user and --pass.\n" if !$dbh;
 
 if ( ! ($check || $freshen || $rename || $zoneFix || $migrateEvents || $version) ) {
   if ( $Config{ZM_DYN_DB_VERSION} ) {
@@ -168,12 +170,12 @@ if ($check) {
   my $lastCheck = $Config{ZM_DYN_LAST_CHECK};
 
   if ( !$currVersion ) {
-    $currVersion = $Config{ZM_VERSION};
+    $currVersion = ZM_VERSION;
     zmDbDo("UPDATE `Config` SET `Value` = ? WHERE `Name` = 'ZM_DYN_CURR_VERSION'", $currVersion);
   }
 
   use LWP::UserAgent;
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
   if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
     $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
@@ -182,7 +184,7 @@ if ($check) {
 
   while ( 1 ) {
     my $now = time();
-    $dbh->ping();
+    $dbh = zmDbConnect(undef, { mysql_multi_statements=>1 });
     if ( !$interactive and $lastVersion and $lastCheck and (($now-$lastCheck) <= CHECK_INTERVAL) ) {
       Debug("Not checking for updates since we already have less than " . CHECK_INTERVAL . " seconds ago.");
     } else {
@@ -203,8 +205,10 @@ if ($check) {
           print("Last version $lastVersion, Latest version $latestVersion, our version " . ZM_VERSION."\n");
           exit(0);
         }
+        $lastVersion = $latestVersion;
       } else {
         Error('Error check failed: \''.$res->status_line().'\'');
+        exit(1) if $interactive;
       }
     }
     sleep(3600);
@@ -269,7 +273,7 @@ if ( $zoneFix ) {
 
 if ( $migrateEvents ) {
   my $webUid = (getpwnam($Config{ZM_WEB_USER}))[2];
-  my $webGid = (getgrnam($Config{ZM_WEB_USER}))[2];
+  my $webGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
 
   if ( !(($> == 0) || ($> == $webUid)) ) {
     print("Error, migrating events can only be done as user root or ".$Config{ZM_WEB_USER}.".\n");
@@ -287,19 +291,17 @@ About to convert saved events to deep storage, please ensure that ZoneMinder is 
 This process is not easily reversible. Are you sure you wish to proceed?
 
 Press \'y\' to continue or \'n\' to abort : ');
-  my $response = <STDIN>;
-  chomp($response);
+  my $response = readAnswer();
   while ( $response !~ /^[yYnN]$/ ) {
     print("Please press 'y' to continue or 'n' to abort only : ");
-    $response = <STDIN>;
-    chomp($response);
+    $response = readAnswer();
   }
 
   if ( $response =~ /^[yY]$/ ) {
     print("Converting all events to deep storage.\n");
 
     chdir($Config{ZM_PATH_WEB});
-    my $sql = 'SELECT *, unix_timestamp(StartTime) AS UnixStartTime FROM Events';
+    my $sql = 'SELECT *, unix_timestamp(StartDateTime) AS UnixStartTime FROM Events';
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute();
     if ( !$res ) {
@@ -342,15 +344,18 @@ if ( $freshen ) {
   print("\nFreshening configuration in database\n");
   migratePaths();
   migratePasswords();
-  ZoneMinder::Config::loadConfigFromDB();
-  ZoneMinder::Config::saveConfigToDB();
+  if ( !ZoneMinder::Config::loadConfigFromDB() ) {
+    Fatal("Unable to load configuration from the database, aborting freshen.");
+  }
+  ZoneMinder::Config::saveConfigToDB()
+    or Fatal('Failed to save the configuration to the database');
 }
 
 # Don't do innoDB upgrade if not interactive
 if ( $interactive ) {
 # Now check for MyISAM Tables
   my @MyISAM_Tables;
-  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`='zm' AND `engine` = 'MyISAM'";
+  my $sql = "SELECT `table_name` FROM INFORMATION_SCHEMA.TABLES WHERE `table_schema`=DATABASE() AND `engine` = 'MyISAM'";
   my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
 
@@ -367,8 +372,7 @@ However, the recommended database engine is InnoDB.
 Hint: InnoDB tables are much less likely to be corrupted during an unclean shutdown.
 
 Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
-    my $response = <STDIN>;
-    chomp( $response );
+    my $response = readAnswer();
     if ( $response =~ /^[yY]$/ ) {
       $dbh->do(q|SET sql_mode='traditional'|); # Elevate warnings to errors
       print "\nConverting MyISAM tables to InnoDB. Please wait.\n";
@@ -384,7 +388,8 @@ Press \'y\' to convert your tables to InnoDB or \'n\' to skip : ');
 } # end if interactive
 
 if ( $version ) {
-  my ( $detaint_version ) = $version =~ /^([\w.]+)$/;
+  my ( $detaint_version ) = $version =~ /^(\d+(?:\.\d+)+)/;
+  die( "Unable to extract a version number from '$version'\n" ) if ! defined( $detaint_version );
   $version = $detaint_version;
 
   my $start_zm = 0;
@@ -397,21 +402,18 @@ if ( $version ) {
 
     if ( systemStatus() eq 'running' ) { 
       print"\nZoneMinder system appears to be running.  While not strictly required, it is advised to stop ZM during the update process. Would you like to stop ZM now? [Yn]:";
-      my $response = <STDIN>;
-      chomp($response);
-      if ( $response !~ /Yy/ ) {
+      my $response = readAnswer();
+      if ( $response !~ /^\s*[nN]/ ) {
         packageControl('stop');
         $start_zm = 1;
       }
     }
 
     print("\nDo you wish to take a backup of your database prior to upgrading?\nThis may result in a large file in @ZM_TMPDIR@ if you have a lot of events.\nPress 'y' for a backup or 'n' to continue : ");
-    my $response = <STDIN>;
-    chomp($response);
+    my $response = readAnswer();
     while ( $response !~ /^[yYnN]$/ ) {
       print("Please press 'y' for a backup or 'n' to continue only : ");
-      $response = <STDIN>;
-      chomp($response);
+      $response = readAnswer();
     }
 
     if ( $response =~ /^[yY]$/ ) {
@@ -420,31 +422,40 @@ if ( $version ) {
       if ($super) {
         $command .= ' --defaults-file=/etc/mysql/debian.cnf';
       } elsif ($dbUser) {
-        $command .= ' -u\''.$dbUser.'\'';
-        $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+        $command .= ' -u'.shellQuote($dbUser);
       }
       if ( defined($portOrSocket) ) {
         if ( $portOrSocket =~ /^\// ) {
-          $command .= ' -S'.$portOrSocket;
+          $command .= ' -S'.shellQuote($portOrSocket);
         } else {
-          $command .= ' -h'.$host.' -P'.$portOrSocket;
+          $command .= ' -h'.shellQuote($host).' -P'.shellQuote($portOrSocket);
         }
       } else {
-        $command .= ' -h'.$host; 
+        $command .= ' -h'.shellQuote($host);
       }
       my $backup = '@ZM_TMPDIR@/'.$Config{ZM_DB_NAME}.'-'.$version.'.dump';
-      $command .= ' --add-drop-table --databases '.$Config{ZM_DB_NAME}.' > '.$backup;
+      # The dump holds password hashes and secrets: make it owner only, and never
+      # write through a file or symlink already at that name.
+      unlink($backup);
+      $command = 'set -C; '.$command.' --add-drop-table --databases '.shellQuote($Config{ZM_DB_NAME}).' > '.shellQuote($backup);
       print("Creating backup to $backup. This may take several minutes.\n");
       ($command) = $command =~ /(.*)/; # detaint
       print("Executing '$command'\n") if logDebugging();
-      my $output = qx($command);
-      my $status = $? >> 8;
+      my ( $output, $status );
+      {
+        local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
+        my $oldUmask = umask(077);
+        $output = qx($command);
+        $status = $?;
+        umask($oldUmask);
+      }
       if ( $status || logDebugging() ) {
         chomp( $output );
         print( "Output: $output\n" );
       }
       if ( $status ) {
-        die( "Command '$command' exited with status: $status\n" );
+        my $signal = $status & 127;
+        die( "Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n" );
       } else {
         print( "Database successfully backed up to $backup, proceeding to upgrade.\n" );
       }
@@ -903,10 +914,10 @@ if ( $version ) {
 
     my $columns = $sth->{NAME};
     if ( ! grep(/^Colours$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
+      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     if ( ! grep(/^Deinterlacing$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;});
+      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     $sth->finish();
 
@@ -935,11 +946,18 @@ if ( $version ) {
 
     foreach my $patch ( @files ) {
       my ( $v ) = $patch =~ /^zm_update\-([\d\.]+)\.sql$/;
+      # A migration newer than the ZoneMinder being installed belongs to some later
+      # release; one left in the update directory (a downgrade, or files from a newer
+      # build installed over this one) must not be applied to this schema.
+      if ( version->parse('v'.$v) > version->parse('v'.ZM_VERSION) ) {
+        print("Skipping $patch, it is newer than this version of ZoneMinder (".ZM_VERSION.")\n");
+        next;
+      }
 #PP make sure we use version compare 
       if ( version->parse('v'.$v) >= version->parse('v'.$version) ) {
         print("Upgrading DB to $v from $version\n");
         if ( patchDB($dbh, $v) ) {
-          my $res = $sth->execute($version) or die( "Can't execute: ".$sth->errstr() );
+          my $res = $sth->execute($v) or die( "Can't execute: ".$sth->errstr() );
         }
         #patchDB_using_do( $dbh, $version, $updateDir.'/'.$patch );
       } # end if newer version
@@ -966,6 +984,11 @@ if ( $version ) {
   #my $res = $sth->execute( ) or die( "Can't execute: ".$sth->errstr() );
   #$sth->finish();
   
+  # Older zm_create.sql left every option's Private and System flag 0, and only -f
+  # rewrote them, so a database created that way exposed its Private options.
+  my $flags = ZoneMinder::Config::syncConfigFlags();
+  print("Updated the Private/System flags of $flags options.\n") if $flags;
+
   print("\nDatabase upgrade to version ".ZM_VERSION." successful.\n\n");
   if ( $start_zm ) {
     print("Starting ZM since we stopped it for the update\n");
@@ -1002,6 +1025,22 @@ sub patchDB_using_do {
   }
 } # end sub patchDB_using_do
 
+# Read one line of the user's answer, stopping instead of asking forever when
+# stdin is closed or at end of file.
+sub readAnswer {
+  my $response = <STDIN>;
+  die("\nNo answer available on stdin, aborting.\n") if !defined($response);
+  chomp($response);
+  return $response;
+}
+
+# Quote a value for a POSIX shell by wrapping it in single quotes.
+sub shellQuote {
+  my $value = shift;
+  $value =~ s/'/'\\''/g;
+  return "'$value'";
+}
+
 sub patchDB {
   my $dbh = shift;
   my $version = shift;
@@ -1011,57 +1050,71 @@ sub patchDB {
   if ($super) {
     $command .= ' --defaults-file=/etc/mysql/debian.cnf';
   } elsif ($dbUser) {
-    $command .= ' -u\''.$dbUser.'\'';
-    $command .= ' -p\''.$dbPass.'\'' if $dbPass;
+    $command .= ' -u'.shellQuote($dbUser);
   }
   if ( defined($portOrSocket) ) {
     if ( $portOrSocket =~ /^\// ) {
-      $command .= ' -S'.$portOrSocket;
+      $command .= ' -S'.shellQuote($portOrSocket);
     } else {
-      $command .= ' -h'.$host.' -P'.$portOrSocket;
+      $command .= ' -h'.shellQuote($host).' -P'.shellQuote($portOrSocket);
     }
   } elsif ( $host ) {
-    $command .= ' -h'.$host;
+    $command .= ' -h'.shellQuote($host);
   }
-  $command .= ' '.$Config{ZM_DB_NAME}.' < '.$updateDir.'/zm_update-'.$version.'.sql';
+  $command .= ' '.shellQuote($Config{ZM_DB_NAME}).' < '.shellQuote($updateDir.'/zm_update-'.$version.'.sql');
 
   print("Executing '$command'\n") if logDebugging();
   ($command) = $command =~ /(.*)/; # detaint
-  my $output = qx($command);
-  my $status = $? >> 8;
+  my ( $output, $status );
+  {
+    local $ENV{MYSQL_PWD} = $dbPass if ( $dbUser && $dbPass && !$super );
+    $output = qx($command);
+    $status = $?;
+  }
   if ( $status || logDebugging() ) {
     chomp($output);
     print("Output: $output\n");
   }
   if ( $status ) {
-    die("Command '$command' exited with status: $status\n");
+    my $signal = $status & 127;
+    die("Command '$command' exited with status: ".($status >> 8).($signal ? ", signal: $signal" : "")."\n");
   }
   print("\nDatabase successfully upgraded to version $version.\n");
 } # end sub patchDB
 
 sub migratePasswords {
   use Crypt::Eksblowfish::Bcrypt;
-  my $random;
-  eval {
-    require Bytes::Random::Secure;
-    $random = Bytes::Random::Secure->new( Bits        => 16*8);
-  };
-  if ($@ or !$random) {
-    eval {
-      require Data::Entropy::Algorithms;
-      $random =Data::Entropy::Algorithms::rand_bits(16*8);
-    };
-  }
+  my $urandom;
+  my @overlay_users;
 
   print("Migratings passwords, if any...\n");
   my $sql = 'SELECT * FROM `Users`';
   my $sth = $dbh->prepare_cached($sql) or die( "Can't prepare '$sql': ".$dbh->errstr() );
   my $res = $sth->execute() or die("Can't execute: ".$sth->errstr());
   while ( my $user = $sth->fetchrow_hashref() ) {
+    # Hashes migrated by earlier releases can't be told apart from good ones, and
+    # all of them shared one salt per run: from Data::Entropy, seeded with rand()
+    # before its 0.008 (CVE-2025-1860), or a constant derived from the class name
+    # when Bytes::Random::Secure was installed.
+    if ( substr($user->{Password}, 0, 4) eq '-ZM-' ) {
+      push @overlay_users, $user->{Username};
+      next;
+    }
     my $scheme = substr($user->{Password}, 0, 1);
     if ($scheme eq '*') {
       print('-->'.$user->{Username}." password will be migrated\n");
-      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($random);
+      # Each user gets their own 16 byte bcrypt salt from the kernel CSPRNG.
+      # Without one, leave the legacy hash alone; auth.php still accepts it.
+      if ( !$urandom and open(my $fh, '<:raw', '/dev/urandom') ) {
+        $urandom = $fh;
+      }
+      my $salt_bytes;
+      read($urandom, $salt_bytes, 16) if $urandom;
+      if ( !defined($salt_bytes) or length($salt_bytes) != 16 ) {
+        print('Warning: unable to read /dev/urandom, not migrating '.$user->{Username}."'s password\n");
+        next;
+      }
+      my $salt = Crypt::Eksblowfish::Bcrypt::en_base64($salt_bytes);
       my $settings = '$2a$10$'.$salt;
       my $pass_hash = Crypt::Eksblowfish::Bcrypt::bcrypt($user->{Password},$settings);
       my $new_pass_hash = '-ZM-'.$pass_hash;
@@ -1069,6 +1122,14 @@ sub migratePasswords {
       my $sth = $dbh->prepare_cached($sql) or die("Can't prepare '$sql': ".$dbh->errstr());
       my $res = $sth->execute($new_pass_hash, $user->{Username}) or die("Can't execute: ".$sth->errstr());
     }
+  }
+  # The original hash input is gone, so these can only be rehashed when the user
+  # next logs in, which auth.php does automatically, or by resetting the password.
+  if ( @overlay_users ) {
+    Warning('User(s) '.join(', ', @overlay_users).' still use a legacy password hash from'
+      .' zmupdate.pl. It is upgraded to a standard bcrypt hash automatically the next time the'
+      .' user logs in to the web UI or API, or when the password is reset. Accounts that are no'
+      .' longer used can be disabled or deleted.');
   }
 } # end sub migratePasswords
 

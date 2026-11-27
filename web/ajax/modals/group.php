@@ -25,6 +25,7 @@ function get_children($Group) {
 }
 
 function parentGrpSelect($newGroup) {
+  global $children;
   $Groups = array();
   foreach ( ZM\Group::find() as $Group ) {
     $Groups[$Group->Id()] = $Group;
@@ -57,7 +58,8 @@ function monitorList($newGroup) {
   $result = '';
 
   $monitors = dbFetchAll('SELECT Id,Name FROM Monitors WHERE Deleted=false ORDER BY Sequence ASC');
-  $monitorIds = $newGroup->MonitorIds();
+  # MonitorIds() includes child groups' monitors, which saving would copy into this group.
+  $monitorIds = $newGroup->Id() ? dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($newGroup->Id())) : array();
   foreach ( $monitors as $monitor ) {
     if ( visibleMonitor($monitor['Id']) ) {
       $result .= '<option value="' .validCardinal($monitor['Id']). '"' .( in_array($monitor['Id'], $monitorIds, true) ? ' selected="selected"' : ''). '>' .validHtmlStr($monitor['Name']). '</option>'.PHP_EOL;
@@ -102,7 +104,7 @@ if ( !empty($_REQUEST['gid']) ) {
             <tbody>
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
-                <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" data-on-input="configModalBtns"/></td>
+                <td><input type="text" name="newGroup[Name]" value="<?php echo validHtmlStr($newGroup->Name()) ?>" maxlength="64" data-on-input="configModalBtns"/></td>
               </tr>
               <tr>
                 <th class="text-right pr-3" scope="row"><?php echo translate('ParentGroup') ?></th>
@@ -120,7 +122,7 @@ if ( !empty($_REQUEST['gid']) ) {
           </table>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary" name="action" value="save" id="groupModalSaveBtn"<?php $newGroup->Id() ? '' : ' disabled="disabled"'?>><?php echo translate('Save') ?></button>
+          <button type="submit" class="btn btn-primary" name="action" value="save" id="groupModalSaveBtn"<?php echo $newGroup->Id() ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
           <button type="button" class="btn btn-secondary" data-dismiss="modal"><?php echo translate('Cancel') ?></button>
         </div>
       </form>

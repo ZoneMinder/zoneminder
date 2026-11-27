@@ -37,7 +37,6 @@ be run from a filter but could be run manually.
 =head1 OPTIONS
 
  close               - Update event record after a crash
- deletejpegs         - Deletes all jpegs from the event directory
  deleteanalysisjpegs - Deletes the analysis jpegs from the event directory
 
  --help              - Print usage information.
@@ -59,7 +58,7 @@ use DBI;
 use Getopt::Long;
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -81,8 +80,12 @@ GetOptions(
     'version'       =>\$version
 ) or pod2usage(-exitstatus => -1);
 
-$Config{ZM_DB_USER} = $dbUser;
-$Config{ZM_DB_PASS} = $dbPass;
+# Reconnect so the credentials given on the command line are the ones used
+if ( $dbUser ne $Config{ZM_DB_USER} or $dbPass ne $Config{ZM_DB_PASS} ) {
+  $Config{ZM_DB_USER} = $dbUser;
+  $Config{ZM_DB_PASS} = $dbPass;
+  zmDbConnect(1);
+}
 
 if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
@@ -94,12 +97,18 @@ if ($help or (@ARGV < 2) ) {
   pod2usage(-exitstatus => -1);
 }
 
+my $command = shift @ARGV;
+if ( $command !~ /^(?:close|deleteanalysisjpegs|renumber)$/ ) {
+  print( STDERR "Unknown command '$command'\n" );
+  pod2usage(-exitstatus => -1);
+}
+
 my $dbh = zmDbConnect();
 
-my $command = shift @ARGV;
 foreach my $event_id (@ARGV) {
   if ( $event_id =~ /\D/ ) {
     # Assume path to event, strip it
+    $event_id =~ s/\/+$//;
     $event_id =~ s/.*\/(\d+)/$1/; 
   }
   my $event = ZoneMinder::Event->find_one(Id=>$event_id);
@@ -122,7 +131,12 @@ foreach my $event_id (@ARGV) {
     my $old_path = $event->Path();
     if (! -e $old_path) {
       Warning("Event $event_id does not exist at $old_path. Skipping renumbering.");
-      continue;
+      next;
+    }
+    if ($event->Scheme() eq 'Deep') {
+      # The new row would share the old one's directory, and deleting either would remove both
+      Warning("Event $event_id uses Deep storage, where the path does not depend on the id. Skipping renumbering.");
+      next;
     }
 
     my $new_event = $event->clone();
@@ -139,6 +153,8 @@ foreach my $event_id (@ARGV) {
     zmDbDo('UPDATE Frames SET EventId=? WHERE EventId=?', $new_id, $event_id);
     zmDbDo('UPDATE Stats SET EventId=? WHERE EventId=?', $new_id, $event_id);
     zmDbDo('UPDATE Event_Data SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Events_Tags SET EventId=? WHERE EventId=?', $new_id, $event_id);
+    zmDbDo('UPDATE Snapshots_Events SET EventId=? WHERE EventId=?', $new_id, $event_id);
     $event->delete();
   }
 }

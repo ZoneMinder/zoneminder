@@ -30,12 +30,12 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 use constant ZM_RECOVER_PID => '@ZM_RUNDIR@/zmrecover.pid';
 
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
 my $report = 0;
-my $interactive = 1;
+my $interactive;
 my $monitor_id = 0;
 my $version;
 my $force = 0;
@@ -46,11 +46,12 @@ logInit();
 
 GetOptions(
     force          =>\$force,
-    'interactive=i' =>\$interactive,
+    'interactive|i:1' =>\$interactive,
+    nointeractive  => sub { $interactive = 0 },
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
-    'storage_id=i' =>\$storage_id,
+    'storage_id|s=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -58,7 +59,8 @@ if ( $version ) {
   print( ZoneMinder::Base::ZM_VERSION . "\n");
   exit(0);
 }
-if ( ($report + $interactive) > 1 ) {
+$interactive = $report ? 0 : 1 if !defined $interactive;
+if ( $report and $interactive ) {
   print( STDERR "Error, only one option may be specified\n" );
   pod2usage(-exitstatus => -1);
 }
@@ -77,11 +79,18 @@ if ( -e ZM_RECOVER_PID ) {
   }
 } # end if ZM_RECOVER_PID exists
 
+my $pid_file_written = 0;
 if ( open(my $PID, '>', ZM_RECOVER_PID) ) {
   print($PID $$);
   close($PID);
+  $pid_file_written = 1;
 } else {
   Error( "Can't open pid file at " . ZM_PID );
+}
+
+# Also covers dying, so a crash does not leave a pid file that blocks the next run
+END {
+  unlink ZM_RECOVER_PID if $pid_file_written;
 }
 
 sub HupHandler {
@@ -190,6 +199,7 @@ Debug("@Monitors");
           }
           if ( ! opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -235,18 +245,25 @@ Debug("@Monitors");
                 $event->Orientation( $Monitor->Orientation() );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = saveRecovered($event);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
                 next;
               } # end if resurrection
             } else {
-              $event->fix_DefaultVideo();
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDatetime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # event path exists
@@ -269,9 +286,9 @@ Debug("@Monitors");
             Debug('Have ' . @contents . " files in $day_dir/$event_dir");
             closedir(DIR);
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?mp4$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -288,7 +305,7 @@ Debug("@Monitors");
               }
             }
 
-            my $event = ZoneMinder::Event->find_one(Id=>$event_id);
+            my $event = $event_id ? ZoneMinder::Event->find_one(Id=>$event_id) : undef;
             if ( $event_id and !$event) {
               Info("Event not found in db for event data found at $$Storage{Path}/$monitor_dir/$day_dir/$event_dir");
               if ( confirm() ) {
@@ -307,18 +324,25 @@ Debug("@Monitors");
                 $event->DiskSpace( undef );
                 $event->recover_timestamps();
                 if ( $$event{StartDateTime} ) {
-                  $event->save({}, 1);
-                  Info("Event resurrected as " . $event->to_string() );
+                  my $error = saveRecovered($event);
+                  if ( $error ) {
+                    Error("Failed to save recovered event $$event{Id}: $error");
+                  } else {
+                    Info("Event resurrected as " . $event->to_string() );
+                  }
                 } else {
                   Warning("Unable to determine starttime. Not resurrecting this event.");
                 }
                 next;
               }
-            } else {
-              $event->fix_DefaultVideo();
+            } elsif ( $event ) {
+              saveDefaultVideo($event);
               if (!$$event{EndDateTime}) {
                 if (confirm("Event found but is incomplete, shall we finish it?")) {
-                  $event->save() if $event->guess_EndDatetime();
+                  if ( $event->guess_EndDateTime() ) {
+                    my $error = $event->save();
+                    Error("Failed to save event $$event{Id}: $error") if $error;
+                  }
                 }
               }
             } # end if event found
@@ -361,10 +385,13 @@ Debug("@Monitors");
           my $event = ZoneMinder::Event->find_one(Id=>$event_id);
           if ( $event ) {
             Debug('Found event in the db, moving on.');
-            $event->fix_DefaultVideo();
+            saveDefaultVideo($event);
             if (!$$event{EndDateTime}) {
               if (confirm("Event found but is incomplete, shall we finish it?")) {
-                $event->save() if $event->guess_EndDatetime();
+                if ( $event->guess_EndDateTime() ) {
+                  my $error = $event->save();
+                  Error("Failed to save event $$event{Id}: $error") if $error;
+                }
               }
             }
             next;
@@ -383,10 +410,15 @@ Debug("@Monitors");
             $event->Height( $Monitor->Height() );
             $event->Orientation( $Monitor->Orientation() );
             $event->StorageId( $Storage->Id() );
+            $event->DiskSpace( undef );
             $event->recover_timestamps();
             if ( $$event{StartDateTime} ) {
-              $event->save({}, 1);
-              Info("Event resurrected as " . $event->to_string() );
+              my $error = saveRecovered($event);
+              if ( $error ) {
+                Error("Failed to save recovered event $$event{Id}: $error");
+              } else {
+                Info("Event resurrected as " . $event->to_string() );
+              }
             } else {
               Warning("Unable to determine starttime. Not resurrecting this event.");
             }
@@ -402,18 +434,23 @@ Debug("@Monitors");
       }
       if ( ! opendir(DIR, '.') ) {
         Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+        chdir($Storage->Path());
         next;
       }
-      my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir( DIR );
+      # A Deep scheme year directory is numeric too, but it holds date directories
+      my @temp_events = sort { $b <=> $a } grep { /^(\d+)$/ && -d $_ && !(() = glob("$1/[0-9][0-9]")) } readdir( DIR );
       closedir(DIR);
       foreach my $event_id ( @temp_events ) {
         my $event = ZoneMinder::Event->find_one(Id=>$event_id);
         if ( $event ) {
           Debug("Found an event in db for $event_id");
-          $event->fix_DefaultVideo();
+          saveDefaultVideo($event);
           if (!$$event{EndDateTime}) {
             if (confirm("Event found but is incomplete, shall we finish it?")) {
-              $event->save() if $event->guess_EndDatetime();
+              if ( $event->guess_EndDateTime() ) {
+                my $error = $event->save();
+                Error("Failed to save event $$event{Id}: $error") if $error;
+              }
             }
           }
 
@@ -421,7 +458,7 @@ Debug("@Monitors");
         }
         $event = new ZoneMinder::Event();
         $$event{Id} = $event_id;
-        $$event{Path} = join('/', $Storage->Path(), $event_id );
+        $$event{Path} = join('/', $Storage->Path(), $monitor_dir, $event_id );
         Info("Have event $$event{Id} at $$event{Path}");
         if ( confirm() ) {
           $$event{Scheme} = 'Shallow';
@@ -433,10 +470,15 @@ Debug("@Monitors");
           $event->Height( $Monitor->Height() );
           $event->Orientation( $Monitor->Orientation() );
           $event->StorageId( $Storage->Id() );
+          $event->DiskSpace( undef );
           $event->recover_timestamps();
           if ( $$event{StartDateTime} ) {
-            $event->save({}, 1);
-            Info("Event resurrected as " . $event->to_string() );
+            my $error = saveRecovered($event);
+            if ( $error ) {
+              Error("Failed to save recovered event $$event{Id}: $error");
+            } else {
+              Info("Event resurrected as " . $event->to_string() );
+            }
           } else {
             Warning("Unable to determine starttime. Not resurrecting this event.");
           }
@@ -449,6 +491,25 @@ Debug("@Monitors");
 
 Term();
 
+# An event zmc recorded under a fallback id, because it could not insert the
+# row, gets a normal id now instead of keeping one far past every other event's
+sub saveRecovered {
+  my $event = shift;
+  return $event->save_with_new_id() if ZoneMinder::Event::is_fallback_id($$event{Id});
+  return $event->save({}, 1);
+}
+
+# fix_DefaultVideo only changes the object, so save it when the video was found
+sub saveDefaultVideo {
+  my $event = shift;
+  my $before = $event->DefaultVideo() // '';
+  $event->fix_DefaultVideo();
+  if ( ($event->DefaultVideo() // '') ne $before ) {
+    my $error = $event->save();
+    Error("Failed to save default video for event $$event{Id}: $error") if $error;
+  }
+}
+
 sub confirm {
   my $prompt = shift || 'resurrect';
   my $action = shift || 'resurrecting';
@@ -458,12 +519,16 @@ sub confirm {
     print( "\n" );
   } elsif ( $interactive ) {
     print(", $prompt Y/n/q: ");
-    my $char = <>;
-    chomp( $char );
-    if ( $char eq 'q' ) {
+    my $char = <STDIN>;
+    if ( !defined $char ) {
+      Info('No answer on stdin, exiting');
       Term();
     }
-    if ( !$char ) {
+    chomp( $char );
+    if ( lc($char) eq 'q' ) {
+      Term();
+    }
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );
@@ -483,7 +548,7 @@ zmrecover.pl - ZoneMinder event file system and database recovery checker
 
 =head1 SYNOPSIS
 
- zmrecover.pl [-r,-report|-i,-interactive]
+ zmrecover.pl [-r,-report|-i,-interactive|-nointeractive]
 
 =head1 DESCRIPTION
 
@@ -497,9 +562,12 @@ yet.
 
 =head1 OPTIONS
 
- -i, --interactive          - Ask before applying any changes
+ -f, --force                - Run even if pid file exists
+ -i, --interactive          - Ask before applying any changes (the default)
+     --nointeractive        - Apply changes without asking (same as --interactive=0)
  -m, --monitor_id           - Only consider the given monitor
  -r, --report               - Just report don't actually do anything
+     --server_id            - Only recover the storage areas of the given server
  -s, --storage_id           - Specify a storage area to recover instead of all
  -v, --version              - Print the installed version of ZoneMinder
 

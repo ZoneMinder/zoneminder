@@ -66,7 +66,7 @@ sub open
 		Error( "Can't open file at $$self{path}: $!" );
 		croak( "Can't open file at $$self{path}: $!" );
 	}
-    $self->{state} = 'open';
+    $self->{state} = 'connected';
     $self->{handle} = *sfh;
 }
 

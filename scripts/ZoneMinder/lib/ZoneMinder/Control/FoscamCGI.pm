@@ -31,6 +31,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 # ==========================================================================
@@ -53,7 +57,7 @@ sub open {
   $self->loadMonitor();
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   $self->{state} = 'open';
@@ -122,6 +126,7 @@ sub moveConUp
 {
   my $self = shift;
   my $stop_command = "1";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Up" );
   my $cmd = "decoder_control.cgi?command=0";
   $self->sendCmd( $cmd );
@@ -133,6 +138,7 @@ sub moveConDown
 {
   my $self = shift;
   my $stop_command = "3";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Down" );
   my $cmd = "decoder_control.cgi?command=2";
   $self->sendCmd( $cmd );
@@ -144,6 +150,7 @@ sub moveConLeft
 {
   my $self = shift;
   my $stop_command = "5";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Left" );
   my $cmd = "decoder_control.cgi?command=4";
   $self->sendCmd( $cmd );
@@ -155,6 +162,7 @@ sub moveConRight
 {
   my $self = shift;
   my $stop_command = "7";
+  $self->{stop_command} = $stop_command;
   Debug( "Move Right" );
   my $cmd = "decoder_control.cgi?command=6";
   $self->sendCmd( $cmd );
@@ -165,7 +173,8 @@ sub moveConRight
 sub zoomConTele
 {
   my $self = shift;
-  my $stop_command = "17";
+  my $stop_command = "19";
+  $self->{stop_command} = $stop_command;
   Debug( "Zoom Tele" );
   my $cmd = "decoder_control.cgi?command=18";
   $self->sendCmd( $cmd );
@@ -176,11 +185,22 @@ sub zoomConTele
 sub zoomConWide
 {
   my $self = shift;
-  my $stop_command = "19";
+  my $stop_command = "17";
+  $self->{stop_command} = $stop_command;
   Debug( "Zoom Wide" );
   my $cmd = "decoder_control.cgi?command=16";
   $self->sendCmd( $cmd );
   $self->autoStop( $stop_command, $self->{Monitor}->{AutoStopTimeout} );
+}
+
+sub moveDiagonal {
+  my ($self, $vcmd, $vstop, $hcmd, $hstop) = @_;
+  $self->sendCmd( "decoder_control.cgi?command=$vcmd" );
+  $self->sendCmd( "decoder_control.cgi?command=$hcmd" );
+  $self->{stop_command} = [$vstop, $hstop];
+  my $timeout = $self->{Monitor}->{AutoStopTimeout};
+  $self->autoStop( $vstop, $timeout );
+  $self->sendCmd( "decoder_control.cgi?command=$hstop" ) if $timeout;
 }
 
 #Diagonally Up Right Arrow
@@ -189,8 +209,7 @@ sub moveConUpRight
 {
   my $self = shift;
   Debug( "Move Diagonally Up Right" );
-  $self->moveConUp( );
-  $self->moveConRight( );
+  $self->moveDiagonal( "0", "1", "6", "7" );
 }
 
 #Diagonally Down Right Arrow
@@ -199,8 +218,7 @@ sub moveConDownRight
 {
   my $self = shift;
   Debug( "Move Diagonally Down Right" );
-  $self->moveConDown( );
-  $self->moveConRight( );
+  $self->moveDiagonal( "2", "3", "6", "7" );
 }
 
 #Diagonally Up Left Arrow
@@ -209,8 +227,7 @@ sub moveConUpLeft
 {
   my $self = shift;
   Debug( "Move Diagonally Up Left" );
-  $self->moveConUp( );
-  $self->moveConLeft( );
+  $self->moveDiagonal( "0", "1", "4", "5" );
 }
 
 #Diagonally Down Left Arrow
@@ -219,8 +236,7 @@ sub moveConDownLeft
 {
   my $self = shift;
   Debug( "Move Diagonally Down Left" );
-  $self->moveConDown( );
-  $self->moveConLeft( );
+  $self->moveDiagonal( "2", "3", "4", "5" );
 }
 
 #Stop
@@ -228,7 +244,17 @@ sub moveStop
 {
   my $self = shift;
   Debug( "Move Stop" );
-  my $cmd = "decoder_control.cgi?command=1";
+  my $stop = $self->{stop_command};
+  my @stops = ref($stop) eq 'ARRAY' ? @$stop : (defined $stop && length $stop ? $stop : 1);
+  foreach my $s (@stops) { $self->sendCmd( "decoder_control.cgi?command=$s" ); }
+}
+
+#Zoom Stop
+sub zoomStop
+{
+  my $self = shift;
+  Debug( "Zoom Stop" );
+  my $cmd = "decoder_control.cgi?command=" . ($self->{stop_command} || 19);
   $self->sendCmd( $cmd );
 }
 

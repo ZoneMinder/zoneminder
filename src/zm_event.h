@@ -48,6 +48,77 @@ class VideoStore;
 class ZMPacket;
 class Zone;
 
+// True when a failed link(2) means renaming instead is worth trying, rather
+// than something being wrong that a rename would hit too. EXDEV is deliberately
+// excluded: a cross-device link is one rename(2) cannot do either.
+//
+// EOPNOTSUPP (and its alias ENOTSUP) and ENOSYS mean the filesystem has no hard
+// links at all, on both platforms.
+//
+// EPERM only means that on Linux, where the VFS returns it for a filesystem
+// with no link operation, which is the exFAT and FAT case. Linux overloads it
+// with fs.protected_hardlinks, immutable sources and idmapped mounts, so this
+// is a broader "try the rename" than the errno alone proves; rename is the
+// right attempt in all of those, and where it genuinely cannot proceed it fails
+// and gets reported. FreeBSD is excluded because there EPERM only ever means a
+// directory source, an immutable source or an immutable target directory, all
+// real errors, and absent link support arrives as EOPNOTSUPP above.
+// See https://github.com/ZoneMinder/zoneminder/issues/5048
+inline bool ErrnoMeansNoHardLinkSupport(int err) {
+  if ((err == EOPNOTSUPP) || (err == ENOTSUP) || (err == ENOSYS)) return true;
+#ifndef __FreeBSD__
+  if (err == EPERM) return true;
+#endif
+  return false;
+}
+
+// Event::max_score starts at -1 so that the first frame, even with score 0,
+// becomes the max-score frame. Events.MaxScore is unsigned: an event closed
+// before its first frame has to store 0, or strict SQL mode rejects the
+// whole closing UPDATE and the event stays open in the database.
+inline int EventMaxScoreForDb(int max_score) {
+  return max_score < 0 ? 0 : max_score;
+}
+
+// The id an event is recorded under when the Events insert keeps failing, so
+// recording goes on and zmrecover.pl can add the event from disk later. Built
+// from the time so it needs no database: distinct per monitor at the same
+// millisecond and far above the ids auto increment has handed out.
+// ZoneMinder::Event::FALLBACK_ID_MIN in Perl recognises these ids, so zmaudit
+// keeps such an event and zmrecover.pl gives it a normal id.
+inline uint64_t EventFallbackId(uint64_t epoch_ms, unsigned int monitor_id) {
+  return epoch_ms * 1000 + monitor_id % 1000;
+}
+
+// SectionLength is used as a divisor, so 0 would crash zmc.
+inline Seconds ClampSectionLength(Seconds section_length) {
+  return section_length < Seconds(1) ? Seconds(1) : section_length;
+}
+
+// Characters of the event prefix that fit in Events.Name (varchar(64)) in front of the id.
+inline int EventNamePrefixLength(uint64_t id) {
+  int digits = 1;
+  for (uint64_t n = id; n >= 10; n /= 10) digits++;
+  return 64 - digits;
+}
+
+// SQL expression that names an event "<prefix><id>" when the user has not renamed it. The prefix is
+// expanded from the monitor's EventPrefix, so it can hold quotes, and it is escaped for the query.
+std::string EventNameOnCloseSql(const std::string &prefix, uint64_t id);
+
+inline bool EventCountsFrameStats(SystemTimePoint timestamp, SystemTimePoint boundary) {
+  return boundary == SystemTimePoint() or timestamp >= boundary;
+}
+
+inline bool EventKeepsDraining(
+    bool terminate,
+    SystemTimePoint drain_until,
+    const ZMPacket *packet) {
+  if (!terminate) return true;
+  if (drain_until == SystemTimePoint()) return false;
+  return packet != nullptr and packet->decoded and packet->analyzed and packet->timestamp < drain_until;
+}
+
 // Maximum number of prealarm frames that can be stored
 #define MAX_PRE_ALARM_FRAMES  16
 
@@ -80,18 +151,22 @@ class Event {
   uint64_t  id;
   Monitor      *monitor;
   Storage *storage;
+  unsigned int storage_id;
   PacketQueue * packetqueue;
   packetqueue_iterator * packetqueue_it;
   SystemTimePoint start_time;
-  SystemTimePoint end_time;
+  // Written by the event thread (AddPacket_), read by Analyse through
+  // Duration()/Frames()/AlarmFrames(): atomic.
+  std::atomic<SystemTimePoint> end_time;
   std::string     cause;
   StringSetMap    noteSetMap;
-  int        frames;
-  int        alarm_frames;
+  std::atomic<int> frames;
+  std::atomic<int> alarm_frames;
   bool alarm_frame_written;
   int  tot_score;
   int  max_score;
   int max_score_frame_id;
+  int frame_write_failures;
   std::string path;
   std::string snapshot_file;
   bool snapshot_file_written;
@@ -109,16 +184,19 @@ class Event {
   bool have_video_keyframe; // a flag to tell us if we have had a video keyframe when writing an mp4.  The first frame SHOULD be a video keyframe.
   Storage::Schemes  scheme;
   int save_jpegs;
+  SystemTimePoint counting_boundary;
 
   void createNotes(std::string &notes);
 
   void Run();
 
   std::atomic<bool> terminate_;
+  std::atomic<SystemTimePoint> drain_until{};
   std::thread thread_;
 
   std::map<const std::string,Tag> tags;
  public:
+  static std::string BuildNotes(const StringSetMap &note_set_map);
   static bool OpenFrameSocket(int);
   static bool ValidateFrameSocket(int);
 
@@ -126,7 +204,8 @@ class Event {
       packetqueue_iterator * p_packetqueue_it,
       SystemTimePoint p_start_time,
       const std::string &p_cause,
-      const StringSetMap &p_noteSetMap);
+      const StringSetMap &p_noteSetMap,
+      SystemTimePoint p_counting_boundary = SystemTimePoint());
   ~Event();
 
   uint64_t Id() const { return id; }
@@ -136,8 +215,8 @@ class Event {
   int AlarmFrames() const { return alarm_frames; }
 
   SystemTimePoint StartTime() const { return start_time; }
-  SystemTimePoint EndTime() const { return end_time; }
-  TimePoint::duration Duration() const { return end_time - start_time; };
+  SystemTimePoint EndTime() const { return end_time.load(); }
+  TimePoint::duration Duration() const { return end_time.load() - start_time; };
 
   void AddPacket_(const std::shared_ptr<ZMPacket> p);
   bool WritePacket(const std::shared_ptr<ZMPacket> p);
@@ -153,12 +232,14 @@ class Event {
     packetqueue->notify_all();
   }
   bool Stopped() const { return terminate_; }
+  void DrainUntil(SystemTimePoint t) { drain_until = t; }
 
  private:
   void WriteDbFrames();
   bool SetPath(Storage *storage);
 
  public:
+  static bool CreateIdMarker(Storage::Schemes scheme, const std::string &event_path, uint64_t id);
   static std::string getSubPath(tm time) {
     std::string subpath = stringtf("%02d/%02d/%02d/%02d/%02d/%02d",
                                    time.tm_year - 100, time.tm_mon + 1, time.tm_mday,

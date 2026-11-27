@@ -14,7 +14,8 @@ function updateMonitorDimensions(element) {
     var monitorWidth = parseInt(form.elements['newMonitor[Width]'].value);
     var monitorHeight = parseInt(form.elements['newMonitor[Height]'].value);
 
-    if ( form.elements['preserveAspectRatio'].checked ) {
+    // The WebSite monitor type renders Width/Height without a preserveAspectRatio checkbox.
+    if ( form.elements['preserveAspectRatio'] && form.elements['preserveAspectRatio'].checked ) {
       switch ( element.name ) {
         case 'newMonitor[Width]':
           if ( monitorWidth >= 0 ) {
@@ -37,7 +38,7 @@ function updateMonitorDimensions(element) {
     // If we find a matching option in the dropdown, select it or select custom
 
     var option = $j('select[name="dimensions_select"] option[value="'+monitorWidth+'x'+monitorHeight+'"]');
-    if ( !option.size() ) {
+    if ( !option.length ) {
       $j('select[name="dimensions_select"]').val('');
     } else {
       $j('select[name="dimensions_select"]').val(monitorWidth+'x'+monitorHeight);
@@ -65,9 +66,12 @@ function loadLocations( element ) {
   returnLocationSelect.options.length = 1;
   //returnLocationSelect.options[0] = new Option( noneString, -1 );
 
-  var returnLocationOptions = controlOptions[controlIdSelect.selectedIndex];
+  // controlOptions is keyed by control Id, not by position in the dropdown.
+  var returnLocationOptions = controlOptions[controlIdSelect.value];
   if ( returnLocationOptions ) {
     for ( let i = 0; i < returnLocationOptions.length; i++ ) {
+      // null is a control with no Home preset
+      if ( returnLocationOptions[i] === null ) continue;
       returnLocationSelect.options[returnLocationSelect.options.length] = new Option( returnLocationOptions[i], i );
     }
   }
@@ -77,7 +81,8 @@ function Restream_onclick(e) {
   const Restream = $j('[name="newMonitor[Restream]"]');
   if (Restream.length) {
     const RTSP_User = $j('#RTSP_User');
-    if (Restream[0].checked) {
+    // The user list only means something when authentication is on.
+    if (Restream[0].checked && useAuth) {
       RTSP_User.show();
     } else {
       RTSP_User.hide();
@@ -108,7 +113,7 @@ function updateRestreamVisibility() {
   const rtspUser = document.getElementById('RTSP_User');
   if (rtspUser) {
     const restream = form.elements['newMonitor[Restream]'];
-    if (!showRestream || !restream || !restream.checked) {
+    if (!useAuth || !showRestream || !restream || !restream.checked) {
       rtspUser.style.display = 'none';
     } else {
       rtspUser.style.display = '';
@@ -175,11 +180,10 @@ function initPage() {
   document.querySelectorAll('select[name="newMonitor[Devices]"]').forEach(function(el) {
     el.onchange = window['devices_onchange'].bind(el, el);
   });
-  document.querySelectorAll('input[name="newMonitor[Width]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
-  });
-  document.querySelectorAll('input[name="newMonitor[Height]"]').forEach(function(el) {
-    el.oninput = window['updateMonitorDimensions'].bind(el, el);
+  // Width/Height also get a buffer_setting_oninput listener below, so use
+  // addEventListener rather than oninput= to avoid one clobbering the other.
+  document.querySelectorAll('input[name="newMonitor[Width]"],input[name="newMonitor[Height]"]').forEach(function(el) {
+    el.addEventListener('input', window['updateMonitorDimensions'].bind(el, el));
   });
   document.querySelectorAll('select[name="dimensions_select"]').forEach(function(el) {
     el.onchange = window['updateMonitorDimensions'].bind(el, el);
@@ -192,13 +196,23 @@ function initPage() {
   });
   document.querySelectorAll('select[name="newMonitor[Type]"]').forEach(function(el) {
     el.onchange = function() {
+      // Reload the form to render the type-specific fields WITHOUT saving. The
+      // monitor view repopulates from the posted newMonitor values, so the
+      // selected Type and anything already entered are preserved. Saving here
+      // would fail for a brand-new monitor whose Width/Height are not set yet
+      // (both are NOT NULL), leaving the type change unpersisted. A plain
+      // submit posts no action=save, matching the Method field's submitTab.
       const form = document.getElementById('contentForm');
       form.tab.value = 'general';
-      saveMonitorDataPrepare(document.getElementById('contentForm'), false, 'reload');
+      form.submit();
     };
   });
   document.querySelectorAll('input[name="newMonitor[ImageBufferCount]"],input[name="newMonitor[MaxImageBufferCount]"],input[name="newMonitor[Width]"],input[name="newMonitor[Height]"],input[name="newMonitor[PreEventCount]"]').forEach(function(el) {
-    el.oninput = window['buffer_setting_oninput'].bind(el);
+    el.addEventListener('input', window['buffer_setting_oninput'].bind(el));
+  });
+  // The maximum is only checked against the pre event count once it is entered
+  document.querySelectorAll('input[name="newMonitor[MaxImageBufferCount]"]').forEach(function(el) {
+    el.addEventListener('change', window['buffer_setting_oninput'].bind(el));
   });
   update_estimated_ram_use();
 
@@ -216,43 +230,19 @@ function initPage() {
     };
     el.onchange();
   });
-  document.querySelectorAll('select[name="newMonitor[OutputCodec]"]').forEach(function(el) {
+  document.querySelectorAll('select[name="newMonitor[OutputCodecName]"]').forEach(function(el) {
     el.onchange = function() {
-      var encoder_dropdown = $j('select[name="newMonitor[Encoder]"]');
-      if (encoder_dropdown) {
-        for (i=0; i<encoder_dropdown[0].options.length; i++) {
-          option = encoder_dropdown[0].options[i];
-          if ( this.value == 27 ) {
-            option.disabled = !option.value.includes('264');
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 167 /* vp9 */ ) {
-            option.disabled = !(option.value.includes('vp9'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 173 /* hevc */ ) {
-            option.disabled = !(option.value.includes('hevc') || option.value.includes('265') );
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else if ( this.value == 226 /* av1 */ ) {
-            option.disabled = !(option.value.includes('av1'));
-            if ( option.disabled && option.selected ) {
-              encoder_dropdown[0].options[0].selected = 1;
-              option.selected = false;
-            }
-          } else {
-            option.disabled = false;
-          }
+      const encoder_dropdown = document.querySelector('select[name="newMonitor[Encoder]"]');
+      if (!encoder_dropdown) return;
+      let reset = false;
+      for (const option of encoder_dropdown.options) {
+        option.disabled = !ZM_EncoderTemplates.encoderMatchesCodec(this.value, option.value);
+        if (option.disabled && option.selected) {
+          encoder_dropdown.selectedIndex = 0;
+          reset = true;
         }
-      } else {
-        console.log('No encoder');
       }
+      if (reset) encoder_dropdown.dispatchEvent(new Event('change'));
     };
     el.onchange();
   });
@@ -555,7 +545,57 @@ function initPage() {
 
   manageChannelStream();
   checkVerAudioMotion();
+
+  // Reflect the current Motion Detection (Analysing) setting on load.
+  if (form.elements['newMonitor[Analysing]']) {
+    Analysing_onChange(form.elements['newMonitor[Analysing]']); // eslint-disable-line new-cap
+  } else if (form.elements['newMonitor[AudioDetection]']) {
+    // Analysis tab not rendered with a select; still reflect audio detection.
+    AudioDetection_onChange(form.elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+  }
+  startAudioLevelMeter();
+  startOnvifStatus();
+  rememberSelectedTab();
 } // end function initPage()
+
+/**
+ * Keep the url in step with the tab on screen, so a reload comes back to it.
+ *
+ * The view already honours ?tab=<name> on the way in: it marks that pill
+ * active and renders its pane shown. What was missing is the other half.
+ * The pills are switched client side, so the url kept saying whatever it said
+ * when the page loaded, and a reload -- or a shared link, or the browser
+ * restoring the page -- dropped you back on General.
+ *
+ * replaceState rather than pushState, as elsewhere in the skin: switching
+ * tabs in a settings form is not navigation, and making Back walk back
+ * through it would be actively unhelpful on a form holding unsaved edits.
+ */
+function rememberSelectedTab() {
+  $j('#pills-tab a[data-toggle="pill"]').on('shown.bs.tab', function(evt) {
+    const href = evt.target.getAttribute('href');
+    // The panes are #pills-<name>. The Zones pill is href="#" and leaves the
+    // page rather than showing a pane, so it never reaches here.
+    if (!href || !href.startsWith('#pills-')) return;
+    const name = href.substring('#pills-'.length);
+
+    // Only the tab changes. The url carries mid, and may carry a good deal
+    // more, none of which this has any business rewriting.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === name) return;
+    params.set('tab', name);
+    history.replaceState(null, '', '?' + params.toString());
+
+    // The same answer again, for the form rather than the url. A submit that
+    // is not a save re-renders the view -- changing Type or Method does this
+    // to draw the fields that type needs -- and the hidden tab field is what
+    // tells it where to come back to. Php writes it once, with the tab the
+    // page loaded on, so without this that submit also lands you back on
+    // whichever tab you arrived on rather than the one you were working in.
+    const form = document.getElementById('contentForm');
+    if (form && form.tab) form.tab.value = name;
+  });
+}
 
 async function checkVerAudioMotion() {
   const result = await waitUntil(() => window.CURRENT_AUDIO_MOTION_ANALYZER_VERSION, 20000);
@@ -595,8 +635,15 @@ function saveMonitorData(href = '') {
     type: "POST",
     url: "?view=monitor",
     data: form_data,
-    success: function() {
+    success: function(data) {
       alertBlock.fadeOut({duration: 'fast'});
+      const errorDiv = (typeof data === 'string') ?
+        new DOMParser().parseFromString(data, 'text/html').getElementById('error') : null;
+      if (errorDiv && errorDiv.textContent.trim()) {
+        $j('#contentButtons').show();
+        alert(errorDiv.textContent.trim());
+        return;
+      }
       sourceFormMonitor = $j('#contentForm').serialize();
       if (href) {
         if (href == 'reload') {
@@ -609,13 +656,15 @@ function saveMonitorData(href = '') {
     },
     error: function() {
       alertBlock.fadeOut({duration: 'fast'});
+      // Save and Close hid the buttons; bring them back so the user can retry.
+      $j('#contentButtons').show();
       alert('An error occurred while saving data.'); /* Proper formatting required! */
     }
   });
   $j('#saveConfirm').modal('hide');
 }
 
-function ll2dms(input) {
+function ll2dms() {
   const latitude = document.getElementById('newMonitor[Latitude]');
   if (latitude.value === '') return;
   if (latitude.value < -90) latitude.value=-90;
@@ -627,15 +676,10 @@ function ll2dms(input) {
   if (longitude.value > 180) longitude.value=180;
   const dmsCoords = new DmsCoordinates(parseFloat(latitude.value), parseFloat(longitude.value));
 
-  if (input.id == 'newMonitor[Latitude]') {
-    const dms = document.getElementById('LatitudeDMS');
-    dms.value = dmsCoords.latitude.toString(2);
-  } else if (input.id == 'newMonitor[Longitude]') {
-    const dms = document.getElementById('LongitudeDMS');
-    dms.value = dmsCoords.longitude.toString(2);
-  } else {
-    console.log("Unknown input in ll2dms");
-  }
+  // Both are needed to convert, so fill both: when the second coordinate is
+  // entered, the first one's DMS box was left empty.
+  document.getElementById('LatitudeDMS').value = dmsCoords.latitude.toString(2);
+  document.getElementById('LongitudeDMS').value = dmsCoords.longitude.toString(2);
   updateMarker();
 }
 
@@ -643,6 +687,7 @@ function dms2ll(input) {
   const latitude = document.getElementById('newMonitor[Latitude]');
   const longitude = document.getElementById('newMonitor[Longitude]');
   const dms = parseDms(input.value);
+  if (isNaN(dms)) return;
 
   if (input.id == 'LatitudeDMS') {
     latitude.value = dms.toFixed(8);
@@ -662,21 +707,57 @@ function change_Path(event) {
     return;
   }
 
+  // Credentials live in the authority: the text after "://" up to the first
+  // "/", "?" or "#". An "@" in the path or query is not an auth separator.
+  const authorityStart = protoPrefixPos+3;
+  const authorityEnd = pathInput.value.slice(authorityStart).search(/[/?#]/);
+  const authority = authorityEnd == -1 ?
+    pathInput.value.slice(authorityStart) :
+    pathInput.value.slice(authorityStart, authorityStart+authorityEnd);
+
   // check the formatting of the url
-  const authSeparatorPos = pathInput.value.indexOf( '@', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 ) {
-    console.log('ignoring URL without "@"');
-    return;
+  const atPos = authority.lastIndexOf('@');
+  let authSeparatorPos;
+  if ( atPos != -1 ) {
+    // A raw @ in the password is fine: the last @ of the authority ends it.
+    authSeparatorPos = authorityStart + atPos;
+  } else {
+    // No @ in the authority. Raw / ? # in a password (user:pa#ss@host) put the
+    // @ after the first delimiter, so accept it only if the authority looks
+    // like user:pass and not host:port, [ipv6] or a bare host. That keeps an @
+    // in the path or query (rtsp://h:554/live?token=a@b) from being read as
+    // credentials.
+    const colonPos = authority.indexOf(':');
+    const afterColon = colonPos == -1 ? '' : authority.slice(colonPos+1);
+    if ( authority == '' || authority[0] == '[' || colonPos == -1 ||
+         afterColon == '' || /^\d+$/.test(afterColon) ) {
+      console.log('ignoring URL without "@" in the authority');
+      return;
+    }
+    authSeparatorPos = authorityEnd == -1 ? -1 :
+      pathInput.value.indexOf('@', authorityStart+authorityEnd);
+    if ( authSeparatorPos == -1 ) {
+      return;
+    }
   }
 
   const fieldsSeparatorPos = pathInput.value.indexOf( ':', protoPrefixPos+3 );
-  if ( authSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
+  if ( fieldsSeparatorPos == -1 || fieldsSeparatorPos >= authSeparatorPos ) {
     console.warn('ignoring URL incorrectly formatted, missing ":"');
     return;
   }
 
-  const usernameValue = pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos );
-  const passwordValue = pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos );
+  // The User and Pass fields hold the decoded values (the server decodes them
+  // the same way), so a %40 in the URL must not end up in them literally.
+  const decodeCredential = function(value) {
+    try {
+      return decodeURIComponent(value);
+    } catch {
+      return value; // a lone % that is not an escape
+    }
+  };
+  const usernameValue = decodeCredential(pathInput.value.substring( protoPrefixPos+3, fieldsSeparatorPos ));
+  const passwordValue = decodeCredential(pathInput.value.substring( fieldsSeparatorPos+1, authSeparatorPos ));
   if ( usernameValue.length == 0 || passwordValue.length == 0 ) {
     console.warn('ignoring URL incorrectly formatted, empty username or password');
     return;
@@ -700,7 +781,7 @@ function change_Path(event) {
 
   // on leaving the input sync the values and remove it from the url
   // only if they already match (to not overwrite already present values)
-  if ( userInput[0].value == usernameValue && passInput[0].value == decodeURI(passwordValue) ) {
+  if ( userInput[0].value == usernameValue && passInput[0].value == passwordValue ) {
     pathInput.value = pathInput.value.substring(0, protoPrefixPos+3) + pathInput.value.substring(authSeparatorPos+1, pathInput.value.length);
   }
 }
@@ -732,7 +813,11 @@ function random_WebColour() {
 function buffer_setting_oninput(e) {
   const max_image_buffer_count = document.getElementById('newMonitor[MaxImageBufferCount]');
   const pre_event_count = document.getElementById('newMonitor[PreEventCount]');
-  if (parseInt(max_image_buffer_count.value)
+  // Typing a new maximum passes through smaller numbers, don't cut the pre event count down to them
+  const typing_max = (this.id == 'newMonitor[MaxImageBufferCount]') && e && (e.type == 'input');
+  if (!typing_max
+    &&
+    parseInt(max_image_buffer_count.value)
     &&
     (parseInt(pre_event_count.value) > parseInt(max_image_buffer_count.value))
   ) {
@@ -785,7 +870,8 @@ function updateLatitudeAndLongitude(latitude, longitude) {
   var form = document.getElementById('contentForm');
   form.elements['newMonitor[Latitude]'].value = latitude;
   form.elements['newMonitor[Longitude]'].value = longitude;
-  updateMarker(latitude, longitude);
+  ll2dms(form.elements['newMonitor[Latitude]']);
+  ll2dms(form.elements['newMonitor[Longitude]']);
 }
 
 function getLocation() {
@@ -802,6 +888,135 @@ function Capturing_onChange(e) {
 }
 
 function Analysing_onChange(e) {
+  // When motion detection is None there is no analysis, so hide the
+  // analysis image, analysis fps and ref/alarm blend fields.
+  const show = (e.value != 'None');
+  $j('#AnalysisImage, li.AnalysisFPS, li.RefBlendPerc, li.AlarmRefBlendPerc, li.AlarmRefImageBlendPct').toggle(show);
+  // Audio detection is scored by the same analysis pass, so it cannot fire
+  // either. Hiding it stops the settings looking configured but inert.
+  $j('li.AudioDetection, li.settingsGroup.AudioGroup').toggle(show);
+  AudioDetection_onChange(document.getElementById('contentForm').elements['newMonitor[AudioDetection]']); // eslint-disable-line new-cap
+}
+
+function AudioDetection_onChange(e) {
+  // The threshold and the score only mean anything while detection is on.
+  // The rows are hidden rather than the inputs disabled, because a disabled
+  // input is not submitted and the value would silently fail to save.
+  //
+  // This asks the Analysing setting, not whether the row is currently on
+  // screen. The tabs are switched client side, so when the editor first loads
+  // the Analysis pane is hidden and every row in it reports as not visible.
+  // Testing visibility here set display:none on both rows during initPage, and
+  // opening the tab did not undo it - they stayed hidden until something else
+  // re-ran this.
+  const form = document.getElementById('contentForm');
+  const analysing = form ? form.elements['newMonitor[Analysing]'] : null;
+  const analysisOn = !analysing || (analysing.value != 'None');
+  const show = analysisOn && !!(e && e.checked);
+  $j('li.AudioThreshold, li.AudioAlarmScore').toggle(show);
+}
+
+// --- Live audio level meter -------------------------------------------------
+//
+// zmc only measures the audio level when something asks for it, so polling
+// this is not just reading a value: each request pushes the deadline in shared
+// memory forward a few seconds, and when the polling stops the decoding stops
+// with it. That is why the interval skips the request whenever the meter is
+// off screen rather than just hiding the result.
+
+var audioLevelTimer = null;
+var audioLevelInFlight = false;
+
+function pollAudioLevel() {
+  const meter = document.getElementById('audioLevelMeter');
+  // Not on this monitor's form at all, or the Analysis tab is not showing.
+  if (!meter || !$j(meter).is(':visible')) return;
+  // A slow reply must not stack up requests behind it.
+  if (audioLevelInFlight) return;
+
+  audioLevelInFlight = true;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'audioLevel', mid: meter.dataset.mid})
+      .done(function(data) {
+        if (data.result === 'Error') {
+          showAudioLevel(null, data.message);
+          return;
+        }
+        showAudioLevel(data.level, null, data.alarm);
+      })
+      .fail(function() {
+        showAudioLevel(null, 'unavailable');
+      })
+      .always(function() {
+        audioLevelInFlight = false;
+      });
+}
+
+function showAudioLevel(level, message, alarm) {
+  const fill = document.getElementById('audioLevelFill');
+  const value = document.getElementById('audioLevelValue');
+  if (!fill || !value) return;
+
+  // levelMeterState is shared with the event graph so both agree about the
+  // 0-100 scale, and it is what decides that a missing reading says so
+  // instead of showing a confident zero.
+  const state = levelMeterState(level, alarm, message);
+  fill.style.width = state.percent + '%';
+  value.textContent = state.text;
+  value.classList.toggle('alarm', state.alarm);
+}
+
+// The threshold is drawn on the meter so the reading can be compared against
+// it while it is being typed, without saving first.
+function updateAudioThresholdMark() {
+  const mark = document.getElementById('audioLevelThresholdMark');
+  if (!mark) return;
+  const form = document.getElementById('contentForm');
+  const input = form ? form.elements['newMonitor[AudioThreshold]'] : null;
+  const percent = levelThresholdPercent(input ? input.value : null);
+
+  if (percent === null) {
+    mark.style.display = 'none';
+    return;
+  }
+  mark.style.display = 'block';
+  mark.style.left = percent + '%';
+}
+
+function startAudioLevelMeter() {
+  if (!document.getElementById('audioLevelMeter')) return;
+  updateAudioThresholdMark();
+  $j('input[name="newMonitor[AudioThreshold]"]').on('input', updateAudioThresholdMark);
+
+  if (audioLevelTimer) clearInterval(audioLevelTimer);
+  // One second is responsive enough to watch a voice move the bar, and is ten
+  // times inside the request's lifetime in zmc, so a dropped poll or two does
+  // not make the measurement lapse and the bar stall.
+  audioLevelTimer = setInterval(pollAudioLevel, 1000);
+  pollAudioLevel();
+}
+
+// Shows whether zmc holds an ONVIF event subscription for this monitor, so a
+// failing subscription no longer has to be found in the logs.
+var onvifStatusTimer = null;
+
+function pollOnvifStatus() {
+  const el = document.getElementById('onvifStatus');
+  if (!el || !$j(el).is(':visible')) return;
+  $j.getJSON(thisUrl, {request: 'monitor', action: 'onvifStatus', mid: el.dataset.mid})
+      .done(function(data) {
+        el.textContent = (data.result !== 'Error' && data.status !== null && onvifStatusLabels[data.status]) ?
+          onvifStatusLabels[data.status] : onvifStatusUnavailable;
+      })
+      .fail(function() {
+        el.textContent = onvifStatusUnavailable;
+      });
+}
+
+function startOnvifStatus() {
+  if (!document.getElementById('onvifStatus')) return;
+  if (onvifStatusTimer) clearInterval(onvifStatusTimer);
+  onvifStatusTimer = setInterval(pollOnvifStatus, 5000);
+  pollOnvifStatus();
 }
 
 function Recording_onChange(e) {
@@ -809,10 +1024,10 @@ function Recording_onChange(e) {
 
 function SecondPath_onChange(e) {
   if (e.value) {
-    $j('#AnalysingSource').show();
+    $j('#AnalysisSource').show();
     $j('#RecordingSource').show();
   } else {
-    $j('#AnalysingSource').hide();
+    $j('#AnalysisSource').hide();
     $j('#RecordingSource').hide();
   }
 }
@@ -847,6 +1062,35 @@ function update_players() {
   //dropdown.chosen();
   dropdown.val(selected_value);
   if (dropdown[0].selectedIndex==-1) dropdown[0].selectedIndex = 0;
+
+  manageGo2RTCDisableBackChannel(false);
+}
+
+function changeDeviceClass() {
+  manageGo2RTCDisableBackChannel(true);
+}
+
+function manageGo2RTCDisableBackChannel(setDefaultGo2RTCDisableBackChannel = false) {
+  const go2rtc_enabled = document.querySelector('[name="newMonitor[Go2RTCEnabled]"]')?.checked ?? false;
+  const deviceClassValue = document.querySelector('[name="newMonitor[DeviceClass]"]')?.value ?? '';
+  const Go2RTCDisableBackChannel = document.querySelector('[name="newMonitor[Go2RTCDisableBackChannel]"]');
+  const Go2RTCDisableBackChannelElement = document.getElementById('Go2RTCDisableBackChannel');
+  if (Go2RTCDisableBackChannel) {
+    if (deviceClassValue == "Camera") {
+      Go2RTCDisableBackChannel.removeAttribute('disabled');
+      if (setDefaultGo2RTCDisableBackChannel) Go2RTCDisableBackChannel.checked = true;
+    } else {
+      Go2RTCDisableBackChannel.setAttribute('disabled', '');
+      Go2RTCDisableBackChannel.checked = false;
+    }
+  }
+  if (Go2RTCDisableBackChannelElement) {
+    if (go2rtc_enabled) {
+      Go2RTCDisableBackChannelElement.hidden = false;
+    } else {
+      Go2RTCDisableBackChannelElement.hidden = true;
+    }
+  }
 }
 
 function populate_models(ManufacturerId) {
@@ -859,6 +1103,8 @@ function populate_models(ManufacturerId) {
   dropdown.empty();
   dropdown.append('<option value="" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
+  // With the model back at Unknown, the name box is how one is entered.
+  $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
 
   if (ManufacturerId) {
     // Populate dropdown with list of provinces
@@ -889,9 +1135,10 @@ function ManufacturerId_onchange(ManufacturerId_select) {
     // Set models dropdown to Unknown, text area visible
     const ModelId_dropdown = $j('[name="newMonitor[ModelId]"]');
     ModelId_dropdown.empty();
-    ModelId_dropdown.append('<option selected="true">Unknown</option>');
+    ModelId_dropdown.append('<option value="" selected="true">Unknown</option>');
     ModelId_dropdown.prop('selectedIndex', 0);
-    $j('[name="newMonitor[Model]"]').show();
+    // A disabled input is not submitted, so enable it as well as show it.
+    $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
   }
 }
 
@@ -947,14 +1194,17 @@ function devices_onchange(devices) {
   }
 }
 function ControlId_onChange(ddm) {
-  const ControlEditButton = document.getElementById('ControlEditButton');
-  if (ControlEditButton) ControlEditButton.disabled = ddm.value ? false : true;
+  const ControlEditButton = document.getElementById('ControlEdit');
+  if (ControlEditButton) ControlEditButton.disabled = !ddm.value;
 }
 
 function ControlEdit_onClick() {
   const ControlId = document.getElementById('ControlId');
   if (ControlId) {
-    window.location = '?view=controlcap&cid='+ControlId.value;
+    const cid = parseInt(ControlId.value, 10);
+    if (Number.isInteger(cid) && cid > 0) {
+      window.location = '?view=controlcap&cid=' + cid;
+    }
   }
 }
 
@@ -970,5 +1220,70 @@ window.addEventListener('DOMContentLoaded', initPage);
 window.addEventListener('pagehide', function() {
   document.querySelectorAll('#contentForm input[type="password"]').forEach(function(el) {
     el.value = '';
+  });
+});
+
+/**
+ * Rebuild one action row's type list and file input to match the device it
+ * targets, so the editor only ever offers what that device supports. The
+ * server re-checks this on save; this is convenience, not enforcement.
+ * @param {HTMLElement} row the tr holding the action's inputs
+ */
+function updateMonitorActionRow(row) {
+  const target = row.querySelector('select[name*="[TargetMonitorId]"]');
+  const type = row.querySelector('select[name*="[ActionType]"]');
+  const file = row.querySelector('input[name*="[AudioFile]"]');
+  if (!target || !type || !file) return;
+
+  // A schedule only means anything for the time-based trigger. Hidden rather
+  // than removed so a row that is switched back to "At a time" still has
+  // whatever was typed, and so the field is still submitted: the server
+  // clears it for the other triggers rather than trusting the browser to.
+  const trigger = row.querySelector('select[name*="[TriggerOn]"]');
+  const scheduleCell = row.querySelector('td.actionScheduleCell');
+  if (trigger && scheduleCell) {
+    scheduleCell.style.visibility = (trigger.value == 'Schedule') ? 'visible' : 'hidden';
+  }
+
+  const caps = (typeof monitorActionCapabilities !== 'undefined') ?
+    monitorActionCapabilities[target.value] : null;
+  const labels = (typeof monitorActionTypeLabels !== 'undefined') ?
+    monitorActionTypeLabels : {};
+
+  const wanted = type.value;
+  const constrained = !!(caps && caps.Types && caps.Types.length);
+  // With no target chosen there is nothing to constrain the list to. Show the
+  // full set rather than emptying the control: a blank dropdown reads as a
+  // broken page, and the spare row at the bottom of the table always starts
+  // with no target.
+  const available = constrained ? caps.Types : Object.keys(labels);
+  type.innerHTML = '';
+  available.forEach(function(t) {
+    const option = document.createElement('option');
+    option.value = t;
+    option.textContent = labels[t] ? labels[t] : t;
+    if (t == wanted) option.selected = true;
+    type.appendChild(option);
+  });
+  type.disabled = !constrained;
+
+  // Only a sound takes a file, and only within the range that device accepts.
+  const takesFile = (type.value == 'AudioPlay');
+  file.style.visibility = takesFile ? 'visible' : 'hidden';
+  if (takesFile && caps) {
+    if (caps.MinAudioFile !== null) file.min = caps.MinAudioFile;
+    if (caps.MaxAudioFile !== null) file.max = caps.MaxAudioFile;
+    if (file.value === '' && caps.MinAudioFile !== null) file.value = caps.MinAudioFile;
+  }
+}
+
+window.addEventListener('DOMContentLoaded', function initMonitorActions() {
+  document.querySelectorAll('tr.monitorActionRow').forEach(function(row) {
+    updateMonitorActionRow(row);
+    row.querySelectorAll('select').forEach(function(el) {
+      el.addEventListener('change', function() {
+        updateMonitorActionRow(row);
+      });
+    });
   });
 });

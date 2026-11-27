@@ -46,7 +46,7 @@ $0 will no longer create these unless the -o option is specified.
 EOF
 }
 
-while getopts "hz:w:q:l:t:o" OPTION
+while getopts "hz:w:ql:t:o" OPTION
 do
      case $OPTION in
          h)
@@ -88,7 +88,7 @@ if [[ -n "$ZM_CONFIG" && ! -f "$ZM_CONFIG" ]]; then
 fi
 
 # Load zm.conf
-for zmconf in "$ZM_CONFIG" ./zm.conf /etc/zm.conf /etc/zoneminder/zm.conf; do
+for zmconf in "$ZM_CONFIG" ./zm.conf "@ZM_CONFIG@" /etc/zm.conf /etc/zoneminder/zm.conf; do
 	if [[ -f "$zmconf" ]]; then
 		echo "Using $zmconf"
 		source "$zmconf"
@@ -107,22 +107,22 @@ fi
 
 # Override the web directory path from zm.conf
 if [ -n "$ZM_PATH_WEB_FORCE" ]; then
-	ZM_PATH_WEB="$(readlink -f $ZM_PATH_WEB_FORCE)"
+	ZM_PATH_WEB="$(readlink -f "$ZM_PATH_WEB_FORCE")"
 fi
 
 # Override the log directory path
 if [ -n "$ZM_LOGDIR_FORCE" ]; then
-	ZM_LOGDIR="$(readlink -f $ZM_LOGDIR_FORCE)"
+	ZM_LOGDIR="$(readlink -f "$ZM_LOGDIR_FORCE")"
 fi
 
 # Override the tmp directory path
 if [ -n "$ZM_TMPDIR_FORCE" ]; then
-	ZM_TMPDIR="$(readlink -f $ZM_TMPDIR_FORCE)"
+	ZM_TMPDIR="$(readlink -f "$ZM_TMPDIR_FORCE")"
 fi
 
 # Override the default content path
-if [[ -n "$@" ]]; then
-	ZM_PATH_CONTENT="$(readlink -f $@)"
+if [[ -n "$1" ]]; then
+	ZM_PATH_CONTENT="$(readlink -f "$1")"
 fi
 
 # Print some information

@@ -46,15 +46,23 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
 
 use LWP::UserAgent;
 use HTTP::Cookies;
-use JSON;
+use JSON::MaybeXS qw(encode_json decode_json);
 
 my $ChannelID = 1;              # Usually...
 my $DefaultFocusSpeed = 50;     # Should be between 1 and 100
 my $DefaultIrisSpeed = 50;      # Should be between 1 and 100
+# Used when the Controls row has no pan/tilt/zoom speed, so the UI sends none.
+my $DefaultPanSpeed = 50;       # Should be between 1 and 100
+my $DefaultTiltSpeed = 50;      # Should be between 1 and 100
+my $DefaultZoomSpeed = 50;      # Should be between 1 and 100
 
 my %config_types = (
   'LAPI/V1.0/System/DeviceBasicInfo'           => {},
@@ -72,7 +80,7 @@ sub open {
   $$self{port} = 80;
 
   # Create a UserAgent for the requests
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
 
   $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} and ($self->{Monitor}{ControlDevice} =~ /^\d+$/);
@@ -108,7 +116,7 @@ sub PutCmd {
     Error('No cmd specified in PutCmd');
     return;
   }
-  my $req = HTTP::Request->new(PUT => $$self{BaseURL}.'/'.$cmd);
+  my $req = HTTP::Request->new(PUT => $self->fullUrl($cmd));
   if ( defined($content) ) {
     $req->content_type('application/x-www-form-urlencoded; charset=UTF-8');
     $req->content('<?xml version="1.0" encoding="UTF-8"?>' . "\n" . $content);
@@ -120,9 +128,10 @@ sub PutCmd {
       # happens the user agent connects again and uses the same auth tokens.
       # The camera rejects this and asks for another token but the UserAgent
       # just gives up. Create a new ua and retry.
-      $self->{ua} = LWP::UserAgent->new();
+      $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
       $self->{ua}->cookie_jar( {} );
-      $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+      # LWP looks the credentials up by host_port, which brackets an IPv6 host.
+      $self->{ua}->credentials($$self{address} // "$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
 
       $res = $self->{ua}->request($req);
       if (!$res->is_success) {
@@ -275,9 +284,9 @@ sub moveVector {
     $command = "ISAPI/PTZCtrl/channels/$ChannelID/continuous";
   }
   # Calculate movement speeds
-  my $x = $pandirection  * $self->getParam( $params, 'panspeed', 0 );
-  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', 0 );
-  my $z = $zoomdirection * $self->getParam( $params, 'speed', 0 );
+  my $x = $pandirection  * $self->getParam( $params, 'panspeed', $DefaultPanSpeed );
+  my $y = $tiltdirection * $self->getParam( $params, 'tiltspeed', $DefaultTiltSpeed );
+  my $z = $zoomdirection * $self->getParam( $params, 'speed', $DefaultZoomSpeed );
   # Create the XML
   my $xml = "<PTZData><pan>$x</pan><tilt>$y</tilt><zoom>$z</zoom>$momentxml</PTZData>";
   # Send it to the camera
@@ -336,7 +345,7 @@ sub focusConNear {
   $self->Focus(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Near {
@@ -370,7 +379,7 @@ sub focusConFar {
   $self->Focus($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Focus(0);
   }
 }
 sub Far {
@@ -394,6 +403,10 @@ sub focusRelFar {
   my $speed = $self->getParam( $params, 'speed', $DefaultFocusSpeed );
   $self->Focus($speed);
 }
+sub focusStop {
+  my $self = shift;
+  $self->Focus(0);
+}
 #
 # Iris controls all call Iris with a +/- speed
 #
@@ -415,7 +428,7 @@ sub irisConClose {
   $self->Iris(-$speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Close {
@@ -451,7 +464,7 @@ sub irisConOpen {
   $self->Iris($speed);
   if($duration) {
     usleep($duration);
-    $self->moveStop($params);
+    $self->Iris(0);
   }
 }
 sub Open {
@@ -476,6 +489,10 @@ sub irisRelOpen {
   my $speed = $self->getParam( $params, 'speed', $DefaultIrisSpeed );
   $self->Iris($speed);
 }
+sub irisStop {
+  my $self = shift;
+  $self->Iris(0);
+}
 
 #
 # reset (reboot) the device
@@ -495,7 +512,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = new ZoneMinder::Control::Uniview();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $$self{username} = $username;
   $$self{password} = $password;

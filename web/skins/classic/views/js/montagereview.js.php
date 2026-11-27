@@ -22,6 +22,7 @@ global $minTime;
 global $maxTime;
 global $monitors;
 global $eventsSql;
+global $defaultCurrentTimeSecs;
 ?>
 
 var currentScale=<?php echo $defaultScale?>;
@@ -37,7 +38,6 @@ var lastSpeedIndex=0;
 // for history, and fps for live, and dynamically determined (in ms)
 
 var currentDisplayInterval=<?php echo $initialDisplayInterval?>;
-var playSecsPerInterval=1;       // How many seconds of recorded image we play per refresh determined by speed (replay rate) and display interval; (default=1 if coming from live)
 var timerInterval;               // milliseconds between interrupts
 var timerObj;                    // object to hold timer interval;
 var freeTimeLastIntervals=[];    // Percentage of current interval used in loading most recent image
@@ -86,13 +86,13 @@ if (!$liveMode) {
 echo "\nvar Storage = [];\n";
 $have_storage_zero = 0;
 foreach ( ZM\Storage::find() as $Storage ) {
-  echo 'Storage[' . $Storage->Id() . '] = ' . $Storage->to_json(). ";\n";
+  echo 'Storage[' . $Storage->Id() . '] = ' . json_encode(array('Id' => $Storage->Id(), 'Name' => $Storage->Name(), 'ServerId' => $Storage->ServerId())). ";\n";
   if ( $Storage->Id() == 0 )
     $have_storage_zero = true;
 }
 if ( !$have_storage_zero ) {
   $Storage = new ZM\Storage();
-  echo 'Storage[0] = ' . $Storage->to_json(). ";\n";
+  echo 'Storage[0] = ' . json_encode(array('Id' => $Storage->Id(), 'Name' => $Storage->Name(), 'ServerId' => $Storage->ServerId())). ";\n";
 }
 echo "\nconst monitorData = [];\n";
 foreach ( $monitors as $monitor ) {
@@ -101,18 +101,18 @@ foreach ( $monitors as $monitor ) {
 
 monitorData[monitorData.length] = {
   'Id': <?php echo $monitor->Id() ?>,
-  'Name': '<?php echo $monitor->Name() ?>',
-  'connKey': '<?php echo $monitor->connKey() ?>',
+  'Name': '<?php echo validJsStr($monitor->Name()) ?>',
+  'connKey': '<?php echo validJsStr($monitor->connKey()) ?>',
   'Width': <?php echo $monitor->ViewWidth() ?>,
   'Height':<?php echo $monitor->ViewHeight() ?>,
   'JanusEnabled':<?php echo $monitor->JanusEnabled() ?>,
   'Url': '<?php echo $monitor->UrlToIndex( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'UrlToZMS': '<?php echo $monitor->UrlToZMS( ZM_MIN_STREAMING_PORT ? ($monitor->Id() + ZM_MIN_STREAMING_PORT) : '') ?>',
   'onclick': function(){window.location.assign( '?view=watch&mid=<?php echo $monitor->Id() ?>' );},
-  'Type': '<?php echo $monitor->Type() ?>',
-  'Refresh': '<?php echo $monitor->Refresh() ?>',
-  'Janus_Pin': '<?php echo $monitor->Janus_Pin() ?>',
-  'WebColour': '<?php echo $monitor->WebColour() ?>'
+  'Type': '<?php echo validJsStr($monitor->Type()) ?>',
+  'Refresh': '<?php echo validJsStr($monitor->Refresh()) ?>',
+  'Janus_Pin': '<?php echo validJsStr($monitor->Janus_Pin()) ?>',
+  'WebColour': '<?php echo validJsStr($monitor->WebColour()) ?>'
 };
 <?php
 } // end foreach monitor
@@ -141,7 +141,10 @@ $numMonitors = 0;  // this array is indexed by the monitor ID for faster access 
 $avgArea = floatval(0);  // Calculations the normalizing scale
 
 foreach ( $monitors as $m ) {
-  $avgArea = $avgArea + floatval($m->Width() * $m->Height());
+  $area = $m->Width() * $m->Height();
+  // A monitor whose size is not known yet (Width or Height 0) has nothing to normalize
+  if ( !$area ) continue;
+  $avgArea = $avgArea + floatval($area);
   $numMonitors++;
 }
 
@@ -152,15 +155,16 @@ foreach ( $monitors as $m ) {
   echo "  monitorLoading["         . $m->Id() . "]=false;\n";
   echo "  monitorImageURL["        . $m->Id() . "]='".$m->getStreamSrc( array('mode'=>'single','scale'=>$defaultScale*100), '&' )."';\n";
   echo "  monitorLoadingStageURL[" . $m->Id() . "] = '';\n";
-  echo "  monitorColour["          . $m->Id() . "]=\"" . validHtmlStr($m->WebColour()) . "\";\n";
+  echo "  monitorColour["          . $m->Id() . "]=" . json_encode((string)$m->WebColour(), JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) . ";\n";
   echo "  monitorWidth["           . $m->Id() . "]=" . validHtmlStr($m->ViewWidth()) . ";\n";
   echo "  monitorHeight["          . $m->Id() . "]=" . validHtmlStr($m->ViewHeight()) . ";\n";
   echo "  monitorIndex["           . $m->Id() . "]=" . $numMonitors . ";\n";
   echo "  monitorServerId["        . $m->Id() . "]='" .($m->ServerId() ?  $m->ServerId() : '0'). "';\n";
-  echo "  monitorName["            . $m->Id() . "]=\"" . validHtmlStr($m->Name()) . "\";\n";
+  echo "  monitorName["            . $m->Id() . "]=\"" . validJsStr($m->Name()) . "\";\n";
   echo "  monitorLoadStartTimems[" . $m->Id() . "]=0;\n";
   echo "  monitorLoadEndTimems["   . $m->Id() . "]=0;\n";
-  echo "  monitorNormalizeScale["  . $m->Id() . "]=" . sqrt($avgArea / ($m->Width() * $m->Height() )) . ";\n";
+  $area = $m->Width() * $m->Height();
+  echo "  monitorNormalizeScale["  . $m->Id() . "]=" . ($area ? sqrt($avgArea / $area) : 1) . ";\n";
   $zoomScale=1.0;
   if ( isset($_REQUEST['z'.$m->Id()]) )
       $zoomScale = floatval(validHtmlStr($_REQUEST['z'.$m->Id()]));
@@ -172,11 +176,11 @@ echo "
 var numMonitors = $numMonitors;
 var minTimeSecs =parseInt($minTimeSecs);
 var maxTimeSecs =parseInt($maxTimeSecs);
-var minTime='$minTime';
-var maxTime='$maxTime';
+var minTime=".json_encode((string)$minTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
+var maxTime=".json_encode((string)$maxTime, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).";
 ";
 echo 'var rangeTimeSecs='.($maxTimeSecs - $minTimeSecs + 1).";\n";
-if ( isset($defaultCurrentTimeSecs) ) {
+if ( !empty($defaultCurrentTimeSecs) ) {
   echo 'var currentTimeSecs=parseFloat('.$defaultCurrentTimeSecs.");\n";
 } else {
   echo 'var currentTimeSecs=parseFloat('.$minTimeSecs.");\n";

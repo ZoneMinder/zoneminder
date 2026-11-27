@@ -48,6 +48,7 @@ class Authenticator {
   std::string fNonce;
   std::string fCnonce;
   std::string fQop;
+  std::string fOpaque;
   std::string fUsername;
   std::string fPassword;
   std::string quote( const std::string &src );

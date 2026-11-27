@@ -44,16 +44,6 @@ class UserPreference extends AppModel {
 				//'last' => false, // Stop validation after this rule
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 		),
-		'Name' => array(
-			'text' => array(
-				'rule' => array('text'),
-			),
-		),
-		'Value' => array(
-			'text' => array(
-				'rule' => array('text'),
-			),
-		),
 	);
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed

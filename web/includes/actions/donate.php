@@ -53,7 +53,7 @@ if ( $action == 'donate' && isset($_REQUEST['option']) ) {
       dbQuery("UPDATE Config SET Value = '0' WHERE Name = 'ZM_DYN_SHOW_DONATE_REMINDER'");
       break;
     default :
-      Warning("Unknown value for option in donate: $option");
+      \ZM\Warning("Unknown value for option in donate: $option");
       break;
   } // end switch option
   $redirect = '?view='.getHomeView();

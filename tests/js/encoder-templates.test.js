@@ -182,5 +182,26 @@ test('findTemplateByName: unknown encoder returns null', () => {
   assert.strictEqual(t, null);
 });
 
+console.log('\nencoderMatchesCodec');
+test('auto codec or encoder matches anything', () => {
+  assert.strictEqual(ZM.encoderMatchesCodec('auto', 'libx264'), true);
+  assert.strictEqual(ZM.encoderMatchesCodec('hevc', 'auto'), true);
+  assert.strictEqual(ZM.encoderMatchesCodec('', 'libx265'), true);
+});
+test('each codec keeps only its encoders', () => {
+  const encoders = ['libx264', 'h264_nvenc', 'libx265', 'hevc_vaapi', 'libvpx-vp9',
+    'vp9_qsv', 'libsvtav1', 'av1_nvenc'];
+  const expected = {
+    h264: ['libx264', 'h264_nvenc'],
+    hevc: ['libx265', 'hevc_vaapi'],
+    vp9: ['libvpx-vp9', 'vp9_qsv'],
+    av1: ['libsvtav1', 'av1_nvenc'],
+  };
+  for (const codec in expected) {
+    assert.deepStrictEqual(
+        encoders.filter((e) => ZM.encoderMatchesCodec(codec, e)), expected[codec]);
+  }
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

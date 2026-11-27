@@ -13,7 +13,6 @@ Build-Depends: debhelper (>= 9), po-debconf (>= 1.0), autoconf, automake, libtoo
 , libbz2-dev
 , libsys-mmap-perl
 , libdevice-serialport-perl, libarchive-zip-perl, libmime-lite-perl
-, libvlccore-dev, libvlc-dev
 , libcurl4-gnutls-dev | libcurl4-nss-dev | libcurl4-openssl-dev
 , libpolkit-gobject-1-dev
 , libdbi-perl, libnet-sftp-foreign-perl, libexpect-perl, libmime-tools-perl
@@ -78,6 +77,7 @@ Depends: libzoneminder-perl (= ${source:Version}),
  policykit-1, apache2, libpcre++0
 , libsys-cpu-perl, libsys-meminfo-perl
 , libdata-dump-perl, libclass-std-fast-perl, libsoap-wsdl-perl, libio-socket-multicast-perl, libdigest-sha-perl
+, libxml-libxml-perl
 Description: Core binaries and perl scripts for ZoneMinder
  ZoneMinder is a video camera security and surveillance solution.
  .

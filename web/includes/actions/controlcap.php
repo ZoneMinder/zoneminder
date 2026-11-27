@@ -26,7 +26,15 @@ if ( !canEdit('Control') ) {
 
 if ( $action == 'Save' ) {
   require_once('includes/Control.php');
-  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
+  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? (validCardinal($_REQUEST['cid']) ?: null) : null );
+
+  // A capability deleted in another tab would be saved here as a new one
+  if ( !empty($_REQUEST['cid']) and !$Control->Id() ) {
+    global $error_message;
+    ZM\Warning('Control capability not found for save');
+    $error_message .= 'Control capability not found.</br>';
+    return;
+  }
 
   $field_defaults = array(
     'CanWake' =>  0,
@@ -46,6 +54,7 @@ if ( $action == 'Save' ) {
     'HasTiltSpeed'  =>  0,
     'HasTurboTilt'  =>  0,
     'CanZoom' => 0,
+    'CanAutoZoom' => 0,
     'CanZoomRel' => 0,
     'CanZoomAbs' => 0,
     'CanZoomCon' => 0,
@@ -77,8 +86,10 @@ if ( $action == 'Save' ) {
     'HasPresets'    =>  0,
     'HasHomePreset' =>  0,
     'CanSetPresets' =>  0,
-    'CanLed' => 0,
+    'CanIndicatorLight' => 0,
     'CanLight' => 0,
+    'CanAudioPlay' => 0,
+    'CanAudioVolume' => 0,
   );
 
   # Checkboxes don't return an element in the POST data, so won't be present in newControl.
@@ -90,7 +101,11 @@ if ( $action == 'Save' ) {
   } # end foreach type
 
   //$changes = getFormChanges( $control, $_REQUEST['newControl'], $types, $columns );
-  if (!$Control->save($_REQUEST['Control'])) {
+  # An empty Name is stored as '' and leaves a blank entry in the control list and the monitor Control dropdown.
+  if (!isset($_REQUEST['Control']['Name']) or !is_string($_REQUEST['Control']['Name']) or trim($_REQUEST['Control']['Name']) === '') {
+    global $error_message;
+    $error_message .= 'A Name is required for a control capability.</br>';
+  } else if (!$Control->save($_REQUEST['Control'])) {
     global $error_message;
      $error_message .= "Error saving control: " . $Control->get_last_error().'</br>';
   } else {

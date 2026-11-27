@@ -317,7 +317,9 @@ $log->debug("No serial") if $debug;
         $command =~ s/\?/\%s/g;
         $log->debug('SQL DEBUG: ('.sprintf($command, map { defined $_ ? $_ : 'undef' } ( @sql{@keys} ) ).'):' );
       } # end if
-      $$self{Id} = $local_dbh->{'mysql_insertid'} if !$$self{Id};
+      # DBI's portable accessor: DBD::MariaDB has no mysql_insertid, and
+      # would hand back undef, leaving the new row's Id unset.
+      $$self{Id} = $local_dbh->last_insert_id(undef, undef, undef, undef) if !$$self{Id};
     } else {
       delete $sql{created_on};
       my @keys = keys %sql;
@@ -469,6 +471,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
       return ( $value ? '' : 'NOT ' ) . 'EXISTS ' . $field.$type;
   } elsif ( $operator eq 'in' or $operator eq 'not in' ) {
     if ( ref $value eq 'ARRAY' ) {
+      return ( $operator eq 'in' ? '1=0' : '1=1' ) if !@{$value};
       return ( $field.$type.' ' . $operator . ' ('. join(',', map { '?' } @{$value} ) . ')', @{$value} );
     } else {
       return ( $field.$type.' ' . $operator . ' (?)', $value );
@@ -478,7 +481,7 @@ my $add_placeholder = ( ! ( $field =~ /\?/ ) ) ?  1 : 0;
   } elsif ( $operator eq 'does not contain' ) {
     return ( '? NOT IN '.$field.$type, $value );
   } elsif ( $operator eq 'like' or $operator eq 'ilike' ) {
-    return $field.'::text ' . $operator . ' ?', $value;
+    return $field.$type.' like ?', $value;
   } elsif ( $operator eq 'null_or_<=' ) {
     return '('.$field.$type.' IS NULL OR '.$field.$type.' <= ?)', $value;
   } elsif ( $operator eq 'is null or <=' ) {
@@ -623,7 +626,9 @@ $log->debug("$object_type param $field($type) func($function) " . ( ref $$search
 $log->debug("Have array for $k $$search{$k}") if DEBUG_ALL;
             
             if ( ! ( $db_field =~ /\?/ ) ) {
-              if ( @{$$search{$k}} != 1 ) {
+              if ( !@{$$search{$k}} ) {
+                push @where, '1=0';
+              } elsif ( @{$$search{$k}} != 1 ) {
                 push @where, '`'.$db_field .'` IN ('.join(',', map {'?'} @{$$search{$k}} ) . ')';
               } else {
                 push @where, '`'.$db_field.'`=?';
@@ -829,8 +834,8 @@ sub find_sql {
       ( 'SELECT', ( $sql{distinct} ? ('DISTINCT') : () ) ),
       ( $sql{columns}, 'FROM', $sql{table} ),
       ( @{$sql{where}} ? ('WHERE', join(' AND ', @{$sql{where}})) : () ),
-      ( $sql{order} ? ( 'ORDER BY', $sql{order} ) : () ),
       ( $sql{'group by'} ? ( 'GROUP BY', $sql{'group by'} ) : () ),
+      ( $sql{order} ? ( 'ORDER BY', $sql{order} ) : () ),
       ( $sql{limit} ? ( 'LIMIT', $sql{limit}) : () ),
       ( $sql{offset} ? ( 'OFFSET', $sql{offset} ) : () ),
   );  

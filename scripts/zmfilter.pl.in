@@ -61,7 +61,7 @@ my $sleeping = 0;
 
 GetOptions(
   daemon        =>\$daemon,
-  'filter=s'    =>\$filter_name,
+  'f|filter=s'  =>\$filter_name,
   'filter_id=s' =>\$filter_id,
   version       =>\$version
 ) or pod2usage(-exitstatus => -1);
@@ -73,6 +73,7 @@ if ( $version ) {
 
 require ZoneMinder::Event;
 require ZoneMinder::Filter;
+require ZoneMinder::Storage;
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
   ? $Config{ZM_DIR_EVENTS}
@@ -123,7 +124,7 @@ if ( $Config{ZM_OPT_UPLOAD} ) {
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -153,7 +154,15 @@ if ( $filter_name ) {
   Info('Scanning for events using all filters');
 }
 
-if ( ! ( $filter_name or $filter_id ) ) {
+# The delay is for the unattended case: zmpkg brings this up as one of several
+# daemons at once, as "zmdc.pl start zmfilter.pl --filter_id=N --daemon", and
+# --daemon is what marks that. Running it for a single pass is someone asking
+# for something now, and so is a terminal on stdin.
+#
+# This used to test for a named filter instead, which is backwards -- zmpkg
+# always names one, so the boot path never waited and the only invocation that
+# did was a hand-run scan of every filter.
+if ( $daemon and !startedInteractively() ) {
   Debug('Sleeping due to start delay: ' . START_DELAY . ' seconds...');
   $sleeping = 1;
   sleep(START_DELAY);
@@ -161,15 +170,34 @@ if ( ! ( $filter_name or $filter_id ) ) {
 }
 
 my @filters;
+# The Options page accepts 0, which would reload filters and spin every pass.
+sub filter_reload_delay {
+  my $value = shift;
+  return $value if defined($value) and $value =~ /^\d+$/ and $value >= 1;
+  Warning('ZM_FILTER_RELOAD_DELAY is '.(defined($value) ? "'$value'" : 'unset').', which is below the minimum of 1, using 300 seconds.');
+  return 300;
+}
+my $filter_reload_delay = filter_reload_delay($Config{ZM_FILTER_RELOAD_DELAY});
 my $last_reload = 0;
+# A single pass is someone asking for the result now; the daemon runs the same
+# filters every ExecuteInterval. A concurrent filter's child process has
+# --filter_id but no --daemon, so mark it as background through the environment.
+my $on_demand = (!$daemon and !$ENV{ZM_FILTER_BACKGROUND}
+  and (defined($filter_id) or $filter_name)) ? 1 : 0;
 
 while (!$zm_terminate) {
   my $delay;
   my $now = time;
-  if (($now - $last_reload) > $Config{ZM_FILTER_RELOAD_DELAY}) {
+  # Objects are cached by id for the life of the process, so drop the events of the last pass
+  ZoneMinder::Object::init_cache();
+  if (($now - $last_reload) > $filter_reload_delay) {
     $last_reload = $now;
     @filters = getFilters({ Name=>$filter_name, Id=>$filter_id });
   }
+
+  # Clear out event locks belonging to filters that were killed before they
+  # could release them, so those events don't stay skipped past their expiry.
+  ZoneMinder::Event::reap_expired_locks() if grep { $$_{LockRows} } @filters;
 
   foreach my $filter (@filters) {
     last if $zm_terminate;
@@ -179,9 +207,10 @@ while (!$zm_terminate) {
       my ( $id ) = $$filter{Id} =~ /(\d+)/;
       Debug("Running concurrent filter process $proc --filter_id $$filter{Id} => $id for $$filter{Name}");
 
+      local $ENV{ZM_FILTER_BACKGROUND} = 1;
       system(qq`$proc --filter_id $id &`);
     } else {
-      checkFilter($filter);
+      checkFilter($filter, $on_demand);
       $$filter{last_ran} = $now;
     }
 
@@ -197,7 +226,7 @@ while (!$zm_terminate) {
 
   last if (!$daemon and ($filter_name or $filter_id)) or $zm_terminate;
 
-  $delay = $Config{ZM_FILTER_RELOAD_DELAY} if !defined($delay);
+  $delay = $filter_reload_delay if !defined($delay);
   Debug("Sleeping for $delay seconds");
   $sleeping = 1;
   sleep($delay);
@@ -230,6 +259,7 @@ sub getFilters {
     or `UpdateDiskSpace` = 1
     or `AutoMove` = 1
     or `AutoCopy` = 1
+    or `AutoTag` = 1
     ) ORDER BY `Name`';
   my ($sth, $res) = zmDbExecute($sql, @sql_values) or Fatal("Unable to execute '$sql'");
 FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
@@ -254,12 +284,10 @@ FILTER: while( my $db_filter = $sth->fetchrow_hashref() ) {
 } # end sub getFilters
 
 sub checkFilter {
-  my $filter = shift;
+  my ($filter, $on_demand) = @_;
 
-  my $in_transaction = ZoneMinder::Database::start_transaction($dbh) if $$filter{LockRows}; 
   my @Events = $filter->Execute();
-  Debug(
-      join(' ',
+  my $summary = join(' ',
         'Checking filter', $filter->{Name},
         join(', ', 
           ($filter->{AutoDelete}?'delete':()),
@@ -272,108 +300,160 @@ sub checkFilter {
           ($filter->{AutoExecute}?'execute':()),
           ($filter->{AutoMove}?'move':()),
           ($filter->{AutoCopy}?'copy':()),
+          ($filter->{AutoTag}?'tag':()),
           ($filter->{UpdateDiskSpace}?'update disk space':()),
           ),
         'returned' , scalar @Events , 'events',
         "\n",
-        ) );
+        );
+  # A single pass is someone asking for the result now, so make it visible at
+  # Info. A daemon repeats this every ExecuteInterval; keeping that at Debug
+  # avoids filling the log.
+  if ($on_demand) {
+    Info($summary);
+  } else {
+    Debug($summary);
+  }
+
+  my $send_summary = ($Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} && ($filter->{EmailFormat} eq 'Summary') && @Events) ? 1 : 0;
+  # The summary links to and attaches the events, so send it before they are deleted
+  sendSummaryEmail($filter, @Events) if $send_summary and $filter->{AutoDelete};
 
   foreach my $event ( @Events ) {
     last if $zm_terminate;
     my $Event = new ZoneMinder::Event($$event{Id}, $event);
 
-    Debug('Checking event '.$Event->{Id});
-    my $delete_ok = !undef;
-    $dbh->ping();
-    if ( $filter->{AutoArchive} ) {
-      Info("Archiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>1});
-    }
-    if ( $filter->{AutoUnarchive} ) {
-      Info("Unarchiving event $Event->{Id}");
-      # Do it individually to avoid locking up the table for new events
-      $Event->save({Archived=>0});
-    }
-    if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
-      if ( !$Event->{Videoed} ) {
-        $delete_ok = undef if !generateVideo($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
-      if ( !$Event->{Emailed} ) {
-        $delete_ok = undef if !sendEmail($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
-      if ( !$Event->{Messaged} ) {
-        $delete_ok = undef if !sendMessage($filter, $Event);
-      }
-    }
-    if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
-      if ( !$Event->{Uploaded} ) {
-        $delete_ok = undef if !uploadArchFile($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoExecute} ) {
-      if ( !$Event->{Executed} ) {
-        $delete_ok = undef if !executeCommand($filter, $Event);
-      }
-    }
-    if ( $filter->{AutoDelete} ) {
-      if ( $delete_ok ) {
-        $Event->delete();
-        next; # If someone has configured the filter to do something in addition to delete, errors will be logged.
-      } else {
-        Error("Unable to delete event $Event->{Id} as previous operations failed");
-      }
-    } # end if AutoDelete
+    $dbh = zmDbConnect();
 
-
-    if ( $filter->{AutoMove} ) {
-      my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
-      Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
-      $_ = $Event->MoveTo($NewStorage);
-      Error($_) if $_;
+    # LockRows serialises this filter against the others one event at a time.
+    # The lock is a row in Events_Lock rather than a lock on the event itself,
+    # so it can be held for the whole of an event's work - which may be an
+    # ffmpeg encode, an upload or an executed command - without holding any
+    # InnoDB lock. zmc goes on opening events on the same monitor throughout.
+    if ($$filter{LockRows} and !$Event->acquire_lock()) {
+      Debug("Skipping event $$Event{Id}, another filter is working on it");
+      next;
     }
-    if ( $filter->{AutoCopy} ) {
-      # Copy To is different from MoveTo in that it JUST copies the files
-      # So we still need to update the Event object with the new SecondaryStorageId
-      my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
-      if ( $NewStorage ) {
-        Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
-        $_ = $Event->CopyTo($NewStorage);
-        if ( $_ ) {
-          $ZoneMinder::Database::dbh->commit();
-          Error($_);
-        } else {
-          $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
-          $ZoneMinder::Database::dbh->commit();
-        }
-      } else {
-        Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
-      }
-    } # end if AutoCopy
 
-    if ( $filter->{UpdateDiskSpace} ) {
-      my $old_diskspace = $$Event{DiskSpace};
-			my $new_diskspace = $Event->DiskSpace(undef);
-
-      if (
-					( (!defined $old_diskspace) and defined $new_diskspace)
-					or
-					( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
-					) {
-        $Event->save();
-      }
-    } # end if UpdateDiskSpace
+    eval { checkFilterEvent($filter, $Event) };
+    my $error = $@;
+    $Event->release_lock() if $$filter{LockRows};
+    Error("Error processing event $$Event{Id}: $error") if $error;
   } # end foreach event
 
-  if ($Config{ZM_OPT_EMAIL} and $filter->{AutoEmail} and ($filter->{EmailFormat} eq 'Summary') and @Events) {
+  if ($send_summary and !$filter->{AutoDelete}) {
     sendSummaryEmail($filter, @Events);
   }
-  ZoneMinder::Database::end_transaction($dbh, $in_transaction) if $$filter{LockRows}; 
 } # end sub checkFilter
+
+# Everything a filter does to one event. Called with that event's Events_Lock
+# row held when the filter has LockRows set.
+#
+# Nothing here opens a transaction: each statement stands on its own so that no
+# lock outlives it. Event::delete manages its own short transaction around the
+# row deletes, which is the only place several statements have to be atomic.
+sub checkFilterEvent {
+  my ($filter, $Event) = @_;
+
+  Debug('Checking event '.$Event->{Id});
+  my $delete_ok = !undef;
+  if ( $filter->{AutoArchive} ) {
+    Info("Archiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>1});
+  }
+  if ( $filter->{AutoUnarchive} ) {
+    Info("Unarchiving event $Event->{Id}");
+    # Do it individually to avoid locking up the table for new events
+    $Event->save({Archived=>0});
+  }
+  if ( $filter->{AutoTag} and $filter->{AutoTagId} ) {
+    Info("Tagging event $Event->{Id} with tag $filter->{AutoTagId}");
+    # IGNORE: the event may have been given the tag since the filter matched it
+    zmDbExecute('INSERT IGNORE INTO `Events_Tags` (`TagId`, `EventId`, `AssignedBy`) VALUES (?, ?, ?)',
+      $filter->{AutoTagId}, $Event->{Id}, $filter->{UserId});
+    zmDbExecute('UPDATE `Tags` SET `LastAssignedDate`=NOW() WHERE `Id`=?', $filter->{AutoTagId});
+  }
+  if ( $Config{ZM_OPT_FFMPEG} && $filter->{AutoVideo} ) {
+    if ( !$Event->{Videoed} ) {
+      $delete_ok = undef if !generateVideo($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_EMAIL} && $filter->{AutoEmail} and $filter->{EmailFormat} eq 'Individual') {
+    if ( !$Event->{Emailed} ) {
+      $delete_ok = undef if !sendEmail($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_MESSAGE} && $filter->{AutoMessage} ) {
+    if ( !$Event->{Messaged} ) {
+      $delete_ok = undef if !sendMessage($filter, $Event);
+    }
+  }
+  if ( $Config{ZM_OPT_UPLOAD} && $filter->{AutoUpload} ) {
+    if ( !$Event->{Uploaded} ) {
+      $delete_ok = undef if !uploadArchFile($filter, $Event);
+    }
+  }
+  if ( $filter->{AutoExecute} ) {
+    if ( !$Event->{Executed} ) {
+      $delete_ok = undef if !executeCommand($filter, $Event);
+      # load() drops the Id of a deleted event, and a later save would insert it again
+      return if !$Event->{Id};
+    }
+  }
+  if ( $filter->{AutoDelete} ) {
+    if ( $delete_ok ) {
+      $Event->delete();
+      return; # If someone has configured the filter to do something in addition to delete, errors will be logged.
+    } else {
+      Error("Unable to delete event $Event->{Id} as previous operations failed");
+    }
+  } # end if AutoDelete
+
+
+  if ( $filter->{AutoMove} and ($Event->{StorageId}//-1) == $filter->{AutoMoveTo} ) {
+    Debug("Event $Event->{Id} is already in storage area $filter->{AutoMoveTo}, not moving it");
+  } elsif ( $filter->{AutoMove} ) {
+    my $NewStorage = new ZoneMinder::Storage($filter->{AutoMoveTo});
+    Info("Moving event $Event->{Id} from ".$Event->Storage(undef)->Path().' to '.$NewStorage->Path());
+    $_ = $Event->MoveTo($NewStorage);
+    Error($_) if $_;
+  }
+  if ( $filter->{AutoCopy} and (($Event->{StorageId}//-1) == $filter->{AutoCopyTo}
+      or ($Event->{SecondaryStorageId}//-1) == $filter->{AutoCopyTo}) ) {
+    Debug("Event $Event->{Id} is already in storage area $filter->{AutoCopyTo}, not copying it");
+  } elsif ( $filter->{AutoCopy} ) {
+    # Copy To is different from MoveTo in that it JUST copies the files
+    # So we still need to update the Event object with the new SecondaryStorageId
+    my $NewStorage = ZoneMinder::Storage->find_one(Id=>$filter->{AutoCopyTo});
+    if ( $NewStorage ) {
+      Info("Copying event $Event->{Id} to datastore $filter->{AutoCopyTo}");
+      $_ = $Event->CopyTo($NewStorage);
+      if ( $_ ) {
+        Error($_);
+      } else {
+        # No commit: each statement autocommits now that LockRows no longer
+        # wraps the whole filter run in one transaction.
+        $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+      }
+    } else {
+      Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
+    }
+  } # end if AutoCopy
+
+  if ( $filter->{UpdateDiskSpace} ) {
+    my $old_diskspace = $$Event{DiskSpace};
+    my $new_diskspace = $Event->DiskSpace(undef);
+
+    if (
+      ( (!defined $old_diskspace) and defined $new_diskspace)
+      or
+      ( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
+      ) {
+      $Event->save();
+    }
+  } # end if UpdateDiskSpace
+} # end sub checkFilterEvent
 
 sub generateVideo {
   my $filter = shift;
@@ -417,18 +497,22 @@ sub generateVideo {
       );
   my $output = qx($command);
   chomp($output);
-  my $status = $? >> 8;
+  my $status = $?;
   if ( $status || logDebugging() ) {
     Debug("Output: $output");
   }
   if ( $status ) {
-    Error("Video generation '$command' failed with status: $status");
+    Error("Video generation '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     if ( wantarray() ) {
       return( undef, undef );
     }
     return 0;
   } else {
     zmDbExecute('UPDATE `Events` SET `Videoed`=1 WHERE `Id`=?', $Event->{Id});
+    # zmvideo.pl may have stored a new DiskSpace; a later save writes every field back
+    $Event->{Videoed} = 1;
+    my $row = zmDbFetchOne('SELECT `DiskSpace` FROM `Events` WHERE `Id`=?', $Event->{Id});
+    $Event->{DiskSpace} = $$row{DiskSpace} if $row and defined $$row{DiskSpace};
     return ($format, $output) if wantarray();
   }
   return 1;
@@ -446,7 +530,7 @@ sub generateImage {
   my $event_path = $Event->Path();
   my $capture_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-capture.jpg', $event_path, $frame->{FrameId});
   my $analyse_image_path = sprintf('%s/%0'.$Config{ZM_EVENT_IMAGE_DIGITS}.'d-analyse.jpg', $event_path, $frame->{FrameId}) if $analyse;
-  my $video_path =  sprintf('%s/%s', $event_path, $Event->{DefaultVideo});
+  my $video_path =  sprintf('%s/%s', $event_path, ($Event->{DefaultVideo} ? basename($Event->{DefaultVideo}) : ''));
   my $image_path = '';
 
 # check if the image file exists. If the file doesn't exist and we use H264 try to extract it from .mp4 video
@@ -458,16 +542,27 @@ sub generateImage {
     $image_path = $capture_image_path;
   } elsif ( -r $video_path ) {
     Debug("mp4 exists $video_path");
-    my $command ="ffmpeg -nostdin -ss $$frame{Delta} -i '$video_path' -frames:v 1 '$capture_image_path'";
+    # Run without a shell: $video_path carries the event's DefaultVideo, which
+    # an operator with Events=Edit can set, so a quote in it must not be able
+    # to end the argument. See GHSA-pxq8-5c8j-xf3r.
+    my @command = ('ffmpeg', '-nostdin', '-ss', $$frame{Delta}, '-i', $video_path, '-frames:v', '1', $capture_image_path);
+    my $command = join(' ', @command);
     #$command = "ffmpeg -y -v 0 -i $video_path -vf 'select=gte(n\\,$$frame{FrameId}),setpts=PTS-STARTPTS' -vframes 1 -f image2 $capture_image_path";
-    my $output = qx($command);
+    my $output = '';
+    if ( open(my $fh, '-|', @command) ) {
+      $output = join('', <$fh>);
+      close($fh);
+    } else {
+      $output = "Unable to run ffmpeg: $!";
+      $? = 127 << 8; # what the shell reported for a missing command
+    }
     chomp($output);
-    my $status = $? >> 8;
+    my $status = $?;
     if ( $status || logDebugging() ) {
       Debug("Output from $command\n: $output");
     }
     if ( $status ) {
-      Error("Failed $command status $status");
+      Error("Failed $command with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     } else {
       $image_path = $capture_image_path;
     }
@@ -496,7 +591,7 @@ sub uploadArchFile {
     return(0);
   }
 
-  my $archFile = $Event->Monitor()->Name().'-'.$Event->{Id};
+  my $archFile = basename($Event->Monitor()->Name()).'-'.$Event->{Id};
   my $archImagePath = $Event->Path()
     .'/'
     .(
@@ -505,7 +600,10 @@ sub uploadArchFile {
         : '{*capture.jpg,snapshot.jpg,*.mp4}'
      )
     ;
-  my @archImageFiles = glob($archImagePath);
+  # Not glob(): it splits its pattern on whitespace, so a storage path with a
+  # space in it matches none of the event's files.
+  require File::Glob;
+  my @archImageFiles = File::Glob::bsd_glob($archImagePath);
   my $archLocPath;
 
   my $archError = 0;
@@ -562,6 +660,7 @@ sub uploadArchFile {
   }
 
   if ( $archError ) {
+    unlink($archLocPath);
     return 0;
   } else {
     if ( $Config{ZM_UPLOAD_PROTOCOL} eq 'ftp' ) {
@@ -574,17 +673,33 @@ sub uploadArchFile {
           );
       if ( !$ftp ) {
         Error("Unable to create FTP connection: $@");
+        unlink($archLocPath);
         return 0;
       }
-      $ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS})
-        or Error("FTP - Unable to login");
-      $ftp->binary()
-        or Error("FTP - Unable to go binary");
-      $ftp->cwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("FTP - Unable to cwd")
-        if ( $Config{ZM_UPLOAD_REM_DIR} );
-      $ftp->put( $archLocPath )
-        or Error("FTP - Unable to upload '$archLocPath'");
+      if ( !$ftp->login($Config{ZM_UPLOAD_USER}, $Config{ZM_UPLOAD_PASS}) ) {
+        Error("FTP - Unable to login: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->binary() ) {
+        Error("FTP - Unable to go binary: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$ftp->cwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("FTP - Unable to cwd: ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$ftp->put( $archLocPath ) ) {
+        Error("FTP - Unable to upload '$archLocPath': ".$ftp->message);
+        $ftp->quit();
+        unlink($archLocPath);
+        return 0;
+      }
       $ftp->quit()
         or Error("FTP - Unable to quit");
     } else {
@@ -607,16 +722,23 @@ sub uploadArchFile {
       my $sftp = Net::SFTP::Foreign->new($Config{ZM_UPLOAD_HOST}, %sftpOptions);
       if ( $sftp->error ) {
         Error("Unable to create SFTP connection: ".$sftp->error);
+        unlink($archLocPath);
         return 0;
       }
-      $sftp->setcwd($Config{ZM_UPLOAD_REM_DIR})
-        or Error("SFTP - Unable to setcwd: ".$sftp->error)
-        if $Config{ZM_UPLOAD_REM_DIR};
-      $sftp->put($archLocPath, $archFile)
-        or Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+      if ( $Config{ZM_UPLOAD_REM_DIR} and !$sftp->setcwd($Config{ZM_UPLOAD_REM_DIR}) ) {
+        Error("SFTP - Unable to setcwd: ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
+      if ( !$sftp->put($archLocPath, $archFile) ) {
+        Error("SFTP - Unable to upload '$archLocPath': ".$sftp->error);
+        unlink($archLocPath);
+        return 0;
+      }
     }
     unlink($archLocPath);
     zmDbExecute('UPDATE `Events` SET `Uploaded`=1 WHERE `Id`=?', $Event->{Id});
+    $Event->{Uploaded} = 1;
   }
   return 1;
 } # end sub uploadArchFile
@@ -640,15 +762,15 @@ sub substituteTags {
 # First we'd better check what we need to get
 # We have a filter and an event, do we need any more
 # monitor information?
-  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEN|MEA)%/;
-  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEN|MEA)%/;
+  my $need_monitor = $text =~ /%(?:MN|MET|MEH|MED|MEW|MEM|MEA)%/;
+  my $need_summary = $text =~ /%(?:MET|MEH|MED|MEW|MEM|MEA)%/;
 
   my $Monitor = $Event->Monitor() if $Event and $need_monitor;
   my $Summary = $Monitor->Event_Summary() if $Monitor and $need_summary;
 
   my $html = exists $$options{html} ? $$options{html} : (($text =~ /<html/ ? !undef : undef));
 # Do we need the image information too?
-  my $need_images = $text =~ /%(?:EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
+  my $need_images = $text =~ /%(?:EPF1|EPFM|EPI1|EPIM|EPISNAP|EI1|EIM|EI1A|EIMA|EISNAP|EIMOD|EIMODG)%/;
   my $first_alarm_frame = '';
   my $max_alarm_frame = '';
   my $max_alarm_score = 0;
@@ -749,7 +871,7 @@ sub substituteTags {
           $text =~ s/%EIMOD%//g;
         }
       }
-      if ($text =~ s/%EIMODG%//g) {
+      if ($text =~ /%EIMODG%/g) {
         my $path = $Event->Path().'/objdetect.gif';
         if (-e $path) {
           my $filename = $Event->Id().'_'.fileparse($path);
@@ -787,7 +909,7 @@ sub substituteTags {
         if ($text =~ /%EI1%/g) {
           my $path = generateImage($Event, $first_alarm_frame);
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -804,7 +926,7 @@ sub substituteTags {
         if ($text =~ /%EIM%/g) {
           my $path = generateImage($Event, $max_alarm_frame);
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment =  { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -822,7 +944,7 @@ sub substituteTags {
         if ($text =~ /%EI1A%/g) {
           my $path = generateImage($Event, $first_alarm_frame, 'analyse');
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -840,7 +962,7 @@ sub substituteTags {
           # Don't attach the same image twice
           my $path = generateImage($Event, $max_alarm_frame, 'analyse');
           if (-e $path) {
-            my $filename = fileparse($path);
+            my $filename = $Event->Id().'_'.fileparse($path);
             my $attachment = { type=>'image/jpeg', path=>$path, content_id=>URI::Encode::uri_encode($filename) };
             push @$attachments_ref, $attachment if !is_in_attachments($path, $attachments_ref);
             if ($html) {
@@ -859,7 +981,7 @@ sub substituteTags {
     if ( $attachments_ref ) {
       if ( $text =~ s/%EV%//g ) {
         if ( $$Event{DefaultVideo} ) {
-          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), $Event->DefaultVideo()) };
+          push @$attachments_ref, { type=>'video/mp4', path=>join('/', $Event->Path(), basename($Event->DefaultVideo())) };
         } elsif ( $Config{ZM_OPT_FFMPEG} ) {
           my ( $format, $path ) = generateVideo($filter, $Event);
           if ( !$format ) {
@@ -881,15 +1003,17 @@ sub substituteTags {
 
   $text =~ s/%FID%/$filter->{Id}/g;
   $text =~ s/%FN%/$filter->{Name}/g;
-  ( my $filter_name = $filter->{Name} ) =~ s/ /+/g;
-  $text =~ s/%FP%/$url?view=filter&filter_name=$filter_name/g;
+  # The filter view opens a saved filter by Id; it has no filter_name parameter
+  $text =~ s/%FP%/$url?view=filter&Id=$filter->{Id}/g;
 
   return $text;
 } # end substituteTags
 
 sub sendSummaryEmail {
   my $filter = shift;
-  my @events = map { new ZoneMinder::Event($$_{Id}, $_) } @_;
+  # An event can come back for another action (a failed video, say) after it was emailed
+  my @events = grep { !$$_{Emailed} } map { new ZoneMinder::Event($$_{Id}, $_) } @_;
+  return 0 if !@events;
 
   if (!$Config{ZM_FROM_EMAIL}) {
     Error('No from email address defined, not sending email');
@@ -913,13 +1037,21 @@ sub sendSummaryEmail {
   foreach my $event (@events) {
     $body .= substituteTags($summary_part, $filter, $event, \@attachments, {html=>$html});
   }
+  # With AutoDelete, checkFilter builds its event objects from these rows after
+  # this, so carry over what making a video for %EV% or %EVM% changed.
+  my %sending = map { $$_{Id} => $_ } @events;
+  foreach my $row (grep { $sending{$$_{Id}} } @_) {
+    @$row{qw(Videoed DiskSpace)} = @{$sending{$$row{Id}}}{qw(Videoed DiskSpace)};
+  }
   return 0 if !$body;
-  $body .= $body_tail;
+  $body .= substituteTags($body_tail, $filter, undef, \@attachments, {html=>$html}) if defined $body_tail;
   Debug("Sending notification email '$subject'");
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
     foreach my $event (@events) {
-      $event->save({Emailed=>1});
+      # Not save(): these were loaded before the per-event actions changed them
+      zmDbExecute('UPDATE `Events` SET `Emailed`=1 WHERE `Id`=?', $$event{Id});
     }
+    $$_{Emailed} = 1 foreach grep { $sending{$$_{Id}} } @_;
     return 1;
   }
   return 0;
@@ -946,7 +1078,9 @@ sub sendEmail {
 
   Debug("Sending notification email '$subject'");
   if (sendTheEmail($filter, $subject, $body, @attachments)) {
-    $event->save({Emailed=>1});
+    # Not save(): zmc or the web ui may have changed the event since it was loaded
+    zmDbExecute('UPDATE `Events` SET `Emailed`=1 WHERE `Id`=?', $event->{Id});
+    $event->{Emailed} = 1;
     return 1;
   } else {
     Warning("Failed to send the email");
@@ -1021,7 +1155,8 @@ sub sendTheEmail {
         my $ssmtp_location = $Config{ZM_SSMTP_PATH};
         if (!$ssmtp_location) {
           Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if (!$ssmtp_location) {
           Warning('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1029,7 +1164,7 @@ sub sendTheEmail {
           $mail->send();
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $$filter{EmailTo});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         MIME::Lite->send('smtp', ($$filter{EmailServer} ? $$filter{EmailServer} : $Config{ZM_EMAIL_HOST}), Timeout=>60);
@@ -1166,7 +1301,8 @@ sub sendMessage {
           if ( logDebugging() ) {
             Debug("which ssmtp: $ssmtp_location - set ssmtp path in options to suppress this message");
           }
-          $ssmtp_location = qx('which ssmtp');
+          $ssmtp_location = qx(which ssmtp 2>/dev/null) // '';
+          chomp $ssmtp_location;
         }
         if ( !$ssmtp_location ) {
           Debug('Unable to find ssmtp, trying MIME::Lite->send');
@@ -1174,7 +1310,7 @@ sub sendMessage {
           $mail->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
         } else {
 ### Send using SSMTP
-          $mail->send('sendmail', $ssmtp_location, $Config{ZM_MESSAGE_ADDRESS});
+          $mail->send('sendmail', Sendmail => $ssmtp_location);
         }
       } else {
         #MIME::Lite->send(smtp=>$Config{ZM_EMAIL_HOST}, Timeout=>60);
@@ -1215,6 +1351,7 @@ sub sendMessage {
     or Fatal("Unable to prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute($Event->{Id})
     or Fatal("Unable to execute '$sql': ".$dbh->errstr());
+  $Event->{Messaged} = 1;
 
   return 1;
 } # end sub sendMessage
@@ -1224,26 +1361,72 @@ sub executeCommand {
   my $Event = shift;
 
   my $command = $filter->{AutoExecuteCmd};
+
+  # Checked here and not only where the filter was saved: a row can reach the
+  # database without passing through the web ui, and the restriction may have
+  # been tightened since this filter was written.
+  if (!commandIsAllowed($command, $Config{ZM_ALLOWED_COMMANDS})) {
+    Error("Filter $filter->{Name}: command '$command' is not in ZM_ALLOWED_COMMANDS, refusing to run it");
+    return 0;
+  }
+
+  my %tag_env;
   if ($command =~ /%\w+%/) {
-    $command = substituteTags($command, $filter, $Event);
+    # Tag values such as event name, cause, notes, tags and monitor name can be
+    # set by non-admin users (or zmtrigger clients), so the shell must never
+    # parse them. Plain values are inserted as before; anything else is passed
+    # in an environment variable ZM_TAG_n and referenced in a form the shell
+    # expands without re-parsing, chosen by the quoting context the admin put
+    # the tag in: "${ZM_TAG_n}" bare, ${ZM_TAG_n} inside "...", and
+    # '"${ZM_TAG_n}"' inside '...'.
+    my ($n, $state) = (0, '');
+    $command =~ s{(%\w+%)|(\\[^%]|['"])}{
+      if (defined $2) {
+        my $token = $2;
+        # backslash escapes nothing inside single quotes
+        my $c = ($state eq "'") ? substr($token, -1) : $token;
+        $state = !$state ? $c : ($state eq $c ? '' : $state) if $c eq "'" or $c eq '"';
+        $token;
+      } else {
+        my $value = substituteTags($1, $filter, $Event);
+        # \z, not $: $ also matches just before a trailing newline, so a value
+        # like "foo\n" would be treated as plain and inserted unquoted. The
+        # newline then ends the command line, and a second plain tag after it is
+        # run as its own shell command (refs GHSA-9v28-c6w5-v8w6). \z anchors at
+        # the true end of the string, so any trailing newline forces quoting.
+        if ($value =~ /^[\w\/.,:+=@% -]*\z/) {
+          $value;
+        } else {
+          my $ref = '${ZM_TAG_'.$n.'}';
+          $tag_env{'ZM_TAG_'.$n++} = $value;
+          $state eq '"' ? $ref : $state eq "'" ? qq('"$ref"') : qq("$ref");
+        }
+      }
+    }gse;
   } else {
-    $command .= ' '.$Event->Path();
+    my $path = $Event->Path();
+    if ($path =~ /^[\w\/.,:+=@%-]*\z/) {
+      $command .= ' '.$path;
+    } else {
+      $tag_env{ZM_TAG_0} = $path;
+      $command .= ' "${ZM_TAG_0}"';
+    }
   }
 
   Info("Executing '$command'");
+  local @ENV{keys %tag_env} = values %tag_env;
   my $output = qx($command);
-  my $status = $? >> 8;
+  my $status = $?;
   if ($status || logDebugging()) {
     chomp($output);
-    Debug("Status: $status Output: $output");
+    Debug("Exit code: ".($status >> 8).(($status & 127) ? " signal: ".($status & 127) : '')." Output: $output");
   }
   if ($status) {
-    Error("Command '$command' exited with status: $status");
+    Error("Command '$command' failed with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)));
     return 0;
   } else {
-    $Event->load(); # the command may have altered the database
-    $_ = $Event->save({Executed=>1});
-    Error($_) if $_;
+    zmDbExecute('UPDATE `Events` SET `Executed`=1 WHERE `Id`=?', $Event->{Id});
+    $Event->load(); # the command may have altered or deleted the event
   }
   return 1;
 }

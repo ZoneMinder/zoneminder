@@ -1,6 +1,7 @@
 #include "zm_libvnc_camera.h"
 
 #include "zm_packet.h"
+#include "zm_signal.h"
 #include <dlfcn.h>
 
 #if HAVE_LIBVNC
@@ -21,9 +22,9 @@ void bind_libvnc_symbols() {
   if (libvnc_lib != nullptr) // Safe-check
     return;
 
-  libvnc_lib = dlopen("libvncclient.so", RTLD_LAZY | RTLD_GLOBAL);
+  libvnc_lib = zm_libvnc_open([](const char *name) { return dlopen(name, RTLD_LAZY | RTLD_GLOBAL); });
   if (!libvnc_lib) {
-    Error("Error loading libvncclient.so: %s", dlerror());
+    Error("Error loading libvncclient: %s", dlerror());
     return;
   }
 
@@ -68,17 +69,19 @@ static rfbCredential* GetCredentialsCallback(rfbClient* cl, int credentialType) 
 }
 
 static rfbBool resize(rfbClient* client) {
-  if (client->frameBuffer) {
-    Debug(1, "Freeing old frame buffer");
-    av_free(client->frameBuffer);
-  }
-
-  int bufferSize = 4*client->width*client->height;
+  VncPrivateData *data = (VncPrivateData *)(*rfbClientGetClientData_f)(client, &TAG_0);
+  uint8_t *unused = nullptr;
+  uint8_t *&published = data ? data->buffer : unused;
   // libVNC doesn't do alignment or padding in each line
-  //SWScale::GetBufferSize(AV_PIX_FMT_RGBA, client->width, client->height);
-  client->frameBuffer = (uint8_t *)av_malloc(bufferSize);
-  Debug(1, "Allocing new frame buffer %dx%d = %d", client->width, client->height, bufferSize);
-
+  bool ok = zm_libvnc_replace_framebuffer(
+      client->frameBuffer, published, client->width, client->height,
+      [](size_t n) { return (uint8_t *)av_malloc(n); },
+      [](uint8_t *p) { av_free(p); });
+  if (!ok) {
+    Error("Failed to allocate frame buffer for %dx%d", client->width, client->height);
+    return FALSE;
+  }
+  Debug(1, "Allocing new frame buffer %dx%d", client->width, client->height);
   return TRUE;
 }
 
@@ -199,9 +202,13 @@ int VncCamera::PrimeCapture() {
 }
 
 int VncCamera::PreCapture() {
-  int rc = (*WaitForMessage_f)(mRfb, 500);
+  // The timeout is in microseconds: wait up to half a second for an update.
+  int rc = (*WaitForMessage_f)(mRfb, 500000);
+  // Any handled signal (stop, reload, or the logger's WINCH/USR1/USR2) interrupts
+  // the wait; poll once more so only a real socket error is a failure.
+  if (rc < 0 and !zm_terminate and !zm_reload) rc = (*WaitForMessage_f)(mRfb, 0);
   if (rc < 0) {
-    return -1;
+    return (zm_terminate or zm_reload) ? 0 : -1;
   } else if (!rc) {
     return rc;
   }
@@ -225,13 +232,13 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   zm_packet->stream = mVideoStream;
 
   uint8_t *directbuffer = zm_packet->image->WriteBuffer(width, height, colours, subpixelorder);
-  Debug(1, "scale src %p, %d, dest %p %d %d %dx%d %dx%d", mVncData.buffer,
-        mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+  Debug(1, "scale src %p, %zu, dest %p %zu %d %dx%d %dx%d", mVncData.buffer,
+        static_cast<size_t>(mRfb->width) * mRfb->height * 4,
         directbuffer,
-        width * height * colours,
+        static_cast<size_t>(zm_packet->image->Size()),
         mImgPixFmt,
-        mRfb->si.framebufferWidth,
-        mRfb->si.framebufferHeight,
+        mRfb->width,
+        mRfb->height,
         width,
         height);
 
@@ -239,13 +246,13 @@ int VncCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // Image buffer (WriteBuffer), which is always align-32.
   int rc = scale.Convert(
              mVncData.buffer,
-             mRfb->si.framebufferWidth * mRfb->si.framebufferHeight * 4,
+             static_cast<size_t>(mRfb->width) * mRfb->height * 4,
              directbuffer,
-             width * height * colours,
+             zm_packet->image->Size(),
              AV_PIX_FMT_RGBA,
              mImgPixFmt,
-             mRfb->si.framebufferWidth,
-             mRfb->si.framebufferHeight,
+             mRfb->width,
+             mRfb->height,
              width,
              height,
              1, 32);

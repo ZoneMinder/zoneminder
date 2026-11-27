@@ -38,8 +38,17 @@ class CameraModelsController extends AppController {
   public function index() {
     $this->CameraModel->recursive = 0;
     
-    $options = '';
-    $models = $this->CameraModel->find('all', $options);
+    $conditions = array();
+    if ( $this->request->params['named'] ) {
+      $this->FilterComponent = $this->Components->load('Filter');
+      // Manufacturers is joined and has Id and Name too, so write CameraModel.Name.
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], array(
+        'CameraModel' => array_keys($this->CameraModel->schema()),
+        'Manufacturer' => array_keys($this->CameraModel->Manufacturer->schema()),
+      ));
+      $conditions = $this->FilterComponent->buildFilter($named, array_merge(array_keys($this->CameraModel->schema()), array_keys($this->CameraModel->Manufacturer->schema())));
+    }
+    $models = $this->CameraModel->find('all', array('conditions' => $conditions));
 		$this->set(array(
 					'models' => $models,
 					'_serialize' => array('models')
@@ -78,20 +87,33 @@ class CameraModelsController extends AppController {
  * @return void
  */
   public function add() {
-    if ($this->request->is('post')) {
-
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if (!$canEdit) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->CameraModel->create();
-      if ($this->CameraModel->save($this->request->data)) {
-        return $this->flash(__('The model has been saved.'), array('action' => 'index'));
-      }
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if (!$canEdit) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->CameraModel, null);
+    $this->CameraModel->create();
+    if ($this->CameraModel->save($this->request->data)) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->CameraModel->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->response->statusCode(400);
+    $this->set(array(
+      'message' => $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**
@@ -114,10 +136,13 @@ class CameraModelsController extends AppController {
     if (!$this->CameraModel->exists($id)) {
       throw new NotFoundException(__('Invalid model'));
     }
+    $this->request->allowMethod('post', 'put');
+    $this->pinRequestId($this->CameraModel, $id);
     if ($this->CameraModel->save($this->request->data)) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->CameraModel->validationErrors ? $this->CameraModel->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(
@@ -147,10 +172,22 @@ class CameraModelsController extends AppController {
     }
     $this->request->allowMethod('post', 'delete');
 
+    # Monitors and presets reference a model by foreign key, so deleting one in use is a
+    # database error, not a deletion.
+    $inUse = dbFetchOne('SELECT COUNT(*) AS Count FROM Monitors WHERE ModelId=?', 'Count', array($id))
+      + dbFetchOne('SELECT COUNT(*) AS Count FROM MonitorPresets WHERE ModelId=?', 'Count', array($id));
+    if ($inUse) {
+      throw new HttpException(__('The model is in use by monitors or presets.'), 409);
+    }
+
     if ($this->CameraModel->delete()) {
-      return $this->flash(__('The model has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The model could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The model could not be deleted.'));
     }
   }
 }

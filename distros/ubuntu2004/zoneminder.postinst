@@ -56,11 +56,22 @@ update_db () {
   echo "Done Updating"
 }
 
+# zm.conf is not shell; read it the way ZoneMinder's PHP and Perl readers do.
+zm_load_config () {
+  [ -r "$1" ] || return 0
+  while IFS='	' read -r zm_name zm_value; do
+    [ -n "$zm_name" ] || continue
+    eval "$zm_name=\$zm_value"
+  done <<EOF
+$(sed -e :a -e '/\\[[:space:]]*$/{N;s/\\[[:space:]]*\n[[:space:]]*//;ta' -e '}' "$1" | sed -n "s/^[[:space:]]*\([A-Za-z_][A-Za-z0-9_]*\)[[:space:]]*=[[:space:]]*[\"']*\(.*\)/\1	\2/p" | sed "s/[\"'[:space:]]*\$//")
+EOF
+}
+
 if [ "$1" = "configure" ]; then
 
-  . /etc/zm/zm.conf
+  zm_load_config /etc/zm/zm.conf
   for CONFFILE in /etc/zm/conf.d/*.conf; do
-    . "$CONFFILE"
+    zm_load_config "$CONFFILE"
   done
 
   # The logs can contain passwords, etc... so by setting group root, only www-data can read them, not people in the www-data group
@@ -160,8 +171,50 @@ else
   echo "Not doing database upgrade due to remote db server ($ZM_DB_HOST)."
 fi
 
-if [ ! -f /etc/apt/sources.list.d/zoneminder.list ] && [ ! -f /etc/apt/sources.list.d/zoneminder.sources ]; then
-  wget -O - https://zmrepo.zoneminder.com/debian/archive-keyring.gpg | sudo tee /etc/apt/trusted.gpg.d/zmrepo.asc
+# Only add the zmrepo source when nothing already provides ZoneMinder. Looking
+# for our own filenames is not enough: the Launchpad PPA installs its source as
+# iconnor-ubuntu-zoneminder-<codename>.list, so a PPA install fell through this
+# check and got a second, competing source added here. zmrepo's versions sort
+# higher (1.38.3+noble1 beats 1.38.3-noble), so the next upgrade replaced the
+# PPA package. See zoneminder/zoneminder#4945.
+zm_apt_source_exists () {
+  [ -f /etc/apt/sources.list.d/zoneminder.list ] && return 0
+  [ -f /etc/apt/sources.list.d/zoneminder.sources ] && return 0
+  # Match on content rather than filename, so a PPA or a hand-written source
+  # under any name is found, in either one-line or deb822 format. Each path is
+  # checked separately and only if it exists: grep exits 2 when any argument is
+  # missing, even after matching in another, and /etc/apt/sources.list is absent
+  # on releases that have moved to deb822.
+  for zm_apt_src in /etc/apt/sources.list /etc/apt/sources.list.d; do
+    [ -e "$zm_apt_src" ] || continue
+    if grep -rqsE 'zmrepo\.zoneminder\.com|ppa\.launchpad(content)?\.net/iconnor' "$zm_apt_src"; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# A source without its key makes every later apt update fail, so add the source
+# only once the key is in place. wget is not a dependency and may be missing,
+# and a proxy or captive portal can answer with something other than the key.
+zm_fetch_apt_key () {
+  if wget -nv -T 20 -t 2 -O /etc/apt/trusted.gpg.d/zmrepo.asc.tmp https://zmrepo.zoneminder.com/debian/archive-keyring.gpg \
+    && grep -q 'BEGIN PGP PUBLIC KEY BLOCK' /etc/apt/trusted.gpg.d/zmrepo.asc.tmp; then
+    mv /etc/apt/trusted.gpg.d/zmrepo.asc.tmp /etc/apt/trusted.gpg.d/zmrepo.asc
+    return 0
+  fi
+  rm -f /etc/apt/trusted.gpg.d/zmrepo.asc.tmp
+  echo "Unable to download the zmrepo signing key."
+  return 1
+}
+
+# Earlier versions wrote the source even when the download failed, leaving an
+# empty key that zm_apt_source_exists below would never replace.
+if [ -e /etc/apt/trusted.gpg.d/zmrepo.asc ] && [ ! -s /etc/apt/trusted.gpg.d/zmrepo.asc ]; then
+  zm_fetch_apt_key || true
+fi
+
+if ! zm_apt_source_exists && zm_fetch_apt_key; then
 
   # Resolve the apt codename for the zmrepo source line. Derivatives such as
   # Linux Mint report their own codename via lsb_release (e.g. "wilma"), which

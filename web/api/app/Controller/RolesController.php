@@ -35,13 +35,17 @@ class RolesController extends AppController {
     $this->Role->recursive = 0;
 
     global $user;
-    if ($user->System() == 'None') {
+    if ($user and ($user->System() == 'None')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireScalarSort();
     $roles = $this->Paginator->paginate('Role');
 
-    $this->set(compact('roles'));
+    $this->set(array(
+      'roles' => $roles,
+      '_serialize' => array('roles')
+    ));
   }
 
 /**
@@ -55,7 +59,7 @@ class RolesController extends AppController {
     $this->Role->recursive = 1;
 
     global $user;
-    if ($user->System() == 'None') {
+    if ($user and ($user->System() == 'None')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -81,28 +85,32 @@ class RolesController extends AppController {
   public function add() {
     if ($this->request->is('post')) {
       global $user;
-      if ($user->System() != 'Edit') {
+      if ($user and ($user->System() != 'Edit')) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
 
+      $this->pinRequestId($this->Role, null);
       $this->Role->create();
+      $id = null;
       if ($this->Role->save($this->request->data)) {
         $message = 'Saved';
+        $id = $this->Role->id;
       } else {
         $message = 'Error';
         // if there is a validation message, use it
         if (!$this->Role->validates()) {
           $message = $this->Role->validationErrors;
         }
+        $this->response->statusCode(400);
       }
     } else {
-      $message = 'Add without post data';
+      throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
-      'role'        => $this->Role,
       'message'     => $message,
-      '_serialize'  => array('message')
+      'id'          => $id,
+      '_serialize'  => array('message', 'id')
     ));
   }
 
@@ -114,10 +122,11 @@ class RolesController extends AppController {
  * @return void
  */
   public function edit($id = null) {
+    $this->request->allowMethod('post', 'put');
     $this->Role->id = $id;
 
     global $user;
-    if ($user->System() != 'Edit') {
+    if ($user and ($user->System() != 'Edit')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -126,7 +135,9 @@ class RolesController extends AppController {
       throw new NotFoundException(__('Invalid role'));
     }
 
+    $message = '';
     if ($this->request->is('post') || $this->request->is('put')) {
+      $this->pinRequestId($this->Role, $id);
       if ($this->Role->save($this->request->data)) {
         $message = 'Saved';
       } else {
@@ -134,6 +145,7 @@ class RolesController extends AppController {
         if (!$this->Role->validates()) {
           $message = $this->Role->validationErrors;
         }
+        $this->response->statusCode(400);
       }
     } else {
       $this->request->data = $this->Role->read(null, $id);
@@ -156,7 +168,7 @@ class RolesController extends AppController {
     $this->Role->id = $id;
 
     global $user;
-    if ($user->System() != 'Edit') {
+    if ($user and ($user->System() != 'Edit')) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
@@ -167,7 +179,7 @@ class RolesController extends AppController {
     if ($this->Role->delete()) {
       $message = 'The role has been deleted.';
     } else {
-      $message = 'The role could not be deleted. Please, try again.';
+      throw new InternalErrorException(__('The role could not be deleted.'));
     }
     $this->set(array(
       'message' => $message,

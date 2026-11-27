@@ -18,7 +18,7 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-$selfEdit = ZM_USER_SELF_EDIT && ($_REQUEST['uid'] == $user->Id());
+$selfEdit = ZM_USER_SELF_EDIT && isset($_REQUEST['uid']) && ($_REQUEST['uid'] == $user->Id());
 
 if (!canEdit('System') && !$selfEdit) {
   $view = 'error';
@@ -31,7 +31,8 @@ require_once('includes/Group_Permission.php');
 require_once('includes/User_Role.php');
 
 if (isset($_REQUEST['uid']) and $_REQUEST['uid']) {
-	if ( !($User = new ZM\User(validCardinal($_REQUEST['uid']))) ) {
+	$User = new ZM\User(validCardinal($_REQUEST['uid']));
+	if ( !$User->Id() ) {
 		$view = 'error';
 		return;
 	}
@@ -45,7 +46,7 @@ $nve = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>tran
 $nvec = array( 'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit'), 'Create'=>translate('Create') );
 $inve = array( 'Inherit'=>translate('Inherit'),'None'=>translate('None'), 'View'=>translate('View'), 'Edit'=>translate('Edit') );
 $bandwidths = array_merge( array( ''=>'' ), $bandwidth_options );
-$langs = array_merge( array( ''=>'' ), getLanguages() );
+$langs = array_merge( array( ''=>translate('Default') ), getLanguages() );
 
 
 $focusWindow = true;
@@ -57,7 +58,7 @@ echo getNavBarHTML();
   <div id="page">
     <div id="content">
       <form id="contentForm" name="contentForm" method="post" action="?view=user">
-        <input type="hidden" name="redirect" value="<?php echo isset($_REQUEST['prev']) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
+        <input type="hidden" name="redirect" value="<?php echo (isset($_REQUEST['prev']) and is_string($_REQUEST['prev'])) ? htmlspecialchars($_REQUEST['prev']) : 'options&tab=users' ?>"/>
         <input type="hidden" name="uid" value="<?php echo validHtmlStr($User->Id()) ?>"/>
         <div id="header">
           <div class="float-left pt-1">
@@ -80,14 +81,14 @@ echo getNavBarHTML();
 <?php if (canEdit('System')) { ?>
                     <tr>
                       <th scope="row"><?php echo translate('Username') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" pattern="[A-Za-z0-9 .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" maxlength="64" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
                     </tr>
 <?php } ?>
                     <tr>
                       <th scope="row"><?php echo translate('NewPassword') ?></th>
                       <td>
                         <div class="input-group input-group-sm">
-                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" autocomplete="new-password"/>
+                          <input type="password" class="form-control" name="user[Password]" id="user[Password]" minlength="<?php echo passwordMinLength() ?>" autocomplete="new-password"/>
                           <div class="input-group-append">
                             <span class="input-group-text material-icons md-18" style="cursor: pointer;" data-on-click-this="toggle_password_visibility" data-password-input="user[Password]">visibility</span>
                           </div>
@@ -107,15 +108,15 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" maxlength="64" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" maxlength="64" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>
-                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"/></td>
+                      <td><input type="tel" class="form-control form-control-sm" name="user[Phone]" value="<?php echo validHtmlStr($User->Phone()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                   </tbody>
                 </table>
@@ -135,6 +136,7 @@ echo getNavBarHTML();
                       <td>
 <?php
     $homeview_options = [
+      ''=>translate('Default'),
       'console'=>translate('Console'),
       'events'=> translate('Events'),
       'map'   =>  translate('Map'),
@@ -142,6 +144,11 @@ echo getNavBarHTML();
       'montagereview'=> translate('Montage Review'),
       'watch' => translate('Watch'),
     ];
+    // Keep a saved home view the list does not offer, or saving the form would reset it to Default.
+    $saved_home_view = $User->HomeView();
+    if ($saved_home_view and !isset($homeview_options[$saved_home_view])) {
+      $homeview_options[$saved_home_view] = $saved_home_view;
+    }
 echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'=>'form-control form-control-sm']);
 ?></td>
                     </tr>
@@ -169,13 +176,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
                       <th scope="row"><?php echo translate('MaxBandwidth') ?></th>
                       <td><?php echo htmlSelect('user[MaxBandwidth]', $bandwidths, $User->MaxBandwidth(), ['class'=>'form-control form-control-sm']) ?></td>
                     </tr>
-<?php   if (ZM_OPT_USE_API) { ?>
-                    <tr>
-                      <th scope="row"><?php echo translate('APIEnabled')?></th>
-                      <td><?php echo htmlSelect('user[APIEnabled]', $yesno, $User->APIEnabled(), ['class'=>'form-control form-control-sm']) ?></td>
-                    </tr>
 <?php
-      } // end if ZM_OPT_USE_API
     } // end if canEdit System
 ?>
                   </tbody>
@@ -184,7 +185,7 @@ echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'
             </div>
           </div><!--end row-->
 
-<?php if (ZM_OPT_USE_API && $User->Id() && $User->APIEnabled()) {
+<?php if (ZM_OPT_USE_API && $User->Id()) {
   // Determine profile name: ZM_WEB_TITLE if not default, else ZM_HOME_URL if not default, else 'ZoneMinder'
   $profileName = 'ZoneMinder';
   if (defined('ZM_WEB_TITLE') && ZM_WEB_TITLE !== 'ZoneMinder' && ZM_WEB_TITLE !== '') {
@@ -335,9 +336,11 @@ if (canEdit('Groups')) {
   # This  array is indexed by parent_id
   $children = array();
   foreach ($groups as $id=>$group) {
-    if (!isset($children[$group->ParentId()]))
-      $children[$group->ParentId()] = array();
-    $children[$group->ParentId()][] = $group;
+    // From PHP 8.5, using 'null' as an array offset is deprecated
+    $parentId = $group->ParentId() ?? '';
+    if (!isset($children[$parentId]))
+      $children[$parentId] = array();
+    $children[$parentId][] = $group;
     if ($max_depth < $group->depth())
       $max_depth = $group->depth();
   }
@@ -377,8 +380,8 @@ if (canEdit('Groups')) {
     }
     return $html;
   }
-  if (isset($children[null])) {
-    foreach ($children[null] as $group) {
+  if (isset($children[''])) {
+    foreach ($children[''] as $group) {
       echo group_line($group);
     }
   }

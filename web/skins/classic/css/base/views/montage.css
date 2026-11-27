@@ -67,6 +67,21 @@
 
 .zones polygon {
   fill-opacity: 0.25;
+  /* The svg is 100x100 stretched to the tile with preserveAspectRatio="none",
+     so a stroke in user units scales up and unevenly. Keep it 1 device pixel. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* The overlay covers the whole tile, so without this it swallows the clicks
+   that drive zoom, pan and open-watch on the stream underneath. */
+#monitors svg.zones {
+  pointer-events: none;
+}
+
+/* Zone overlays are always rendered so toggleZones can show them without a
+   page reload. This hides them until the Show Zones button is pressed. */
+#monitors.hide-zones svg.zones {
+  display: none;
 }
 
 .Active {

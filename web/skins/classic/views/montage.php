@@ -29,9 +29,11 @@ require_once('includes/Zone.php');
 $showControl = false;
 $showZones = false;
 if (isset($_REQUEST['showZones'])) {
-  if ($_REQUEST['showZones'] == 1) {
-    $showZones = true;
-  }
+  $showZones = $_SESSION['zmMontageShowZones'] = $_REQUEST['showZones'] == 1;
+} else if (isset($_COOKIE['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'] = $_COOKIE['zmMontageShowZones'] == 1;
+} else if (isset($_SESSION['zmMontageShowZones'])) {
+  $showZones = $_SESSION['zmMontageShowZones'];
 }
 $widths = array( 
   'auto'  => 'auto',
@@ -65,7 +67,7 @@ if (isset($_REQUEST['monitorStatusPositionSelected'])) {
   $monitorStatusPositionSelected = $_COOKIE['zmMonitorStatusPositionSelected'];
 }
 
-$layouts = ZM\MontageLayout::find(NULL, array('order'=>"lower('Name')"));
+$layouts = ZM\MontageLayout::find(NULL, array('order'=>'lower(Name)'));
 // layoutsById is used in the dropdown, so needs to be sorted
 $layoutsById = array();
 $presetLayoutsNames = array( //Order matters!
@@ -117,14 +119,26 @@ if (isset($_REQUEST['zmMontageLayout'])) {
   $layout_id = validCardinal($_SESSION['zmMontageLayout']);
 }
 if (!$layout_id || !isset($layoutsById[$layout_id])) {
-  $layout_id = $layoutsByName['Auto']->Id();
+  if (isset($layoutsByName['Auto'])) {
+    $layout_id = $layoutsByName['Auto']->Id();
+  } else if ($layoutsById) {
+    $layout_id = array_key_first($layoutsById);
+  } else {
+    $layout_id = 0;
+  }
 }
-$layout = $layoutsById[$layout_id];
+if ($layout_id && isset($layoutsById[$layout_id])) {
+  $layout = $layoutsById[$layout_id];
+} else {
+  /* No layouts in the DB at all, so fall back to an empty auto layout */
+  $layout = new ZM\MontageLayout();
+  $layout->Name('Auto');
+}
 $layout_is_preset = array_search($layout->Name(), $presetLayoutsNames) === false ? false : true;
 
 $options = array();
 
-if (isset($_REQUEST['zmMontageWidth'])) {
+if (isset($_REQUEST['zmMontageWidth']) and is_string($_REQUEST['zmMontageWidth'])) {
   $width = $_REQUEST['zmMontageWidth'];
   if (($width == 'auto') or preg_match('/^\d+px$/', $width))
     $_SESSION['zmMontageWidth'] = $options['width'] = $width;
@@ -140,7 +154,7 @@ if (isset($_REQUEST['zmMontageWidth'])) {
   $options['width'] = 0;
 }
 
-if (isset($_REQUEST['zmMontageHeight'])) {
+if (isset($_REQUEST['zmMontageHeight']) and is_string($_REQUEST['zmMontageHeight'])) {
   $height = $_REQUEST['zmMontageHeight'];
   if (($height == 'auto') or preg_match('/^\d+px$/', $height))
     $_SESSION['zmMontageHeight'] = $options['height'] = $height;
@@ -179,7 +193,7 @@ if (isset($_REQUEST['streamQuality'])) {
   $streamQualitySelected = $_SESSION['zmStreamQuality'];
 }
 
-if (!empty($_REQUEST['maxfps']) and validFloat($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
+if (!empty($_REQUEST['maxfps']) and is_numeric($_REQUEST['maxfps']) and ($_REQUEST['maxfps']>0)) {
   $options['maxfps'] = validHtmlStr($_REQUEST['maxfps']);
 } else if (isset($_COOKIE['zmMontageRate'])) {
   $options['maxfps'] = validHtmlStr($_COOKIE['zmMontageRate']);
@@ -213,7 +227,7 @@ foreach ($displayMonitors as &$row) {
   }
   $monitor = $monitors[] = new ZM\Monitor($row);
 
-  if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+  if ($monitor->RTSP2WebEnabled()) {
     $need_hls = true;
   }
   if ($monitor->JanusEnabled()) {
@@ -249,17 +263,14 @@ echo getNavBarHTML();
   <div id="page">
   <div id="header"<?php echo (isset($_REQUEST['header']) and ($_REQUEST['header']=='0' or $_REQUEST['header']=='hidden')) ? ' style="display:none;"' : '' ?>>
 <?php
-    $filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
-    $html = '';
-    if (!$filter_inline) {
-      $html .= '<a class="flip" href="#"
-               data-flip-control-object="#mfbpanel"
-               data-flip-control-run-after-func="applyChosen"
-               data-flip-control-run-after-complet-func="changeScale">
-                 <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-               </a>'.PHP_EOL;
-    }
-    $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
+    $filter_inline = filterSettingsInline();
+    $html = '<a class="flip" href="#"
+             data-flip-control-object="#mfbpanel"
+             data-flip-control-run-after-func="applyChosen"
+             data-flip-control-run-after-complet-func="changeScale">
+               <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+             </a>
+             <div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
     echo $html;
 ?>
       <form method="get" name="monitorFiltersForm" id="monitorFiltersForm">
@@ -346,7 +357,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             <button type="button" value="Cancel" data-on-click-this="cancel_layout"><?php echo translate('Cancel') ?></button>
           </span>
 
-<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
+<?php if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canEdit('Snapshots')) { ?>
           <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
             <i class="material-icons md-18">camera_enhance</i>
             &nbsp;<?php echo translate('Snapshot') ?>
@@ -355,16 +366,17 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
           <i class="material-icons md-18">fullscreen</i>
           </button>
+          <button type="button" id="pauseAllBtn" title="<?php echo translate('PauseAll') ?>" data-title-pause-all="<?php echo translate('PauseAll') ?>" data-title-play-all="<?php echo translate('ResumeAll') ?>" class="avail">
+          <i class="material-icons md-18">pause</i>
+          </button>
 <?php
-if ($showControl) {
+if ($showControl and canView('Control')) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {
-  if ($showZones) {
-    echo '<a id="HideZones" href="?view=montage&amp;showZones=0">'.translate('Hide Zones').'</a>';
-  } else {
-    echo '<a id="ShowZones" href="?view=montage&amp;showZones=1">'.translate('Show Zones').'</a>';
-  }
+  echo '<button type="button" id="toggleZonesButton" class="btn btn-'.($showZones?'normal':'secondary').
+    '" title="'.translate(($showZones?'Hide':'Show').' Zones').'" data-on-click-this="toggleZones">'.
+    '<i class="material-icons md-18">'.($showZones?'layers_clear':'layers').'</i></button>';
 }
 ?>
         </form>
@@ -372,7 +384,7 @@ if (canView('System')) {
     </div><!--header-->
   </div>
   <div id="content">
-    <div id="monitors" class="grid-stack hidden-shift">
+    <div id="monitors" class="grid-stack hidden-shift<?php echo $showZones ? '' : ' hide-zones' ?>">
 <?php
 foreach ($monitors as $monitor) {
   $monitor_options = $options;
@@ -383,13 +395,15 @@ foreach ($monitors as $monitor) {
     echo getWebSiteUrl(
       'liveStream'.$monitor->Id(),
       $monitor->Path(),
-      (isset($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
-      (isset($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
+      (!empty($options['width']) ? $options['width'] : reScale($monitor->ViewWidth(), $scale).'px' ),
+      (!empty($options['height']) ? $options['height'] : reScale($monitor->ViewHeight(), $scale).'px' ),
       $monitor->Name()
     );
   } else {
     $monitor_options['state'] = true;
-    $monitor_options['zones'] = $showZones;
+    # Always emit the zone overlays so toggleZones can show/hide them without a
+    # page reload; #monitors.hide-zones keeps them hidden until asked for.
+    $monitor_options['zones'] = canView('System');
     # If we start up in a streaming mode, even paused, the content-type=mixed etc makes Chrome queue the requests for 15s.  We are stuck with just getting a single image to start, then switching to streaming in js.
     $monitor_options['mode'] = 'single';
     $monitor_options['connkey'] = $monitor->connKey();
@@ -404,7 +418,7 @@ foreach ($monitors as $monitor) {
         # We know the # of columns so can figure out a proper scale
         if (preg_match('/^(\d+) Wide$/', $layout->Name(), $matches)) {
           if ($matches[1]) {
-            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/$monitor->Width()));
+            $monitor_options['scale'] = intval(100*(($browser_width/$matches[1])/max(1, $monitor->Width())));
             if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
             else if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
           }
@@ -415,7 +429,7 @@ foreach ($monitors as $monitor) {
       if ($divisor < 2) $divisor = 2;
 
       # Custom, default to 25% of 1920 for now, because 25% of a 4k is very different from 25% of 640px
-      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/$monitor->Width()));
+      $monitor_options['scale'] = intval(100*(($browser_width/$divisor)/max(1, $monitor->Width())));
       if ($monitor_options['scale'] > 100) $monitor_options['scale'] = 100;
       else if ($monitor_options['scale'] < 10) $monitor_options['scale'] = 10;
     }

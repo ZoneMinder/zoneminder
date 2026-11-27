@@ -20,16 +20,22 @@
 
 // Device view actions
 if ( !canEdit('Devices') ) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 
-$action = validStr($_REQUEST['action'] ?? '');
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? validStr($_REQUEST['action']) : '';
 if ( $action == 'delete' ) {
+  $failed = false;
   if ( isset($_REQUEST['markDids']) ) {
-    foreach( $_REQUEST['markDids'] as $markDid ) {
-      dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid));
+    foreach( (array)$_REQUEST['markDids'] as $markDid ) {
+      if ( is_array($markDid) ) continue;
+      if ( dbQuery('DELETE FROM Devices WHERE Id=?', array($markDid)) === null ) $failed = true;
     }
+  }
+  if ( $failed ) {
+    ajaxError('Failed to delete device: '.dbLastError());
+    return;
   }
   ajaxResponse();
 } else {

@@ -14,11 +14,13 @@ class MenuItem extends ZM_Object {
     'SortOrder' => 0,
     'Icon'      => null,
     'IconType'  => 'material',
+    'Link'      => null,
   );
 
   // Default material icons for each menu key
   public static $defaultIcons = array(
     'Console'          => 'dashboard',
+    'Watch'            => 'repeat',
     'Montage'          => 'live_tv',
     'MontageReview'    => 'movie',
     'Events'           => 'event',

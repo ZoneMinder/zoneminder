@@ -42,6 +42,10 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
 
 sub open
@@ -51,7 +55,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -83,7 +87,7 @@ sub sendCmd
 
     #print( "http://$address/$cmd\n" );
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
-	  Info( "http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
+	  Info( urlForLog("http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice}) );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -105,6 +109,12 @@ sub cameraReset
 	Debug( "Camera Reset" );
 	my $cmd = "reboot.cgi?";
 	$self->sendCmd( $cmd );
+}
+
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset( @_ );
 }
 
 
@@ -250,7 +260,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "decoder_control.cgi?command=4&onestep=0&";
+	my $cmd = "decoder_control.cgi?command=25&onestep=0&";
 	$self->sendCmd( $cmd );
 }
 

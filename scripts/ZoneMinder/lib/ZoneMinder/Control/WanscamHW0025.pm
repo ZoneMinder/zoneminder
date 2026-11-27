@@ -50,6 +50,10 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
  
 sub open
@@ -59,7 +63,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -85,7 +89,7 @@ sub sendCmd
 
     #print( "http://$address/$cmd\n" );
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
-	Info( "http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
+	Info( urlForLog("http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice}) );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -107,6 +111,13 @@ sub cameraReset
 	Debug( "Camera Reset" );
 	my $cmd = "reboot.cgi?";
 	$self->sendCmd( $cmd );
+}
+
+# The control ui sends 'reset'; cameraReset is the old name.
+sub reset
+{
+	my $self = shift;
+	$self->cameraReset();
 }
  
 #Up Arrow
@@ -244,6 +255,65 @@ sub moveStop
 	Debug( "Move Stop" );
 	my $cmd = "decoder_control.cgi?command=1&onestep=1&";
 	$self->sendCmd( $cmd );
+}
+
+# The Controls row selects relative moves, and the commands above are the
+# camera's one step moves (onestep=1), so the moveRel names the ui uses call
+# them unchanged.
+sub moveRelUp
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUp( $params );
+}
+
+sub moveRelDown
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDown( $params );
+}
+
+sub moveRelLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConLeft( $params );
+}
+
+sub moveRelRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConRight( $params );
+}
+
+sub moveRelUpRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpRight( $params );
+}
+
+sub moveRelDownRight
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownRight( $params );
+}
+
+sub moveRelUpLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConUpLeft( $params );
+}
+
+sub moveRelDownLeft
+{
+	my $self = shift;
+	my $params = shift;
+	$self->moveConDownLeft( $params );
 }
  
 #Move Camera to Home Position

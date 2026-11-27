@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ . '/../../../includes/SnapshotCreate.php';
 /**
  * Snapshots Controller
  *
@@ -35,7 +36,7 @@ class SnapshotsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Snapshot->schema()));
     } else {
       $conditions = array();
     }
@@ -43,19 +44,9 @@ class SnapshotsController extends AppController {
     $find_array = array(
       'conditions' => &$conditions,
       'contain'    => array('Event'),
-      'joins'      => array(
-        array(
-          'table' => 'Snapshots_Events',
-          'type'  => 'left',
-          'conditions' => array(
-            'Snapshots_Events.SnapshotId = Snapshot.Id',
-          ),
-        ),
-      ),
-      'snapshot' => '`Snapshot`.`Id`',
     );
 
-		$snapshots = $this->Snapshot->find('all', $find_array);
+		$snapshots = array_map(array($this, 'filterContainedEvents'), $this->Snapshot->find('all', $find_array));
 		$this->set(array(
 			'snapshots' => $snapshots,
 			'_serialize' => array('snapshots')
@@ -75,7 +66,7 @@ class SnapshotsController extends AppController {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
 		$options = array('conditions' => array('Snapshot.' . $this->Snapshot->primaryKey => $id));
-		$snapshot = $this->Snapshot->find('first', $options);
+		$snapshot = $this->filterContainedEvents($this->Snapshot->find('first', $options));
 		$this->set(array(
 			'snapshot' => $snapshot,
 			'_serialize' => array('snapshot')
@@ -88,6 +79,9 @@ class SnapshotsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -99,24 +93,63 @@ class SnapshotsController extends AppController {
         return;
       }
 
+      # MonitorIds takes the same path as the web action: force an alarm on each
+      # monitor, link the events it records and archive them.
+      $monitorIds = $this->requestField('Snapshot', 'MonitorIds');
+      if ( $monitorIds !== null ) {
+        if ( is_string($monitorIds) ) {
+          $monitorIds = trim($monitorIds) === '' ? array() : explode(',', $monitorIds);
+        } else if ( !is_array($monitorIds) ) {
+          $monitorIds = array($monitorIds);
+        }
+        $snapshotId = ZM\create_snapshot_from_monitors($monitorIds);
+        if ( $snapshotId ) {
+          $this->set(array(
+            'message' => 'Saved',
+            'id' => $snapshotId,
+            '_serialize' => array('message', 'id')
+          ));
+        } else {
+          ZM\Error('Failed to create Snapshot from monitors');
+          $this->set(array(
+            'message' => 'Error',
+            'id' => null,
+            '_serialize' => array('message', 'id')
+          ));
+        }
+        return;
+      }
+
+      $eventIds = $this->requestField('Snapshot', 'EventIds');
+      if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
+        $this->request->data['Event'] = explode(',', $eventIds);
+        unset($this->request->data['EventIds']);
+        if ( isset($this->request->data['Snapshot']) and is_array($this->request->data['Snapshot']) ) unset($this->request->data['Snapshot']['EventIds']);
+      }
+      # A snapshot exposes its events to Snapshots viewers, so only viewable events may be added.
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
+      if ($eventIds) $this->requireEventsView($eventIds);
+      $this->pinRequestId($this->Snapshot, null);
 			$this->Snapshot->create();
 
-      if ( $this->request->data['Snapshot']['EventIds'] and ! isset($this->request->data['Event']) ) {
-        $this->request->data['Event'] = explode(',', $this->request->data['Snapshot']['EventIds']);
-        unset($this->request->data['Snapshot']['EventIds']);
-      }
       if ( $this->Snapshot->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The snapshot has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Snapshot->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Snapshot");
-        debug($this->Snapshot->invalidFields());
+        $this->response->statusCode(400);
+        $this->set(array(
+          'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
+          'id' => null,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       }
     } # end if post
-    $monitors = $this->Snapshot->Event->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -130,6 +163,8 @@ class SnapshotsController extends AppController {
 		if ( !$this->Snapshot->exists($id) ) {
 			throw new NotFoundException(__('Invalid snapshot'));
 		}
+		$this->request->allowMethod('post', 'put');
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -139,15 +174,16 @@ class SnapshotsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Snapshot->id = $id;
+      $this->pinRequestId($this->Snapshot, $id);
+      $eventIds = $this->requestAssociatedIds('Snapshot', 'Event');
+      if ($eventIds !== null) {
+        $this->request->data['Event'] = array('Event' => $this->eventLinksToSave('Snapshots_Events', 'SnapshotId', $id, $eventIds));
+      }
 			if ( $this->Snapshot->save($this->request->data) ) {
         $message = 'Saved';
       } else {
-        $message = 'Error';
-        // if there is a validation message, use it
-        if ( !$this->snapshot->validates() ) {
-          $message .= ': '.$this->Snapshot->validationErrors;
-        }
+        $message = $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error';
+        $this->response->statusCode(400);
 			}
 		} # end if post/put
 
@@ -155,7 +191,7 @@ class SnapshotsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'snapshot' => $snapshot,
-			'_serialize' => array('snapshot')
+			'_serialize' => array('message', 'snapshot')
 		));
 	}
 
@@ -183,15 +219,13 @@ class SnapshotsController extends AppController {
     }
 
 		if ( $this->Snapshot->delete() ) {
-      return $this->flash(
-        __('The snapshot has been deleted.'),
-        array('action' => 'index')
-      );
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The snapshot could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      throw new InternalErrorException(__('The snapshot could not be deleted.'));
 		}
   } // end function delete
   
@@ -201,11 +235,12 @@ class SnapshotsController extends AppController {
     $snapshots = $this->Snapshot->find('all', array(
                                         'contain'=> array(
                                           'Event' => array(
-                                            'fields'=>array('Id','Name')
+                                            'fields'=>array('Id','Name','MonitorId')
                                           )
                                         )
                                       )
                                 );
+            $snapshots = array_map(array($this, 'filterContainedEvents'), $snapshots);
             $this->set(array(
                     'snapshots' => $snapshots,
                     '_serialize' => array('snapshots')

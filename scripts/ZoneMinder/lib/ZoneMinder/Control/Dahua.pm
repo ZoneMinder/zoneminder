@@ -16,9 +16,14 @@ our $ADDRESS = '';
 our $PROTOCOL = 'http://';
 
 use Time::HiRes qw(usleep);
+use URI::Escape qw(uri_escape_utf8);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::Database qw(zmDbConnect);
 
 sub new
@@ -68,22 +73,22 @@ sub open
     # channel "0", here.
     $self->{dahua_channel_number} = "0";
 
-    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/ ) ) {
+    if ( ( $self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/ ) ) {
         $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
         $USERNAME = $+{USERNAME} if $+{USERNAME};
         $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
         $ADDRESS = $+{ADDRESS} if $+{ADDRESS};
     } else {
-        Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+        Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
-        $ADDRESS .= ':80';
+        $ADDRESS .= ($PROTOCOL eq 'https://') ? ':443' : ':80';
     }
 
     use LWP::UserAgent;
     use IO::Socket::SSL;
-    $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    $self->{ua} = LWP::UserAgent->new(keep_alive => 1, timeout => HTTP_TIMEOUT);
     # Try with SSL verification enabled first
     $self->{ua}->ssl_opts(
       verify_hostname => 1,
@@ -343,7 +348,7 @@ sub moveRelUpRight
 {
     my $self = shift;
     Debug("Move Up Right");
-    $self->_sendMomentaryPtzCommand("RightUp", 0, 4, 0, 500);
+    $self->_sendMomentaryPtzCommand("RightUp", 4, 4, 0, 500);
 }
 
 sub moveRelLeft
@@ -457,10 +462,13 @@ sub presetSet
     my $res = $sth->execute($self->{Monitor}->{Id}, $preset_id)
         or Fatal("Can't execute sql '$sql': " . $sth->errstr());
     my $control_preset_row = $sth->fetchrow_hashref();
-    my $new_label_name = $control_preset_row->{'Label'};
+    my $new_label_name = $control_preset_row ? $control_preset_row->{'Label'} : undef;
 
     $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, $new_label_name, 0);
+    # An empty name would go out as arg2=0 and the camera would name the preset "0".
+    if (defined($new_label_name) and length($new_label_name)) {
+        $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
+    }
 }
 
 sub presetGoto
@@ -483,7 +491,7 @@ sub reset
 {
     my $self = shift;
     Debug( "Camera Reset" );
-    $self->_sendPtzCommand("Reset", 0, 0, 0, 0);
+    return $self->reboot();
 }
 
 sub reboot

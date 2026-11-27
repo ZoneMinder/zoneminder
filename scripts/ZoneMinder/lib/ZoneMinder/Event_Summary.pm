@@ -69,6 +69,7 @@ $serial = $primary_key = 'MonitorId';
     );
 
 sub Monitor {
+	require ZoneMinder::Monitor;
 	return new ZoneMinder::Monitor( $_[0]{MonitorId} );
 } # end sub Monitor
 

@@ -20,27 +20,67 @@
 #ifndef ZM_DB_H
 #define ZM_DB_H
 
+#include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
-#include <mysql/mysql.h>
-#include <mysql/mysqld_error.h>
+// MYSQLCLIENT_INCLUDE_DIR (CMakeLists.txt) is on the include path: the headers'
+// directory is include/mysql for libmysqlclient and include/mariadb for libmariadb.
+#include <mysql.h>
+#include <mysqld_error.h>
 #include <queue>
 #include <string>
 #include <thread>
+#include <utility>
+#include <unistd.h>
+
+// How many times a query that lost a lock race is re-run before being
+// abandoned. Bounds the stall described on zmDbContentionBackoff.
+constexpr int kMaxDbContentionRetries = 5;
+
+// How long to wait before retry number `attempt`, or 0 once the budget above is
+// spent and the caller should give up. Jittered, so two sessions that deadlocked
+// against each other do not wake together and repeat it.
+//
+// The caller sleeps this while holding db_mutex, which stops every other
+// database user in the process, so the schedule is deliberately short: roughly
+// 3 seconds across the whole budget.
+useconds_t zmDbContentionBackoff(int attempt);
 
 class zmDbQueue {
  private:
-  std::queue<std::string> mQueue;
+  // The flag marks rows the logger queued (inserts into Logs).
+  std::queue<std::pair<std::string, bool>> mQueue;
+  size_t                  mMaxLogRows;
+  size_t                  mLogRows;
+  size_t                  mDroppedLogs;
   std::thread             mThread;
   std::mutex              mMutex;
   std::condition_variable mCondition;
   bool                    mTerminate;
+  std::condition_variable mDoneCondition;
+  bool                    mDone;
+  // Rows queued and rows written (or failed), so drain() can wait for the rows
+  // queued before it was called.
+  uint64_t                mPushed = 0;
+  uint64_t                mFinished = 0;
+  std::condition_variable mIdleCondition;
  public:
-  zmDbQueue();
+  // Log rows past this many waiting are dropped; other writes never are.
+  static constexpr size_t kMaxQueuedLogRows = 5000;
+
+  explicit zmDbQueue(size_t max_log_rows = kMaxQueuedLogRows);
   ~zmDbQueue();
-  void push(std::string &&sql);
+  // keep exempts a log row from the cap.
+  void push(std::string &&sql, bool log_row = false, bool keep = false);
+  size_t logRowsQueued();
+  size_t logRowsDropped();
   void process();
+  bool drain(std::chrono::milliseconds wait);
   void stop();
+  // Returns false, leaving the thread detached, if it is still inside a query
+  // after `wait`.
+  bool stop(std::chrono::milliseconds wait);
 };
 
 class zmDbRow {
@@ -70,7 +110,7 @@ extern bool zmDbConnected;
 bool zmDbConnect();
 void zmDbClose();
 int zmDbDo(const std::string &query);
-int zmDbDoInsert(const std::string &query);
+uint64_t zmDbDoInsert(const std::string &query);
 int zmDbDoUpdate(const std::string &query);
 
 MYSQL_RES * zmDbFetch(const std::string &query);

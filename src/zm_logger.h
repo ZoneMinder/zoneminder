@@ -23,6 +23,9 @@
 #include "zm_db.h"
 #include "zm_config.h"
 #include "zm_define.h"
+#include "zm_time.h"
+#include <atomic>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <string>
@@ -88,11 +91,23 @@ class Logger {
  private:
   static bool smInitialised;
   static Logger *smInstance;
+  static Logger *fetchSlow();
 
   std::recursive_mutex log_mutex;
 
   static StringMap smCodes;
   static IntMap smSyslogPriorities;
+
+  // Set by the SIGWINCH handler, acted on by the next logPrint. Reopening the
+  // file is far too heavy to do in a signal handler.
+  static std::atomic<bool> smDoLogRotate;
+
+  // Net level change asked for by SIGUSR1 (+1) and SIGUSR2 (-1) since the
+  // last log call. The handler only touches this; fetch() applies it.
+  static std::atomic<int> smLevelChange;
+
+  // How many DatabaseLogPause are alive on this thread.
+  static thread_local int smDatabaseLogPaused;
 
   bool mInitialised;
 
@@ -116,6 +131,25 @@ class Logger {
   bool mHasTerminal;
   bool mFlush;
 
+  struct ThrottleKey {
+    const char *file;
+    int line;
+    int key;
+
+    bool operator<(const ThrottleKey &other) const {
+      if (std::less<const char *>()(file, other.file)) return true;
+      if (std::less<const char *>()(other.file, file)) return false;
+      if (line != other.line) return line < other.line;
+      return key < other.key;
+    }
+  };
+  struct Throttle {
+    TimePoint last;
+    uint64 suppressed = 0;
+    bool have_last = false;
+  };
+  std::map<ThrottleKey, Throttle> mThrottles;
+
  private:
   Logger();
   ~Logger();
@@ -137,21 +171,36 @@ class Logger {
 
   void loadEnv();
   static void usrHandler(int sig);
+  void applyLevelChange();
 
  public:
   friend void logInit(const char *name, const Options &options);
+  friend void logReload(const char *name, const Options &options);
   friend void logTerm();
 
+  // While one of these is alive, lines logged on the thread that created it
+  // are not written to the database. Every other thread keeps logging there.
+  //
+  // The database queue holds one around each insert into Logs: at a debug
+  // database level, inserting a Logs row logs a line about that insert, which
+  // would queue another insert, and so on without end.
+  class DatabaseLogPause {
+   public:
+    DatabaseLogPause() { ++smDatabaseLogPaused; }
+    ~DatabaseLogPause() { --smDatabaseLogPaused; }
+    DatabaseLogPause(const DatabaseLogPause &) = delete;
+    DatabaseLogPause &operator=(const DatabaseLogPause &) = delete;
+  };
+
+  // Every log statement calls this, so keep the common case inline
   static Logger *fetch() {
-    if ( !smInstance ) {
-      smInstance = new Logger();
-      Options options;
-      smInstance->initialise("undef", options);
-    }
+    if (!smInstance || smLevelChange.load(std::memory_order_relaxed))
+      return fetchSlow();
     return smInstance;
   }
 
   void initialise(const std::string &id, const Options &options);
+  void reinitialise(const std::string &id, const Options &options);
   void terminate();
 
   const std::string &id(const std::string &id);
@@ -182,9 +231,22 @@ class Logger {
                 int level,
                 const char *fstring,
                 ...) __attribute__((format(printf, 6, 7)));
+
+  // Admits at most one call per (file, line, key) per interval. True when the
+  // caller may emit, with suppressed set to the number of calls held back
+  // since the last one. False counts the call and leaves suppressed alone.
+  bool throttle(const char *file, int line, int key, Microseconds interval,
+                uint64 &suppressed,
+                TimePoint now = std::chrono::steady_clock::now());
 };
 
 void logInit(
+  const char *name,
+  const Logger::Options &options = Logger::Options()
+);
+// For a configuration reload while other threads may be logging: keeps the
+// existing instance instead of deleting and recreating it as logInit() does.
+void logReload(
   const char *name,
   const Logger::Options &options = Logger::Options()
 );
@@ -202,15 +264,34 @@ inline Logger::Level logDebugging() {
 #define logPrintf(logLevel, params...)                              \
   do {                                                              \
     Logger *log = Logger::fetch();                                  \
-    if (logLevel <= log->level()) {                                 \
+    if (logLevel <= static_cast<const Logger *>(log)->level()) {    \
       log->logPrint(false, __FILE__, __LINE__, logLevel, ##params); \
     }                                                               \
+  } while (0)
+
+// Like logPrintf, but emits at most once per interval per (file, line, key),
+// appending the number of calls held back since the last emission.
+#define logPrintfEvery(logLevel, interval, key, fmt, params...)              \
+  do {                                                                       \
+    Logger *log = Logger::fetch();                                           \
+    if (logLevel <= log->level()) {                                          \
+      uint64 zm_suppressed = 0;                                              \
+      if (log->throttle(__FILE__, __LINE__, key, interval, zm_suppressed)) { \
+        if (zm_suppressed > 0) {                                             \
+          log->logPrint(false, __FILE__, __LINE__, logLevel,                 \
+                        fmt " (%" PRIu64 " more since the last)",            \
+                        ##params, zm_suppressed);                            \
+        } else {                                                             \
+          log->logPrint(false, __FILE__, __LINE__, logLevel, fmt, ##params); \
+        }                                                                    \
+      }                                                                      \
+    }                                                                        \
   } while (0)
 
 #define logHexdump(logLevel, data, len)                                       \
   do {                                                                        \
     Logger *log = Logger::fetch();                                            \
-    if (logLevel <= log->level()) {                                           \
+    if (logLevel <= static_cast<const Logger *>(log)->level()) {              \
       log->logPrint(true, __FILE__, __LINE__, logLevel, "%p (%d)", data, len);\
     }                                                                         \
   } while (0)
@@ -227,6 +308,8 @@ inline Logger::Level logDebugging() {
 /* Standard debug calls */
 #define Info(params...)   logPrintf(Logger::INFO, ##params)
 #define Warning(params...)  logPrintf(Logger::WARNING, ##params)
+#define WarningEvery(interval, key, params...) \
+  logPrintfEvery(Logger::WARNING, interval, key, ##params)
 #define Error(params...)  logPrintf(Logger::ERROR, ##params)
 #define Fatal(params...)  logPrintf(Logger::FATAL, ##params)
 #define Panic(params...)  logPrintf(Logger::PANIC, ##params)

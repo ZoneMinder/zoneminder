@@ -24,6 +24,9 @@
 #include "zm_logger.h"
 #include "zm_mpeg.h"
 #include "zm_time.h"
+#include <algorithm>
+#include <atomic>
+#include <cstdlib>
 #include <memory>
 #include <mutex>
 #include <sys/un.h>
@@ -51,6 +54,7 @@ class StreamBase {
   static const StreamType DEFAULT_TYPE = STREAM_JPEG;
   enum { DEFAULT_RATE=ZM_RATE_BASE };
   enum { DEFAULT_SCALE=ZM_SCALE_BASE };
+  enum { MAX_SCALE=16*ZM_SCALE_BASE };
   enum { DEFAULT_ZOOM=ZM_SCALE_BASE };
   enum { DEFAULT_MAXFPS=10 };
   enum { DEFAULT_BITRATE=100000 };
@@ -81,8 +85,8 @@ class StreamBase {
     // CMD_PLAY resumes or starts playback at normal speed (1x, i.e. replay_rate = ZM_RATE_BASE).
     // Use CMD_VARPLAY to resume at an arbitrary rate.
     CMD_PLAY,
-    // CMD_STOP halts all streaming activity.  Unlike CMD_PAUSE, no keepalive frames are sent
-    // and the stream does no work until a new command is received.
+    // CMD_STOP halts streaming until a new command is received.  The current frame is still
+    // re-sent every few seconds so that a viewer that has gone away is noticed.
     CMD_STOP,
     CMD_FASTFWD,
     CMD_SLOWFWD,
@@ -109,6 +113,21 @@ class StreamBase {
     CMD_ANALYZE_ON,
     CMD_ANALYZE_OFF,
     CMD_ZOOMSTOP,
+    // Tell an event stream which event to load next/prev, computed UI-side so the
+    // filter/sort the user is viewing is honoured without reimplementing filters
+    // in C++ (refs #4186). MSG payload:
+    //   msg_data[1]     = direction (0 = next, 1 = prev)
+    //   msg_data[2..9]  = target event id, big-endian uint64 (0 = the filter has
+    //                     no neighbour in this direction -> stop at the boundary)
+    //   msg_data[10..15]= the event the UI computed this against, big-endian
+    //                     48-bit (source event id). The stream honours a hint
+    //                     only while this still matches the event playing, so a
+    //                     hint that arrives after playback has moved on is
+    //                     ignored instead of mis-steering the next transition.
+    //                     48 bits is ample for any real event id; a larger id
+    //                     would simply fail the match and fall back, never
+    //                     mis-match to a wrong event.
+    CMD_SET_EVENT,
     CMD_QUERY=99
   } MsgCommand;
 
@@ -117,20 +136,29 @@ class StreamBase {
   std::shared_ptr<Monitor> monitor;
 
   StreamType type;
-  FrameType   frame_type;
+  std::atomic<FrameType> frame_type;
   const char *format;
-  int replay_rate;
-  int scale;
+  // Written by the command thread (processCommand), read by the streaming
+  // loop every iteration. Atomic so the accesses are defined rather than a
+  // data race; see https://github.com/ZoneMinder/zoneminder/issues/4939
+  std::atomic<int> replay_rate;
+  std::atomic<int> scale;
   int last_scale;
-  int zoom;
+  std::atomic<int> zoom;
   int last_zoom;
   Box last_crop;
+  // The frame size last_crop is in. Event playback can move to a monitor with
+  // a different resolution.
+  int last_crop_width, last_crop_height;
   int bitrate;
   unsigned short last_x, last_y;
-  unsigned short x, y;
+  std::atomic<unsigned short> x, y;
   bool send_analysis;
   bool send_objdetect;
   int connkey;
+  // Id of the user zms authenticated (0 without authentication). Part of the
+  // socket and lock names, so stream commands reach only that user's streams.
+  int owner;
   int sd;
   char loc_sock_path[108];
   struct sockaddr_un loc_addr;
@@ -138,33 +166,37 @@ class StreamBase {
   struct sockaddr_un rem_addr;
   char sock_path_lock[108];
   int lock_fd;
-  bool paused;
-  bool stopped;
-  int step;
-  bool send_twice;        // flag to send the same frame twice
+  std::atomic<bool> paused;
+  std::atomic<bool> stopped;
+  std::atomic<int> step;
+  std::atomic<bool> send_twice;  // flag to send the same frame twice
 
   TimePoint now;
   TimePoint last_comm_update;
 
-  double maxfps;
+  std::atomic<double> maxfps;
   double base_fps;        // Should be capturing fps, hence a rough target
   double effective_fps;   // Target fps after taking max_fps into account
   double actual_fps;      // sliding calculated actual streaming fps achieved
   TimePoint last_fps_update;
-  int frame_count;      // Count of frames sent
+  // frame_count and last_frame_sent are written by the streaming loop and
+  // read (last_frame_sent also written) by processCommand on the command
+  // thread, so they are atomic like the playback state above. `now` stays
+  // the loop's own: the command thread reads the clock itself.
+  std::atomic<int> frame_count;      // Count of frames sent
   int last_frame_count; // Used in calculating actual_fps from frame_count - last_frame_count
 
   int frame_mod;
   int frames_to_send;
 
-  TimePoint last_frame_sent;
+  std::atomic<TimePoint> last_frame_sent;
   SystemTimePoint last_frame_timestamp;
   TimePoint when_to_send_next_frame;  // When to send next frame so if now < send_next_frame, skip
 
   VideoStream *vid_stream;
 
   CmdMsg msg;
-  bool got_command = false; // commands like zoom should output a frame even if paused
+  std::atomic<bool> got_command; // commands like zoom should output a frame even if paused; set on the command thread
 
   uint8_t *temp_img_buffer;     // Used when encoding or sending file data
   size_t temp_img_buffer_size;
@@ -175,7 +207,23 @@ class StreamBase {
   bool loadMonitor(int monitor_id);
   bool checkInitialised();
   void updateFrameRate(double fps);
-  Image *prepareImage(Image *image);
+  // pre_scaled_by is the scale the caller already produced the image at, for
+  // callers that have to colour convert anyway and can therefore scale in the
+  // same swscale pass. 0 means the image is at full size. See #3681.
+  Image *prepareImage(Image *image, int pre_scaled_by = 0);
+  // For a frame that went out unzoomed, through prepareImage or not, so a later
+  // zoom-in starts from the whole frame.
+  void unzoomedFrameSent() {
+    last_zoom = ZM_SCALE_BASE;
+    last_crop = Box();
+    last_crop_width = last_crop_height = 0;
+  }
+
+  // Dimensions a caller should produce the source image at so the scale folds
+  // into a colour conversion it has to do anyway. Returns the scale used, which
+  // is what prepareImage wants as pre_scaled_by, or 0 when the fast path does
+  // not apply and the image must be produced at base_width x base_height.
+  int preScaleDimensions(int base_width, int base_height, int &width, int &height) const;
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
@@ -192,6 +240,8 @@ class StreamBase {
     last_scale(DEFAULT_SCALE),
     zoom(DEFAULT_ZOOM),
     last_zoom(DEFAULT_ZOOM),
+    last_crop_width(0),
+    last_crop_height(0),
     bitrate(DEFAULT_BITRATE),
     last_x(0),
     last_y(0),
@@ -200,8 +250,9 @@ class StreamBase {
     send_analysis(false),
     send_objdetect(false),
     connkey(0),
+    owner(0),
     sd(-1),
-    lock_fd(0),
+    lock_fd(-1),
     paused(false),
     stopped(false),
     step(0),
@@ -214,6 +265,7 @@ class StreamBase {
     last_frame_count(0),
     frame_mod(1),
     frames_to_send(-1),
+    last_frame_sent(TimePoint()),
     got_command(false),
     temp_img_buffer(nullptr),
     temp_img_buffer_size(0) {
@@ -244,14 +296,29 @@ class StreamBase {
   void setStreamFormat(const char *p_format) {
     format = p_format;
   }
+  static int clampScale(int p_scale) {
+    if (p_scale <= 0)
+      return DEFAULT_SCALE;
+    return p_scale > MAX_SCALE ? static_cast<int>(MAX_SCALE) : p_scale;
+  }
+  // The scale= query parameter of zms.
+  static int ParseScaleParam(const char *value) {
+    // Anything that is not a positive number, a negative one included, is 100%.
+    const long parsed = strtol(value, nullptr, 10);
+    return clampScale(parsed > MAX_SCALE ? static_cast<int>(MAX_SCALE) : static_cast<int>(std::max(parsed, 0L)));
+  }
+  // The time= query parameter of zms, in seconds. The double is often a hair
+  // below the time given, so it is rounded to whole microseconds, as frame times
+  // are; truncating it to a nanosecond clock landed just before that frame.
+  static SystemTimePoint ParseTimeParam(const char *value) {
+    return SystemTimePoint(std::chrono::round<Microseconds>(FPSeconds(atof(value))));
+  }
   void setStreamScale(int p_scale) {
-    scale = p_scale;
-    if ( !scale )
-      scale = DEFAULT_SCALE;
+    scale = clampScale(p_scale);
   }
   void setStreamReplayRate(int p_rate) {
     Debug(1, "Setting replay_rate %d", p_rate);
-    replay_rate = p_rate;
+    replay_rate = p_rate ? p_rate : DEFAULT_RATE;
   }
   void setStreamMaxFPS(double p_maxfps) {
     Debug(1, "Setting max fps to %f", p_maxfps);
@@ -262,6 +329,9 @@ class StreamBase {
   }
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
+  }
+  void setStreamOwner(int p_owner) {
+    owner = p_owner;
   }
   void setFramesToSend(int p_frames_to_send) { frames_to_send = p_frames_to_send; }
   bool sendTextFrame(const char *text);

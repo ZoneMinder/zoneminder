@@ -6,12 +6,18 @@ class HostController extends AppController {
   public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
+    # Same rule as daemonControl() for check and status: System View or Edit.
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+    }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
-    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    $count = 0;
     $safe_args = $args ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $args, -1, $count) : false;
-    if ($count) Error("Invalid characters found in args string ($args). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in args string ($args). Potential attack?");
 
     $string = ZM_PATH_BIN.'/zmdc.pl check';
     if ($safe_daemon) {
@@ -38,16 +44,16 @@ class HostController extends AppController {
     } else {
       $permission = 'Edit';
     }
-    $allowed = (!$user) || ($user->System() == $permission );
+    $allowed = (!$user) || ($user->System() == 'Edit') || ($permission == 'View' && $user->System() == 'View');
     if ( !$allowed ) {
       throw new UnauthorizedException(__("Insufficient privileges"));
       return;
     }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $safe_daemon = preg_replace('/[^A-Za-z0-9\-\.]/', '', $daemon, -1, $count);
-    if ($count) Error("Invalid characters found in daemon string ($daemon). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in daemon string ($daemon). Potential attack?");
     $safe_command = preg_replace('/[^a-z]/', '', $command, -1, $count);
-    if ($count) Error("Invalid characters found in command string ($command). Potential attack?");
+    if ($count) ZM\Error("Invalid characters found in command string ($command). Potential attack?");
     $string = ZM_PATH_BIN."/zmdc.pl $safe_command $safe_daemon";
     $result = exec($string);
     $this->set(array(
@@ -57,6 +63,12 @@ class HostController extends AppController {
   }
 
   function getLoad() {
+    # getSysLoadHTML() in the web ui renders nothing without canView('System'),
+    # so the same figure is not handed out here to an account without it.
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
     $load = sys_getloadavg();
 
     $this->set(array(
@@ -90,12 +102,29 @@ class HostController extends AppController {
     if ( !($username && $password) && !$token ) {
       throw new UnauthorizedException(__('No identity provided'));
     }
+    if ( $username && $password && $token ) {
+      // beforeFilter() authenticates the token after the password and keeps the token's
+      // user, so the refresh token minted below would be issued to whoever the token
+      // belongs to. A login takes one or the other.
+      throw new UnauthorizedException(__('Log in with a user name and password or with a token, not both'));
+    }
 
     $cred = [];
 
     if ( $username && $password ) {
+      // Mint the token for the account that actually authenticated, never for
+      // a name taken from the request. beforeFilter() authenticates from
+      // user=/pass= (and zm_authenticate_request() from username=/password=),
+      // while the subject used to be read straight out of `user`. Because the
+      // two were never cross-checked, a caller could authenticate with their
+      // own low-privileged credentials and ask for a token issued to admin.
+      // See GHSA-m77q-66v7-j3fq.
+      global $user;
+      if ( !$user ) {
+        throw new UnauthorizedException(__('Not authenticated'));
+      }
       ZM\Debug('Username and password provided, generating access and refresh tokens');
-      $cred = $this->_getCredentials(true, '', $username); // generate refresh
+      $cred = $this->_getCredentials(true, '', $user->Username()); // generate refresh
     } else {
       ZM\Debug('Only generating access token');
       $cred = $this->_getCredentials(false, $token); // don't generate refresh
@@ -143,7 +172,8 @@ class HostController extends AppController {
       if ( ZM_AUTH_RELAY == 'hashed' ) {
         $credentials = 'auth='.generateAuthHash(ZM_AUTH_HASH_IPS, true);
       } else {
-        $credentials = 'user='.$_SESSION['Username'].'&pass=';
+        global $user;
+        $credentials = 'user='.urlencode($user->Username()).'&pass=';
         $appendPassword = 1;
       }
     }
@@ -156,10 +186,10 @@ class HostController extends AppController {
       return;
     }
 
-    if (!ZM_AUTH_HASH_SECRET)
+    require_once __DIR__ .'/../../../includes/auth.php';
+    if (!authHashSecretIsSet())
       throw new ForbiddenException(__('Please create a valid AUTH_HASH_SECRET in ZoneMinder'));
 
-    require_once __DIR__ .'/../../../includes/auth.php';
     require_once __DIR__.'/../../../vendor/autoload.php';
 
     if ($token) {
@@ -228,6 +258,20 @@ class HostController extends AppController {
     if ( $mid and !$this->Monitor->exists($mid) ) {
       throw new NotFoundException(__('Invalid monitor'));
     }
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    # Usage is reported per monitor, keyed by monitor name, so an account that
+    # cannot view a monitor was being told that it exists and how much disk it
+    # uses. Report only on the monitors it may see.
+    if ($mid) {
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid, 'Monitor.Deleted' => 0)));
+      if (!$one) {
+        throw new NotFoundException(__('Invalid monitor'));
+      }
+      $zm_monitor = new ZM\Monitor($one['Monitor']);
+      if (!$zm_monitor->canView()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
 
     $zm_dir_events = ZM_DIR_EVENTS;
 
@@ -239,35 +283,43 @@ class HostController extends AppController {
     }
 
     if ( $mid ) {
-      // Get disk usage for $mid
-      ZM\Debug("Executing du -s0 $zm_dir_events/$mid | awk '{print \$1}'");
-      $usage = shell_exec("du -s0 ".escapeshellarg($zm_dir_events.'/'.$mid)." | awk '{print \$1}'");
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid)));
+      $zm_monitor = new ZM\Monitor($one['Monitor']);
+      $name = $zm_monitor->Name();
+      $color = $zm_monitor->WebColour();
+      $space = $this->_getMonitorDiskUsage($zm_monitor, $mid, $zm_dir_events);
+
+      $usage = array(
+        $name => array(
+          'space' => $space,
+          'color' => $color
+        )
+      );
     } else {
       $monitors = $this->Monitor->find('all', array(
-        'fields' => array('Id', 'Name', 'WebColour')
+        'fields' => array('Id', 'Name', 'WebColour', 'StorageId'),
+        'conditions' => array('Monitor.Deleted' => 0),
       ));
       $usage = array();
 
       // Add each monitor's usage to array
       foreach ($monitors as $key => $value) {
+        $zm_monitor = new ZM\Monitor($value['Monitor']);
+        if (!$zm_monitor->canView()) continue;
         $id = $value['Monitor']['Id'];
         $name = $value['Monitor']['Name'];
         $color = $value['Monitor']['WebColour'];
 
-        $space = shell_exec("du -s0 $zm_dir_events/$id | awk '{print $1}'");
-        if ( $space == null ) {
-          $space = 0;
-        }
-        $space = $space/1024/1024;
+        $space = $this->_getMonitorDiskUsage($zm_monitor, $id, $zm_dir_events);
 
         $usage[$name] = array(
-          'space' => rtrim($space),
+          'space' => $space,
           'color' => $color
         );
       }
 
       // Add total usage to array
-      $space = shell_exec( "df $zm_dir_events |tail -n1 | awk '{print $3 }'");
+      $space = shell_exec( "df ".escapeshellarg($zm_dir_events)." |tail -n1 | awk '{print $3 }'");
       $space = $space/1024/1024;
       $usage['Total'] = array(
         'space' => rtrim($space),
@@ -279,6 +331,20 @@ class HostController extends AppController {
       'usage' => $usage,
       '_serialize' => array('usage')
     ));
+  }
+
+  private function _getMonitorDiskUsage($zm_monitor, $monitorId, $zm_dir_events) {
+    $storage = $zm_monitor->Storage();
+    $storagePath = $storage->Path();
+    $basePath = $storagePath ? $storagePath : $zm_dir_events;
+    $path = $basePath . '/' . $monitorId;
+
+    $space = shell_exec("du -s0 ".escapeshellarg($path)." | awk '{print \$1}'");
+    if ( $space == null ) {
+      $space = 0;
+    }
+    $space = $space/1024/1024;
+    return rtrim($space);
   }
 
   function getTimeZone() {

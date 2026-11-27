@@ -39,7 +39,7 @@ management of the ZM daemons based on the receipt of X10 signals.
  -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
- -v, --verison                           - Pirnts the currently installed version of ZoneMinder
+ -v, --version                           - Prints the currently installed version of ZoneMinder
 
 =cut
 use strict;
@@ -71,7 +71,7 @@ use constant SOCK_FILE => $Config{ZM_PATH_SOCKS}.'/zmx10.sock';
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -166,6 +166,8 @@ use Socket;
 use X10::ActiveHome;
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+use constant CLIENT_READ_TIMEOUT => 5;
+
 our $dbh;
 our $x10;
 
@@ -175,6 +177,8 @@ our %pending_tasks;
 
 sub runServer {
   Info('X10 server starting');
+  # A client may hang up before our reply is written; a failed write must not kill the daemon
+  $SIG{PIPE} = 'IGNORE';
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE);
@@ -213,14 +217,41 @@ sub runServer {
       Debug(2, "Nfound $nfound");
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = '';
+        my $deadline = time() + CLIENT_READ_TIMEOUT;
+        while ( (my $wait = $deadline - time()) > 0 ) {
+          vec(my $cin = '', fileno(CLIENT), 1) = 1;
+          last if select(my $cout = $cin, undef, undef, $wait) <= 0;
+          last if !sysread(CLIENT, $message, 4096, length($message));
+          last if $message =~ /\n/;
+        }
 
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
+
+        chomp($message);
         my ($command, $unit_code) = split(';', $message);
+        $unit_code =~ s/\s+$// if defined($unit_code);
+
+        if ( ( $command eq 'on' || $command eq 'off' ) && !defined($unit_code) ) {
+          dPrint(ZoneMinder::Logger::ERROR, "No unit code given for '$command' command\n");
+          close(CLIENT);
+          next;
+        }
 
         my $device;
         if ( defined($unit_code) ) {
+          if ( $unit_code !~ /^\d+$/ ) {
+            dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
+            next;
+          }
+          $unit_code = int($unit_code);
           if ( $unit_code < 1 || $unit_code > 16 ) {
             dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
             next;
           }
 
@@ -288,21 +319,24 @@ sub runServer {
       # Check for state changes
       foreach my $monitor_id ( sort(keys(%monitor_hash) ) ) {
         my $monitor = $monitor_hash{$monitor_id};
-        my $state = zmGetMonitorState($monitor);
+        # loadTasks detaches each monitor once it has checked it, and zmc may have
+        # restarted since, so verify (and attach) before every read.
+        my $state = zmMemVerify($monitor) ? zmGetMonitorState($monitor) : undef;
         if ( !defined($state) ) {
           $reload = !undef;
           next;
         }
         if ( defined( $monitor->{LastState} ) ) {
           my $task_list;
-          if ( ($state == STATE_ALARM || $state == STATE_ALERT)
-            && ($monitor->{LastState} == STATE_IDLE )
-          ) # Gone into alarm state
-          {
+          my $in_alarm = ($state == STATE_ALARM || $state == STATE_ALERT);
+          my $was_in_alarm = ($monitor->{LastState} == STATE_ALARM
+            || $monitor->{LastState} == STATE_ALERT);
+          if ( $in_alarm && !$was_in_alarm ) {
+            # Gone into alarm state, possibly via PREALARM
             Debug("Applying ON_list for $monitor_id");
             $task_list = $monitor->{ON_list};
-          } elsif ($state == STATE_IDLE && $monitor->{LastState} != STATE_IDLE) {
-           # Come out of alarm state
+          } elsif ( !$in_alarm && $was_in_alarm ) {
+            # Come out of alarm state
             Debug("Applying OFF_list for $monitor_id");
             $task_list = $monitor->{OFF_list};
           }
@@ -409,6 +443,9 @@ sub addToMonitorList {
 } # end sub addToMonitorList
 
 sub loadTasks {
+  # The poll keeps monitors attached; detach them before dropping them.
+  zmMemInvalidate($_) foreach values(%monitor_hash);
+  my %old_monitors = %monitor_hash;
   %monitor_hash = ();
 
   Debug('Loading tasks');
@@ -422,7 +459,8 @@ sub loadTasks {
   my $sql = 'SELECT M.*,T.* FROM Monitors as M
   INNER JOIN TriggersX10 as T on (M.Id = T.MonitorId)
   WHERE M.Capturing != \'None\'
-  AND find_IN_set(\'X10\', M.Triggers)';
+  AND find_IN_set(\'X10\', M.Triggers)
+  AND M.Deleted = 0';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute()
@@ -434,11 +472,15 @@ sub loadTasks {
       next;
     }
 
+    my $old = $old_monitors{$monitor->{Id}};
+    $monitor->{LastState} = $old->{LastState}
+      if $old and defined($old->{LastState});
     $monitor_hash{$monitor->{Id}} = $monitor;
 
     if ( $monitor->{Activation} ) {
       Debug("$monitor->{Name} has active string '$monitor->{Activation}'");
       foreach my $code_string ( split(',', $monitor->{Activation}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -466,6 +508,7 @@ sub loadTasks {
     if ( $monitor->{AlarmInput} ) {
       Debug("$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'");
       foreach my $code_string ( split(',', $monitor->{AlarmInput}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -493,6 +536,7 @@ sub loadTasks {
     if ( $monitor->{AlarmOutput} ) {
       Debug("$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'");
       foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -524,27 +568,47 @@ sub loadTasks {
 sub addPendingTask {
   my $task = shift;
 
+  # The task that will end this one, e.g. start_alarm -> stop_alarm,
+  # and the reverse, e.g. stop_alarm -> start_alarm
+  my $pending_task;
+  if ( $task->{type} eq 'device' ) {
+    $pending_task = {
+      type=>$task->{type},
+      monitor=>$task->{monitor},
+      function=>$task->{function}
+    };
+    $pending_task->{function} =~ s/^start_/stop_/
+      or $pending_task->{function} =~ s/^stop_/start_/;
+  } elsif ( $task->{type} eq 'monitor' ) {
+    $pending_task = {
+      type=>$task->{type},
+      device=>$task->{device},
+      function=>$task->{function}
+    };
+    $pending_task->{function} = ($pending_task->{function} eq 'on') ? 'off' : 'on';
+  }
+
   # Check whether we are just extending a previous pending task
   # and remove it if it's there
   foreach my $activation_time ( sort keys(%pending_tasks) ) {
     my $pending_list = $pending_tasks{$activation_time};
     my $new_pending_list = [];
-    foreach my $pending_task ( @$pending_list ) {
-      if ( $task->{type} ne $pending_task->{type} ) {
-        push( @$new_pending_list, $pending_task )
-      } elsif ( $task->{type} eq 'device' ) {
-        if (( $task->{monitor}->{Id} != $pending_task->{monitor}->{Id} )
-          || ( $task->{function} ne $pending_task->{function} ))
+    foreach my $old_task ( @$pending_list ) {
+      if ( $pending_task->{type} ne $old_task->{type} ) {
+        push( @$new_pending_list, $old_task )
+      } elsif ( $pending_task->{type} eq 'device' ) {
+        if (( $pending_task->{monitor}->{Id} != $old_task->{monitor}->{Id} )
+          || ( $pending_task->{function} ne $old_task->{function} ))
         {
-          push @$new_pending_list, $pending_task;
+          push @$new_pending_list, $old_task;
         }
-      } elsif ( $task->{type} eq 'monitor' ) {
-        if (( $task->{device}->{appliance}->unit_code()
-            != $pending_task->{device}->{appliance}->unit_code()
+      } elsif ( $pending_task->{type} eq 'monitor' ) {
+        if (( $pending_task->{device}->{appliance}->unit_code()
+            != $old_task->{device}->{appliance}->unit_code()
           )
-          || ( $task->{function} ne $pending_task->{function} )
+          || ( $pending_task->{function} ne $old_task->{function} )
         ) {
-          push @$new_pending_list, $pending_task;
+          push @$new_pending_list, $old_task;
         }
       } # end switch task->type
     } # end foreach pending_task
@@ -560,22 +624,6 @@ sub addPendingTask {
   my $pending_list = $pending_tasks{$end_time};
   if ( !$pending_list ) {
     $pending_list = $pending_tasks{$end_time} = [];
-  }
-  my $pending_task;
-  if ( $task->{type} eq 'device' ) {
-    $pending_task = {
-      type=>$task->{type},
-      monitor=>$task->{monitor},
-      function=>$task->{function}
-    };
-    $pending_task->{function} =~ s/start/stop/;
-  } elsif ( $task->{type} eq 'monitor' ) {
-    $pending_task = {
-      type=>$task->{type},
-      device=>$task->{device},
-      function=>$task->{function}
-    };
-    $pending_task->{function} =~ s/on/off/;
   }
   push @$pending_list, $pending_task;
 } # end sub addPendingTask
@@ -594,12 +642,15 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmMonitorDisable($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } elsif( $class eq 'alarm' ) {
       if ( $instruction eq 'start' ) {
         zmTriggerEventOn(
           $task->{monitor},
-          0,
+          $Config{ZM_FORCED_ALARM_SCORE},
           main::CAUSE_STRING,
           $task->{address}
         );
@@ -608,6 +659,9 @@ sub processTask {
         }
       } elsif( $instruction eq 'stop' ) {
         zmTriggerEventCancel($task->{monitor});
+        if ( $task->{limit} ) {
+          addPendingTask($task);
+        }
       }
     } # end switch class
   } elsif( $task->{type} eq 'monitor' ) {
@@ -618,6 +672,9 @@ sub processTask {
       }
     } elsif ( $task->{function} eq 'off' ) {
       $task->{device}->{appliance}->off();
+      if ( $task->{limit} ) {
+        addPendingTask($task);
+      }
     }
   }
 }

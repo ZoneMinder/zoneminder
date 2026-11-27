@@ -2,10 +2,14 @@
 define('MSG_TIMEOUT', 2.0);
 define('MSG_DATA_SIZE', 4+256);
 
-if ( canEdit('Monitors') ) {
-    $zmuCommand = getZmuCommand(' -m '.validInt($_REQUEST['id']));
+require_once('includes/Monitor.php');
+$monitor = new ZM\Monitor(validCardinal($_REQUEST['id'] ?? 0));
 
-    switch ( validJsStr($_REQUEST['command']) ) {
+// Needs edit on this monitor, not only the global Monitors permission.
+if ( $monitor->Id() and $monitor->canEdit() ) {
+    $zmuCommand = getZmuCommand(' -m '.$monitor->Id());
+
+    switch ( validJsStr($_REQUEST['command'] ?? '') ) {
         case 'disableAlarms' :
             $zmuCommand .= ' -n'; 
             break;
@@ -19,9 +23,16 @@ if ( canEdit('Monitors') ) {
             $zmuCommand .= ' -c'; 
             break;
         default :
-            ajaxError("Unexpected command '".validJsStr($_REQUEST['command'])."'");
+            ajaxError("Unexpected command '".validJsStr($_REQUEST['command'] ?? '')."'");
     }
-    ajaxResponse(exec(escapeshellcmd($zmuCommand)));
+    $output = array();
+    $rc = 0;
+    exec($zmuCommand, $output, $rc);
+    // zmu exits non-zero when it cannot connect to the monitor or the monitor ignores the request.
+    if ( $rc != 0 ) {
+        ajaxError('zmu failed (exit '.$rc.') for monitor '.$monitor->Id().', is it running?');
+    }
+    ajaxResponse(end($output));
 } else {
   ajaxError('Insufficient permissions');
 }

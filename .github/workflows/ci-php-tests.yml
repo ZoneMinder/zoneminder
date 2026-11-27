@@ -1,0 +1,48 @@
+name: CI PHP Tests
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  php-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The tests stub the database, config and session themselves, so they need
+      # only the PHP CLI and the sqlite PDO driver some of them use as a fake DB.
+      - name: Install the sqlite PDO driver
+        run: |
+          if ! php -m | grep -qi '^pdo_sqlite$'; then
+            sudo apt-get update
+            sudo apt-get install -y php-sqlite3
+          fi
+          php --version
+          php -m | grep -i sqlite
+      - name: Run the PHP tests
+        run: |
+          failed=0
+          for t in tests/php/*.php; do
+            # A test that loads web/includes/config.php needs the cmake-generated
+            # config and a ZoneMinder database, so it runs on an install, not here.
+            if grep -qE "require(_once)?[[:space:]]*\(?[[:space:]]*'config\.php'" "$t"; then
+              echo "--- $t: skipped, needs a configured install and database"
+              continue
+            fi
+            echo "--- $t"
+            # Run every file even after one fails: a single CI run should report
+            # all the broken tests, not just the first.
+            timeout 60 php "$t" || failed=1
+          done
+          exit $failed
+      # An audit rather than a test, so the tests/php glob above does not pick
+      # it up. It reads the sources and takes paths relative to the repo root.
+      - name: Audit the stored filter selections
+        run: php tests/audit-filter-cookies.php

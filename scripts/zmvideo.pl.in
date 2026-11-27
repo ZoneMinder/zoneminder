@@ -50,7 +50,7 @@ or as email attachments.
  -f<format>, --format=<format>            - What format to create the video in, default is mpg. For ffmpeg only.
  -r<rate>, --rate=<rate>                  - Relative rate, 1 = realtime, 2 = double speed, 0.5 = half speed etc.
  -s<scale>, --scale=<scale>               - Scale, 1 = normal, 2 = double size, 0.5 = half size etc.
- -t<transforms>, --transform=<transforms> - Transform video.  Applies -vf option to ffmpeg.
+ -t<transforms>, --transforms=<transforms> - Transform video.  Applies -vf option to ffmpeg.
  -F<fps>, --fps=<fps>                     - Absolute frame rate, in frames per second
  -S<size>, --size=<size>                  - Absolute video size, WxH or other specification supported by ffmpeg
  -o, --overwrite                          - Whether to overwrite an existing file, off by default.
@@ -80,7 +80,7 @@ use autouse 'Pod::Usage'=>qw(pod2usage);
 
 $| = 1;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -90,7 +90,7 @@ my $event_id;
 my $concat_name;
 my $filter_name;
 my $filter_id;
-my $format = 'mpg';
+my $format;
 my $rate = '';
 my $scale = '';
 my $fps = '';
@@ -129,10 +129,14 @@ if ( ! $Config{ZM_OPT_FFMPEG} ) {
   exit(-1);
 }
 
-my @formats = split( /\s+/, $Config{ZM_FFMPEG_FORMATS} );
-for ( my $i = 0; $i < @formats; $i++ ) {
-  if ( $i =~ /^(.+)\*$/ ) {
-    $format = $formats[$i] = $1;
+if ( !defined $format ) {
+  # The default web format is the one marked with a single '*', '**' marks the phone format.
+  $format = 'mpg';
+  foreach my $f ( split( /\s+/, $Config{ZM_FFMPEG_FORMATS} ) ) {
+    if ( $f =~ /^([^*]+)\*$/ ) {
+      $format = $1;
+      last;
+    }
   }
 }
 
@@ -154,10 +158,30 @@ if ( $scale && ($scale < 0.25 || $scale > 4) ) {
   pod2usage(-exitstatus => -1);
 }
 
-if ( $fps && ($fps > 30) ) {
-  print( STDERR "FPS is out of range, <= 30\n" );
+if ( $fps && ($fps < 0 || $fps > 30) ) {
+  print( STDERR "FPS is out of range, 0 <= fps <= 30\n" );
   pod2usage(-exitstatus => -1);
 }
+
+# Values that fail detainting below would otherwise be dropped silently.
+if ( $format !~ /^\w+$/ ) {
+  print( STDERR "Invalid format '$format'\n" );
+  pod2usage(-exitstatus => -1);
+}
+if ( $size ne '' && $size !~ /^\w+$/ ) {
+  print( STDERR "Invalid size '$size'\n" );
+  pod2usage(-exitstatus => -1);
+}
+if ( $transforms ne '' && $transforms !~ /^[,\w=:.]+$/ ) {
+  print( STDERR "Invalid transform '$transforms'\n" );
+  pod2usage(-exitstatus => -1);
+}
+
+# Getopt has already guaranteed these are numbers, but it accepts forms such as
+# '.5', '1.', '+1' and '1e1' that the detaint regexes below would reject.
+$rate = sprintf('%g', $rate) if $rate ne '';
+$scale = sprintf('%g', $scale) if $scale ne '';
+$fps = sprintf('%g', $fps) if $fps ne '';
 
 my ( $detaint_format ) = $format =~ /^(\w+)$/;
 my ( $detaint_rate ) = $rate =~ /^(-?\d+(?:\.\d+)?)$/;
@@ -170,7 +194,7 @@ $rate = $detaint_rate;
 $scale = $detaint_scale;
 $fps = $detaint_fps;
 $size = $detaint_size;
-($transforms) = $transforms =~ /^([,\w=]+)$/;
+$transforms = $transforms =~ /^([,\w=:.]+)$/ ? $1 : '';
 
 my $dbh = zmDbConnect();
 
@@ -190,7 +214,7 @@ if ( $event_id ) {
 } elsif ( $filter_name or $filter_id ) {
   my $Filter = ZoneMinder::Filter->find_one( 
       ($filter_name ? ( Name => $filter_name ) : () ),
-      ($filter_id ? ( Id => $filter_name ) : () ),
+      ($filter_id ? ( Id => $filter_id ) : () ),
       );
   if ( ! $Filter ) {
     Fatal("Filter $filter_name $filter_id not found.");	
@@ -201,7 +225,7 @@ if ( $event_id ) {
   } else {
     Debug(@event_ids . " events found for $filter_name");
   }
-  $concat_name = $filter_name if $concat_name eq '';
+  $concat_name = $Filter->Name() if defined $concat_name and $concat_name eq '';
 }
 
 my $sql = " SELECT (SELECT max(Delta) FROM Frames WHERE EventId=Events.Id)-(SELECT min(Delta) FROM Frames WHERE EventId=Events.Id) as FullLength,
@@ -217,10 +241,16 @@ my $sth = $dbh->prepare_cached( $sql ) or Fatal( "Can't prepare '$sql': ".$dbh->
 Debug($sql);
 
 my @video_files;
+my $failed = 0;
 foreach my $event_id ( @event_ids ) {
   my $res = $sth->execute( $event_id )
     or Fatal( "Can't execute: ".$sth->errstr() );
   my $event = $sth->fetchrow_hashref();
+  if ( !$event ) {
+    Error("Event $event_id not found");
+    $failed = 1;
+    next;
+  }
 
   my $Event = new ZoneMinder::Event( $$event{Id}, $event );
   my $video_file = $Event->GenerateVideo( $rate, $fps, $scale,  $size, $overwrite, $format, $transforms );
@@ -229,13 +259,15 @@ foreach my $event_id ( @event_ids ) {
     print( STDOUT $video_file."\n" );
   } else {
     Warning("No video file generated for event $event_id");
+    $failed = 1;
   }
 } # end foreach event_id
 
 if ( $concat_name ) {
   ($cwd) = $cwd =~ /(.*)/; # detaint
   chdir( $cwd );
-  ($concat_name ) = $concat_name =~ /([\-A-Za-z0-9_\.]*)/;
+  $concat_name =~ s/[^\-A-Za-z0-9_\.]/_/g;
+  ($concat_name) = $concat_name =~ /^([\-A-Za-z0-9_\.]*)$/;
 
   my $video_file = $concat_name . '.'. $detaint_format;
 
@@ -245,27 +277,29 @@ if ( $concat_name ) {
   # monitor/event names. The list entries are absolute paths, so its location
   # does not affect ffmpeg's resolution.
   my ($fd, $concat_list_file) = tempfile('zmconcat-XXXXXX', SUFFIX => '.concat.lst', DIR => '@ZM_TMPDIR@');
-  foreach ( @video_files ) {
-    print $fd "file '$_'\n";
+  foreach my $video_file_path ( @video_files ) {
+    ( my $escaped = $video_file_path ) =~ s/'/'\\''/g;
+    print $fd "file '$escaped'\n";
   }
   close $fd;
+  # ffmpeg asks on the terminal before replacing an existing file, so say which.
   my $command = $Config{ZM_PATH_FFMPEG}
-  . " -f concat -safe 0 -i $concat_list_file -c copy "
+  . ' '.($overwrite ? '-y' : '-n')." -f concat -safe 0 -i $concat_list_file -c copy "
     .$Config{ZM_FFMPEG_OUTPUT_OPTIONS}
     ." '$video_file' > $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log 2>&1"
     ;
   Debug( $command."\n" );
   my $output = qx($command);
 
-  my $status = $? >> 8;
+  my $status = $?;
 
   unlink $concat_list_file;
   if ( $status ) {
-    Error( "Unable to generate video, check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
+    Error( "Unable to generate video, ffmpeg ended with ".(($status & 127) ? "signal ".($status & 127) : "status ".($status >> 8)).", check $Config{ZM_PATH_LOGS}/ffmpeg_${concat_name}.log for details");
     exit(-1);
   }
 	print( STDOUT $video_file."\n" );
 }
-exit( 0 );
+exit( $failed ? 1 : 0 );
 
 __END__

@@ -1,6 +1,7 @@
 <?php
+require_once('includes/log_redact.php');
 if (!isset($_REQUEST['entity'])) {
-  Error("No entity pass to status request.");
+  \ZM\Error("No entity pass to status request.");
   http_response_code(404);
   return;
 } else {
@@ -36,8 +37,9 @@ $statusData = array(
     'table' => 'Monitors',
     'limit' => 1,
     'elements' => array(
-      'MonitorCount' => array( 'sql' => 'count(*)' ),
-      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Capturing` != \'None\',1,NULL))' ),
+      // Deleted monitors keep their row, so they must not be counted
+      'MonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0,1,NULL))' ),
+      'ActiveMonitorCount' => array( 'sql' => 'count(if(`Deleted` = 0 and `Capturing` != \'None\',1,NULL))' ),
       'State' => array( 'func' => function() { return daemonCheck() ? translate('Running') : translate('Stopped'); } ),
       'Load' => array( 'func' => function() { return getLoad(); } ),
       'Disk' => array( 'func' => function() { return getDiskPercent(); } ),
@@ -84,7 +86,6 @@ $statusData = array(
       'PostEventCount' => true,
       'AlarmFrameCount' => true,
       'SectionLength' => true,
-      'FrameSkip' => true,
       'MotionFrameSkip' => true,
       'MaxFPS' => true,
       'AlarmMaxFPS' => true,
@@ -99,7 +100,6 @@ $statusData = array(
       'TrackDelay' => true,
       'ReturnLocation' => true,
       'ReturnDelay' => true,
-      'DefaultView' => true,
       'DefaultRate' => true,
       'DefaultScale' => true,
       'WebColour' => true,
@@ -107,8 +107,13 @@ $statusData = array(
       'MinEventId' => array( 'sql' => '(SELECT min(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       'MaxEventId' => array( 'sql' => '(SELECT max(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
       'TotalEvents' => array( 'sql' => '(SELECT count(Events.Id) FROM Events WHERE Events.MonitorId = Monitors.Id)' ),
-      'Status' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -s' ):null),
-      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg($_REQUEST['id']).' -f' ):null),
+      // Read from shared memory, as zmu -s does, rather than starting zmu on every poll
+      'Status' => (isset($_REQUEST['id'])?array( 'func' => function() {
+        $monitor = ZM\Monitor::find_one(['Id'=>validInt($_REQUEST['id'])]);
+        $state = $monitor ? $monitor->GetState() : false;
+        return ($state === false) ? '' : (string)$state;
+      } ):null),
+      'FrameRate' => (isset($_REQUEST['id'])?array( 'zmu' => '-m '.escapeshellarg(validInt($_REQUEST['id'])).' -f' ):null),
       'CaptureFPS' => [ 'sql'=>'(SELECT `CaptureFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'AnalysisFPS' => [ 'sql'=>'(SELECT `AnalysisFPS` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
       'CaptureBandwidth' => [ 'sql'=>'(SELECT `CaptureBandwidth` FROM Monitor_Status WHERE MonitorId=Monitors.Id)' ],
@@ -117,6 +122,7 @@ $statusData = array(
   'events' => array(
     'permission' => 'Events',
     'table' => 'Events',
+    'defaultLimit' => 100,
     'selector' => 'Events.MonitorId',
     'elements' => array(
       'Id' => true,
@@ -133,7 +139,7 @@ $statusData = array(
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
-        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+        return empty($row['EndDateTime']) ? '' : $dateTimeFormatter->format(strtotime($row['EndDateTime']));
       }),
       'Width' => true,
       'Height' => true,
@@ -147,6 +153,7 @@ $statusData = array(
   ),
   'event' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Events',
     'limit' => 1,
     'selector' => 'Events.Id',
@@ -167,7 +174,7 @@ $statusData = array(
       'EndDateTime' => true,
       'EndDateTimeFormatted' => array('postFunction'=>function($row){
         global $dateTimeFormatter;
-        return $dateTimeFormatter->format(strtotime($row['EndDateTime']));
+        return empty($row['EndDateTime']) ? '' : $dateTimeFormatter->format(strtotime($row['EndDateTime']));
       }),
       'Width' => true,
       'Height' => true,
@@ -189,21 +196,34 @@ $statusData = array(
       'MaxFrameId' => array( 'sql' => '(SELECT max(Frames.FrameId) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MinFrameDelta' => array( 'sql' => '(SELECT min(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
       'MaxFrameDelta' => array( 'sql' => '(SELECT max(Frames.Delta) FROM Frames WHERE Events.Id = Frames.EventId)' ),
+      // The event view moves between events without a page load, so its Download
+      // link needs the server-built URL (right host, auth relay) for each event.
+      'DownloadUrl' => array( 'postFunction' => function($row) {
+        $Event = new ZM\Event($row['Id']);
+        return $Event->DefaultVideo() ? $Event->getStreamSrc(array('mode'=>'mp4'), '&') : '';
+      }),
     ),
   ),
   'frames' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
+    'defaultLimit' => 100,
     'selector' => 'EventId',
     'elements' => array(
       'EventId' => true,
       'FrameId' => true,
       'Type' => true,
       'Delta' => true,
+      // elements is a whitelist, so the event view's cue graph was reading an
+      // undefined Score off every frame until these were added.
+      'Score' => true,
+      'AudioLevel' => true,
     ),
   ),
   'frame' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'limit' => 1,
     'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
@@ -213,7 +233,7 @@ $statusData = array(
       'EventId' => true,
       'Type' => true,
       'TimeStamp' => true,
-      'TimeStampShort' => array( 'sql' => 'date_format( StartDateTime, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
+      'TimeStampShort' => array( 'sql' => 'date_format( Frames.TimeStamp, \''.MYSQL_FMT_DATETIME_SHORT.'\' )' ),
       'Delta' => true,
       'Score' => true,
       //'Image' => array( 'postFunc' => 'getFrameImage' ),
@@ -221,27 +241,63 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
+    'eventParam' => 'eid',
     'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearEvents'
   )
 );
+
+// Camera credentials are for users who can edit the monitor. A viewer gets Host, Path and ControlAddress without the user:password@ part.
+function statusHideMonitorCredentials(array $row) {
+  if (!isset($row['Id']) || editableMonitor($row['Id'])) return $row;
+  foreach (array('Host', 'Path', 'ControlAddress') as $field) {
+    if (isset($row[$field]) && $row[$field] !== '') $row[$field] = ZM\removeUserinfo($row[$field]);
+  }
+  return $row;
+}
 
 function collectData() {
   global $statusData;
 
   $entity = strtolower(validJsStr($_REQUEST['entity']));
+  if (!isset($statusData[$entity])) {
+    ajaxError('Unrecognised entity '.$entity);
+    return;
+  }
   $entitySpec = &$statusData[$entity];
   #print_r( $entitySpec );
   if (isset($entitySpec['permission'])) {
     if (!canView($entitySpec['permission'])) {
       ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
+  }
+
+  # These entities name an event, so the monitor it belongs to must be viewable.
+  if (!empty($entitySpec['eventParam'])) {
+    if (!isset($_REQUEST[$entitySpec['eventParam']])) {
+      ajaxError('Event id required for '.$entity);
+      return;
+    }
+    $eventParam = $_REQUEST[$entitySpec['eventParam']];
+    if (is_array($eventParam)) $eventParam = reset($eventParam);
+    # Check the same cleaned id that the query binds (validInt).
+    $requestedEvent = new ZM\Event(validInt($eventParam));
+    if (!$requestedEvent->Id()) {
+      ajaxError('Event not found');
+      return;
+    }
+    if (!$requestedEvent->canView()) {
+      ajaxError('Insufficient permissions for event '.$requestedEvent->Id());
       return;
     }
   }
@@ -310,7 +366,7 @@ function collectData() {
     } else if ( isset($elementData['postFunction']) ) {
       $postFunctions[$element] = $elementData['postFunction'];
     } else if ( isset($elementData['zmu']) ) {
-      $command = escapeshellcmd(getZmuCommand(' '.$elementData['zmu']));
+      $command = getZmuCommand(' '.$elementData['zmu']);
       $data[$element] = exec($command);
     } else {
       if ( isset($elementData['sql']) )
@@ -352,7 +408,7 @@ function collectData() {
     }
     if ( $groupSql )
       $sql .= ' GROUP BY '.join(',', array_unique($groupSql));
-    if ( !empty($_REQUEST['sort']) ) {
+    if ( !empty($_REQUEST['sort']) && is_string($_REQUEST['sort']) ) {
       $sort_fields = explode(',', $_REQUEST['sort']);
       $order_clauses = array();
       foreach ( $sort_fields as $sort_field ) {
@@ -392,12 +448,15 @@ function collectData() {
       $limit = $entitySpec['limit'];
     elseif ( !empty($_REQUEST['count']) )
       $limit = validInt($_REQUEST['count']);
+    elseif ( !$id && !empty($entitySpec['defaultLimit']) )
+      $limit = $entitySpec['defaultLimit'];
     $limit_offset = '';
     if ( !empty($_REQUEST['offset']) )
       $limit_offset = validInt($_REQUEST['offset']) . ', ';
     if ( !empty($limit) )
       $sql .= ' limit '.$limit_offset.$limit;
-    if ( isset($limit) && ($limit == 1) ) {
+    $single = (isset($entitySpec['limit']) && $entitySpec['limit'] == 1);
+    if ( $single ) {
       if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
         if (isset($entitySpec['object'])) {
           ZM\Debug("Have object".$entitySpec['object']);
@@ -409,6 +468,7 @@ function collectData() {
             return;
           }
         }
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
@@ -427,6 +487,7 @@ function collectData() {
           if (!$object->canView()) continue;
         }
 
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
@@ -523,6 +584,29 @@ function getNearFrame() {
   return collectData();
 }
 
+# The WHERE part that picks the events on one side of the current one in the
+# (sort value, Id) ordering. MySQL sorts NULL before every other value, so a
+# NULL sort value (EndDateTime, DiskSpace or Frames of an event still recording)
+# counts as the smallest one here; a plain > or = against NULL matches nothing.
+function nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId) {
+  if ($sortColumn == 'E.Id') {
+    return ['E.Id '.$idCmp.' ?', [$eventId]];
+  }
+  $values = [];
+  if ($sortValue === null) {
+    $beyond = ($cmp == '>') ? $sortColumn.' IS NOT NULL' : '0';
+  } else if ($cmp == '>') {
+    $beyond = $sortColumn.' > ?';
+    $values[] = $sortValue;
+  } else {
+    $beyond = '('.$sortColumn.' < ? OR '.$sortColumn.' IS NULL)';
+    $values[] = $sortValue;
+  }
+  $values[] = $sortValue;
+  $values[] = $eventId;
+  return ['('.$beyond.' OR ('.$sortColumn.' <=> ? AND E.Id '.$idCmp.' ?))', $values];
+}
+
 function getNearEvents() {
   global $user, $sortColumn, $sortOrder;
 
@@ -539,60 +623,62 @@ function getNearEvents() {
   }
   $filter_sql = $filter->sql();
 
+  # parseSort() gives 'asc' or 'desc', the comparisons below are against 'ASC'.
+  $sortOrder = strtoupper($sortOrder);
+
   # When listing, it may make sense to list them in descending order.
   # But when viewing Prev should be timewise earlier and Next should be after.
   if ( $sortColumn == 'E.Id' or $sortColumn == 'E.StartDateTime' ) {
     $sortOrder = 'ASC';
   }
 
-  $sql = '
-  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
-  FROM Events AS E
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'<=':'>=').' ?';
-  if ($filter->sql()) {
-    $sql .= ' AND ('.$filter->sql().')';
-  }
-  $sql .= ' AND E.StartDateTime <= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'DESC':'ASC');
-  if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
-    $sql .= ', E.Id DESC';
-  }
-  $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
-  if ( !$result ) {
-    ZM\Error('Failed to load previous event using '.$sql);
-    return $NearEvents;
-  }
+  # The sort value of the current event. Read through the same join as the searches so that
+  # sort columns from Monitors (M.Name) resolve too.
+  $sortValue = dbFetchOne('SELECT '.$sortColumn.' AS SortValue FROM Events AS E
+    INNER JOIN Monitors AS M ON E.MonitorId = M.Id WHERE E.Id=?', 'SortValue', array($eventId));
 
-  $prevEvent = dbFetchNext($result);
+  # Events are ordered by ($sortColumn $sortOrder, E.Id ASC). Many events can share a sort value,
+  # e.g. several monitors starting events in the same second, so Prev/Next must compare the full
+  # (sort value, Id) tuple. Comparing the sort value alone with >= / <= lets the event after a tie
+  # pick the one before it as its Next, and playback loops between them forever.
+  #
+  # That tuple is the whole ordering: do not also constrain E.StartDateTime. When the sort is not
+  # StartDateTime (e.g. MonitorName, grouping cameras, or Id) a time constraint drops events that
+  # are correctly next in the chosen order but started earlier or later than the current one -- the
+  # next monitor's first event, or a concurrently recorded event with a higher Id, was skipped
+  # (refs #4186).
+  $after = ($sortOrder == 'ASC') ? '>' : '<';
+  $before = ($sortOrder == 'ASC') ? '<' : '>';
+  $reverseOrder = ($sortOrder == 'ASC') ? 'DESC' : 'ASC';
 
-  $sql = '
-  SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
-  FROM Events AS E
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId
-  WHERE E.Id != ? AND '.$sortColumn.'
-  '.($sortOrder=='ASC'?'>=':'<=').' ?';
-  if ($filter->sql()) {
-    $sql .= ' AND ('.$filter->sql().')';
-  }
-  $sql .= ' AND E.StartDateTime >= ? ORDER BY '.$sortColumn.' '.($sortOrder=='ASC'?'ASC':'DESC');
-  if ( $sortColumn != 'E.Id' ) {
-    # When sorting by starttime, if we have two events with the same starttime (different monitors) then we should sort secondly by Id
-    $sql .= ', E.Id ASC';
-  }
-  $sql .= ' LIMIT 1';
-  $result = dbQuery($sql, [$eventId, $event[$_REQUEST['sort_field']], $event['StartDateTime']]);
-  if ( !$result ) {
-    ZM\Error('Failed to load next event using '.$sql);
-    return $NearEvents;
-  }
-  $nextEvent = dbFetchNext($result);
+  $nearEvent = function($cmp, $idCmp, $order, $idOrder) use ($eventId, $filter, $sortColumn, $sortValue) {
+    $sql = '
+    SELECT E.Id AS Id, E.StartDateTime AS StartDateTime
+    FROM Events AS E
+    INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+    LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+    LEFT JOIN Tags AS T ON T.Id = ET.TagId
+    WHERE ';
+    list($where, $values) = nearEventWhere($sortColumn, $cmp, $idCmp, $sortValue, $eventId);
+    $sql .= $where;
+    if ($filter->sql()) {
+      $sql .= ' AND ('.$filter->sql().')';
+    }
+    $sql .= ' ORDER BY '.$sortColumn.' '.$order;
+    if ($sortColumn != 'E.Id') {
+      $sql .= ', E.Id '.$idOrder;
+    }
+    $sql .= ' LIMIT 1';
+    $result = dbQuery($sql, $values);
+    if (!$result) {
+      ZM\Error('Failed to load near event using '.$sql);
+      return false;
+    }
+    return dbFetchNext($result);
+  };
+
+  $prevEvent = $nearEvent($before, '<', $reverseOrder, 'DESC');
+  $nextEvent = $nearEvent($after, '>', $sortOrder, 'ASC');
 
   if ( $prevEvent ) {
     $NearEvents['PrevEventId'] = $prevEvent['Id'];

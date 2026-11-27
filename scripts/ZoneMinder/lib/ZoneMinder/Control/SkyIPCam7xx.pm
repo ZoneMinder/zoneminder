@@ -43,13 +43,17 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
   $self->{state} = 'open';
@@ -170,26 +174,16 @@ sub moveRelLeft {
   my $params = shift;
   my $step = $self->getParam($params, 'panstep');
 
-  if ( $self->{Monitor}->{Orientation} eq 'FLIP_HORI' ) {
-    Debug('Stepping Right because flipped horizontally');
-    $self->sendCmd('/admin/ptctl.cgi?move=right');
-  } else {
-    Debug('Step Left');
-    $self->sendCmd('/admin/ptctl.cgi?move=left');
-  }
+  Debug('Step Left');
+  $self->sendCmd('/admin/ptctl.cgi?move=left');
 }
 
 sub moveRelRight {
   my $self = shift;
   my $params = shift;
   my $step = $self->getParam($params, 'panstep');
-  if ( $self->{Monitor}->{Orientation} eq 'FLIP_HORI' ) {
-    Debug('Stepping Left because flipped horizontally');
-    $self->sendCmd('/admin/ptctl.cgi?move=left');
-  } else {
-    Debug('Step Right');
-    $self->sendCmd('/admin/ptctl.cgi?move=right');
-  }
+  Debug('Step Right');
+  $self->sendCmd('/admin/ptctl.cgi?move=right');
 }
 
 sub presetClear {

@@ -24,9 +24,55 @@
 #include "zm_utils.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstring>
 
+// Publish the subscription state to shared memory so the web interface can
+// show it (refs #4191).
+void ONVIF::setHealthy(bool p_healthy) {
+  healthy_.store(p_healthy, std::memory_order_release);
+  if (parent and parent->shared_data)
+    parent->shared_data->onvif_status = p_healthy ? 2 : 1;
+}
+
 #ifdef WITH_GSOAP
+
+namespace {
+// The reason wording cameras use for an authentication refusal. Matched against
+// both the fault string and the fault detail because the split between them is
+// not consistent across vendors.
+bool mentions_authorization(const char *text) {
+  if (!text) return false;
+  return std::strstr(text, "authorization")
+      or std::strstr(text, "authorized")
+      or std::strstr(text, "Unauthorized")
+      or std::strstr(text, "NotAuthorized");
+}
+}  // namespace
+
+bool ONVIFIsAuthError(int result, const char *fault_string, const char *detail) {
+  if (result == 401) return true;
+  if (result != SOAP_FAULT) return false;
+  return mentions_authorization(fault_string) or mentions_authorization(detail);
+}
+
+std::chrono::milliseconds ONVIFEarlyPollWait(std::chrono::steady_clock::duration elapsed, int pull_timeout_seconds) {
+  auto remaining = std::chrono::seconds(pull_timeout_seconds) - elapsed;
+  if (remaining <= std::chrono::steady_clock::duration::zero()) return std::chrono::milliseconds(0);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(remaining);
+}
+
+bool ONVIFAlarmTermination(time_t termination_time, time_t camera_current_time, const SystemTimePoint &now,
+                           time_t &clock_offset, SystemTimePoint &termination) {
+  if (termination_time == 0) return false;
+  if (camera_current_time != 0) {
+    clock_offset = std::chrono::system_clock::to_time_t(now) - camera_current_time;
+  }
+  SystemTimePoint adjusted = std::chrono::system_clock::from_time_t(termination_time + clock_offset);
+  if (adjusted <= now) return false;
+  termination = adjusted;
+  return true;
+}
 #include "url.hpp"
 
 // ONVIF configuration constants
@@ -91,9 +137,37 @@ namespace {
   }
 }
 
+SystemTimePoint ONVIFNextRenewalTime(const SystemTimePoint &now, const SystemTimePoint &termination) {
+  auto advance = std::min<SystemTimePoint::duration>(std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS),
+                                                     (termination - now) / 2);
+  return termination - advance;
+}
+
+SystemTimePoint ONVIFAssumedTermination(const SystemTimePoint &request_time,
+                                        const SystemTimePoint &requested_termination,
+                                        std::chrono::seconds last_granted) {
+  if (last_granted.count() <= 0) return requested_termination;
+  return std::min(requested_termination, request_time + last_granted);
+}
+
+std::chrono::seconds ONVIFGrantedLifetime(const SystemTimePoint &now, const SystemTimePoint &termination) {
+  return std::chrono::ceil<std::chrono::seconds>(termination - now);
+}
+
+bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *fault_string) {
+  if (result != SOAP_FAULT) return false;
+  return (subcode and std::strstr(subcode, "ActionNotSupported")) or
+         (fault_string and std::strstr(fault_string, "ActionNotSupported"));
+}
+
+bool ONVIFAlarmExceedsMaxDuration(const SystemTimePoint &started, const SystemTimePoint &now, int max_seconds) {
+  if (max_seconds <= 0) return false;
+  if (started.time_since_epoch().count() == 0) return false;
+  return now - started >= std::chrono::seconds(max_seconds);
+}
+
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed_(false)
   ,healthy_(false)
   ,closes_event(false)
   ,soap(nullptr)
@@ -108,10 +182,12 @@ ONVIF::ONVIF(Monitor *parent_) :
   ,soap_log_fd(nullptr)
   ,subscription_termination_time()
   ,next_renewal_time()
+  ,granted_lifetime(0)
   ,use_absolute_time_for_renewal(false)
   ,renewal_enabled(true)
   ,camera_clock_offset(0)
   ,expire_alarms_enabled(true)
+  ,max_alarm_duration_seconds(0)
   ,timestamp_validity_seconds(ONVIF_DEFAULT_TIMESTAMP_VALIDITY)
   ,terminate_(false)
 {
@@ -218,7 +294,8 @@ void ONVIF::Run() {
       WaitForMessage();
     } else {
       // Check if we've exceeded max_retries and need a longer cool-down
-      if (retry_count >= max_retries) {
+      // A max_retries of 0 allows no retries, not no first attempt
+      if (retry_count > 0 && retry_count >= max_retries) {
         Warning("ONVIF: Max retries (%d) exceeded, entering cool-down period of %d seconds before reset",
                 max_retries, ONVIF_COOLDOWN_RESET_SECONDS);
 
@@ -337,7 +414,8 @@ void ONVIF::Subscribe() {
                        || (fault_string && (std::strstr(fault_string, "authoriz")
                                             || std::strstr(fault_string, "Authoriz"))));
 
-    Error("ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
+    logPrintf(Logger::ERROR + parent->Importance(), 
+        "ONVIF: Couldn't create subscription at %s! %d %s, fault:%s, detail:%s",
         event_endpoint_url_.c_str(),
         rc, soap_error_name(rc),
         fault_string, detail ? detail : "null");
@@ -409,8 +487,11 @@ void ONVIF::Subscribe() {
   // Success handling - reached by either:
   // 1. First attempt succeeded (original rc == SOAP_OK)
   // 2. Plain auth retry succeeded (rc == SOAP_OK after retry)
-  retry_count = 0;
   has_valid_subscription_ = true;
+
+  // The camera's state on the new subscription arrives in the first pull below.
+  // Anything left from the old subscription would never be cleared by it.
+  ClearAlarms();
 
   // Clear tracking state from previous subscription
   initialized_count.clear();
@@ -447,14 +528,21 @@ void ONVIF::Subscribe() {
 
   Debug(2, "ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds at %s",
       pull_timeout_seconds, subscription_timeout_seconds, subscription_address_.c_str());
-  if ((proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse) != SOAP_OK) &&
+  int pull_rc = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
+  if ((pull_rc != SOAP_OK) &&
       (soap->error != SOAP_EOF)
      ) { //SOAP_EOF could indicate no messages to pull.
-    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Error("ONVIF: Couldn't do initial event pull! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+    // Count it so the retry delay backs off instead of recreating the
+    // subscription every second.
+    retry_count++;
     setHealthy(false);
   } else {
-    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+    Debug(1, "ONVIF: Good Initial Pull %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+    retry_count = 0;
     setHealthy(true);
+    // A camera already in alarm reports it here as Initialized
+    if (pull_rc == SOAP_OK) ProcessPullResponse(tev__PullMessagesResponse);
   }
 
   // Clean up gSOAP allocated memory from initial PullMessages
@@ -462,7 +550,7 @@ void ONVIF::Subscribe() {
   soap_end(soap);
 
   // Perform initial renewal of the subscription
-  if (use_wsa) {  // Only if WS-Addressing is enabled
+  if (use_wsa && isHealthy()) {  // Only if WS-Addressing is enabled
     if (!Renew()) {
       Debug(1, "ONVIF: Initial renewal failed, but continuing");
     }
@@ -491,17 +579,17 @@ void ONVIF::WaitForMessage() {
   tev__PullMessages.MessageLimit = 10;
   Debug(1, "ONVIF: Starting PullMessageRequest with Timeout=%ds, MessageLimit=%d ...",
         pull_timeout_seconds, tev__PullMessages.MessageLimit);
+  auto pull_start = std::chrono::steady_clock::now();
   int result = proxyEvent.PullMessages(subscription_address_.c_str(), nullptr, &tev__PullMessages, tev__PullMessagesResponse);
+  auto pull_elapsed = std::chrono::steady_clock::now() - pull_start;
+  bool empty_poll = (result == SOAP_OK) ? tev__PullMessagesResponse.wsnt__NotificationMessage.empty()
+                                        : (soap->error == SOAP_EOF);
     if (result != SOAP_OK) {
       const char *detail = soap_fault_detail(soap);
       const char *fault_string = soap_fault_string(soap);
 
       if (soap->error != SOAP_EOF) { //Ignore the timeout error
-        // Check if this is an authorization failure (SOAP_FAULT with auth-related message)
-        bool is_auth_error = (result == SOAP_FAULT &&
-            fault_string && (std::strstr(fault_string, "authorization") ||
-                            std::strstr(fault_string, "authorized") ||
-                            std::strstr(fault_string, "NotAuthorized")));
+        bool is_auth_error = ONVIFIsAuthError(result, fault_string, detail);
 
         if (is_auth_error) {
           // Authorization failure - likely due to clock drift or expired credentials
@@ -535,6 +623,8 @@ void ONVIF::WaitForMessage() {
         // the soap context to force a fresh TCP connection.
         cleanup_subscription();
         setHealthy(false);
+        // Nothing can report the end of an alarm while the subscription is down
+        ClearAlarms();
       } else {
         // SOAP_EOF - this is just a timeout, not an error
         Debug(2, "ONVIF PullMessage timeout (SOAP_EOF) - no new messages. result=%d soap_fault_string=%s detail=%s",
@@ -544,10 +634,14 @@ void ONVIF::WaitForMessage() {
         // Timeout is not an error, don't increment retry_count
 
         // Still sweep for expired alarms on timeout - stuck alarms may have expired
-        if (expire_alarms_enabled) {
+        if (expire_alarms_enabled || max_alarm_duration_seconds > 0) {
           std::unique_lock<std::mutex> lck(alarms_mutex);
           expire_stale_alarms(std::chrono::system_clock::now());
         }
+
+        // A camera with no events for longer than its subscription lifetime
+        // only ever reaches this branch, so renew from here too.
+        if (IsRenewalNeeded()) Renew();
       }
     } else {
       // Success - reset retry count and warning flags
@@ -558,197 +652,7 @@ void ONVIF::WaitForMessage() {
       warned_pull_auth_failure = false;
       Debug(1, "ONVIF polling : Got Good Response! %i, # of messages %zu", result, tev__PullMessagesResponse.wsnt__NotificationMessage.size());
 
-      // Extract TerminationTime from PullMessagesResponse for per-topic alarm expiry.
-      // This is the camera's indication of how long the current subscription/response is valid.
-      // Apply the camera clock offset to account for timezone/clock differences.
-      SystemTimePoint response_termination;
-      bool have_response_termination = false;
-      if (tev__PullMessagesResponse.TerminationTime != 0) {
-        // Update clock offset from CurrentTime if available
-        if (tev__PullMessagesResponse.CurrentTime != 0) {
-          time_t our_current_time = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-          camera_clock_offset = our_current_time - tev__PullMessagesResponse.CurrentTime;
-        }
-        // Apply offset to termination time
-        time_t adjusted_termination = tev__PullMessagesResponse.TerminationTime + camera_clock_offset;
-        response_termination = std::chrono::system_clock::from_time_t(adjusted_termination);
-        have_response_termination = true;
-        Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld adjusted=%ld (offset=%ld) (%s)",
-              static_cast<long>(tev__PullMessagesResponse.TerminationTime),
-              static_cast<long>(adjusted_termination),
-              static_cast<long>(camera_clock_offset),
-              SystemTimePointToString(response_termination).c_str());
-      }
-
-      {  // Scope for lock
-        std::unique_lock<std::mutex> lck(alarms_mutex);
-
-        // Compute termination time for alarm entries: prefer response termination,
-        // fall back to existing alarm's time, or epoch for new alarms.
-        auto alarm_termination = [&](const std::string &topic) -> SystemTimePoint {
-          if (have_response_termination) return response_termination;
-          auto it = alarms.find(topic);
-          return (it != alarms.end()) ? it->second.termination_time : SystemTimePoint{};
-        };
-
-        // Note: We do NOT clear alarms on empty PullMessages response.
-        // According to ONVIF spec, alarms should only be cleared based on explicit
-        // PropertyOperation="Deleted" or PropertyOperation="Changed" with inactive value.
-        // The old code cleared on empty messages because it wasn't properly handling
-        // PropertyOperation - cameras DO send proper "Deleted" or value changes, we just
-        // weren't interpreting them correctly.
-
-        int msg_index = 0;
-        for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
-          msg_index++;
-          std::string topic, value, operation;
-
-          // Use improved parsing that handles different message structures
-          if (!parse_event_message(msg, topic, value, operation)) {
-            Debug(1, "ONVIF Got a message that we couldn't parse. Topic: %s",
-                  ((msg->Topic && msg->Topic->__any.text) ? msg->Topic->__any.text : "null"));
-            continue;
-          }
-
-          Debug(2, "ONVIF parsed message: topic=%s value=%s operation=%s",
-                topic.c_str(), value.c_str(), operation.c_str());
-
-          // Use improved topic filtering with wildcard support
-          if (!matches_topic_filter(topic, parent->onvif_alarm_txt)) {
-            Debug(2, "ONVIF Got a message that didn't match onvif_alarm_txt filter. %s doesn't match %s",
-                  topic.c_str(), parent->onvif_alarm_txt.c_str());
-            continue;
-          }
-
-          last_topic = topic;
-          last_value = value;
-
-          Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
-               msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
-               last_topic.c_str(), last_value.c_str(), operation.c_str());
-
-          // Handle PropertyOperation according to ONVIF spec:
-          // - "Deleted" = property no longer exists (alarm ended)
-          // - "Initialized" = current state at subscription time (not a new alarm)
-          // - "Changed" = property value changed (actual alarm state transition)
-
-          if (operation == "Deleted") {
-            // PropertyOperation="Deleted" means the alarm has ended
-            Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
-            alarms.erase(last_topic);
-            Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
-                  alarms.size(), isAlarmed() ? "true" : "false");
-            if (alarms.empty()) {
-              setAlarmed(false);
-            }
-            if (!closes_event) {
-              closes_event = true;
-              Info("Setting ClosesEvent (detected Deleted operation)");
-            }
-          } else if (operation == "Initialized") {
-            // PropertyOperation="Initialized" means this is the current state at subscription time,
-            // NOT a new alarm trigger. We should sync our state with the camera's current state,
-            // but not trigger a new event.
-
-            // Track repeated Initialized messages (non-compliant camera behavior)
-            initialized_count[last_topic]++;
-            if (!warned_initialized_repeat && initialized_count[last_topic] > 1) {
-              Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s).",
-                      initialized_count[last_topic], last_topic.c_str());
-              warned_initialized_repeat = true;
-            }
-
-            bool state_is_active = interpret_alarm_value(last_value);
-            Debug(2, "ONVIF Property Initialized: topic=%s value=%s active=%s",
-                  last_topic.c_str(), last_value.c_str(), state_is_active ? "true" : "false");
-
-            if (state_is_active && alarms.count(last_topic) == 0) {
-              // Camera reports an existing alarm we didn't know about
-              Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
-              alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-              if (!isAlarmed()) {
-                setAlarmed(true);
-                Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
-              }
-            } else if (!state_is_active && alarms.count(last_topic) > 0) {
-              // We thought there was an alarm, but camera says it's not active
-              Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
-              alarms.erase(last_topic);
-              if (alarms.empty()) {
-                setAlarmed(false);
-              }
-            }
-
-            // Set Closes_Event if we see the camera can send state updates
-            if (!closes_event) {
-              closes_event = true;
-              Info("Setting ClosesEvent (camera supports PropertyOperation)");
-            }
-          } else if (operation == "Changed") {
-            // PropertyOperation="Changed" means the alarm state actually changed
-            bool state_is_active = interpret_alarm_value(last_value);
-
-            if (!state_is_active) {
-              // Alarm turned off
-              Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
-              alarms.erase(last_topic);
-              Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
-                    alarms.size(), isAlarmed() ? "true" : "false");
-              if (alarms.empty()) {
-                setAlarmed(false);
-              }
-              if (!closes_event) {
-                closes_event = true;
-                Info("Setting ClosesEvent (detected Changed to inactive)");
-              }
-            } else {
-              // Alarm turned on
-              Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
-              if (alarms.count(last_topic) == 0) {
-                alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-                if (!isAlarmed()) {
-                  Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
-                  setAlarmed(true);
-                }
-              } else {
-                // Update existing alarm value and refresh termination time
-                alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-              }
-            }
-          } else {
-            // Unknown operation (shouldn't happen with spec-compliant cameras)
-            // Treat as legacy behavior for backwards compatibility
-            Warning("ONVIF Unknown PropertyOperation '%s', treating as legacy event. topic=%s value=%s",
-                    operation.c_str(), last_topic.c_str(), last_value.c_str());
-            bool state_is_active = interpret_alarm_value(last_value);
-
-            if (!state_is_active) {
-              alarms.erase(last_topic);
-              if (alarms.empty()) {
-                setAlarmed(false);
-              }
-            } else {
-              if (alarms.count(last_topic) == 0) {
-                alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-                if (!isAlarmed()) {
-                  setAlarmed(true);
-                }
-              } else {
-                alarms[last_topic] = AlarmEntry{last_value, alarm_termination(last_topic)};
-              }
-            }
-          }
-          Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true" : "false");
-        }  // end foreach msg
-
-        // Sweep and expire alarms whose per-topic TerminationTime has passed.
-        // This handles cameras (e.g., Reolink) that send alarm=true but never
-        // send the corresponding false. Alarms that are still being re-triggered
-        // will have had their TerminationTime refreshed above.
-        if (expire_alarms_enabled && !alarms.empty()) {
-          expire_stale_alarms(std::chrono::system_clock::now());
-        }
-      } // end scope for lock
+      ProcessPullResponse(tev__PullMessagesResponse);
 
       if (IsRenewalNeeded()) Renew();
     }  // end if SOAP OK/NOT OK
@@ -758,7 +662,234 @@ void ONVIF::WaitForMessage() {
   soap_destroy(soap);
   soap_end(soap);
 
-  return;
+  // A camera that answers an empty PullMessages before the Timeout we asked
+  // for would otherwise be polled again immediately, in a tight loop.
+  if (empty_poll) {
+    std::chrono::milliseconds wait = ONVIFEarlyPollWait(pull_elapsed, pull_timeout_seconds);
+    if (wait.count() > 0) {
+      Debug(2, "ONVIF: PullMessages returned empty after %jdms of a %ds Timeout, waiting %jdms before the next",
+            static_cast<intmax_t>(std::chrono::duration_cast<std::chrono::milliseconds>(pull_elapsed).count()),
+            pull_timeout_seconds, static_cast<intmax_t>(wait.count()));
+      // Sleep in short steps to remain responsive to termination signals
+      auto wait_until = std::chrono::steady_clock::now() + wait;
+      while (!terminate_ && !zm_terminate && std::chrono::steady_clock::now() < wait_until) {
+        std::this_thread::sleep_for(std::min<std::chrono::steady_clock::duration>(
+            std::chrono::milliseconds(100), wait_until - std::chrono::steady_clock::now()));
+      }
+    }
+  }
+}
+
+// Forget every active alarm and release the monitor's alarm.
+void ONVIF::ClearAlarms() {
+  std::unique_lock<std::mutex> lck(alarms_mutex);
+  alarms.clear();
+  setAlarmed(false);
+}
+
+// Apply the notifications in a PullMessagesResponse to the alarm state.
+void ONVIF::ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesResponse) {
+  // Extract TerminationTime from PullMessagesResponse for per-topic alarm expiry.
+  // This is the camera's indication of how long the current subscription/response is valid.
+  // Apply the camera clock offset to account for timezone/clock differences.
+  SystemTimePoint response_termination;
+  bool have_response_termination = ONVIFAlarmTermination(
+      tev__PullMessagesResponse.TerminationTime, tev__PullMessagesResponse.CurrentTime,
+      std::chrono::system_clock::now(), camera_clock_offset, response_termination);
+  Debug(2, "ONVIF: PullMessagesResponse TerminationTime=%ld CurrentTime=%ld (offset=%ld) %s",
+        static_cast<long>(tev__PullMessagesResponse.TerminationTime),
+        static_cast<long>(tev__PullMessagesResponse.CurrentTime),
+        static_cast<long>(camera_clock_offset),
+        have_response_termination ? SystemTimePointToString(response_termination).c_str()
+                                  : "not in the future, not used for alarm expiry");
+
+  {  // Scope for lock
+    std::unique_lock<std::mutex> lck(alarms_mutex);
+
+    // Compute termination time for alarm entries: prefer response termination,
+    // fall back to existing alarm's time, or epoch for new alarms.
+    auto alarm_termination = [&](const std::string &topic) -> SystemTimePoint {
+      if (have_response_termination) return response_termination;
+      auto it = alarms.find(topic);
+      return (it != alarms.end()) ? it->second.termination_time : SystemTimePoint{};
+    };
+
+    // Alarm entry for a topic going or staying active. Keeps the original start
+    // time across re-triggers so max_alarm_duration counts from the first one.
+    auto alarm_entry = [&](const std::string &topic, const std::string &value) -> AlarmEntry {
+      auto it = alarms.find(topic);
+      SystemTimePoint started = (it != alarms.end()) ? it->second.started : std::chrono::system_clock::now();
+      return AlarmEntry{value, alarm_termination(topic), started};
+    };
+
+    // Note: We do NOT clear alarms on empty PullMessages response.
+    // According to ONVIF spec, alarms should only be cleared based on explicit
+    // PropertyOperation="Deleted" or PropertyOperation="Changed" with inactive value.
+    // The old code cleared on empty messages because it wasn't properly handling
+    // PropertyOperation - cameras DO send proper "Deleted" or value changes, we just
+    // weren't interpreting them correctly.
+
+    int msg_index = 0;
+    for (auto msg : tev__PullMessagesResponse.wsnt__NotificationMessage) {
+      msg_index++;
+      std::string topic, value, operation;
+
+      // Use improved parsing that handles different message structures
+      if (!parse_event_message(msg, topic, value, operation)) {
+        Debug(1, "ONVIF Got a message that we couldn't parse. Topic: %s",
+              ((msg->Topic && msg->Topic->__any.text) ? msg->Topic->__any.text : "null"));
+        continue;
+      }
+
+      Debug(2, "ONVIF parsed message: topic=%s value=%s operation=%s",
+            topic.c_str(), value.c_str(), operation.c_str());
+
+      // Use improved topic filtering with wildcard support
+      if (!matches_topic_filter(topic, parent->onvif_alarm_txt)) {
+        Debug(2, "ONVIF Got a message that didn't match onvif_alarm_txt filter. %s doesn't match %s",
+              topic.c_str(), parent->onvif_alarm_txt.c_str());
+        continue;
+      }
+
+      last_topic = topic;
+      last_value = value;
+
+      Info("ONVIF Got Event [msg %d/%zu]! topic:%s value:%s operation:%s",
+           msg_index, tev__PullMessagesResponse.wsnt__NotificationMessage.size(),
+           last_topic.c_str(), last_value.c_str(), operation.c_str());
+
+      // Handle PropertyOperation according to ONVIF spec:
+      // - "Deleted" = property no longer exists (alarm ended)
+      // - "Initialized" = current state at subscription time (not a new alarm)
+      // - "Changed" = property value changed (actual alarm state transition)
+
+      if (operation == "Deleted") {
+        // PropertyOperation="Deleted" means the alarm has ended
+        Info("ONVIF Alarm Deleted for topic: %s", last_topic.c_str());
+        alarms.erase(last_topic);
+        Debug(1, "ONVIF Alarms count after delete: %zu, alarmed is %s",
+              alarms.size(), isAlarmed() ? "true" : "false");
+        if (alarms.empty()) {
+          setAlarmed(false);
+        }
+        if (!closes_event) {
+          closes_event = true;
+          Info("Setting ClosesEvent (detected Deleted operation)");
+        }
+      } else if (operation == "Initialized") {
+        // PropertyOperation="Initialized" means this is the current state at subscription time,
+        // NOT a new alarm trigger. We should sync our state with the camera's current state,
+        // but not trigger a new event.
+
+        // Track repeated Initialized messages (non-compliant camera behavior)
+        initialized_count[last_topic]++;
+        if (!warned_initialized_repeat && initialized_count[last_topic] > 1) {
+          Warning("ONVIF: Camera is sending repeated PropertyOperation='Initialized' messages (count=%d for topic=%s).",
+                  initialized_count[last_topic], last_topic.c_str());
+          warned_initialized_repeat = true;
+        }
+
+        bool state_is_active = interpret_alarm_value(last_value);
+        Debug(2, "ONVIF Property Initialized: topic=%s value=%s active=%s",
+              last_topic.c_str(), last_value.c_str(), state_is_active ? "true" : "false");
+
+        if (state_is_active && alarms.count(last_topic) == 0) {
+          // Camera reports an existing alarm we didn't know about
+          Debug(2, "ONVIF Syncing with camera: alarm is already active for topic: %s", last_topic.c_str());
+          alarms[last_topic] = alarm_entry(last_topic, last_value);
+          last_alarm_topic_ = last_topic;
+          last_alarm_value_ = last_value;
+          if (!alarm_.active()) {
+            setAlarmed(true);
+            Info("ONVIF Alarm already active on subscription (Initialized): %s", last_topic.c_str());
+          }
+        } else if (!state_is_active && alarms.count(last_topic) > 0) {
+          // We thought there was an alarm, but camera says it's not active
+          Debug(2, "ONVIF Syncing with camera: clearing stale alarm for topic: %s", last_topic.c_str());
+          alarms.erase(last_topic);
+          if (alarms.empty()) {
+            setAlarmed(false);
+          }
+        }
+
+        // Set Closes_Event if we see the camera can send state updates
+        if (!closes_event) {
+          closes_event = true;
+          Info("Setting ClosesEvent (camera supports PropertyOperation)");
+        }
+      } else if (operation == "Changed") {
+        // PropertyOperation="Changed" means the alarm state actually changed
+        bool state_is_active = interpret_alarm_value(last_value);
+
+        if (!state_is_active) {
+          // Alarm turned off
+          Info("ONVIF Alarm Off (Changed to inactive): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+          alarms.erase(last_topic);
+          Debug(1, "ONVIF Alarms count after off: %zu, alarmed is %s",
+                alarms.size(), isAlarmed() ? "true" : "false");
+          if (alarms.empty()) {
+            setAlarmed(false);
+          }
+          if (!closes_event) {
+            closes_event = true;
+            Info("Setting ClosesEvent (detected Changed to inactive)");
+          }
+        } else {
+          // Alarm turned on
+          Info("ONVIF Alarm On (Changed to active): topic=%s value=%s", last_topic.c_str(), last_value.c_str());
+          if (alarms.count(last_topic) == 0) {
+            alarms[last_topic] = alarm_entry(last_topic, last_value);
+            last_alarm_topic_ = last_topic;
+            last_alarm_value_ = last_value;
+            if (!alarm_.active()) {
+              Info("ONVIF Triggered Start Event on topic: %s", last_topic.c_str());
+              setAlarmed(true);
+            }
+          } else {
+            // Update existing alarm value and refresh termination time
+            alarms[last_topic] = alarm_entry(last_topic, last_value);
+            last_alarm_topic_ = last_topic;
+            last_alarm_value_ = last_value;
+          }
+        }
+      } else {
+        // Unknown operation (shouldn't happen with spec-compliant cameras)
+        // Treat as legacy behavior for backwards compatibility
+        Warning("ONVIF Unknown PropertyOperation '%s', treating as legacy event. topic=%s value=%s",
+                operation.c_str(), last_topic.c_str(), last_value.c_str());
+        bool state_is_active = interpret_alarm_value(last_value);
+
+        if (!state_is_active) {
+          alarms.erase(last_topic);
+          if (alarms.empty()) {
+            setAlarmed(false);
+          }
+        } else {
+          if (alarms.count(last_topic) == 0) {
+            alarms[last_topic] = alarm_entry(last_topic, last_value);
+            last_alarm_topic_ = last_topic;
+            last_alarm_value_ = last_value;
+            if (!alarm_.active()) {
+              setAlarmed(true);
+            }
+          } else {
+            alarms[last_topic] = alarm_entry(last_topic, last_value);
+            last_alarm_topic_ = last_topic;
+            last_alarm_value_ = last_value;
+          }
+        }
+      }
+      Debug(1, "ONVIF Alarms count is %zu, alarmed is %s", alarms.size(), isAlarmed() ? "true" : "false");
+    }  // end foreach msg
+
+    // Sweep and expire alarms whose per-topic TerminationTime has passed.
+    // This handles cameras (e.g., Reolink) that send alarm=true but never
+    // send the corresponding false. Alarms that are still being re-triggered
+    // will have had their TerminationTime refreshed above.
+    if ((expire_alarms_enabled || max_alarm_duration_seconds > 0) && !alarms.empty()) {
+      expire_stale_alarms(std::chrono::system_clock::now());
+    }
+  } // end scope for lock
 }
 
 // Enable SOAP message logging to a file using the gSOAP logging plugin
@@ -883,7 +1014,10 @@ void ONVIF::cleanup_subscription() {
 //                          Increase if getting auth errors due to clock drift between ZM and camera
 //   soap_log=/path/to/logfile - Enable SOAP message logging
 //   renewal_enabled=false - Disable subscription renewal
+//   closes_event[=false] - Treat the camera as sending explicit alarm-off notifications
 //   expire_alarms=false - Disable per-topic alarm expiry
+//   max_alarm_duration=300 - Clear an alarm active longer than this many seconds, for cameras
+//                          that never send the alarm-off notification (default: 0, no limit)
 void ONVIF::parse_onvif_options() {
   if (parent->onvif_options.empty()) {
     Info("ONVIF: Using pull_timeout=%ds, subscription_timeout=%ds, timestamp_validity=%ds, renewal_enabled=%s, expire_alarms=%s",
@@ -896,7 +1030,12 @@ void ONVIF::parse_onvif_options() {
   Debug(2, "ONVIF: Parsing options: %s", parent->onvif_options.c_str());
 
   for (const std::string &option : Split(parent->onvif_options, ',')) {
+    // Bare flag has no '=' so PairSplit would drop it; handle it before splitting.
+    if (option == "closes_event") { closes_event = true; continue; }
     auto [key, value] = PairSplit(option, '=');
+    // "pull_timeout=5, subscription_timeout=120" must not lose the second option
+    key = TrimSpaces(key);
+    value = TrimSpaces(value);
     if (key.empty()) continue;
 
     if (key == "pull_timeout") {
@@ -946,7 +1085,11 @@ void ONVIF::parse_onvif_options() {
       soap_log_file = value;
       Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
     } else if (key == "closes_event") {
-      closes_event = true;
+      if (value == "false" || value == "0" || value == "no") {
+        closes_event = false;
+      } else {
+        closes_event = true;
+      }
     } else if (key == "renewal_enabled") {
       if (value == "false" || value == "0" || value == "no") {
         renewal_enabled = false;
@@ -960,6 +1103,18 @@ void ONVIF::parse_onvif_options() {
         Info("ONVIF: Per-topic alarm expiry disabled via option");
       } else {
         expire_alarms_enabled = true;
+      }
+    } else if (key == "max_alarm_duration") {
+      try {
+        int val = std::stoi(value);
+        if (val >= 0) {
+          max_alarm_duration_seconds = val;
+          Info("ONVIF: Alarms will be cleared after %d seconds (0 = no limit)", val);
+        } else {
+          Warning("ONVIF: max_alarm_duration %d is negative, ignoring", val);
+        }
+      } catch (const std::exception &e) {
+        Warning("ONVIF: Invalid max_alarm_duration value '%s': %s", value.c_str(), e.what());
       }
     } else if (key == "timestamp_validity") {
       try {
@@ -1054,11 +1209,22 @@ void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_
     return;
   }
 
-  // Calculate renewal time: N seconds before termination
-  next_renewal_time = subscription_termination_time - std::chrono::seconds(ONVIF_RENEWAL_ADVANCE_SECONDS);
+  granted_lifetime = ONVIFGrantedLifetime(now, subscription_termination_time);
+  next_renewal_time = ONVIFNextRenewalTime(now, subscription_termination_time);
 
   log_subscription_timing("Updated subscription");
 }  // end void ONVIF::update_renewal_times(time_t camera_current_time, time_t termination_time)
+
+// Schedule the next renewal after a Renew whose response did not say when the
+// subscription now ends. Without this next_renewal_time stays in the past and
+// every PullMessages is followed by another Renew.
+void ONVIF::assume_renewal_times(const SystemTimePoint &request_time, const SystemTimePoint &requested_termination) {
+  subscription_termination_time = ONVIFAssumedTermination(request_time, requested_termination, granted_lifetime);
+  // If the response was slow this can already be past, and the next poll renews
+  next_renewal_time = ONVIFNextRenewalTime(request_time, subscription_termination_time);
+  Debug(1, "ONVIF: No TerminationTime in RenewResponse, assuming the subscription ends at %s",
+        SystemTimePointToString(subscription_termination_time).c_str());
+}
 
 // Check if renewal tracking has been initialized
 // Returns false if tracking times are at epoch (uninitialized), true otherwise
@@ -1080,9 +1246,9 @@ void ONVIF::log_subscription_timing(const char* context) {
   auto seconds_until_renewal = std::chrono::duration_cast<std::chrono::seconds>(
     next_renewal_time - now).count();
 
-  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %lds), renewal at %s (in %lds)",
+  Debug(1, "ONVIF [%s]: Subscription terminates at %s (in %jds), renewal at %s (in %jds)",
        context, SystemTimePointToString(subscription_termination_time).c_str(),
-       seconds_until_termination,
+       static_cast<intmax_t>(seconds_until_termination),
        SystemTimePointToString(next_renewal_time).c_str(),
        static_cast<intmax_t>(seconds_until_renewal));
   // Log at debug level when we're getting close to termination
@@ -1105,11 +1271,16 @@ bool ONVIF::Renew() {
   _wsnt__RenewResponse wsnt__RenewResponse;
 
   std::string termination_time_str;
+  // When the request goes out and the deadline it asks for, in case the
+  // response does not say when the subscription now ends
+  SystemTimePoint request_time = std::chrono::system_clock::now();
+  SystemTimePoint requested_termination = request_time + std::chrono::seconds(subscription_timeout_seconds);
 
   if (use_absolute_time_for_renewal) {
     // Calculate absolute termination time: current time + subscription duration
-    time_t now = time(nullptr);
+    time_t now = std::chrono::system_clock::to_time_t(request_time);
     time_t absolute_termination = now + subscription_timeout_seconds;
+    requested_termination = std::chrono::system_clock::from_time_t(absolute_termination);
     termination_time_str = format_absolute_time_iso8601(absolute_termination);
 
     if (termination_time_str.empty()) {
@@ -1133,13 +1304,17 @@ bool ONVIF::Renew() {
     Debug(1, "ONVIF: WS-Addressing setup failed for renewal, cleaning up subscription");
     cleanup_subscription();
     setHealthy(false);
+    ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
     return false;
   }
 
   if (proxyEvent.Renew(subscription_address_.c_str(), nullptr, &wsnt__Renew, wsnt__RenewResponse) != SOAP_OK) {
-    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap));
-    if (soap->error == 12) {  // ActionNotSupported
-      Debug(2, "ONVIF: Renew not supported by device, continuing without renewal");
+    Debug(1, "ONVIF: Couldn't do Renew! Error %i %s, %s", soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
+    if (ONVIFIsActionNotSupported(soap->error, soap_fault_subcode(soap), soap_fault_string(soap))) {
+      // Renewal is checked after every PullMessages, so keep asking and every
+      // poll would carry a doomed Renew.
+      Debug(2, "ONVIF: Renew not supported by device, disabling renewal - will re-subscribe when subscription expires");
+      renewal_enabled = false;
       setHealthy(true);
       soap_destroy(soap);
       soap_end(soap);
@@ -1151,6 +1326,7 @@ bool ONVIF::Renew() {
       soap_end(soap);
       cleanup_subscription();
       setHealthy(false);
+      ClearAlarms();  // Nothing can report the end of an alarm while the subscription is down
       return false;
     }
   }
@@ -1165,7 +1341,8 @@ bool ONVIF::Renew() {
     update_renewal_times(current_time, wsnt__RenewResponse.TerminationTime);
     log_subscription_timing("renewed");
   } else {
-    Debug(1, "No TerminationTime in RenewResponse");
+    assume_renewal_times(request_time, requested_termination);
+    log_subscription_timing("renewed");
   }
 
   // Clean up gSOAP allocated memory from Renew response
@@ -1196,7 +1373,8 @@ bool ONVIF::IsRenewalNeeded() {
     // Time to renew
     auto seconds_overdue = std::chrono::duration_cast<std::chrono::seconds>(
       now - next_renewal_time).count();
-    Debug(1, "ONVIF: Subscription renewal needed (overdue by %ld seconds)", seconds_overdue);
+    Debug(1, "ONVIF: Subscription renewal needed (overdue by %jd seconds)",
+          static_cast<intmax_t>(seconds_overdue));
     return true;
   }
 
@@ -1226,7 +1404,7 @@ bool ONVIF::do_wsa_request(const char* address, const char* action) {
   const char* RequestMessageID = soap_wsa_rand_uuid(soap);
   if (soap_wsa_request(soap, RequestMessageID, address, action) != SOAP_OK) {
     Error("ONVIF: Couldn't set WS-Addressing headers. RequestMessageID=%s; TO=%s; Request=%s. Error %i %s, %s",
-        RequestMessageID, address, action, soap->error, soap_fault_string(soap), soap_fault_detail(soap));
+        RequestMessageID, address, action, soap->error, soap_fault_string(soap), soap_fault_detail(soap) ? soap_fault_detail(soap) : "null");
     return false;
   }
 
@@ -1601,6 +1779,23 @@ bool ONVIF::matches_topic_filter(const std::string &topic, const std::string &fi
     return true;  // Empty filter matches all
   }
 
+  // A comma separated list matches if any of its entries match
+  if (filter.find(',') != std::string::npos) {
+    size_t item_start = 0;
+    while (item_start <= filter.size()) {
+      size_t item_end = filter.find(',', item_start);
+      if (item_end == std::string::npos) item_end = filter.size();
+      size_t first = filter.find_first_not_of(" \t", item_start);
+      size_t last = filter.find_last_not_of(" \t", item_end == 0 ? 0 : item_end - 1);
+      if (first != std::string::npos && first < item_end && last >= first &&
+          matches_topic_filter(topic, filter.substr(first, last - first + 1))) {
+        return true;
+      }
+      item_start = item_end + 1;
+    }
+    return false;
+  }
+
   // Simple substring match for backward compatibility
   if (std::strstr(topic.c_str(), filter.c_str())) {
     return true;
@@ -1694,6 +1889,16 @@ int SOAP_ENV__Fault(struct soap *soap, char *faultcode, char *faultstring, char 
 void ONVIF::expire_stale_alarms(const SystemTimePoint &now) {
   auto it = alarms.begin();
   while (it != alarms.end()) {
+    if (ONVIFAlarmExceedsMaxDuration(it->second.started, now, max_alarm_duration_seconds)) {
+      Info("ONVIF: Clearing alarm for topic=%s, active longer than max_alarm_duration=%ds",
+           it->first.c_str(), max_alarm_duration_seconds);
+      it = alarms.erase(it);
+      continue;
+    }
+    if (!expire_alarms_enabled) {
+      ++it;
+      continue;
+    }
     // Skip entries with no termination time set (epoch = uninitialized)
     if (it->second.termination_time.time_since_epoch().count() == 0) {
       ++it;
@@ -1715,7 +1920,17 @@ void ONVIF::expire_stale_alarms(const SystemTimePoint &now) {
 
 void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
   std::unique_lock<std::mutex> lck(alarms_mutex);
-  if (alarms.empty()) return;
+
+  if (alarms.empty()) {
+    // The analysis thread only calls this while isAlarmed() is true, so an empty
+    // map here means a momentary pulse whose topic the camera has already cleared.
+    // Name it from the last activation so the event note still says what fired,
+    // rather than a bare "ONVIF" (refs #5301).
+    if (!last_alarm_topic_.empty()) {
+      noteSet.insert(last_alarm_topic_ + "/" + last_alarm_value_);
+    }
+    return;
+  }
 
   for (const auto &[topic, entry] : alarms) {
     noteSet.insert(topic + "/" + entry.value);
@@ -1728,7 +1943,6 @@ void ONVIF::SetNoteSet(Event::StringSet &noteSet) {
 
 ONVIF::ONVIF(Monitor *parent_) :
   parent(parent_)
-  ,alarmed_(false)
   ,healthy_(false)
   ,closes_event(false)
 {

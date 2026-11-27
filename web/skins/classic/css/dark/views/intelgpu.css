@@ -1,0 +1,20 @@
+.card {
+  background-color: #2a2a2a;
+  border-color: var(--gray);
+}
+
+.card-header {
+  background-color: #485460;
+  border-color: var(--gray);
+}
+
+.table-secondary,
+.table-secondary > th,
+.table-secondary > td {
+  background-color: #485460;
+  color: #eeeeee;
+}
+
+.progress {
+  background-color: #444444;
+}

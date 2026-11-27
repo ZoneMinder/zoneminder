@@ -37,7 +37,7 @@ class Group {
   ~Group();
 
   unsigned int  Id() const { return id; }
-  unsigned int  ParentId() const { return id; }
+  unsigned int  ParentId() const { return parent_id; }
   const  std::string Name() const { return name; }
   std::vector<int> MonitorIds();
 };

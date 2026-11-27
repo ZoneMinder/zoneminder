@@ -12,23 +12,141 @@
 include(Catch)
 
 set(TEST_SOURCES
+  zm_config.cpp
+  zm_db_contention.cpp
+  zm_db_contention_live.cpp
+  zm_db_log_queue.cpp
+  zm_db_logging_live.cpp
   zm_db_schema.cpp
+  zm_monitor_dts.cpp
+  zm_monitor_decoder_queue.cpp
   zm_box.cpp
+  zm_buffer.cpp
+  zm_audio_detector.cpp
   zm_comms.cpp
   zm_crypt.cpp
+  zm_event_hardlink.cpp
+  zm_event_score.cpp
+  zm_ffmpeg_avdevice.cpp
+  zm_fifo_stream.cpp
   zm_font.cpp
+  zm_hwaccel_candidates.cpp
   zm_image.cpp
+  zm_image_annotate.cpp
+  zm_image_overlay_rotate.cpp
+  zm_image_transform.cpp
+  zm_image_deinterlace_linear.cpp
+  zm_image_deinterlace_4field.cpp
+  zm_swscale_insize.cpp
+  zm_image_overlay_offset.cpp
+  zm_monitor_shm.cpp
+  zm_monitor_capture_failure.cpp
+  zm_monitor_shared_value.cpp
+  zm_monitor_check_action.cpp
+  zmu_helpers.cpp
+  zm_zms_params.cpp
+  zm_monitor_ondemand.cpp
+  zm_monitor_privacy.cpp
+  zm_monitor_substitute.cpp
+  zm_monitor_convert_context.cpp
+  zm_monitorlink_expression.cpp
+  zm_monitorstream.cpp
+  zm_monitorlink_token.cpp
+  zm_monitorlink_score.cpp
+  zm_mp4_sidx.cpp
+  zm_mpeg_raw_packet.cpp
+  zm_packetqueue.cpp
+  zm_packet_lock.cpp
+  zm_packet_y_image.cpp
+  zm_monitor_action.cpp
+  zm_monitor_type_label.cpp
+  zm_monitor_nozones_warn.cpp
+  zm_monitor_signal.cpp
+  zm_monitor_analyse_state.cpp
+  zm_onvif_alarm_latch.cpp
+  zm_onvif_alarm_termination.cpp
+  zm_onvif_auth_error.cpp
+  zm_onvif_max_alarm.cpp
+  zm_onvif_options.cpp
+  zm_onvif_poll_wait.cpp
   zm_onvif_renewal.cpp
+  zm_onvif_resubscribe.cpp
+  zm_onvif_topic_filter.cpp
   zm_onvif_wsse.cpp
   zm_pixformat.cpp
+  zm_rgb_luma.cpp
+  zm_rtsp_auth.cpp
+  zm_rtsp_deprecation.cpp
+  zm_rtsp_server_keyframe.cpp
+  zm_rtsp_server_main.cpp
+  zm_rtsp_server_authenticator.cpp
+  zm_rtsp_server_pts_tracker.cpp
+  zm_rtsp_server_marker.cpp
+  zm_rtsp_server_nal_split.cpp
+  zm_rtsp_server_session_tracker.cpp
+  zm_signal.cpp
+  zm_stream.cpp
+  zm_stream_races.cpp
+  zm_swscale_range.cpp
   zm_poly.cpp
+  zm_poll_thread.cpp
+  zm_stream_socket.cpp
+  zm_stream_socket_bench.cpp
+  zm_stream_socket_client.cpp
+  zm_stream_socket_protocol.cpp
+  zm_eventstream_hints.cpp
+  zm_tag_row.cpp
+  zm_eventstream_commands.cpp
+  zm_eventstream_frame.cpp
   zm_time.cpp
+  zm_user_default_password.cpp
+  zm_user_group.cpp
+  zm_remote_camera.cpp
+  zm_remote_camera_response_cap.cpp
+  zm_uri.cpp
   zm_utils.cpp
+  zm_mem_utils.cpp
+  zm_videostore_m3u8.cpp
+  zm_videostore_write.cpp
   zm_vector2.cpp
   zm_zone.cpp
-  zm_image_linesize.cpp)
+  zm_zone_stride.cpp
+  zm_zone_highlight.cpp
+  zm_zmc_main.cpp
+  zm_zone_alarm_box.cpp
+  zm_zone_filter_box.cpp
+  zm_zone_inactive.cpp
+  zm_zone_degenerate.cpp
+  zm_zone_percent.cpp
+  zm_zone_scoring.cpp
+  zm_zone_load_row.cpp
+  zm_image_linesize.cpp
+  zm_image_blend.cpp
+  zm_image_delta.cpp
+  zm_image_jpeg_range.cpp
+  zm_logger_throttle.cpp
+  zm_logger_rotate.cpp
+  zm_logger_reload.cpp
+  zm_ffmpeg_camera.cpp
+  zm_ffmpeg_codec_tag.cpp
+  zm_ffmpeg_fallback.cpp
+  zm_ffmpeg_options.cpp
+  zm_ffmpeg_option_number.cpp
+  zm_ffmpeg_encoder_choices.cpp
+  zm_ffmpeg_input.cpp
+  zm_monitor_amcrest.cpp
+  zm_go2rtc_check.cpp
+  zm_integration_urls.cpp
+  zm_janus_ids.cpp
+  zm_janus_refresh.cpp
+  zm_rtsp2web_check.cpp
+  zm_local_camera.cpp
+  zm_libvnc_loader.cpp
+  zm_restream_user_missing.cpp
+  zm_stream_manager_json.cpp
+  zm_storage_fallback.cpp)
 
-add_executable(tests main.cpp ${TEST_SOURCES})
+add_executable(tests ${TEST_SOURCES})
 
 target_link_libraries(tests
   PRIVATE

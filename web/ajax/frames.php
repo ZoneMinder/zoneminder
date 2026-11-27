@@ -22,6 +22,11 @@ if ( empty($_REQUEST['eid']) ) {
   $message = 'No event id supplied';
 } else {
   $eid = validInt($_REQUEST['eid']);
+  # canView('Events') above is global; a user with Events=View can still be
+  # denied individual monitors. Require the per-event permission before listing
+  # its frame records, as ajax/event.php and the Frames API already do.
+  if ( !$message and !(new ZM\Event($eid))->canView() )
+    $message = 'Insufficient permissions to view frames for event '.$eid;
 }
 
 if ( $message ) {
@@ -30,36 +35,38 @@ if ( $message ) {
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+// json_decode can return null, and count(null) is a fatal error on PHP 8.
+$advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Sort specifies the name of the column to sort on
 $sort = 'FrameId';
-if ( isset($_REQUEST['sort']) ) {
+if ( isset($_REQUEST['sort']) and is_string($_REQUEST['sort']) ) {
   $sort = $_REQUEST['sort'];
 }
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if ( isset($_REQUEST['offset']) ) {
-  if ( ( !is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']) ) ) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if ( !is_scalar($_REQUEST['offset']) or ( !is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']) ) ) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
 }
 
 // Order specifies the sort direction, either asc or desc
-$order = (isset($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
+$order = (isset($_REQUEST['order']) and is_string($_REQUEST['order']) and (strtolower($_REQUEST['order']) == 'asc')) ? 'ASC' : 'DESC';
 
 // Limit specifies the number of rows to return
 $limit = 0;
 if ( isset($_REQUEST['limit']) ) {
-  if ( ( !is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']) ) ) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if ( !is_scalar($_REQUEST['limit']) or ( !is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']) ) ) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -104,30 +111,14 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
 
   $Event = new ZM\Event($eid);
   $Monitor = $Event->Monitor();
-  $values = array();
-  $likes = array();
-  $where = 'WHERE EventId = '.$eid;
+  $values = array($eid);
 
-  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order;
+  $data['totalNotFiltered'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM `Frames` WHERE EventId=?', 'Total', $values);
 
-  //ZM\Debug('Calling the following sql query: ' .$sql);
-
-  $unfiltered_rows = array();
-  $frame_ids = array();
-  require_once('includes/Frame.php');
-  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
-    $frame = new ZM\Frame($row);
-    $frame_ids[] = $frame->Id();
-    $unfiltered_rows[] = $row;
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' frames matching base filter.');
-
-  $filtered_rows = null;
+  $where = 'WHERE EventId=?';
   require_once('includes/Filter.php');
   if ( count($advsearch) or $search != '' ) {
     $search_filter = new ZM\Filter();
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'FrameId', 'op'=>'IN', 'val'=>$frame_ids));
 
     // There are two search bars in the log view, normal and advanced
     // Making an exuctive decision to ignore the normal search, when advanced search is in use
@@ -141,7 +132,8 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $terms[count($terms)-1]['cbr'] = 1;
       $search_filter->addTerms($terms);
     } else if ( $search != '' ) {
-      $search = '%' .$search. '%';
+      // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+      $search = '%' .str_replace(',', '_', $search). '%';
       $terms = array();
       foreach ( $columns as $col ) {
         $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$search);
@@ -152,15 +144,18 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
     } # end if search
 
-    $sql = 'SELECT * FROM `Frames` WHERE '.$search_filter->sql().' ORDER BY ' .$sort. ' ' .$order;
-    $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' frames matching search filter.');
+    $search_sql = $search_filter->sql();
+    if ($search_sql) $where .= ' AND '.$search_sql;
+    $data['total'] = (int)dbFetchOne('SELECT COUNT(*) AS Total FROM `Frames` '.$where, 'Total', $values);
   } else {
-    $filtered_rows = $unfiltered_rows;
-  } # end if search_filter->terms() > 1
+    $data['total'] = $data['totalNotFiltered'];
+  }
+
+  $sql = 'SELECT * FROM `Frames` '.$where.' ORDER BY '.$sort.' '.$order.($sort != 'FrameId' ? ', FrameId' : '');
+  if ( $limit ) $sql .= ' LIMIT '.(int)$offset.', '.(int)$limit;
 
   $returned_rows = array();
-  foreach ( array_slice($filtered_rows, $offset, ($limit ? $limit : count($filtered_rows))) as $row ) {
+  foreach ( dbFetchAll($sql, NULL, $values) as $row ) {
     if ( ZM_WEB_LIST_THUMBS ) {
 
       # Build the path to the potential analysis image
@@ -170,15 +165,25 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $hasAnalysisImage = $alarmFrame && file_exists($analysisPath) && filesize($analysisPath);
 
       # Our base img source component, which we will add on to
-      $base_img_src = '?view=image&amp;fid=' .$row['Id'];
+      $base_img_src = '?view=image&amp;eid=' .$row['EventId']. '&amp;fid=' .$row['FrameId'];
 
       # if an analysis images exists, use it as the thumbnail
       if ( $hasAnalysisImage ) $base_img_src .= '&amp;show=analyse';
 
       # Build the subcomponents needed for the image source
-      $ratio_factor = $Monitor->ViewHeight() / $Monitor->ViewWidth();
       $thmb_width = ZM_WEB_LIST_THUMB_WIDTH ? 'width='.ZM_WEB_LIST_THUMB_WIDTH : '';
-      $thmb_height = 'height="'.( ZM_WEB_LIST_THUMB_HEIGHT ? ZM_WEB_LIST_THUMB_HEIGHT : ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor ) .'"';
+      # The ratio is only needed when the height has to be derived from the
+      # width. An event whose monitor row was deleted has an empty Monitor, so
+      # ViewWidth() is null and dividing by it would be a DivisionByZeroError.
+      # Fall back to the event's own dimensions, or leave the height out.
+      if ( ZM_WEB_LIST_THUMB_HEIGHT ) {
+        $thmb_height = 'height='.(int)round(ZM_WEB_LIST_THUMB_HEIGHT);
+      } else {
+        $ratio_factor = $Monitor->ViewWidth() ? $Monitor->ViewHeight() / $Monitor->ViewWidth() : 0;
+        if ( !$ratio_factor and $Event->Width() )
+          $ratio_factor = $Event->Height() / $Event->Width();
+        $thmb_height = $ratio_factor ? 'height='.(int)round(ZM_WEB_LIST_THUMB_WIDTH*$ratio_factor) : '';
+      }
       $thmb_fn = 'filename=' .$Event->MonitorId(). '_' .$row['EventId']. '_' .$row['FrameId']. '.jpg';
 
       # Assemble the scaled and unscaled image source image source components
@@ -186,20 +191,12 @@ function queryRequest($eid, $search, $advsearch, $sort, $offset, $order, $limit)
       $full_img_src = join('&amp;', array_filter(array($base_img_src, $thmb_fn)));
       
       # finally, we assemble the the entire thumbnail img src structure, whew
-      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. 'img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
+      $row['Thumbnail'] = '<img src="' .$img_src. '" '.$thmb_width. ' ' .$thmb_height. ' img_src="' .$img_src. '" full_img_src="' .$full_img_src. '">';
     }
     $returned_rows[] = $row;
   } # end foreach row matching search
 
   $data['rows'] = $returned_rows;
-
-  # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
-  } else {
-    $data['total'] = $data['totalNotFiltered'];
-  }
 
   return $data;
 }

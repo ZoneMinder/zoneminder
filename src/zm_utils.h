@@ -32,6 +32,7 @@
 #include <string>
 #include <sys/time.h>
 #include <vector>
+#include <cstring>
 
 
 #ifdef NDEBUG
@@ -43,9 +44,24 @@
 
 typedef std::vector<std::string> StringVector;
 
+// Bounded string copy into a fixed-size buffer that ALWAYS null-terminates
+// (unlike strcpy, which overflows, and strncpy, which skips the terminator on
+// truncation). Copies at most n bytes from src when n >= 0 (for
+// delimiter-bounded fields where src is not null-terminated at the field end),
+// otherwise up to src's null terminator. dst holds `size` bytes.
+inline void zm_strncpy(char *dst, const char *src, size_t size, ssize_t n = -1) {
+  if (!size) return;
+  size_t len = (n >= 0) ? static_cast<size_t>(n) : strlen(src);
+  if (len >= size) len = size - 1;
+  memcpy(dst, src, len);
+  dst[len] = '\0';
+}
+
 std::string escape_json_string(std::string input);
 std::string remove_newlines(std::string input);
 std::string Trim(const std::string &str, const std::string &char_set);
+// Replaces every byte that is not part of a well formed UTF-8 sequence with '?'
+std::string Utf8Sanitize(const std::string &str);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string ShellEscape(const std::string &str) {
@@ -74,6 +90,26 @@ std::pair<std::string, std::string> PairSplit(const std::string &str, char delim
 
 std::string Join(const StringVector &values, const std::string &delim = ",");
 
+// The effective client address of a CGI request. X-Forwarded-For is only
+// honoured when remote_addr is one of trusted_proxies (comma/space separated,
+// exact match); the right-most hop that is not itself a trusted proxy is then
+// the client. Must match getRemoteAddr() in web/includes/Network.php, which
+// generates the IP-bound auth hashes this is used to validate.
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies);
+
+// The host part of a URL: an IPv6 literal (contains ':') is wrapped in
+// brackets unless it already is, so a port can follow it. Matches
+// Server::Url() in web/includes/Server.php.
+std::string UrlHost(const std::string &host);
+
+// Separator characters between entries in a monitor's Options field. The ui
+// offers a textarea, so an option may be on its own line as well as after a
+// comma. av_dict_parse_string() takes a set of separator characters and skips
+// empty entries, so a blank line, crlf or a trailing newline all just work.
+constexpr const char kOptionSeparators[] = ",\r\n";
+
 inline bool StartsWith(const std::string &haystack, const std::string &needle) {
   return (haystack.substr(0, needle.length()) == needle);
 }
@@ -82,6 +118,9 @@ __attribute__((format(printf, 1, 2)))
 std::string stringtf(const char* format, ...);
 
 std::string ByteArrayToHexString(nonstd::span<const uint8> bytes);
+
+// Parses an AV1 LEB128 value (at most 8 bytes) and returns the bytes consumed.
+size_t zm_parse_leb128(const unsigned char *data, size_t max_size, uint32_t &value);
 
 std::string Base64Encode(const std::string &str);
 
@@ -93,6 +132,11 @@ void HwCapsDetect();
 void *sse2_aligned_memcpy(void *dest, const void *src, size_t bytes);
 
 void touch(const char *pathname);
+
+// Current resident set size of this process in kilobytes, read from
+// /proc/self/statm. Returns 0 if it can't be read (e.g. non-Linux). Cheap
+// enough to call periodically from a stream loop to trace memory growth.
+size_t zm_get_rss_kb();
 
 namespace zm {
 // C++14 std::make_unique (TODO: remove this once C++14 is supported)
@@ -146,8 +190,26 @@ constexpr std::size_t size(const T(&)[N]) noexcept { return N; }
 
 std::string mask_authentication(const std::string &url);
 std::string remove_authentication(const std::string &url);
+// A URL as it may be logged: no user:password@ and no query string (which may
+// carry an auth hash, a token or a password). "?..." marks a removed query.
+std::string url_for_log(const std::string &url);
+// An HTTP or RTSP request as it may be logged: the request target through
+// url_for_log() and the value of any Authorization or Proxy-Authorization
+// header (Basic carries user:password, only base64-encoded) replaced.
+std::string request_for_log(const std::string &request);
+// A monitor's Options string as it may be logged: the values of headers,
+// cookies and http_proxy (which carry credentials) and any entry mentioning
+// authorization are replaced with "<not logged>".
+std::string options_for_log(const std::string &options);
 
 std::string UriEncode(const std::string &value);
+// url with user:pass@ inserted after its scheme://, as stored (not encoded: a
+// value already percent-encoded by the operator must reach the camera as is). A url without a scheme is taken to be RTSP. Any scheme is
+// kept: "rtsps://host" must not become "rtsp://u:p@rtsps://host".
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass);
+// The go2rtc API base for a ZM_GO2RTC_PATH. go2rtc serves its API under /api, so
+// "http://host:1984" and "http://host:1984/api" both give the latter.
+std::string Go2RTCApiEndpoint(std::string path);
 std::string UriDecode(const std::string &encoded);
 
 class QueryParameter {

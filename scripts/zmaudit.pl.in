@@ -46,6 +46,7 @@ use POSIX;
 use File::Find;
 use Time::HiRes qw/gettimeofday/;
 use Getopt::Long;
+use Scalar::Util qw(looks_like_number);
 use autouse 'Pod::Usage'=>qw(pod2usage);
 
 use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
@@ -55,7 +56,7 @@ use constant EVENT_PATH => ($Config{ZM_DIR_EVENTS}=~m|/|)
 use constant ZM_AUDIT_PID => '@ZM_RUNDIR@/zmaudit.pid';
 
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -75,11 +76,11 @@ GetOptions(
     continuous     =>\$continuous,
     force          =>\$force,
     interactive    =>\$interactive,
-    level          =>\$level,
+    'level:1'      =>\$level,
     'monitor_id=i' =>\$monitor_id,
     report         =>\$report,
     'server_id=i'  =>\$server_id,
-    'storage_id=i' =>\$storage_id,
+    'storage_id|s=i' =>\$storage_id,
     version        =>\$version
     ) or pod2usage(-exitstatus => -1);
 
@@ -102,7 +103,10 @@ if ( -e ZM_AUDIT_PID ) {
   binmode FILE;
   my $pid = <FILE>;
   close FILE;
-  if ( $force ) {
+  my ( $running_pid ) = ( $pid // '' ) =~ /^(\d+)$/;
+  if ( !$running_pid or !( kill(0, $running_pid) or $!{EPERM} ) ) {
+    Warning('Removing stale pid file '.ZM_AUDIT_PID.' left by pid '.($pid // '').' which is not running.');
+  } elsif ( $force ) {
     Error("zmaudit.pl appears to already be running at pid $pid. Continuing." );
   } else {
     Fatal("zmaudit.pl appears to already be running at pid $pid. If not, please delete " . 
@@ -129,6 +133,13 @@ sub Term {
   unlink ZM_AUDIT_PID;
   exit(0);
 }
+# The Options page accepts 0, which would run the audit back to back.
+sub audit_interval {
+  my $value = shift;
+  return $value if defined($value) and $value =~ /^\d+$/ and $value >= 1;
+  Warning('ZM_AUDIT_CHECK_INTERVAL is '.(defined($value) ? "'$value'" : 'unset').', which is below the minimum of 1, using 900 seconds.');
+  return 900;
+}
 $SIG{HUP} = \&HupHandler;
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
@@ -146,15 +157,17 @@ my $max_swap_age = 24/24; # 24 hours
 # images now live under the event path
 my $image_path = EVENT_PATH;
 
+my $audit_interval = audit_interval($Config{ZM_AUDIT_CHECK_INTERVAL});
 my $loop = 1;
 my $cleaned = 0;
 MAIN: while( $loop ) {
+  ZoneMinder::Object::init_cache();
 
   if ( $continuous ) {
     # if we are running continuously, then just skip to the next
     # interval, otherwise we are a one off run, so wait a second and
     # retry until someone kills us.
-    sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
+    sleep($audit_interval);
   } else {
     sleep 1;
   } # end if
@@ -168,12 +181,16 @@ MAIN: while( $loop ) {
         # if we are running continuously, then just skip to the next
         # interval, otherwise we are a one off run, so wait a second and
         # retry until someone kills us.
-        sleep($Config{ZM_AUDIT_CHECK_INTERVAL});
+        sleep($audit_interval);
       } else {
         Term();
       } # end if
     } # end if
   } # end while can't connect to the db
+
+  # -M measures file age from $^T, the time the script started. Continuous mode
+  # runs for days, so without this files made after start would never look old.
+  $^T = time();
 
   my @Storage_Areas;
   my @all_Storage_Areas = ZoneMinder::Storage->find();
@@ -194,6 +211,14 @@ MAIN: while( $loop ) {
     foreach my $Storage ( @Storage_Areas ) {
       Info('Auditing ' . $Storage->Name() . ' at ' . $Storage->Path() . ' on ' . $Storage->Server()->Name() );
     }
+  } elsif ( $Config{ZM_SERVER_ID} ) {
+    # Another server's events would look missing here and be deleted from the db.
+    @Storage_Areas = grep { !$$_{ServerId} or ($$_{ServerId} == $Config{ZM_SERVER_ID}) } @all_Storage_Areas;
+    if ( ! @Storage_Areas ) {
+      Error('No Storage Area found for server '.$Config{ZM_SERVER_ID});
+      Term();
+    }
+    Info('Auditing Storage Areas of server '.$Config{ZM_SERVER_ID});
   } else {
     @Storage_Areas = ZoneMinder::Storage->find();
     Info('Auditing All Storage Areas');
@@ -226,11 +251,13 @@ MAIN: while( $loop ) {
   } # end while monitors
 
   my $fs_monitors;
+  my %unavailable_storage;
 
   foreach my $Storage ( @Storage_Areas ) {
     Debug('Checking events in ' . $Storage->Path() );
     if ( ! chdir( $Storage->Path() ) ) {
-      Error( 'Unable to change dir to ' . $Storage->Path() );
+      Error( 'Unable to change dir to ' . $Storage->Path() . ', not auditing its events' );
+      $unavailable_storage{$Storage->Id()} = 1;
       next;
     } # end if
 
@@ -264,6 +291,7 @@ MAIN: while( $loop ) {
           }
           if ( !opendir(DIR, '.') ) {
             Error("Can't open directory '$$Storage{Path}/$day_dir': $!");
+            chdir($Storage->Path());
             next;
           }
           my %event_ids_by_path;
@@ -288,8 +316,11 @@ MAIN: while( $loop ) {
               aud_print("Event link $day_dir/$event_link does not point to valid target at $event_path");
               if ( confirm() ) {
                 ( $event_link ) = ( $event_link =~ /^(.*)$/ ); # De-taint
-                unlink($event_link);
-                $cleaned = 1;
+                if ( unlink($event_link) ) {
+                  $cleaned = 1;
+                } else {
+                  Error("Unable to delete broken event link $day_dir/$event_link: $!");
+                }
               }
             } else {
               $event_ids_by_path{$event_path} = $event_id;
@@ -309,7 +340,7 @@ MAIN: while( $loop ) {
 # Check storage id
 								if ( $Storage->Id() and !$Event->Storage()->Id() ) {
 									Info("Correcting StorageId for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
-									$Event->save({ StorageId=>$Storage->Id() });
+									$Event->save({ StorageId=>$Storage->Id() }) if !$report;
 									$Event->Path(undef);
 								} else {
 
@@ -317,7 +348,7 @@ MAIN: while( $loop ) {
 										if ( ! (-e $Event->Path()) ) {
 											if ( $Event->StorageId() != $Storage->Id() ) {
 												Info("Correcting Storage Id for event $$Event{Id} from $$Event{StorageId} $$Event{Path} to $$Storage{Id} $full_path");
-												$Event->save({ StorageId=>$Storage->Id() });
+												$Event->save({ StorageId=>$Storage->Id() }) if !$report;
 												$Event->Path(undef);
 											}
 										} else {
@@ -332,7 +363,7 @@ MAIN: while( $loop ) {
 										( $Event->has_capture_jpegs() ? 1 : 0 ) | ( $Event->has_analyse_jpegs() ? 2 : 0 )
 										) ) {
 									Info("Updated Event $$Event{Id} SaveJPEGs to " . $Event->SaveJPEGs());
-									$Event->save();
+									$Event->save() if !$report;
 								}
 							}
 
@@ -353,9 +384,9 @@ MAIN: while( $loop ) {
             my @contents = $Event->files();
             Debug("Have " . @contents . " files in $day_dir/$event_dir");
 
-            my @mp4_files = grep( /^\d+\-video.mp4$/, @contents);
+            my @mp4_files = grep( /^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
             foreach my $mp4_file ( @mp4_files ) {
-              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.mp4$/;
+              my ( $id ) = $mp4_file =~ /^([0-9]+)\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/;
               if ( $id ) {
                 $event_id = $id;
                 Debug("Got event id from mp4 file $mp4_file => $event_id");
@@ -406,7 +437,11 @@ MAIN: while( $loop ) {
               aud_print("Deleting event directories with no event id information at $day_dir/$event_dir");
               if ( confirm() ) {
                 executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$event_dir);
-                $cleaned = 1;
+                if ( -e $event_dir ) {
+                  Warning("Unable to remove event directory $day_dir/$event_dir");
+                } else {
+                  $cleaned = 1;
+                }
               }
             } # end if able to find id
           } # end foreach event_dir without link
@@ -437,7 +472,6 @@ MAIN: while( $loop ) {
           $Event->Path();
           $Event->age();
           Debug("Have event $$Event{Id} at $$Event{Path}");
-          $Event->StartDateTime(POSIX::strftime('%Y-%m-%d %H:%M:%S', gmtime(time_of_youngest_file($Event->Path()))));
         } # end foreach event
       } # end scope for medium
 
@@ -449,9 +483,11 @@ MAIN: while( $loop ) {
         }
         if ( ! opendir(DIR, '.') ) {
           Error("Can't open directory '$$Storage{Path}/$monitor_dir': $!");
+          chdir($Storage->Path());
           next;
         }
-        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ } readdir(DIR);
+        # A Deep year dir holds two digit month dirs, a Shallow event dir holds only files.
+        my @temp_events = sort { $b <=> $a } grep { -d $_ && $_ =~ /^\d+$/ && !grep { -d $_ } glob("$_/[0-9][0-9]") } readdir(DIR);
         closedir(DIR);
         my $count = 0;
         foreach my $event ( @temp_events ) {
@@ -467,7 +503,8 @@ MAIN: while( $loop ) {
       }
       Debug('Got '.int(keys(%$fs_events)).' filesystem events for monitor '.$monitor_dir);
 
-      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir);
+      # Report mode must not change anything
+      delete_empty_subdirs($$Storage{Path}.'/'.$monitor_dir) if !$report;
     } # end foreach monitor
 
     if ( $cleaned ) {
@@ -496,24 +533,43 @@ MAIN: while( $loop ) {
               Debug("$$Event{Id} found in secondary lookup.");
               next;
             }
+            if ( ZoneMinder::Event::is_fallback_id($fs_event_id) ) {
+              # zmc recorded it without a row because the insert failed. It is video
+              # we want, not an orphan, so leave it for zmrecover.pl to add.
+              Warning("Filesystem event $fs_event_id at $$Event{Path} was recorded without a database row. Run zmrecover.pl to add it.");
+              next;
+            }
             my $age = $Event->age();
 
             if ( $age and ($age > $Config{ZM_AUDIT_MIN_AGE}) ) {
               aud_print("Filesystem event $fs_event_id at $$Event{Path} does not exist in database and is $age seconds old");
               if ( confirm() ) {
                 $Event->delete_files();
-                $cleaned = 1;
                 delete $fs_events->{$fs_event_id};
+                # delete_files() removes nothing when the storage area has DoDelete off or the
+                # delete fails. Restarting then would find the same event again forever.
+                if ( -e $Event->Path() ) {
+                  Warning("Unable to delete files for event $fs_event_id at $$Event{Path}");
+                } else {
+                  $cleaned = 1;
+                }
               } # end if confirm
             } # end if old enough
           } # end if ! in db events
         } # end foreach fs event
+      } elsif ( ZoneMinder::Monitor->find_one(Id=>$monitor_id) ) {
+        # Created after the monitor list was read at the start of this pass.
+        Debug("Filesystem monitor '$monitor_id' found in secondary lookup.");
       } else {
         aud_print("Filesystem monitor '$monitor_id' in $$Storage{Path} does not exist in database");
 
         if ( confirm() ) {
           executeShellCommand($Config{ZM_PATH_RM}.' -rf '.$monitor_id);
-          $cleaned = 1;
+          if ( -e $$Storage{Path}.'/'.$monitor_id ) {
+            Warning("Unable to remove monitor directory $$Storage{Path}/$monitor_id");
+          } else {
+            $cleaned = 1;
+          }
         }
       }
     } # end foreach monitor/filesystem events
@@ -526,8 +582,15 @@ MAIN: while( $loop ) {
       aud_print("Filesystem monitor link '$link' does not point to valid monitor directory");
       if ( confirm() ) {
         ( $link ) = ( $link =~ /^(.*)$/ ); # De-taint
-        executeShellCommand($Config{ZM_PATH_RM}.qq` "$link"`);
-        $cleaned = 1;
+        # unlink(), not a shell rm: the link name is the monitor name, which a
+        # user with Monitors create/edit controls and which is not shell-escaped
+        # here, so rm "$link" would expand $(...) or backticks embedded in it
+        # (refs GHSA-746p-4622-p3fr). unlink removes the symlink itself, no shell.
+        if ( unlink($link) ) {
+          $cleaned = 1;
+        } else {
+          Error("Unable to remove monitor link '$link': $!");
+        }
       }
     } # end foreach monitor link
   } # end foreach Storage Area
@@ -550,6 +613,9 @@ MAIN: while( $loop ) {
   my $deleteStatsSql = 'DELETE LOW_PRIORITY FROM Stats WHERE EventId = ?';
   my $deleteStatsSth = $dbh->prepare_cached( $deleteStatsSql )
     or Fatal("Can't prepare '$deleteStatsSql': ".$dbh->errstr());
+  my $deleteEventDataSql = 'DELETE LOW_PRIORITY FROM Event_Data WHERE EventId = ?';
+  my $deleteEventDataSth = $dbh->prepare_cached( $deleteEventDataSql )
+    or Fatal("Can't prepare '$deleteEventDataSql': ".$dbh->errstr());
 
   # Foreach database monitor and it's list of events.
   while ( my ( $db_monitor, $db_events ) = each(%$db_monitors) ) {
@@ -562,20 +628,34 @@ MAIN: while( $loop ) {
     # If we found the monitor in the file system
     my $fs_events = $fs_monitors->{$db_monitor};
 
-EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
+    my @db_event_ids = sort { $a <=> $b } keys %$db_events;
+    my $db_rows;
+EVENT: foreach my $i ( 0 .. $#db_event_ids ) {
+      my $db_event = $db_event_ids[$i];
+      my $age = $$db_events{$db_event};
+      if ( $i % 1000 == 0 ) {
+        my @batch = @db_event_ids[$i .. ($i+999 < $#db_event_ids ? $i+999 : $#db_event_ids)];
+        $db_rows = $dbh->selectall_hashref('SELECT * FROM `Events` WHERE `Id` IN ('.join(',', ('?') x @batch).')', 'Id', undef, @batch)
+          or Fatal("Can't load events: ".$dbh->errstr());
+      }
       if ( ! ($fs_events and defined( $fs_events->{$db_event} ) ) ) {
         Debug("Don't have an fs event for $db_event");
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( ! $Event ) {
           Debug("Event $db_event is no longer in db.  Filter probably deleted it while we were auditing.");
           next;
         }
+        if ( $unavailable_storage{$$Event{StorageId} // 0} ) {
+          Debug("Event $db_event is on a storage area that could not be read, leaving it alone.");
+          next;
+        }
         Debug("Event $db_event is not in fs. Should have been at ".$Event->Path());
         # Check for existence in other Storage Areas
-        foreach my $Storage ( @all_Storage_Areas ) {
+        my $relative_path = $Event->RelativePath();
+        foreach my $Storage ( $relative_path ? @all_Storage_Areas : () ) {
           next if $$Storage{Id} == $$Event{StorageId};
 
-          my $path = $Storage->Path().'/'.$Event->RelativePath();
+          my $path = $Storage->Path().'/'.$relative_path;
           if ( -e $path ) {
             Info("Event $$Event{Id} found at $path instead of $$Event{Path}");
             if ( confirm('update', 'updating') ) {
@@ -623,7 +703,7 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
         } # end if exists in filesystem
       } else {
         Debug("Found fs event for id $db_event, $age seconds old at " . $$fs_events{$db_event}->Path());
-        my $Event = ZoneMinder::Event->find_one( Id=>$db_event );
+        my $Event = ($$db_rows{$db_event} ? ZoneMinder::Event->new($db_event, $$db_rows{$db_event}) : undef);
         if ( $Event and ! $Event->check_for_in_filesystem() ) {
           Warning('Not found at ' . $Event->Path() . ' was found at ' . $$fs_events{$db_event}->Path());
           Warning($Event->to_string());
@@ -638,11 +718,15 @@ EVENT: while ( my ( $db_event, $age ) = each( %$db_events ) ) {
             $Event->StorageId($$fs_events{$db_event}->StorageId());
           }
           if ( ! $Event->StartDateTime() ) {
-            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $$fs_events{$db_event}{StartDateTime}");
-            $Event->StartDateTime($$fs_events{$db_event}->StartDateTime());
+            my $StartDateTime = $$fs_events{$db_event}->StartDateTime();
+            if ( ! $StartDateTime ) {
+              $StartDateTime = POSIX::strftime('%Y-%m-%d %H:%M:%S', localtime(time_of_youngest_file($$fs_events{$db_event}->Path())));
+            }
+            Info("Updating StartDateTime on event $$Event{Id} from $$Event{StartDateTime} to $StartDateTime");
+            $Event->StartDateTime($StartDateTime);
           }
 
-          $Event->save();
+          $Event->save() if !$report;
         } # end if Event exists in db and not in filesystem
       } # end if ! in fs_events
     } # foreach db_event
@@ -681,7 +765,7 @@ if ( $level > 1 ) {
 # Remove empty events (with no frames)
   $cleaned = 0;
   Debug("Checking for Events with no Frames");
-  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
+  my $selectEmptyEventsSql = 'SELECT `E`.`Id` AS `Id`, `E`.`StartDateTime`, `E`.`Archived`, `F`.`EventId` FROM `Events` AS E LEFT JOIN `Frames` AS F ON (`E`.`Id` = `F`.`EventId`)
     WHERE isnull(`F`.`EventId`) AND now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second > `E`.`StartDateTime`';
   if ( my $selectEmptyEventsSth = $dbh->prepare_cached( $selectEmptyEventsSql ) ) {
     if ( $res = $selectEmptyEventsSth->execute() ) {
@@ -711,10 +795,12 @@ if ( $level > 1 ) {
   $cleaned = 0;
   Debug('Checking for Orphaned Frames');
   my $selectOrphanedFramesSql = 'SELECT DISTINCT `EventId` FROM `Frames`
-    WHERE (SELECT COUNT(*) FROM `Events` WHERE `Events`.`Id`=`EventId`)=0';
+    WHERE (SELECT COUNT(*) FROM `Events` WHERE `Events`.`Id`=`EventId`)=0
+      AND `EventId` < ?';
   my $selectOrphanedFramesSth = $dbh->prepare_cached( $selectOrphanedFramesSql )
     or Fatal("Can't prepare '$selectOrphanedFramesSql': ".$dbh->errstr());
-  $res = $selectOrphanedFramesSth->execute()
+  # Rows under a fallback id belong to an event zmrecover.pl has yet to add
+  $res = $selectOrphanedFramesSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
     or Fatal("Can't execute: ".$selectOrphanedFramesSth->errstr());
   while( my $frame = $selectOrphanedFramesSth->fetchrow_hashref() ) {
     aud_print("Found orphaned frame records for event '$frame->{EventId}'");
@@ -731,10 +817,11 @@ if ( $level > 1 ) {
   $cleaned = 0;
   Debug('Checking for Orphaned Stats');
   my $selectOrphanedStatsSql = 'SELECT DISTINCT `EventId` FROM `Stats`
-    WHERE `EventId` NOT IN (SELECT `Id` FROM `Events`)';
+    WHERE `EventId` NOT IN (SELECT `Id` FROM `Events`)
+      AND `EventId` < ?';
   my $selectOrphanedStatsSth = $dbh->prepare_cached( $selectOrphanedStatsSql )
     or Fatal("Can't prepare '$selectOrphanedStatsSql': ".$dbh->errstr());
-  $res = $selectOrphanedStatsSth->execute()
+  $res = $selectOrphanedStatsSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
     or Fatal("Can't execute: ".$selectOrphanedStatsSth->errstr());
   while( my $stat = $selectOrphanedStatsSth->fetchrow_hashref() ) {
     aud_print("Found orphaned statistic records for event '$stat->{EventId}'");
@@ -747,88 +834,51 @@ if ( $level > 1 ) {
   redo MAIN if ( $cleaned );
 }
 
+if ( $level > 1 ) {
+# Remove orphaned event data records
+  $cleaned = 0;
+  Debug('Checking for Orphaned Event Data');
+  my $selectOrphanedEventDataSql = 'SELECT DISTINCT `EventId` FROM `Event_Data`
+    WHERE `EventId` IS NOT NULL
+      AND `EventId` NOT IN (SELECT `Id` FROM `Events`)
+      AND `EventId` < ?';
+  my $selectOrphanedEventDataSth = $dbh->prepare_cached( $selectOrphanedEventDataSql )
+    or Fatal("Can't prepare '$selectOrphanedEventDataSql': ".$dbh->errstr());
+  $res = $selectOrphanedEventDataSth->execute(ZoneMinder::Event::FALLBACK_ID_MIN())
+    or Fatal("Can't execute: ".$selectOrphanedEventDataSth->errstr());
+  while( my $event_data = $selectOrphanedEventDataSth->fetchrow_hashref() ) {
+    aud_print("Found orphaned event data records for event '$event_data->{EventId}'");
+    if ( confirm() ) {
+      $res = $deleteEventDataSth->execute( $event_data->{EventId} )
+        or Fatal("Can't execute: ".$deleteEventDataSth->errstr());
+      $cleaned = 1;
+    }
+  }
+  redo MAIN if ( $cleaned );
+}
+
 # New audit to close any events that were left open for longer than MIN_AGE seconds
   my $selectUnclosedEventsSql =
-#"SELECT E.Id, ANY_VALUE(E.MonitorId),
-#
-#max(F.TimeStamp) as EndTime,
-#unix_timestamp(max(F.TimeStamp)) - unix_timestamp(E.StartDateTime) as Length,
-#max(F.FrameId) as Frames,
-#count(if(F.Score>0,1,NULL)) as AlarmFrames,
-#sum(F.Score) as TotScore,
-#max(F.Score) as MaxScore
-#FROM Events as E
-#INNER JOIN Frames as F on E.Id = F.EventId
-#WHERE isnull(E.Frames) or isnull(E.EndTime)
-#GROUP BY E.Id HAVING EndTime < (now() - interval ".$Config{ZM_AUDIT_MIN_AGE}.' second)'
-#;
-    'SELECT *, unix_timestamp(`StartDateTime`) AS `TimeStamp` FROM `Events` WHERE `EndDateTime` IS NULL AND `StartDateTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
-
-  my $selectFrameDataSql = '
-SELECT
-  max(`TimeStamp`) AS `EndDateTime`,
-  unix_timestamp(max(`TimeStamp`)) AS `EndTimeStamp`,
-  max(`FrameId`) AS `Frames`,
-  count(if(`Score`>0,1,NULL)) AS `AlarmFrames`,
-  sum(`Score`) AS `TotScore`,
-  max(`Score`) AS `MaxScore`
-FROM `Frames` WHERE `EventId`=?';
-  my $selectFrameDataSth = $dbh->prepare_cached($selectFrameDataSql)
-    or Fatal("Can't prepare '$selectFrameDataSql': ".$dbh->errstr());
-
+    'SELECT * FROM `Events` WHERE `EndDateTime` IS NULL AND `StartDateTime` < (now() - interval '.$Config{ZM_AUDIT_MIN_AGE}.' second)'.($monitor_id?' AND MonitorId=?':'');
   my $selectUnclosedEventsSth = $dbh->prepare_cached($selectUnclosedEventsSql)
     or Fatal("Can't prepare '$selectUnclosedEventsSql': ".$dbh->errstr());
-  my $updateUnclosedEventsSql =
-    "UPDATE low_priority `Events`
-    SET `Name` = ?,
-        `EndDateTime` = ?,
-        `Length` = ?,
-        `Frames` = ?,
-        `AlarmFrames` = ?,
-        `TotScore` = ?,
-        `AvgScore` = ?,
-        `MaxScore` = ?,
-        `Notes` = concat_ws( ' ', `Notes`, ? )
-          WHERE `Id` = ?"
-          ;
-  my $updateUnclosedEventsSth = $dbh->prepare_cached( $updateUnclosedEventsSql )
-    or Fatal("Can't prepare '$updateUnclosedEventsSql': ".$dbh->errstr());
   $res = $selectUnclosedEventsSth->execute($monitor_id?$monitor_id:())
     or Fatal("Can't execute: ".$selectUnclosedEventsSth->errstr());
   while( my $event = $selectUnclosedEventsSth->fetchrow_hashref() ) {
     aud_print("Found open event '$event->{Id}' on Monitor $event->{MonitorId} at $$event{StartDateTime}");
     if ( confirm('close', 'closing') ) {
-      if ( ! ( $res = $selectFrameDataSth->execute($event->{Id}) ) ) {
-        Error("Can't execute: $selectFrameDataSql:".$selectFrameDataSth->errstr());
-        next;
-      }
-      my $frame = $selectFrameDataSth->fetchrow_hashref();
-      if ( $frame ) {
-        $frame->{EndTimeStamp} = $event->{TimeStamp} if ! $frame->{EndTimeStamp};
-        $frame->{EndDateTime} = $event->{StartDateTime} if ! $frame->{EndDateTime};
-
-        $res = $updateUnclosedEventsSth->execute(
-           sprintf('%s%d%s',
-             $Monitors{$event->{MonitorId}}->{EventPrefix},
-             $event->{Id},
-             RECOVER_TAG
-             ),
-           $frame->{EndDateTime},
-           $frame->{EndTimeStamp} - $event->{TimeStamp},
-           $frame->{Frames} // 0,
-           $frame->{AlarmFrames} // 0,
-           $frame->{TotScore} // 0,
-           $frame->{AlarmFrames} ? int($frame->{TotScore} / $frame->{AlarmFrames}) : 0,
-           $frame->{MaxScore} // 0,
-           RECOVER_TEXT,
-           $event->{Id}
-          ) or Error('Can\'t execute: '.$updateUnclosedEventsSth->errstr());
-      } else {
-        Error('SHOULD DELETE');
-      } # end if has frame data
+      my $error = ZoneMinder::Event->new($event->{Id}, $event)->Close(RECOVER_TAG, RECOVER_TEXT);
+      Error("Unable to close event $$event{Id}: $error") if $error;
     }
   } # end while unclosed event
   Debug('Done closing open events.');
+
+  $loop = $continuous;
+
+  if ( $report ) {
+    Debug('Report only, not removing old files, pruning logs or resyncing counters.');
+    last MAIN;
+  }
 
 # Now delete any old image files
   if ( my @old_files = grep { -M > $max_image_age } <$image_path/*.{jpg,gif,wbmp}> ) {
@@ -845,7 +895,10 @@ FROM `Frames` WHERE `EventId`=?';
   };
 
   # Prune the Logs table if required (excluding AUDIT entries)
-  if ( $Config{ZM_LOG_DATABASE_LIMIT} ) {
+  # A number less than or equal to zero, with or without a unit, means no limit
+  $Config{ZM_LOG_DATABASE_LIMIT} =~ s/^\s+|\s+$//g if defined $Config{ZM_LOG_DATABASE_LIMIT};
+  if ( $Config{ZM_LOG_DATABASE_LIMIT}
+    and !($Config{ZM_LOG_DATABASE_LIMIT} =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
     if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^\d+$/ ) {
       # Number of rows
@@ -889,9 +942,10 @@ FROM `Frames` WHERE `EventId`=?';
   } # end if ZM_LOG_DATABASE_LIMIT
 
   # Prune AUDIT log entries separately with their own retention period
-  if ( $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} ) {
+  my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT} // '';
+  $audit_limit =~ s/^\s+|\s+$//g;
+  if ( $audit_limit and !($audit_limit =~ /^(\S+)/ and looks_like_number($1) and $1 <= 0) ) {
     my $audit_level = ZoneMinder::Logger::AUDIT;
-    my $audit_limit = $Config{ZM_LOG_AUDIT_DATABASE_LIMIT};
     if ( $audit_limit =~ /^\d+$/ ) {
       # Number of rows
       my $sth = $dbh->prepare_cached('SELECT count(*) AS `Rows` FROM `Logs` WHERE `Level` = ?')
@@ -924,7 +978,6 @@ FROM `Frames` WHERE `EventId`=?';
       } while ( $deleted_rows );
     }
   } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
-  $loop = $continuous;
 
   # Resync Event_Summaries from ground truth in Events + bucket tables.
   #
@@ -1174,8 +1227,6 @@ FROM `Frames` WHERE `EventId`=?';
     }
     Error('zmaudit Storage DiskSpace resync did not complete') if !$storage_done;
   }
-
-  sleep($Config{ZM_AUDIT_CHECK_INTERVAL}) if $continuous;
 };
 
 Term();
@@ -1200,11 +1251,15 @@ sub confirm {
   } elsif ( $interactive ) {
     print(", $prompt Y/n/q: ");
     my $char = <>;
-    chomp($char);
-    if ( $char eq 'q' ) {
+    if ( !defined $char ) {
+      Info('No answer on stdin, exiting');
       Term();
     }
-    if ( !$char ) {
+    chomp($char);
+    if ( lc($char) eq 'q' ) {
+      Term();
+    }
+    if ( $char eq '' ) {
       $char = 'y';
     }
     $yesno = ( $char =~ /[yY]/ );
@@ -1222,16 +1277,15 @@ sub confirm {
 sub deleteSwapImage {
   my $file = $_;
 
-  return if $file =~ /^./;
+  return if $file =~ /^\./;
 
   if ( $file !~ /^zmswap-/ ) {
-    Error( "Trying to delete SwapImage that isnt a swap image $file" );
+    Debug("Not a swap image: $file");
     return;
   }
 
 # Ignore directories
   if ( -d $file ) {
-    Error( "Trying to delete a directory instead of a swap image $file" );
     return;
   }
 
@@ -1303,12 +1357,13 @@ sub time_of_youngest_file {
   Debug("stat of dir $dir is $youngest");
   foreach my $file ( readdir( DIR ) ) {
     next if $file =~ /^\./;
-    $_ = (stat($dir))[9];
+    $_ = (stat("$dir/$file"))[9];
     if ($_ and ($_ < $youngest)) {
       $youngest = $_;
       Debug("Found younger file $file at $youngest");
     }
   }
+  closedir(DIR);
   return $youngest;
 } # end sub time_of_youngest_file
 
@@ -1339,7 +1394,9 @@ yet.
  -f, --force                - Run even if pid file exists
  -i, --interactive          - Ask before applying any changes
  -m, --monitor_id           - Only consider the given monitor
+ -l, --level                - Audit level, 2 also checks for orphaned events, stats and event data
  -r, --report               - Just report don't actually do anything
+     --server_id            - Only audit the storage areas of the given server
  -s, --storage_id           - Specify a storage area to audit instead of all
  -v, --version              - Print the installed version of ZoneMinder
 

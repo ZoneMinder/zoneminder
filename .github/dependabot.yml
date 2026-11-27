@@ -4,3 +4,9 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # CodeQL refuses to run when its init/autobuild/analyze steps are on
+      # mismatched versions, so update all github/codeql-action steps in one PR.
+      codeql:
+        patterns:
+          - "github/codeql-action*"

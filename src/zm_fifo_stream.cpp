@@ -72,7 +72,9 @@ bool FifoStream::sendMJEGFrames() {
   }
   close(fd);
 
-  if ( (total_read == 0) || (frame_count%frame_mod != 0) )
+  if ( total_read == 0 )
+    return true;
+  if ( (frame_count++ % frame_mod) != 0 )
     return true;
 
   if ( fprintf(stdout,
@@ -91,7 +93,6 @@ bool FifoStream::sendMJEGFrames() {
   fprintf(stdout, "\r\n\r\n");
   fflush(stdout);
   last_frame_sent = now;
-  frame_count++;
   return true;
 }
 
@@ -159,7 +160,6 @@ void FifoStream::runStream() {
 
   while (!zm_terminate) {
     now = std::chrono::steady_clock::now();
-    checkCommandQueue();
 
     if (stream_type == MJPEG) {
       if (!sendMJEGFrames())

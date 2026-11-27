@@ -69,5 +69,5 @@ if ( !$path || $status ) {
 }
 
 Info( "Redirecting command through systemctl\n" );
-exec("$path $command zoneminder");
+exec($path, $command eq 'version' ? '--version' : ($command, 'zoneminder'));
 

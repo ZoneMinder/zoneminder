@@ -51,8 +51,12 @@ use warnings;
  
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require ZoneMinder::Control::FoscamHD;
  
-our @ISA = qw(ZoneMinder::Control);
+# FoscamHD is itself a ZoneMinder::Control.  It adds get_config, set_config and
+# set_time for the CGIProxy.fcgi settings API this camera shares with the rest
+# of the HD Foscams, and leaves the PTZ below alone.
+our @ISA = qw(ZoneMinder::Control::FoscamHD);
  
 our $VERSION = $ZoneMinder::Base::VERSION;
  
@@ -66,6 +70,7 @@ use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 use ZoneMinder::Database qw(zmDbConnect); 
 use Time::HiRes qw( usleep );
+use URI::Escape qw(uri_escape_utf8);
  
 sub new
 {
@@ -277,29 +282,35 @@ sub presetSet
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
+    # The preset arrives from the web request; it is a preset number and goes into SQL.
+    # refs GHSA-qcm7-vq92-f86f
+    if ( !defined($preset) or $preset !~ /^\d+$/ ) {
+      Error('Invalid preset for monitor '.$self->{Monitor}->{Id});
+      return;
+    }
     my $dbh = zmDbConnect(1);
-	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
-    $sth->execute();
+    my $sth = $dbh->prepare('SELECT `Label` FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset` = ?');
+    $sth->execute($self->{Monitor}->{Id}, $preset);
     my $ref = ($sth->fetchrow_hashref());
     my $label = $ref->{'Label'};
     $sth = $dbh->prepare("CREATE TABLE IF NOT EXISTS `ControlPresetNames` (`Preset` int(10) unsigned NOT NULL,`Label2` varchar(64) NOT NULL, UNIQUE KEY (`Label2`))");
     $sth->execute();    
-    $sth = $dbh->prepare("SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = $preset");  
-    $sth->execute();
+    $sth = $dbh->prepare('SELECT `Label2` FROM `ControlPresetNames` WHERE `Preset` = ?');
+    $sth->execute($preset);
     $ref = ($sth->fetchrow_hashref());
     my $label2 = $ref->{'Label2'};
     Debug( "Delete Preset $preset with name $label2 from camera" );
-    my $cmd = "CGIProxy.fcgi?cmd=ptzDeletePresetPoint&name=$label2";
+    my $cmd = "CGIProxy.fcgi?cmd=ptzDeletePresetPoint&name=".uri_escape_utf8($label2);
     $self->sendCmd( $cmd );
     Debug( "Set Preset $preset with cmd $label in camera" );
-    $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=$label";
+    $cmd = "CGIProxy.fcgi?cmd=ptzAddPresetPoint&name=".uri_escape_utf8($label);
     $self->sendCmd( $cmd );
     Debug( "Delete row Preset $preset with Label2 $label2 from db" );
-    $sth = $dbh->prepare("DELETE FROM `ControlPresetNames` WHERE `Preset` = $preset");
-    $sth->execute();
+    $sth = $dbh->prepare('DELETE FROM `ControlPresetNames` WHERE `Preset` = ?');
+    $sth->execute($preset);
     Debug( "Insert Preset $preset with cmd $label in db" );
-    $sth = $dbh->prepare("INSERT INTO `ControlPresetNames`(`Preset`, `Label2`) VALUES ('$preset','$label')");
-    $sth->execute();
+    $sth = $dbh->prepare('INSERT INTO `ControlPresetNames`(`Preset`, `Label2`) VALUES (?, ?)');
+    $sth->execute($preset, $label);
     $sth->finish();
 
 
@@ -311,14 +322,18 @@ sub presetGoto
     my $self = shift;
     my $params = shift;
     my $preset = $self->getParam( $params, 'preset' );
-	my $dbh = zmDbConnect(1);
-	my $sth = $dbh->prepare("SELECT `Label` FROM `ControlPresets` WHERE `Preset` = $preset");
-    $sth->execute();
+    if ( !defined($preset) or $preset !~ /^\d+$/ ) {
+      Error('Invalid preset for monitor '.$self->{Monitor}->{Id});
+      return;
+    }
+    my $dbh = zmDbConnect(1);
+    my $sth = $dbh->prepare('SELECT `Label` FROM `ControlPresets` WHERE `MonitorId` = ? AND `Preset` = ?');
+    $sth->execute($self->{Monitor}->{Id}, $preset);
     my $ref = ($sth->fetchrow_hashref());
     my $label = $ref->{'Label'};
     $sth->finish();
     Debug( "Goto Preset $preset with cmd $label" );
-    my $cmd = "CGIProxy.fcgi?cmd=ptzGotoPresetPoint&name=$label";
+    my $cmd = "CGIProxy.fcgi?cmd=ptzGotoPresetPoint&name=".uri_escape_utf8($label);
     $self->sendCmd( $cmd );
 }
  

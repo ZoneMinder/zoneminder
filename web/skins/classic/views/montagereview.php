@@ -92,16 +92,28 @@ if ( isset($_REQUEST['live']) && ($_REQUEST['live'] != '0') )
 if (isset($_REQUEST['current'])) {
   $defaultCurrentTime = validHtmlStr($_REQUEST['current']);
   $defaultCurrentTimeSecs = strtotime($defaultCurrentTime);
+  // An unparsable time is false, which would put the window around 1970
+  if ($defaultCurrentTimeSecs === false) unset($defaultCurrentTimeSecs);
 }
 
+// Range precedence: deprecated minTime/maxTime URL params (kept for old bookmarks)
+// -> shared zmFilter_* date cookies (persisted from the events list and from
+// montagereview navigation) -> last hour. refs #4976
 if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
   if (isset($defaultCurrentTimeSecs)) {
     $minTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs - 1800);
     $maxTime = date('Y-m-d H:i:s', $defaultCurrentTimeSecs + 1800);
   } else {
     $time = time();
-    $maxTime = date('Y-m-d H:i:s', $time);
-    $minTime = date('Y-m-d H:i:s', $time - 3600);
+    # This view always needs a window to draw, but a stored one may only be used
+    # when the request did not specify a filter. With a filter present the window
+    # is guessed from its own DateTime terms below; falling back to the stored
+    # window instead would narrow the filter the user asked for.
+    $use_stored = !isset($_REQUEST['filter']);
+    $maxTime = ($use_stored and isset($_COOKIE['zmFilter_EndDateTime']) and $_COOKIE['zmFilter_EndDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_EndDateTime']) : date('Y-m-d H:i:s', $time);
+    $minTime = ($use_stored and isset($_COOKIE['zmFilter_StartDateTime']) and $_COOKIE['zmFilter_StartDateTime'])
+      ? validHtmlStr($_COOKIE['zmFilter_StartDateTime']) : date('Y-m-d H:i:s', $time - 3600);
   }
 } else {
   if (isset($_REQUEST['minTime']))
@@ -109,6 +121,13 @@ if ( !isset($_REQUEST['minTime']) && !isset($_REQUEST['maxTime']) ) {
 
   if (isset($_REQUEST['maxTime']))
     $maxTime = validHtmlStr($_REQUEST['maxTime']);
+
+  // Only one end given: derive the other as the no-parameter default does
+  if (!isset($maxTime)) {
+    $maxTime = date('Y-m-d H:i:s', time());
+  } else if (!isset($minTime)) {
+    $minTime = date('Y-m-d H:i:s', strtotime($maxTime) - 3600);
+  }
 }
 
 // AS a special case a "all" is passed in as an extreme interval - if so, clear them here and let the database query find them
@@ -127,8 +146,10 @@ if (isset($_REQUEST['filter'])) {
 	# Try to guess min/max time from filter
 	foreach ($terms as &$term) {
     if ($term['attr'] == 'Notes') {
+      # Tag it so edits persist, but do not seed from the stored value: we are
+      # inside the branch where the request specified a filter, and that filter
+      # must not be narrowed by what was last typed in another view.
       $term['cookie'] = 'Notes';
-      if (empty($term['val']) and isset($_COOKIE['Notes'])) $term['val'] = $_COOKIE['Notes'];
     } else if ($term['attr'] == 'StartDateTime') {
 			if ($term['op'] == '<=' or $term['op'] == '<') {
 				$maxTime = $term['val'];
@@ -147,41 +168,49 @@ if (isset($_REQUEST['filter'])) {
 } else {
   $filter = new ZM\Filter();
   if (isset($_REQUEST['minTime']) && isset($_REQUEST['maxTime']) && (count($displayMonitors) != 0)) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>htmlspecialchars('DateTime<=')));
-    if (count($selected_monitor_ids)) {
-      $filter->addTerm(array('attr' => 'Monitor', 'op' => 'IN', 'val' => implode(',',$selected_monitor_ids), 'cnj' => 'and'));
-    } else if ( isset($_SESSION['GroupId']) || isset($_SESSION['ServerFilter']) || isset($_SESSION['StorageFilter']) || isset($_SESSION['StatusFilter']) ) {
-      # this should be redundant
-      for ( $i = 0; $i < count($displayMonitors); $i++ ) {
-        if ( $i == '0' ) {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'and', 'obr' => '1'));
-        } else if ( $i == (count($displayMonitors)-1) ) {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or', 'cbr' => '1'));
-        } else {
-          $filter->addTerm(array('attr' => 'MonitorId', 'op' => '=', 'val' => $displayMonitors[$i]['Id'], 'cnj' => 'or'));
-        }
-      }
-    }
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $_REQUEST['minTime'], 'obr' => '1', 'cookie'=>'zmFilter_StartDateTime'));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $_REQUEST['maxTime'], 'cnj' => 'and', 'cbr' => '1', 'cookie'=>'zmFilter_EndDateTime'));
+    // No monitor terms here. The monitor filter bar renders its own control for
+    // the selection, so repeating it as filter terms drew a second monitor
+    // selector. Neither is needed for the query: the bar has already reduced
+    // $displayMonitors, and loadEventData() asks for those ids. The MonitorId
+    // branch this replaces was marked "this should be redundant" when written.
   } # end if REQUEST[Filter]
 }
+// The range comes from the request, stored cookies or the filter's date terms, and
+// is written into the page script, so keep only what parses as a time and use its
+// canonical form. refs GHSA-qm44-862r-fmq3
+foreach (array('minTime', 'maxTime') as $rangeVar) {
+  if (isset($$rangeVar) and ($$rangeVar !== null) and ($$rangeVar !== '')) {
+    $rangeSecs = strtotime($$rangeVar);
+    $$rangeVar = ($rangeSecs === false) ? null : date('Y-m-d H:i:s', $rangeSecs);
+  }
+}
 if (!$liveMode) {
+  # Stored selections are a convenience for the default, filter-less page: a
+  # filter given in the request is authoritative and must not be widened or
+  # narrowed by them (issue #5026). Resolved here rather than in Filter, which
+  # renders whatever value it is handed and looks nothing up. Terms keep their
+  # cookie name either way so edits still persist client-side.
+  $use_stored = !isset($_REQUEST['filter']);
+  $storedArchived = ($use_stored and isset($_COOKIE['Archived'])) ? $_COOKIE['Archived'] : '';
+  $storedTags     = ($use_stored and isset($_COOKIE['eventsTags'])) ? $_COOKIE['eventsTags'] : '';
+  $storedNotes    = ($use_stored and isset($_COOKIE['eventsNotes'])) ? $_COOKIE['eventsNotes'] : '';
   if (!$filter->has_term('Archived')) {
-    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => '', 'cnj' => 'and', 'cookie'=>'Archived'));
+    $filter->addTerm(array('attr' => 'Archived', 'op' => '=', 'val' => $storedArchived, 'cnj' => 'and', 'cookie'=>'Archived'));
   }
   if (!$filter->has_term('DateTime', '>=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime>=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '>=', 'val' => $minTime, 'cnj' => 'and', 'cookie'=>'zmFilter_StartDateTime'));
   }
   if (!$filter->has_term('DateTime', '<=')) {
-    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>htmlspecialchars('DateTime<=')));
+    $filter->addTerm(array('attr' => 'DateTime', 'op' => '<=', 'val' => $maxTime, 'cnj' => 'and', 'cookie'=>'zmFilter_EndDateTime'));
   }
   if (!$filter->has_term('Tags')) {
-    $filter->addTerm(array('attr' => 'Tags', 'op' => '=',
-      'val' => (isset($_COOKIE['eventsTags']) ? $_COOKIE['eventsTags'] : ''),
+    $filter->addTerm(array('attr' => 'Tags', 'op' => '=', 'val' => $storedTags,
       'cnj' => 'and', 'cookie'=>'eventsTags'));
   }
   if (!$filter->has_term('Notes')) {
-    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>'', 'cookie'=>'eventsNotes'));
+    $filter->addTerm(array('cnj'=>'and', 'attr'=>'Notes', 'op'=> 'LIKE', 'val'=>$storedNotes, 'cookie'=>'eventsNotes'));
   }
 }
 if (count($filter->terms()) ) {
@@ -198,19 +227,21 @@ if (count($filter->terms()) ) {
 // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
 // fall back to StartDateTime + Length. Length is flushed to the DB every few
 // seconds during recording, so it reflects the actual recorded duration even
-// when zmc died. Otherwise the event would appear to extend across all the
-// down-time, suggesting recorded video that doesn't exist.
+// when zmc died. When Length is 0 too (an empty crash-orphaned event), fall
+// back to StartDateTime so the event has no span. Otherwise the event would
+// appear to extend across all the down-time, suggesting recorded video that
+// doesn't exist.
 $eventsSql = 'SELECT
   E.*, E.StartDateTime AS StartDateTime,UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
       WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
-      ELSE NOW()
+      ELSE E.StartDateTime
     END AS EndDateTime,
     CASE
       WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
       WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
-      ELSE UNIX_TIMESTAMP(NOW())
+      ELSE UNIX_TIMESTAMP(E.StartDateTime)
     END AS EndTimeSecs,
     M.Name AS MonitorName,M.DefaultScale FROM Monitors AS M INNER JOIN Events AS E on (M.Id = E.MonitorId)
   WHERE 1 > 0
@@ -220,7 +251,9 @@ $eventsSql = 'SELECT
 
 $monitor_ids_sql = '';
 if (count($user->unviewableMonitorIds())) {
-  $eventsSql .= ' AND E.MonitorId IN ('.implode(',', $user->viewableMonitorIds()).')';
+  // IN () is a syntax error, so a user who can view no monitor matches nothing
+  $viewableMonitorIds = $user->viewableMonitorIds();
+  $eventsSql .= ' AND E.MonitorId IN ('.(count($viewableMonitorIds) ? implode(',', $viewableMonitorIds) : '0').')';
 }
 if ( count($selected_monitor_ids) ) {
   $monitor_ids_sql = ' IN (' . implode(',', array_map('intval', $selected_monitor_ids)).')';
@@ -232,8 +265,8 @@ if (isset($_REQUEST['fit']))
   $fitMode = validCardinal($_REQUEST['fit']);
 
 if (isset($_REQUEST['scale'])) {
-  $defaultScale = validCardinal($_REQUEST['scale']);
-  if ($defaultScale > 1.1) $defaultScale = 1.0;
+  $defaultScale = (float)validNum($_REQUEST['scale']);
+  if ($defaultScale <= 0 or $defaultScale > 1.1) $defaultScale = 1.0;
 } else {
   $defaultScale = 1;
 }
@@ -267,8 +300,16 @@ if (isset($minTime) && isset($maxTime)) {
     $error_message .= 'Invalid minTime and maxTime specified.<br/>';
     if ($minTime > $maxTime) {
       $temp = $minTime;
-      $maxTime = $minTime;
-      $minTime = $temp;
+      $minTime = $maxTime;
+      $maxTime = $temp;
+      $terms = $filter->terms();
+      foreach ($terms as &$term) {
+        if ($term['attr'] != 'DateTime' and $term['attr'] != 'StartDateTime') continue;
+        if ($term['op'] == '>=' or $term['op'] == '>') $term['val'] = $minTime;
+        else if ($term['op'] == '<=' or $term['op'] == '<') $term['val'] = $maxTime;
+      }
+      unset($term);
+      $filter->terms($terms);
     }
   }
   $minTimeSecs = strtotime($minTime);
@@ -294,21 +335,72 @@ getBodyTopHTML();
     <input type="hidden" name="view" value="montagereview"/>
     <div id="header">
 <?php
-$filter_inline = defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline';
-$html = '';
-if (!$filter_inline) {
-  $html .= '<a class="flip" href="#"
-           data-flip-control-object="#mfbpanel"
-           data-flip-control-run-after-func="applyChosen drawGraph"
-           data-flip-control-run-after-complet-func="changeScale">
-             <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
-           </a>'.PHP_EOL;
-}
+$filter_inline = filterSettingsInline();
+// #mfbpanel holds more than the filter on this page. The scale and speed
+// sliders, the pan/zoom/period buttons, Live, Fit, Download Video and the
+// timeline are all inside it, and they stay behind when skin.js lifts the
+// filter out into the sidebar extruder. So this flip icon is the only way to
+// reach them in either mode and is rendered in both, as on montage and watch.
+$html = '<a class="flip" href="#"
+         data-flip-control-object="#mfbpanel"
+         data-flip-control-run-after-func="applyChosen drawGraph"
+         data-flip-control-run-after-complet-func="changeScale">
+           <i id="mfbflip" class="material-icons md-18" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i>
+         </a>'.PHP_EOL;
 $html .= '<div id="mfbpanel" class="'.($filter_inline ? '' : 'hidden-shift ').'container-fluid">'.PHP_EOL;
 echo $html;
-echo $filterbar;
+// The monitor attribute filters pick which cameras are shown and are rarely
+// changed once set, so they sit behind their own control instead of taking rows
+// of the filter bar. skin.js applies hidden-shift from data-initial-state-icon,
+// which moves the block off screen while leaving it measurable so Chosen still
+// initialises the selects inside it.
+//
+// The toggle is inline-only: in sidebar mode insertControlModuleMenu() moves the
+// bar's contents into the extruder, which has its own control, so the toggle
+// would be left expanding an emptied container in a panel that is now reachable.
+if ($filter_inline) {
+  echo '<a class="flip" href="#"
+           data-flip-control-object="#monitorFilterBar"
+           data-initial-state-icon="hidden"
+           data-flip-control-run-after-func="applyChosen">
+          <i class="material-icons md-18" data-icon-visible="expand_less" data-icon-hidden="expand_more"></i>
+          '.translate('MonitorFilters').'
+        </a>'.PHP_EOL;
+}
+// The container itself is rendered in both modes: it is where
+// insertControlModuleMenu() collects the attribute filters from, so dropping it
+// in sidebar mode would not move them to the sidebar, it would lose them. With
+// no toggle there to do it, it carries the class that toggle would have applied,
+// keeping the emptied container out of the visible panel.
+echo '<div id="monitorFilterBar"'.($filter_inline ? '' : ' class="hidden-shift"').'>'.
+  $resultMonitorFilters['filterBarWithoutMonitor'].'</div>'.PHP_EOL;
 if (count($filter->terms())) {
-  echo $filter->simple_widget();
+  // The monitor selection is what those attribute filters produce, so it stays
+  // on show with the event filter terms rather than collapsing with them. It is
+  // spliced into simple_widget()'s own flex row so it sits on the same line;
+  // emitted as a sibling it would take a row of its own.
+  // The monitor attribute filters above decide which monitors exist to choose
+  // between, so they are what the Monitor term should offer. Anything they
+  // exclude cannot appear in these events either. Set on the filter before
+  // asking it for a widget, rather than handed to the widget.
+  $monitor_term_options = array();
+  foreach ($resultMonitorFilters['displayMonitors'] as $m) {
+    $monitor_term_options[$m['Id']] = $m['Id'].' '.validHtmlStr($m['Name']);
+  }
+  $filter->monitor_options($monitor_term_options);
+
+  $terms_html = $filter->simple_widget();
+  $spliced = 0;
+  $terms_html = preg_replace(
+    '/(<div id="fieldsTable"[^>]*>)/',
+    '$1'.str_replace('$', '\\$', $resultMonitorFilters['monitorSelect']),
+    $terms_html, 1, $spliced);
+  echo $terms_html;
+  if (!$spliced) {
+    // simple_widget() no longer opens with that div; do not lose the control.
+    ZM\Warning('Could not place the monitor selector in the filter terms row');
+    echo '<div class="controlHeader">'.$resultMonitorFilters['monitorSelect'].'</div>';
+  }
 }
 ?>
 
@@ -341,7 +433,7 @@ if (count($filter->terms())) {
           <button type="button" id="panright"  data-on-click="click_panright"   ><?php echo translate('Pan') ?> &gt;</button>
 <?php
   if ($liveMode) {
-    if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS) { ?>
+    if (defined('ZM_FEATURES_SNAPSHOTS') and ZM_FEATURES_SNAPSHOTS and canEdit('Snapshots')) { ?>
           <button type="button" name="snapshotBtn" data-on-click-this="takeSnapshot">
             <i class="material-icons md-18">camera_enhance</i>
             &nbsp;<?php echo translate('Snapshot') ?>
@@ -350,6 +442,7 @@ if (count($filter->terms())) {
     }
   } else if (count($displayMonitors) != 0) {
 ?>
+          <button type="button" id="eventsButton" data-on-click="click_events"><?php echo translate('Events') ?></button>
           <button type="button" id="downloadVideo" data-on-click="click_download"><?php echo translate('Download Video') ?></button>
 <?php } // end if !live ?>
 <button type="button" id="collapse" data-flip-control-object="#timelinediv" data-flip-control-run-after-func="drawGraph" title="<?php echo translate('Toggle timeline visibility');?>"> <!-- OR run redrawScreen? -->
@@ -371,7 +464,7 @@ if (count($filter->terms())) {
 <?php
   // Monitor images - these had to be loaded after the monitors used were determined (after loading events)
   foreach ( $monitors as $m ) {
-    echo '<canvas title="'.$m->Id().' '.validHtmlStr($m->Name()).'" width="'.($m->Width() * $defaultScale).'" height="'.($m->Height() * $defaultScale).'" id="Monitor'.$m->Id().'" style="border:1px solid '.$m->WebColour().'" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
+    echo '<canvas title="'.$m->Id().' '.validHtmlStr($m->Name()).'" width="'.($m->Width() * $defaultScale).'" height="'.($m->Height() * $defaultScale).'" id="Monitor'.$m->Id().'" style="border:1px solid '.validHtmlStr($m->WebColour()).'" monitor_id="'.$m->Id().'">No Canvas Support!!</canvas>
 ';
   }
 ?>

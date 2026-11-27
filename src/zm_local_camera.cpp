@@ -38,15 +38,21 @@
 static unsigned int BigEndian;
 static bool primed;
 
+static int default_ioctl(int fd, unsigned long request, void *arg) {
+  return ioctl(fd, request, arg);
+}
+// Indirection so the unit tests can substitute a fake V4L2 driver
+int (*zm_v4l2_ioctl)(int, unsigned long, void *) = default_ioctl;
+
 static int vidioctl(int fd, int request, void *arg) {
   int result = -1;
   do {
-    result = ioctl(fd, request, arg);
+    result = zm_v4l2_ioctl(fd, request, arg);
   } while( result == -1 && errno == EINTR );
   return result;
 }
 
-static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
+_AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette) {
   _AVPIXELFORMAT pixFormat = AV_PIX_FMT_NONE;
 
   switch (palette) {
@@ -85,11 +91,6 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   case V4L2_PIX_FMT_YUV411P :
     pixFormat = AV_PIX_FMT_YUV411P;
     break;
-#ifdef V4L2_PIX_FMT_YUV444
-  case V4L2_PIX_FMT_YUV444 :
-    pixFormat = AV_PIX_FMT_YUV444P;
-    break;
-#endif // V4L2_PIX_FMT_YUV444
   case V4L2_PIX_FMT_YUV410 :
     pixFormat = AV_PIX_FMT_YUV410P;
     break;
@@ -113,6 +114,10 @@ static _AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int
   case V4L2_PIX_FMT_YVU410 :
   case V4L2_PIX_FMT_YVU420 :
   case V4L2_PIX_FMT_Y41P :
+  // V4L2_PIX_FMT_YUV444 is packed 16 bit xxxxyyyy uuuuvvvv, not planar YUV444P
+#ifdef V4L2_PIX_FMT_YUV444
+  case V4L2_PIX_FMT_YUV444 :
+#endif
   //case V4L2_PIX_FMT_YUV555 :
   //case V4L2_PIX_FMT_YUV565 :
   //case V4L2_PIX_FMT_YUV32 :
@@ -465,13 +470,14 @@ LocalCamera::LocalCamera(
     }
 
     imgConversionContext = sws_getContext(
-                             width, height, capturePixFormat,
-                             width, height, imagePixFormat, SWS_BICUBIC,
+                             width, height, fix_deprecated_pix_fmt(capturePixFormat),
+                             width, height, fix_deprecated_pix_fmt(imagePixFormat), SWS_BICUBIC,
                              nullptr, nullptr, nullptr);
 
     if (!imgConversionContext) {
       Fatal("Unable to initialise image scaling context");
     }
+    zm_sws_set_ranges(imgConversionContext, capturePixFormat, imagePixFormat);
   } else {
     imgConversionContext = nullptr;
   } // end if capture and conversion_tye == swscale
@@ -486,6 +492,10 @@ LocalCamera::~LocalCamera() {
     sws_freeContext(imgConversionContext);
     imgConversionContext = nullptr;
   }
+
+  // A later camera reads last_camera in its constructor, so it must not point at us.
+  if (last_camera == this)
+    last_camera = nullptr;
 
   // Decrement counters so recreated cameras get proper device_prime/channel_prime
   if (device_prime)
@@ -546,6 +556,11 @@ int LocalCamera::Initialise() {
   if (vidioctl(vid_fd, VIDIOC_ENUMINPUT, &input) < 0) {
     Error("Failed to enumerate input %d: %s", channel, strerror(errno));
     return -1;
+  }
+
+  // Select the input first: the video standard below belongs to the input
+  if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channel) < 0) {
+    Warning("Failed to select input %d: %s", channel, strerror(errno));
   }
 
   v4l2_standard enum_standard = {};
@@ -760,7 +775,7 @@ int LocalCamera::Initialise() {
   Debug(3, "Setting up data buffers: Channels %d MultiBuffer %d Buffers: %d",
         channel_count, v4l_multi_buffer, v4l2_data.reqbufs.count);
 
-  v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count];
+  v4l2_data.buffers = new V4L2MappedBuffer[v4l2_data.reqbufs.count]();
   capturePictures = new av_frame_ptr[v4l2_data.reqbufs.count];
 
   for (unsigned int i = 0; i < v4l2_data.reqbufs.count; i++) {
@@ -813,6 +828,18 @@ int LocalCamera::Initialise() {
   return 0;
 } // end LocalCamera::Initialize
 
+void LocalCamera::UnmapBuffers(V4L2MappedBuffer *buffers, unsigned int count) {
+  if (!buffers)
+    return;
+  for (unsigned int i = 0; i < count; i++) {
+    if (!buffers[i].start || buffers[i].start == MAP_FAILED)
+      continue;
+    if (munmap(buffers[i].start, buffers[i].length) < 0)
+      Error("Failed to munmap buffer %d: %s", i, strerror(errno));
+    buffers[i].start = nullptr;
+  }
+}
+
 void LocalCamera::Terminate() {
   if ( v4l_version == 2 ) {
     Debug(3, "Terminating video stream");
@@ -823,12 +850,11 @@ void LocalCamera::Terminate() {
       Error("Failed to stop capture stream: %s", strerror(errno));
 
     Debug(3, "Unmapping video buffers");
-    for ( unsigned int i = 0; i < v4l2_data.reqbufs.count; i++ ) {
-      capturePictures[i] = nullptr;
-
-      if ( munmap(v4l2_data.buffers[i].start, v4l2_data.buffers[i].length) < 0 )
-        Error("Failed to munmap buffer %d: %s", i, strerror(errno));
+    if (capturePictures) {
+      for (unsigned int i = 0; i < v4l2_data.reqbufs.count; i++)
+        capturePictures[i] = nullptr;
     }
+    UnmapBuffers(v4l2_data.buffers, v4l2_data.reqbufs.count);
 
     // Free arrays allocated in Initialise() so they can be reallocated on re-init
     delete[] v4l2_data.buffers;
@@ -1217,7 +1243,7 @@ bool LocalCamera::GetCurrentSettings(
         }
 
         if ( verbose ) {
-          output_ptr += sprintf( output,
+          output_ptr += sprintf( output_ptr,
                                  "  Input %d\n"
                                  "    Name: %s\n"
                                  "    Type: %s\n"
@@ -1273,7 +1299,7 @@ int LocalCamera::Control(int vid_id, int newvalue) {
     } else {
       Debug(1, "Control is not supported");
     }
-  } else if (newvalue >= 0) {
+  } else if (newvalue != -1) {
     vid_control.value = newvalue;
 
     /* The driver may clamp the value or return ERANGE, ignored here */
@@ -1311,6 +1337,8 @@ int LocalCamera::PrimeCapture() {
   Debug(1, "PrimeCapture: device_prime=%d, vid_fd=%d", device_prime, vid_fd);
   if (device_prime && vid_fd < 0) {
     if (Initialise() < 0) {
+      if (vid_fd >= 0)
+        Terminate();
       return -1;
     }
   }
@@ -1391,9 +1419,10 @@ int LocalCamera::PreCapture() {
 
 int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
   // We assume that the avpacket is allocated, and just needs to be filled
+  // Static: a camera sharing the channel reuses the last capture below.
   static uint8_t* buffer = nullptr;
-  int buffer_bytesused = 0;
-  int capture_frame = -1;
+  static int buffer_bytesused = 0;
+  static int capture_frame = -1;
 
   int captures_per_frame = 1;
   if (channel_count > 1)
@@ -1439,11 +1468,12 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
 
     buffer = (unsigned char *)v4l2_data.buffers[v4l2_data.bufptr->index].start;
     buffer_bytesused = v4l2_data.bufptr->bytesused;
-    bytes += buffer_bytesused;
 
     if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) > (width * height)) {
       Error("Captured image dimensions larger than image buffer: V4L2: %dx%d monitor: %dx%d",
             v4l2_data.fmt.fmt.pix.width, v4l2_data.fmt.fmt.pix.height, width, height);
+      if (vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0)
+        Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
       return -1;
     } else if ((v4l2_data.fmt.fmt.pix.width * v4l2_data.fmt.fmt.pix.height) != (width * height)) {
       Error("Captured image dimensions differ: V4L2: %dx%d monitor: %dx%d",
@@ -1455,6 +1485,8 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
       Debug(3, "Switching video source to %d", channels[next_channel]);
       if (vidioctl(vid_fd, VIDIOC_S_INPUT, &channels[next_channel]) < 0) {
         Error("Failed to set camera source %d: %s", channels[next_channel], strerror(errno));
+        if (vidioctl(vid_fd, VIDIOC_QBUF, v4l2_data.bufptr) < 0)
+          Error("Unable to requeue buffer %d: %s", v4l2_data.bufptr->index, strerror(errno));
         return -1;
       }
 
@@ -1495,7 +1527,7 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
                            tmpPicture->linesize, directbuffer,
                            imagePixFormat, width, height, 1);
 
-      sws_scale(
+      if (sws_scale(
         imgConversionContext,
         capturePictures[capture_frame]->data,
         capturePictures[capture_frame]->linesize,
@@ -1503,7 +1535,10 @@ int LocalCamera::Capture(std::shared_ptr<ZMPacket> &zm_packet) {
         height,
         tmpPicture->data,
         tmpPicture->linesize
-      );
+      ) < 0) {
+        Error("Unable to convert the captured image with sws_scale");
+        return -1;
+      }
     } else if (conversion_type == 2) {
       Debug(9, "Calling the conversion function");
       /* Call the image conversion function and convert directly into the shared memory */

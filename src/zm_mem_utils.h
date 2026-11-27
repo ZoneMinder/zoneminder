@@ -84,7 +84,7 @@ inline char *memstr(const char *s, const char *n, size_t limit) {
   unsigned int i,j,k;
   size_t n_len = strlen(n);
 
-  for ( i = 0; i < limit; i++, s++ ) {
+  for ( i = 0; i + n_len <= limit; i++, s++ ) {
     if ( *s != *n )
       continue;
     j = 1;

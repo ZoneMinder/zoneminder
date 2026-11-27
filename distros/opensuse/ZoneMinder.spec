@@ -127,11 +127,16 @@ BuildRequires:  config(udev)
 
 BuildRequires:  unzip
 BuildRequires:  update-desktop-files
-BuildRequires:  vlc-devel
 BuildRequires:  vorbis-tools
 BuildRequires:  pkgconfig(libvncclient)
 
 Requires:       apache2
+# zmc loads libavdevice at runtime, so rpm cannot detect it from the binary
+%if %{with mp_package}
+Requires:       libavdevice.so.60()(64bit)
+%else
+Requires:       libavdevice.so.58()(64bit)
+%endif
 Requires:       iproute2
 Requires:       mod_php_any
 Requires:       mysql
@@ -144,7 +149,6 @@ Requires:       perl-Crypt-Eksblowfish
 Requires:       perl-Crypt-SSLeay
 Requires:       perl-DBD-mysql
 Requires:       perl-DBI
-Requires:       perl-Data-Entropy
 Requires:       perl-Data-UUID
 Requires:       perl-Date-Manip
 Requires:       perl-IO-Socket-Multicast
@@ -157,6 +161,7 @@ Requires:       perl-SOAP-WSDL
 Requires:       perl-Sys-CPU
 Requires:       perl-Sys-MemInfo
 Requires:       perl-Sys-Mmap
+Requires:       perl-XML-LibXML
 Requires:       perl-XML-Parser
 Requires:       perl-libwww-perl
 Requires:       php

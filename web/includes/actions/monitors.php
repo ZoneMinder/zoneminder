@@ -26,6 +26,10 @@ if (!canEdit('Monitors')) {
 
 if ($action == 'save') {
   global $error_message;
+  // Fields the form left as "Unchanged" because the monitors differ
+  $newMonitor = array_filter($_REQUEST['newMonitor'], function($value) {
+    return $value !== 'unchanged';
+  });
   foreach ($_REQUEST['mids'] as $mid) {
     $mid = ValidInt($mid);
     if (!canEdit('Monitors', $mid)) {
@@ -33,16 +37,32 @@ if ($action == 'save') {
       continue;
     }
     $Monitor = new ZM\Monitor($mid);
+    // Saving a monitor that failed to load would insert a new one, and a deleted one is not edited.
+    if (!$Monitor->Id() or $Monitor->Deleted()) {
+      ZM\Warning('Monitor '.$mid.' not found');
+      $error_message .= 'Monitor '.validHtmlStr($mid).' no longer exists.<br/>';
+      continue;
+    }
+    // Before stopping it, so a refused save leaves the monitor running.
+    $refused = $Monitor->commandFieldChangesNotAllowed($newMonitor);
+    if (count($refused)) {
+      $error_message .= 'Changing '.implode(', ', $refused).' requires System edit permission.<br/>';
+      continue;
+    }
+    // The bulk form sends every field for every monitor; a monitor it changes
+    // nothing on is left alone instead of having its capture stopped and restarted.
+    if (!count($Monitor->changes($newMonitor))) continue;
     if ($Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('stop');
     }
-    if (!$Monitor->save($_REQUEST['newMonitor'])) {
+    if (!$Monitor->save($newMonitor)) {
       $error_message .= 'Error saving monitor: ' . $Monitor->get_last_error().'<br/>';
     } else {
-      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($_REQUEST['newMonitor'])));
+      ZM\AuditAction('update', 'monitor', $mid, 'Bulk update: '.implode(', ', array_keys($newMonitor)));
     }
     if ($Monitor->Capturing() != 'None' && $Monitor->Type() != 'WebSite') {
       $Monitor->zmcControl('start');
+      $Monitor->zmtrackControl('start');
     }
   } // end foreach mid
 

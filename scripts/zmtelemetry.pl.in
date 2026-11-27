@@ -39,7 +39,7 @@ use JSON::MaybeXS;
 use Encode;
 use URI;
 
-$ENV{PATH}  = '/bin:/usr/bin:/usr/local/bin';
+$ENV{PATH}  = '@ZM_SCRIPT_PATH@';
 $ENV{SHELL} = '/bin/sh' if exists $ENV{SHELL};
 delete @ENV{qw(IFS CDPATH ENV BASH_ENV)};
 
@@ -58,11 +58,11 @@ GetOptions(
   force   => \$force,
   help    => \$help,
   show    => \$show,
-  interval=> \$interval,
+  'interval=s' => \$interval,
   version => \$version,
   verbose => \$verbose,
   dry_run => \$dry_run,
-);
+) or pod2usage(-exitstatus => -1);
 
 if ($version) {
   print(ZoneMinder::Base::ZM_VERSION . "\n");
@@ -84,18 +84,25 @@ if ($show) {
   exit(0) if $dry_run;
 }
 
-if (!defined $interval) {
-  $interval = eval($Config{ZM_TELEMETRY_INTERVAL});
-}
-
-if (!($Config{ZM_TELEMETRY_DATA} or $force)) {
-  print("ZoneMinder Telemetry Agent not enabled.  Exiting.\n");
-  exit(0);
+if (defined $interval) {
+  ($interval) = $interval =~ /^([\d\s*+\-\/()]+)$/;
+  Fatal('--interval must be a number of seconds or a simple arithmetic expression') if !defined $interval;
+  $interval = eval($interval);
+  Fatal('--interval must evaluate to a positive number of seconds') if $@ or !$interval or $interval <= 0;
+} else {
+  my ($cfg_interval) = ($Config{ZM_TELEMETRY_INTERVAL} // '') =~ /^([\d\s*+\-\/()]+)$/;
+  $interval = eval($cfg_interval) if defined $cfg_interval;
+  if (!defined $cfg_interval or $@ or !$interval or $interval <= 0) {
+    Warning("Invalid ZM_TELEMETRY_INTERVAL '".($Config{ZM_TELEMETRY_INTERVAL} // '')."', falling back to 86400");
+    $interval = 86400;
+  }
 }
 
 print('ZoneMinder Telemetry Agent starting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n");
 
 my $lastCheck = $Config{ZM_TELEMETRY_LAST_UPLOAD};
+$lastCheck = 0 if !defined($lastCheck) or $lastCheck eq '';
+my $wasEnabled;
 
 while (1) {
   while ( ! ( $dbh and $dbh->ping() ) ) {
@@ -105,6 +112,18 @@ while (1) {
       sleep($interval);
     }
   }
+  # The setting can be turned off in the web UI while this daemon is running
+  # Do not exit when it is off: zmdc restarts a daemon that exits, so stay
+  # running, upload nothing and look again after the interval.
+  my $enabled = telemetryEnabled($dbh, $force);
+  if (!defined($wasEnabled) or $enabled != $wasEnabled) {
+    Info($enabled ? 'ZoneMinder Telemetry Agent enabled.' : 'ZoneMinder Telemetry Agent disabled, not uploading.');
+    $wasEnabled = $enabled;
+  }
+  if (!$enabled) {
+    sleep($interval);
+    next;
+  }
   my $now = time();
   my $since_last_check = $now - $lastCheck;
   Debug("Last Check time (now($now) - lastCheck($lastCheck)) = $since_last_check > interval($interval) or force($force)");
@@ -113,7 +132,7 @@ while (1) {
     sleep($interval);
     next;
   }
-  if ((($since_last_check) > $interval) or $force) {
+  if ((($since_last_check) >= $interval) or $force) {
     print "Collecting data to send to ZoneMinder Telemetry server.\n";
     # Build the telemetry hash
     # We should keep *BSD systems in mind when calling system commands
@@ -126,11 +145,11 @@ while (1) {
       ZoneMinder::Database::zmDbDo('UPDATE Config SET Value=? WHERE Name=?',
         $now, 'ZM_TELEMETRY_LAST_UPLOAD');
       $Config{ZM_TELEMETRY_LAST_UPLOAD} = $now;
+      $lastCheck = $now;
     }
   } elsif (-t STDIN) {
     print "ZoneMinder Telemetry Agent sleeping for $interval seconds because ($now-$lastCheck=$since_last_check > $interval\n";
   }
-  $lastCheck = $now;
   sleep($interval);
 } # end while
 print 'ZoneMinder Telemetry Agent exiting at '.strftime('%y/%m/%d %H:%M:%S', localtime())."\n";
@@ -139,6 +158,14 @@ exit(0);
 ###############
 # SUBROUTINES #
 ###############
+
+# Whether ZM_TELEMETRY_DATA is still on in the database
+sub telemetryEnabled {
+  my ($dbh, $force) = @_;
+  return 1 if $force;
+  my ($value) = $dbh->selectrow_array('SELECT `Value` FROM `Config` WHERE `Name` = ?', undef, 'ZM_TELEMETRY_DATA');
+  return $value ? 1 : 0;
+}
 
 # collect data to send
 sub collectData {
@@ -187,7 +214,7 @@ sub runSysCmd {
 sub sendData {
   my $msg = shift;
 
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   my $server_endpoint = $Config{ZM_TELEMETRY_SERVER_ENDPOINT};
 
   if ($Config{ZM_UPDATE_CHECK_PROXY}) {
@@ -244,27 +271,27 @@ sub getUUID {
 sub getGeo {
   my $unknown = 'Unknown';
   my $endpoint = 'https://ipinfo.io/geo';
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 15);
   my $req = HTTP::Request->new(GET => $endpoint);
   my $resp = $ua->request($req);
   my $resp_msg = $resp->decoded_content;
   my $resp_code = $resp->code;
 
-  if ($resp->is_success) {
-    my $content = decode_json($resp_msg);
+  my $content = $resp->is_success ? eval { decode_json($resp_msg) } : undef;
+  if ($content and $content->{loc}) {
     (my $latitude, my $longitude) = split /,/, $content->{loc};
     return ($content->{city}, $content->{region}, $content->{country}, $latitude, $longitude);
   } else {
     my $endpoint2 = 'https://api.ip2location.io';
-    my $ua2 = LWP::UserAgent->new;
+    my $ua2 = LWP::UserAgent->new(timeout => 15);
     my $req2 = HTTP::Request->new(GET => $endpoint2);
     my $resp2 = $ua2->request($req2);
     my $resp_msg2 = $resp2->decoded_content;
     my $resp_code2 = $resp2->code;
 
-    if ($resp2->is_success) {
-      my $content = decode_json($resp_msg2);
-      return ($content->{city_name}, $content->{region_name}, $content->{country_code}, $content->{latitude}, $content->{longitude});
+    my $content2 = $resp2->is_success ? eval { decode_json($resp_msg2) } : undef;
+    if ($content2) {
+      return ($content2->{city_name}, $content2->{region_name}, $content2->{country_code}, $content2->{latitude}, $content2->{longitude});
     } else {
       Warning("Geoip data retrieval returned HTTP POST error code: $resp_code2");
       Debug("Geoip data retrieval failure response message: $resp_msg2");
@@ -293,6 +320,7 @@ sub getMonitorRef {
   my $dbh = shift;
 
   my $sql = 'SELECT `Id`,`Name`,`Type`,`Capturing`,`Analysing`,`Recording`,`Width`,`Height`,`Colours`,`MaxFPS`,`AlarmMaxFPS`, `Path`,
+  `JanusEnabled`,`Go2RTCEnabled`,`RTSP2WebEnabled`,`RTSPServer`,
   (SELECT Name FROM Manufacturers WHERE Manufacturers.Id = ManufacturerId) AS Manufacturer,
   (SELECT Name FROM Models WHERE Models.Id = ModelId) AS Model
   FROM `Monitors` WHERE Deleted=false';
@@ -446,6 +474,8 @@ console under Options.
                 The value should be given in seconds, but can be an expression
                 such as 24*60*60.
  --version      Output the version of ZoneMinder.
+ --dry_run      With --show, print the data and exit without uploading it.
+ --verbose      Accepted for compatibility; it has no effect.
  
 
 =cut

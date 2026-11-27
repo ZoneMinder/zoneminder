@@ -34,8 +34,17 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require ZoneMinder::Control::FoscamHD;
 
-our @ISA = qw(ZoneMinder::Control);
+# FoscamHD is itself a ZoneMinder::Control.  It adds get_config, set_config and
+# set_time for the CGIProxy.fcgi settings API this camera shares with the rest
+# of the HD Foscams, and leaves the PTZ below alone.
+our @ISA = qw(ZoneMinder::Control::FoscamHD);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # ===================================================================================================================================
 #
 # FI9821 FOSCAM PT H264 Control Protocol
@@ -89,7 +98,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
@@ -107,7 +116,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+	my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice}, 2;
 	if ( ! $password ) {
 		$password = $user;
 		$user = 'admin';
@@ -167,6 +176,26 @@ sub moveStop
         $self->sendCmd( $cmd );
    $cmd = "setOSDSetting%26isEnableDevName%3D1";
    $self->sendCmd( $cmd );
+}
+
+# The web ui sends zoomStop, focusStop and irisStop when a continuous zoom, focus
+# or iris button is released. The camera has one stop command for the whole ptz head.
+sub zoomStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub focusStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub irisStop
+{
+   my $self = shift;
+   $self->moveStop();
 }
 
 sub autoStop
@@ -241,6 +270,7 @@ sub moveConLeft
     my $self = shift;
     my $params = shift;
     my $panspeed = $self->getParam( $params, 'panspeed' );
+    $panspeed = abs($panspeed - 4);
     # Normalisation en cas de valeur erronée dans la base de données
     if ( $panspeed > 4 ) {
             $panspeed = 4;

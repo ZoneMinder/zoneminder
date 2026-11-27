@@ -29,7 +29,7 @@
 
 .imageHeight {
 <?php
-echo 'padding-top: ' . round(100/$max_aspect_ratio, 2) . '%;';
+echo 'padding-top: ' . round(100/($max_aspect_ratio ?: 1), 2) . '%;';
 /*
 switch ( $max_aspect_ratio ) {
   case 0.56: // 1080x1920, 1520x2688
@@ -83,11 +83,11 @@ if ( $mode == 'overlay' ) {
     foreach ( array_keys($monitors) as $monitorId ) {
 ?>
 #chartPanel .activityPos<?php echo $monitorId ?> {
-    top: <?php echo $char['activityBars'][$monitorId]['top'] ?>px;
+    top: <?php echo $chart['activityBars'][$monitorId]['top'] ?>px;
 }
 
 #chartPanel .eventsPos<?php echo $monitorId ?> {
-    top: <?php echo $char['eventBars'][$monitorId]['top'] ?>px;
+    top: <?php echo $chart['eventBars'][$monitorId]['top'] ?>px;
 }
 <?php
     }

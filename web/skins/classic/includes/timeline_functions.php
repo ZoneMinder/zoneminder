@@ -21,6 +21,12 @@ function getDateScale($scales, $range, $minLines, $maxLines) {
 	return $scale;
 }
 
+// A time from the request, or null when strtotime() cannot parse it, so a garbage
+// value is ignored instead of becoming 1970.
+function validTimelineTime($time) {
+	return (is_string($time) && strtotime($time) !== false) ? $time : null;
+}
+
 function getYScale($range, $minLines, $maxLines) {
 	$scale['range'] = $range;
 	$scale['divisor'] = 1;
@@ -33,7 +39,7 @@ function getYScale($range, $minLines, $maxLines) {
 }
 
 function getSlotFrame($slot) {
-	$slotFrame = isset($slot['frame'])?$slot['frame']['FrameId']:1;
+	$slotFrame = isset($slot['frame']['FrameId'])?$slot['frame']['FrameId']:1;
   # FIXME what's with this false?
 	if ( false && $slotFrame ) {
 		$slotFrame -= $monitor['PreEventCount'];
@@ -158,7 +164,9 @@ function _extractDatetimeRange(&$node, &$minTime, &$maxTime, &$expandable, $subO
 
   if ( $node['data']['type'] == 'cnj' && $node['data']['value'] == 'or' ) {
     $subOr = true;
-  } else if ( !empty($node['left']['data']['dtAttr']) ) {
+  } else if ( !empty($node['left']['data']['dtAttr']) and
+    // Terms on the current date and time test the clock, not the event, so they do not bound the window.
+    !in_array($node['left']['data']['value'], array('CurrentDateTime', 'CurrentDate', 'CurrentTime', 'CurrentWeekday')) ) {
     if ( $subOr ) {
       $expandable = false;
     } elseif ( $node['data']['type'] == 'op' ) {

@@ -40,6 +40,10 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
 
 sub new
@@ -74,7 +78,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -95,7 +99,7 @@ sub sendCmd
     my $cmd = shift;
     my $result = undef;
 
-    my ($user, $password) = split /:/, $self->{Monitor}->{ControlDevice};
+    my ($user, $password) = split(/:/, $self->{Monitor}->{ControlDevice} // '', 2);
 
     if ( !defined $password ) {
         # If value of "Control device" does not consist of two parts, then only password is given and we fallback to default user:
@@ -105,7 +109,7 @@ sub sendCmd
 
     $cmd .= "user=$user&pwd=$password";
 
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
@@ -116,7 +120,7 @@ sub sendCmd
     }
     else
     {
-        Error( "Error check failed: '".$res->status_line()."' for URL ".$req->uri() );
+        Error( "Error check failed: '".$res->status_line()."' for URL ".urlForLog($req->uri()) );
     }
 
     return( $result );
@@ -134,6 +138,7 @@ sub moveConUp
 {
     my $self = shift;
     Debug( "Move Up" );
+    $self->{stop_command} = 1;
     $self->sendCmd( 'decoder_control.cgi?command=0&' );
 }
 
@@ -142,6 +147,7 @@ sub moveConDown
 {
     my $self = shift;
     Debug( "Move Down" );
+    $self->{stop_command} = 3;
     $self->sendCmd( 'decoder_control.cgi?command=2&' );
 }
 
@@ -150,6 +156,7 @@ sub moveConLeft
 {
     my $self = shift;
     Debug( "Move Left" );
+    $self->{stop_command} = 7;
     $self->sendCmd( 'decoder_control.cgi?command=6&' );
 }
 
@@ -158,6 +165,7 @@ sub moveConRight
 {
     my $self = shift;
     Debug( "Move Right" );
+    $self->{stop_command} = 5;
     $self->sendCmd( 'decoder_control.cgi?command=4&' );
 }
 
@@ -198,7 +206,7 @@ sub moveStop
 {
     my $self = shift;
     Debug( "Move Stop" );
-    $self->sendCmd( 'decoder_control.cgi?command=1&' );
+    $self->sendCmd( 'decoder_control.cgi?command=' . ($self->{stop_command} || 1) . '&' );
 }
 
 #Move Camera to Home Position

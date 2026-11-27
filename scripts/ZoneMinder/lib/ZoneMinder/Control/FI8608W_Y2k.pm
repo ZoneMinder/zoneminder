@@ -73,6 +73,10 @@ our @ISA = qw(ZoneMinder::Control);
 # ===================================================================================================================================
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use Time::HiRes qw( usleep );
 
 # Set $osd to "off" if you want disabled OSD i need to place this variable in another script because
@@ -84,7 +88,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{state} = 'open';
 }
@@ -105,7 +109,7 @@ sub sendCmd
     printMsg( $cmd, "Tx" );
     # I solve the authentication problem with recent Foscam
     # I use perl Basic Authentication method
-    my $ua = LWP::UserAgent->new();
+    my $ua = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     my $req = HTTP::Request->new( GET =>"http://".$self->{Monitor}->{ControlAddress}."/web/cgi-bin/hi3510/".$cmd );
     $req->authorization_basic('admin', $self->{Monitor}->{ControlDevice} );
     my $res = $self->{ua}->request($req);
@@ -131,15 +135,15 @@ sub reset
            }
    my $cmd = "param.cgi?cmd=setimageattr&-brightness=0";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-contrast=37";
+   $cmd = "param.cgi?cmd=setimageattr&-contrast=37";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-hue=255";
+   $cmd = "param.cgi?cmd=setimageattr&-hue=255";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-saturation=94";
+   $cmd = "param.cgi?cmd=setimageattr&-saturation=94";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setinfra&-status=auto";
+   $cmd = "param.cgi?cmd=setinfra&-status=auto";
    $self->sendCmd( $cmd );
-   my $cmd = "param.cgi?cmd=setimageattr&-scene=auto";
+   $cmd = "param.cgi?cmd=setimageattr&-scene=auto";
    $self->sendCmd( $cmd );
 }
 
@@ -149,8 +153,22 @@ sub moveStop
    Debug( "Move Stop" );
    my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
    $self->sendCmd( $cmd );
-        my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+        $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
         $self->sendCmd( $cmd );
+}
+
+# The web ui sends zoomStop and irisStop when a continuous zoom or iris button is
+# released. The camera has one stop command for the whole ptz head.
+sub zoomStop
+{
+   my $self = shift;
+   $self->moveStop();
+}
+
+sub irisStop
+{
+   my $self = shift;
+   $self->moveStop();
 }
 
 sub autoStop
@@ -163,7 +181,7 @@ sub autoStop
        usleep( $autostop );
        my $cmd = "ptzctrl.cgi?-step=0&-act=stop";
        $self->sendCmd( $cmd );
-       my $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
+       $cmd = "param.cgi?cmd=setoverlayattr&-region=1&-show=0&-name=.";
        $self->sendCmd( $cmd );
     }
 }
@@ -226,8 +244,6 @@ sub moveConLeft
     if ( $panspeed < 10 ) {
             $panspeed = 1;
                 }
-    # Algorithme pour inverser la table de valeur de la flèche gauche, (for invert the value) 63 ==> 1 et 1 ==> 63 ...
-    $panspeed = abs($panspeed - 128) + 1;
     Debug( "Move Left" );
     if ( $osd eq "on" )
    {
@@ -291,7 +307,7 @@ sub moveConUpLeft
     my $cmd = "ptzctrl.cgi?-step=0&-act=up";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -325,7 +341,7 @@ sub moveConUpRight
     my $cmd = "ptzctrl.cgi?-step=0&-act=up";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -359,7 +375,7 @@ sub moveConDownLeft
     my $cmd = "ptzctrl.cgi?-step=0&-act=down";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=left";
+    $cmd = "ptzctrl.cgi?-step=0&-act=left";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }
@@ -393,7 +409,7 @@ sub moveConDownRight
     my $cmd = "ptzctrl.cgi?-step=0&-act=down";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$tiltspeed) );
-    my $cmd = "ptzctrl.cgi?-step=0&-act=right";
+    $cmd = "ptzctrl.cgi?-step=0&-act=right";
     $self->sendCmd( $cmd );
     $self->autoStop( int(10000*$panspeed) );
 }

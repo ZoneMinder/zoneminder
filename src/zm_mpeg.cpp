@@ -19,10 +19,14 @@
 
 #include "zm_mpeg.h"
 
+#include "zm_image.h"
 #include "zm_logger.h"
 #include "zm_pixformat.h"
 #include "zm_rgb.h"
 #include "zm_time.h"
+
+#include <algorithm>
+#include <cstring>
 
 bool VideoStream::initialised = false;
 
@@ -124,7 +128,7 @@ int VideoStream::SetupCodec(
        of which frame timestamps are represented. for fixed-fps content,
        timebase should be 1/framerate and timestamp increments should be
        identically 1. */
-    if (frame_rate <= 0.0) {
+    if (frame_rate < 1.0) {
       Warning("Invalid frame_rate %.2f in SetupCodec, defaulting to 1fps", frame_rate);
       frame_rate = 1.0;
     }
@@ -230,6 +234,10 @@ bool VideoStream::OpenStream( ) {
                            tmp_opicture->linesize, tmp_opicture->buf[0]->data, pf,
                            codec_context->width, codec_context->height, 1);
     }
+  } else {
+    // SetupCodec found no video encoder for this format
+    Error("No video stream to open for format %s", format);
+    return false;
   } // end if ost
 
   /* open the output file, if needed */
@@ -287,7 +295,8 @@ VideoStream::VideoStream( const char *in_filename, const char *in_format, int bi
   buffer_copy_lock(new pthread_mutex_t),
   buffer_copy_size(0),
   buffer_copy_used(0),
-  packet_index(0) {
+  packet_index(0),
+  pack_context(nullptr) {
   if ( !initialised ) {
     Initialise( );
   }
@@ -338,6 +347,7 @@ VideoStream::~VideoStream( ) {
   if ( buffer_copy != nullptr ) {
     av_free( buffer_copy );
   }
+  sws_freeContext(pack_context);
 
   if ( buffer_copy_lock ) {
     if ( pthread_mutex_destroy( buffer_copy_lock ) != 0 ) {
@@ -358,22 +368,17 @@ VideoStream::~VideoStream( ) {
     av_write_trailer( ofc );
   }
 
-  /* free the streams */
-  for ( unsigned int i = 0; i < ofc->nb_streams; i++ ) {
-    av_freep( &ofc->streams[i] );
-  }
-
   if ( !(of->flags & AVFMT_NOFILE) ) {
     /* close the output file */
     avio_close( ofc->pb );
   }
 
-  /* free the stream */
-  av_free( ofc );
+  /* free the context and its streams */
+  avformat_free_context( ofc );
 
   /* free format and codec_name data. */
   if ( codec_and_format ) {
-    delete codec_and_format;
+    delete[] codec_and_format;
   }
 }
 
@@ -421,6 +426,122 @@ double VideoStream::EncodeFrame( const uint8_t *buffer, int buffer_size, bool _a
   return _timestamp;
 }
 
+bool VideoStream::PackImage(const Image &image, AVPixelFormat pf, int width, int height,
+                            std::vector<uint8_t> &out, SwsContext **context) {
+  int size = av_image_get_buffer_size(pf, width, height, 1);
+  if (size <= 0) {
+    Error("Can't size a %dx%d %s frame for the video stream", width, height, av_get_pix_fmt_name(pf));
+    return false;
+  }
+  out.resize(size);
+  uint8_t *dst_data[4];
+  int dst_linesize[4];
+  av_image_fill_arrays(dst_data, dst_linesize, out.data(), pf, width, height, 1);
+
+  // Most Images lay their rows out on a 32-byte stride, but one wrapping a
+  // caller's buffer is packed and one wrapping an AVFrame keeps the frame's
+  // stride. Map the rows with the image's own LineSize(), and never past Size().
+  uint8_t *src_data[4];
+  int src_linesize[4];
+  int src_size = -1;
+  if (av_pix_fmt_count_planes(image.PixFormat()) == 1) {
+    if (image.LineSize() >= static_cast<unsigned int>(av_image_get_linesize(image.PixFormat(), image.Width(), 0))
+        && av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
+                                image.Width(), image.Height(), 1) >= 0) {
+      src_linesize[0] = image.LineSize();
+      src_size = image.LineSize() * image.Height();
+    }
+  } else {
+    // Planar: the planes follow each other at the stride the first one implies.
+    // A narrow packed frame can have the same first-plane stride as the
+    // 32-byte layout, so the layout must also fit the image.
+    for (int align : {32, 1}) {
+      int size = av_image_fill_arrays(src_data, src_linesize, image.Buffer(), image.PixFormat(),
+                                      image.Width(), image.Height(), align);
+      if (size > 0 && static_cast<unsigned int>(src_linesize[0]) == image.LineSize()
+          && static_cast<unsigned int>(size) <= image.Size()) {
+        src_size = size;
+        break;
+      }
+    }
+  }
+  if (src_size <= 0 || static_cast<unsigned int>(src_size) > image.Size()) {
+    Error("Can't map a %ux%u %s image with stride %u and size %u for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()), image.LineSize(), image.Size());
+    return false;
+  }
+
+  // The encoder's size is set by the first frame. A frame of another shape,
+  // such as an event from a 16:9 monitor in a stream that opened on a 4:3 one,
+  // is fitted inside it rather than stretched. Even sizes and offsets keep the
+  // chroma planes of subsampled formats aligned with the luma.
+  int fit_width = width;
+  int fit_height = height;
+  if (static_cast<int64_t>(image.Width()) * height > static_cast<int64_t>(image.Height()) * width) {
+    fit_height = std::max(2, static_cast<int>(static_cast<int64_t>(image.Height()) * width / image.Width()) & ~1);
+  } else if (static_cast<int64_t>(image.Width()) * height < static_cast<int64_t>(image.Height()) * width) {
+    fit_width = std::max(2, static_cast<int>(static_cast<int64_t>(image.Width()) * height / image.Height()) & ~1);
+  }
+  fit_width = std::min(fit_width, width);
+  fit_height = std::min(fit_height, height);
+  if (fit_width != width || fit_height != height) {
+    FillBlack(pf, height, dst_data, dst_linesize);
+    const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pf);
+    int x = ((width - fit_width) / 2) & ~1;
+    int y = ((height - fit_height) / 2) & ~1;
+    for (int p = 0; p < 4 && dst_data[p]; p++) {
+      int plane_y = (desc && (p == 1 || p == 2)) ? (y >> desc->log2_chroma_h) : y;
+      dst_data[p] += plane_y * dst_linesize[p] + av_image_get_linesize(pf, x, p);
+    }
+  }
+
+  *context = sws_getCachedContext(*context, image.Width(), image.Height(), image.PixFormat(),
+                                  fit_width, fit_height, pf, SWS_BICUBIC, nullptr, nullptr, nullptr);
+  if (!*context) {
+    Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
+          fit_width, fit_height, av_get_pix_fmt_name(pf));
+    return false;
+  }
+  if (sws_scale(*context, src_data, src_linesize, 0, image.Height(), dst_data,
+                dst_linesize) < 0) {
+    Error("Can't convert %ux%u %s to %dx%d %s for the video stream",
+          image.Width(), image.Height(), av_get_pix_fmt_name(image.PixFormat()),
+          fit_width, fit_height, av_get_pix_fmt_name(pf));
+    return false;
+  }
+  return true;
+}
+
+// av_image_fill_black needs FFmpeg 4.2; ZoneMinder builds against older.
+void VideoStream::FillBlack(AVPixelFormat pf, int height, uint8_t *data[4], const int linesize[4]) {
+  const AVPixFmtDescriptor *desc = av_pix_fmt_desc_get(pf);
+  bool yuv = desc && !(desc->flags & AV_PIX_FMT_FLAG_RGB) && (desc->flags & AV_PIX_FMT_FLAG_PLANAR)
+             && desc->nb_components >= 3;
+  bool full_range = (pf == AV_PIX_FMT_YUVJ420P) || (pf == AV_PIX_FMT_YUVJ422P) || (pf == AV_PIX_FMT_YUVJ444P);
+  for (int p = 0; p < 4 && data[p]; p++) {
+    int rows = (desc && (p == 1 || p == 2)) ? AV_CEIL_RSHIFT(height, desc->log2_chroma_h) : height;
+    uint8_t value = 0;
+    if (yuv && p == 0 && !full_range) value = 16;
+    else if (yuv && (p == 1 || p == 2)) value = 128;
+    memset(data[p], value, static_cast<size_t>(linesize[p]) * rows);
+  }
+}
+
+double VideoStream::EncodeImage(const Image &image, bool p_add_timestamp, unsigned int p_timestamp) {
+  if (!PackImage(image, pf, codec_context->width, codec_context->height, packed_image, &pack_context))
+    return 0.0;
+  return EncodeFrame(packed_image.data(), packed_image.size(), p_add_timestamp, p_timestamp);
+}
+
+// A raw video packet is the picture itself, sized for the frame's own format.
+// The frame struct is not picture data, and the caller's buffer_size is for the
+// input format, which can be larger than the frame's.
+void VideoStream::SetRawPacket(AVPacket *pkt, const AVFrame *frame) {
+  pkt->data = frame->data[0];
+  pkt->size = av_image_get_buffer_size(static_cast<AVPixelFormat>(frame->format), frame->width, frame->height, 1);
+}
+
 double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size, bool add_timestamp, unsigned int timestamp ) {
   if ( codec_context->pix_fmt != pf ) {
     static struct SwsContext *img_convert_ctx = nullptr;
@@ -430,7 +551,10 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       if ( !img_convert_ctx )
         Panic( "Unable to initialise image scaling context" );
     }
-    sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize );
+    if ( sws_scale( img_convert_ctx, tmp_opicture->data, tmp_opicture->linesize, 0, codec_context->height, opicture->data, opicture->linesize ) < 0 ) {
+      Error( "Error converting frame for the video stream" );
+      return 0;
+    }
   } else {
     memcpy( opicture->data[0], buffer, buffer_size );
   }
@@ -442,8 +566,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
       codec_context->codec_id == AV_CODEC_ID_RAWVIDEO) {
     pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->stream_index = ost->index;
-    pkt->data = (uint8_t *)opicture_ptr;
-    pkt->size = buffer_size;
+    SetRawPacket(pkt, opicture_ptr);
   } else {
 #if LIBAVCODEC_VERSION_CHECK(60, 2, 0, 2, 100)
     opicture_ptr->pts = codec_context->frame_num;
@@ -481,7 +604,7 @@ double VideoStream::ActuallyEncodeFrame( const uint8_t *buffer, int buffer_size,
 int VideoStream::SendPacket(AVPacket *packet) {
   int ret = av_write_frame(ofc, packet);
   if (ret < 0) {
-    Error("Error %d while writing video frame: %s", ret, av_err2str(errno));
+    Error("Error %d while writing video frame: %s", ret, av_err2str(ret));
   }
   av_packet_unref(packet);
   return ret;

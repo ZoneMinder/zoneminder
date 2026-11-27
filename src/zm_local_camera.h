@@ -26,18 +26,24 @@
 
 #include <linux/videodev2.h>
 
+_AVPIXELFORMAT getFfPixFormatFromV4lPalette(int v4l_version, unsigned int palette);
+extern int (*zm_v4l2_ioctl)(int, unsigned long, void *);
+
 //
 // Class representing 'local' cameras, i.e. those which are
 // directly connect to the host machine and which are accessed
 // via a video interface.
 //
 class LocalCamera : public Camera {
- protected:
+ public:
   struct V4L2MappedBuffer {
     void    *start;
     size_t  length;
   };
 
+  static void UnmapBuffers(V4L2MappedBuffer *buffers, unsigned int count);
+
+ protected:
   struct V4L2Data {
     v4l2_cropcap        cropcap;
     v4l2_crop           crop;

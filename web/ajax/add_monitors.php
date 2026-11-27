@@ -1,5 +1,6 @@
 <?php
 require_once('includes/monitor_probe.php');
+require_once('includes/Group.php');
 
 $defaultMonitor = new ZM\Monitor();
 
@@ -48,7 +49,7 @@ if ( 0 ) {
             )
           );
       $new_stream = null;
-      Info('Testing connection to '.$url_bits['host'].':'.$port);
+      \ZM\Info('Testing connection to '.$url_bits['host'].':'.$port);
       if ( socket_connect( $socket, $url_bits['host'], $port ) ) {
         $new_stream = $url_bits; // make a copy
         $new_stream['port'] = $port;
@@ -62,7 +63,7 @@ if ( 0 ) {
           $new_stream['scheme'] = 'http';
         $url = unparse_url($new_stream, array('path'=>'/', 'query'=>'action=snapshot'));
         list($width, $height, $type, $attr) = getimagesize( $url );
-        ZM\Info("Got $width x $height from $url");
+        ZM\Info("Got $width x $height from ".ZM\urlForLog($url));
         $new_stream['Width'] = $width;
         $new_stream['Height'] = $height;
 
@@ -92,7 +93,7 @@ if ( 0 ) {
     $stream['url'] = unparse_url($stream, array('path'=>'/','query'=>'action=stream'));
     $monitors = ZM\Monitor::find(array('Path'=>$stream['url']));
     if ( count($monitors) ) {
-      ZM\Info('Found monitors matching ' . $stream['url'] );
+      ZM\Info('Found monitors matching ' . ZM\urlForLog($stream['url']));
       $stream['Monitor'] = $monitors[0];
       if ( isset( $stream['Width'] ) and ( $stream['Monitor']->Width() != $stream['Width'] ) ) {
         $stream['Warning'] .= 'Monitor width ('.$stream['Monitor']->Width().') and stream width ('.$stream['Width'].") do not match!\n";
@@ -123,7 +124,7 @@ if (canEdit('Monitors')) {
   case 'probe' :
   {
     $available_streams = array();
-    $url = isset($_REQUEST['url']) ? $_REQUEST['url'] : '';
+    $url = (isset($_REQUEST['url']) and is_string($_REQUEST['url'])) ? $_REQUEST['url'] : '';
     $url_bits = null;
     if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
       $url_bits = array('host'=>$url);
@@ -144,51 +145,99 @@ if (canEdit('Monitors')) {
   } // end case url_probe
   case 'import':
   {
-
+    if ( !isset($_FILES['import_file']) ) {
+      ajaxError('No file was uploaded.');
+      return;
+    }
     $file = $_FILES['import_file'];
 
     if ( $file['error'] > 0 ) {
-      ajaxError($file['error']);
+      ajaxError('File upload failed with error code '.$file['error']);
       return;
-    } else {
-      $filename = $file['name'];
-
-      $available_streams = array();
-      $row = 1;
-      if ( ($handle = fopen($file['tmp_name'], 'r')) !== FALSE ) {
-        while ( ($data = fgetcsv($handle, 1000, ',')) !== FALSE ) {
-          $name = $data[0];
-          $url = $data[1];
-          $group = $data[2];
-          ZM\Info("Have the following line data $name $url $group");
-
-          $url_bits = null;
-          if ( preg_match('/(\d+)\.(\d+)\.(\d+)\.(\d+)/', $url) ) {
-            $url_bits = array('host'=>$url, 'scheme'=>'http');
-          } else {
-            $url_bits = parse_url($url);
-          }
-          if ( ! $url_bits ) {
-            ZM\Info("Bad url, skipping line $name $url $group");
-            continue;
-          }
-
-          $available_streams += probe($url_bits);
-
-          //$url_bits['url'] = unparse_url( $url_bits );
-          //$url_bits['Monitor'] = $defaultMonitor;
-          //$url_bits['Monitor']->Name( $name );
-          //$url_bits['Monitor']->merge( $_POST['newMonitor'] );
-          //$available_streams[] = $url_bits;
-
-        } // end while rows
-        fclose($handle);
-        ajaxResponse(array('Streams'=>$available_streams));
-      } else {
-        ajaxError('Uploaded file does not exist');
-        return;
-      }
     }
+    if ( !is_uploaded_file($file['tmp_name']) ) {
+      ajaxError('Uploaded file does not exist');
+      return;
+    }
+
+    if ( ($handle = fopen($file['tmp_name'], 'r')) === FALSE ) {
+      ajaxError('Unable to open uploaded file');
+      return;
+    }
+
+    // Spreadsheets write UTF-8 CSV with a byte order mark that would stick to the first header cell
+    if ( fread($handle, 3) !== "\xEF\xBB\xBF" ) rewind($handle);
+
+    $available_streams = array();
+    $row = 0;
+    while ( ($data = fgetcsv($handle, 0, ',')) !== FALSE ) {
+      $row ++;
+      if ( count($data) < 2 ) {
+        ZM\Info("Skipping line $row, expected at least Name,URL columns");
+        continue;
+      }
+      $name = trim($data[0]);
+      $url = trim($data[1]);
+      $group = isset($data[2]) ? trim($data[2]) : '';
+
+      // Skip an optional header row (Name,URL,Group)
+      if ( $row == 1 and !strcasecmp($name, 'Name') and !strcasecmp($url, 'URL') ) {
+        ZM\Debug('Skipping header row');
+        continue;
+      }
+      if ( $url === '' ) {
+        ZM\Info("Skipping line $row, no URL");
+        continue;
+      }
+      ZM\Info("Importing line $row: $name ".ZM\urlForLog($url)." $group");
+
+      $url_bits = parse_url($url);
+      $host = ($url_bits and isset($url_bits['host'])) ? $url_bits['host'] : '';
+
+      # If a monitor already exists for this url, offer to edit it instead of adding a duplicate.
+      $monitor = null;
+      $existing = ZM\Monitor::find(array('Path'=>$url, 'Deleted'=>0));
+      # Only offer a monitor the user may edit: the response carries its settings.
+      foreach ( $existing as $candidate ) {
+        if ( canEdit('Monitors', $candidate->Id()) ) {
+          $monitor = $candidate;
+          break;
+        }
+      }
+
+      $monitor_fields = array(
+        'Type' => 'Ffmpeg',
+        'Path' => $url,
+        'Name' => $name,
+      );
+      if ( $group !== '' ) {
+        $existing_group = ZM\Group::find_one(array('Name'=>$group));
+        if ( $existing_group ) {
+          $monitor_fields['GroupIds'] = $existing_group->Id();
+        } else {
+          ZM\Info("Line $row: no group named $group, not adding the monitor to a group");
+        }
+      }
+
+      $available_streams[] = array(
+        'mac'         => '',
+        'description' => $name.' - '.$url,
+        'url'         => $url,
+        'IP'          => $host,
+        'Group'       => $group,
+        'camera'      => array(
+          'Name'         => $name,
+          'ip'           => $host,
+          'Manufacturer' => '',
+          'Model'        => '',
+          'monitor'      => $monitor_fields,
+        ),
+        'Monitor'     => $monitor,
+      );
+    } // end while rows
+    fclose($handle);
+
+    ajaxResponse(array('Streams'=>$available_streams));
     break;
   } // end case import
   default:

@@ -43,8 +43,13 @@ use warnings;
 
 require ZoneMinder::Base;
 require ZoneMinder::Control;
+require ZoneMinder::Control::FoscamHD;
 
-our @ISA = qw(ZoneMinder::Control);
+# FoscamHD is itself a ZoneMinder::Control.  It adds get_config, set_config and
+# set_time for the CGIProxy.fcgi settings API this camera shares with the rest
+# of the HD Foscams, and leaves the PTZ below alone.
+our @ISA = qw(ZoneMinder::Control::FoscamHD);
+
 # ===================================================================================================================================
 #
 # FI9821 FOSCAM PT H264 Control Protocol
@@ -62,6 +67,10 @@ our @ISA = qw(ZoneMinder::Control);
 # ===================================================================================================================================
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use Time::HiRes qw( usleep );
 
 # Set $osd to "off" if you want disabled OSD i need to place this variable in another script because
@@ -102,7 +111,7 @@ sub open
     my $self = shift;
     $self->loadMonitor();
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     #PP
     #$self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
     $self->{ua}->agent( "ZoneMinder Control Agent/" );
@@ -128,7 +137,7 @@ sub sendCmd
     my $self = shift;
     my $cmd = shift;
     my $result = undef;
-    printMsg( $cmd, "Tx" );
+    $self->printMsg( $cmd, "Tx" );
     my $temps = time();
     #PP - cleaned this up so it picks up the full auth from Control Devices
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/cgi-bin/CGIProxy.fcgi?cmd=".$cmd."&".$self->{Monitor}->{ControlDevice} );
@@ -253,6 +262,7 @@ sub moveConLeft
     my $self = shift;
     my $params = shift;
     my $panspeed = $self->getParam( $params, 'panspeed' );
+    $panspeed = abs($panspeed - 4);
     # Normalisation en cas de valeur erronée dans la base de données
     if ( $panspeed > 4 ) {
             $panspeed = 4;
@@ -714,6 +724,14 @@ sub presetGoto
                         $cmd = "ptzGotoPresetPoint%26name%3D$preset";
                         $self->sendCmd( $cmd );
                        }
+}
+
+sub presetHome
+{
+    my $self = shift;
+    Debug( "Home Preset" );
+    my $cmd = "ptzReset";
+    $self->sendCmd( $cmd );
 }
 
 1;

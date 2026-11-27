@@ -20,6 +20,7 @@ if (canEdit('System')) {
 <?php
 }
 ?>
+</div>
 <div class="service"><h2><?php echo translate('Service') ?></h2>
 <?php 
 if (!file_exists('/usr/sbin/dnsmasq')) {
@@ -51,19 +52,19 @@ $dnsmasq_config = [
 if (defined('ZM_PATH_DNSMASQ_CONF') and file_exists(ZM_PATH_DNSMASQ_CONF)) {
   $dnsmasq_config = array_merge($dnsmasq_config, process_dnsmasq_configfile(ZM_PATH_DNSMASQ_CONF));
 } else {
-  ZM\Debug("Either not defined or does not exist ".ZM_PATH_DNSMASQ_CONF);
+  ZM\Debug('Either not defined or does not exist '.(defined('ZM_PATH_DNSMASQ_CONF') ? ZM_PATH_DNSMASQ_CONF : 'ZM_PATH_DNSMASQ_CONF'));
 }
 
 foreach ($dnsmasq_config as $name=>$value) {
   if ($name == 'interface') {
     $interfaces = get_networks();
-    $default_interface = $interfaces['default'];
+    $default_interface = isset($interfaces['default']) ? $interfaces['default'] : '';
     unset($interfaces['default']);
 
     echo '<div class="row"><label class="form-label" for="interface">'.translate('Interface').'</label>'.PHP_EOL.
       '<span class="value">'.
       htmlSelect('config[interface]', $interfaces,
-        (isset($dnsmasq_config['interface']) ? $dnsmasq_config['interface'] : $default_interface),
+        (!empty($dnsmasq_config['interface']) ? $dnsmasq_config['interface'] : $default_interface),
         ['data-on-change-this'=>'interface_onchange'],
       ).'</span></div>'.PHP_EOL;
   } else if ($name == 'bind-interfaces') {
@@ -77,7 +78,7 @@ foreach ($dnsmasq_config as $name=>$value) {
       html_radio('config[dhcp-authoritative]', ['yes'=>translate('Yes'), 'no'=>translate('No')], $dnsmasq_config[$name], ['default'=>'yes']).
       '</span></div>'.PHP_EOL;
   } else if ($name == 'dhcp-range') {
-    $values = explode(',', $value);
+    $values = array_pad(explode(',', $value), 3, '');
 
     echo '<div class="row"><label class="form-label" for="dhcp-range"> '.translate('DHCP Range').'</label><span class="value">';
     echo '<input type="text" name="config[dhcp-range][min]" value="'.$values[0].'"/>';
@@ -93,7 +94,7 @@ foreach ($dnsmasq_config as $name=>$value) {
     # Handled below
   } else {
     echo '<div class="row"><label class="form-label">'.$name.'</label><span class="value">'.PHP_EOL;
-    echo '<input type="text" name="dnsmasq_config['.validHtmlStr($name).']" value="'.validHtmlStr($value).'"/></span></div>'.PHP_EOL;
+    echo '<input type="text" name="config['.validHtmlStr($name).']" value="'.validHtmlStr($value).'"/></span></div>'.PHP_EOL;
   }
 }
 ?>
@@ -106,7 +107,7 @@ function process_dnsmasq_configfile($configFile) {
   if (is_readable($configFile)) {
     $cfg = fopen($configFile, 'r') or ZM\Error('Could not open config file: '.$configFile);
     while ( !feof($cfg) ) {
-      $str = fgets($cfg, 256);
+      $str = fgets($cfg);
       if ( preg_match('/^\s*(#.*)?$/', $str) ) {
         continue;
       //} else if ( preg_match('/^\s*([^=\s]+)\s*(=\s*option:[^=\s]+)?(=\s*[\'"]*(.*?)[\'"]*\s*)?$/', $str, $matches) ) {
@@ -114,15 +115,23 @@ function process_dnsmasq_configfile($configFile) {
       else if ( preg_match('/^\s*([^=\s]+)\s*=?(.*)$/', $str, $matches) ) {
 	      ZM\Debug(print_r($matches, true));
         $name = $matches[1];
-        $value = isset($matches[2]) ? $matches[2] : 'yes';
+        $value = trim($matches[2]);
 
         if ($name == 'dhcp-option') {
           # these can be arrays
           if (!isset($our_configvals[$name])) {
             $our_configvals[$name] = [];
           }
-          $option = explode(',', $value);
-          $our_configvals[$name][$option[0]] = $option[1];
+          $option = explode(',', $value, 2);
+          $our_configvals[$name][$option[0]] = isset($option[1]) ? $option[1] : '';
+        } else if ($name == 'dhcp-host') {
+          # Reservations as this page writes them: dhcp-host=<mac>,<ip>
+          if (!isset($our_configvals[$name])) {
+            $our_configvals[$name] = [];
+          }
+          if (preg_match('/^([0-9a-f]{2}(?::[0-9a-f]{2}){5}),(\d{1,3}(?:\.\d{1,3}){3})$/i', $value, $host)) {
+            $our_configvals[$name][strtolower($host[1])] = $host[2];
+          }
         } else {
           $our_configvals[$name] = $value;
         }
@@ -135,6 +144,39 @@ function process_dnsmasq_configfile($configFile) {
     ZM\Error('WARNING: dnsmasq configuration file found but is not readable. Check file permissions on '.$configFile);
   }
   return $our_configvals;
+}
+
+function dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter) {
+  # The name comes from the DHCP client, so it and the other lease fields are escaped.
+  $name = validHtmlStr($lease['name']);
+  $mac = validHtmlStr($lease['mac']);
+  $ip = validHtmlStr($lease['ip']);
+  return '
+<tr>
+  <td class="hostname">'.$name.'</td>
+  <td class="mac">'.$mac.'</td>
+  <td class="ip"><input type="text" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" name="config[dhcp-host]['.$mac.']" value="'.$ip.'"/></td>
+  <td class="expiry">'.($lease['expiry'] == 0 ? translate('Never') : $dateTimeFormatter->format((int)$lease['expiry'])).'</td>
+  <td class="Monitor">'.(isset($monitors_by_ip[$lease['ip']]) ? $monitors_by_ip[$lease['ip']]->link_to() : '').'</td>
+</tr>';
+}
+
+# A saved reservation is only posted back if it has a row. A host that is not
+# in the leases file at the moment would otherwise lose its reservation on Save.
+function dnsmasq_host_rows($leases, $reserved, $monitors_by_ip, $dateTimeFormatter) {
+  $html = '';
+  foreach ($leases as $lease) {
+    $mac = strtolower($lease['mac']);
+    if (isset($reserved[$mac])) {
+      $lease['ip'] = $reserved[$mac];
+      unset($reserved[$mac]);
+    }
+    $html .= dnsmasq_lease_row($lease, $monitors_by_ip, $dateTimeFormatter);
+  }
+  foreach ($reserved as $mac => $ip) {
+    $html .= dnsmasq_lease_row(['name'=>'', 'mac'=>$mac, 'ip'=>$ip, 'expiry'=>0, 'id'=>''], $monitors_by_ip, $dateTimeFormatter);
+  }
+  return $html;
 }
 
 function read_leasefile($file) {
@@ -172,32 +214,23 @@ function read_leasefile($file) {
   <tbody>
 <?php
 $monitors_by_ip = array();
-foreach (ZM\Monitor::find(['Type'=>'Remote']) as $monitor) {
+foreach (ZM\Monitor::find(['Type'=>'Remote', 'Deleted'=>0]) as $monitor) {
   if (preg_match('/^(.+)@(.+)$/', $monitor->Host(), $matches)) {
     $monitors_by_ip[gethostbyname($matches[2])] = $monitor;
   } else {
     $monitors_by_ip[gethostbyname($monitor->Host())] = $monitor;
   }
 }
-foreach (ZM\Monitor::find(['Type'=>'Ffmpeg']) as $monitor) {
+foreach (ZM\Monitor::find(['Type'=>'Ffmpeg', 'Deleted'=>0]) as $monitor) {
   $url_parts = parse_url($monitor->Path());
-  if ($url_parts !== false) {
+  if ($url_parts !== false and isset($url_parts['host'])) {
     $monitors_by_ip[gethostbyname($url_parts['host'])] = $monitor;
   } else {
-    ZM\Debug('Unable to parse '.$monitor->Path());
+    ZM\Debug('Unable to parse '.ZM\urlForLog($monitor->Path()));
   }
 }
 $leases = read_leasefile('/var/lib/misc/dnsmasq.leases');
-foreach ($leases as $lease) {
-  echo '
-<tr>
-  <td class="hostname">'.$lease['name'].'</td>
-  <td class="mac">'.$lease['mac'].'</td>
-  <td class="ip"><input type="text" pattern="\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}" name="config[dhcp-host]['.$lease['mac'].']" value="'.$lease['ip'].'"/></td>
-  <td class="expiry">'.$dateTimeFormatter->format($lease['expiry']).'</td>
-  <td class="Monitor">'.(isset($monitors_by_ip[$lease['ip']]) ? $monitors_by_ip[$lease['ip']]->link_to() : '').'</td>
-</tr>';
-} # end foreach
+echo dnsmasq_host_rows($leases, isset($dnsmasq_config['dhcp-host']) ? $dnsmasq_config['dhcp-host'] : [], $monitors_by_ip, $dateTimeFormatter);
 ?>
   </tbody>
 </table>

@@ -135,6 +135,10 @@ label {
     margin: 0 4px;
 }
 
+label.radio-inline, [data-on-click]:not([data-on-click=""]) {
+    cursor: pointer;
+}
+
 button {
   line-height: 18.5px;
 }
@@ -144,6 +148,10 @@ button.btn {
   line-height: 1;
   font-size: 18px;
   margin-bottom: 3px;
+}
+
+#toolbar>button {
+  align-self: flex-start;
 }
 
 #toolbar .btn-normal,
@@ -369,6 +377,15 @@ body.sticky #content {
   font-weight: bold;
   background-color: white;
   color: #ff3f34;
+}
+
+/* Refers to the success/info box at the top of the web UI */
+#info {
+  width: 100%;
+  padding: 5px;
+  font-weight: bold;
+  background-color: white;
+  color: #0fb9b1;
 }
 
 .timedErrorBox {
@@ -728,9 +745,27 @@ input[type=submit]:disabled,
     padding-left: 0.5rem;
   }
 }
+/*
+ * renderMenuIcon() emits the material default of 24px, which makes every top
+ * navbar item 40px tall against the 36px the bar was before it had icons, and
+ * wide enough that the collapse toggle wraps onto a row of its own.  18px
+ * matches the statistics bar below and puts the row back where it was.
+ */
+#navbar-one .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+}
+#navbar-one .nav-link > .material-icons {
+  font-size: 18px;
+  line-height: 18px;
+}
+
 #getHeaderFlipHTML a {
   display: block;
-  padding: .5rem 1rem;
+  padding: .5rem;
 }
 
 .navbar-btn {
@@ -1089,10 +1124,11 @@ a.flip {
 .tags-container {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   border: 1px solid var(--gray);
   border-radius: 4px;
   /*min-height: 35px;*/
-  margin: 0.25rem 1rem 0.25rem 1rem;
+  margin: 0 0 0.5rem 0;
 }
 
 .tags-container button {
@@ -1106,7 +1142,6 @@ a.flip {
 
 .tags-container button:last-child {
   margin-right: 0;
-  border-right: none
 }
 
 .tag {
@@ -1131,6 +1166,8 @@ a.flip {
   height: 100%;
   border: none;
   width: 100%;
+  min-width: 0;
+  background: transparent;
 }
 
 .tag-input:focus {
@@ -1140,14 +1177,20 @@ a.flip {
 .tag-dropdown {
   vertical-align: center;
   display: inline-block;
+  position: relative;
   flex-grow: 2;
+  min-width: 4em;
 }
 
 .tag-dropdown-content {
   display: none;
   position: absolute;
+  top: 100%;
+  left: 0;
   background-color: #f9f9f9;
-  min-width: 160px;
+  min-width: 100%;
+  width: max-content;
+  max-width: 300px;
   box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 15;
   padding: 4px 0;
@@ -1576,6 +1619,10 @@ audio-motion, audio-motion canvas {
   width: 100%;
 }
 
+audio-motion canvas { /* Prevent the background from disappearing when stream playback is paused and the browser window is resized in Chromium. Relevant for Event pages. */
+  background-color: #34495e;
+}
+
 .imageFeed[data-not-display-video="true"], .imageFeed[data-not-display-video="true"] video-stream, .imageFeed[data-not-display-video="true"] video, /* monitor */
 *[id^="videoFeedStream"][data-not-display-video="true"] video { /* event */
   max-width:25px !important; /* Otherwise, the stream will not start playing, especially for RTSP2Web-MSE. You can't set it below 21px, as we have an analysis of 20px as a starting point for playback. */
@@ -1772,6 +1819,64 @@ input.masked-input.unmasked {
   -webkit-text-security: none;
 }
 
+.fa.slash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #ddddddaa calc(50% - 1.0px),
+    #888888 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.fa.slash:hover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom right,
+    transparent calc(50% - 3.0px),
+    #212529aa calc(50% - 1.0px),
+    #939393 calc(50% + 1.0px),
+    transparent calc(50% + 3.0px)
+  );
+  margin: 0.5em;
+}
+
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background-color: #FAFAFA;
+  border: 1px solid #D3D3D3;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px #F0F0F0, 0 3px 6px -5px #BBB;
+  overflow: hidden;
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background-image: linear-gradient(90deg, var(--colorBackgroundButtons), var(--colorBackgroundButtons));
+  border-radius: 4px;
+  transition: width 0.3s ease-in-out;
+}
+
+.modal-backdrop.show ~ .modal-backdrop.show{
+  opacity : 0;
+}
+
+.info-text {
+  position: relative;
+  display: block;
+  z-index: 10001;
+  color: #212529;
+  background-color: beige;
+}
+
 /* +++ This block should always be located at the end! */
 .hidden {
     display: none;
@@ -1804,3 +1909,45 @@ input.masked-input.unmasked {
   display: none;
 }
 /* --- This block should always be located at the end! */
+
+/*
+ * Log panel (skins/classic/includes/logpanel.php).  Shared by the Log view and
+ * by any view that embeds a panel of its own, so it lives here rather than in a
+ * per-view sheet.
+ */
+.logPanel-summary {
+  margin: 4px auto 0;
+}
+.logPanel th[data-field="DateTime"],
+.logPanel th[data-field="Component"],
+.logPanel th[data-field="Code"],
+.logPanel th[data-field="Message"],
+.logPanel th[data-field="File"],
+.logPanel th[data-field="Server"],
+.logPanel th[data-field="Line"] {
+  text-align: left;
+}
+.logPanel th[data-field="DateTime"] {
+  min-width: 135px;
+}
+.logPanel .search .form-control {
+  font-size: 100%;
+}
+.logPanel .bootstrap-table .fixed-table-container .table td,
+.logPanel .bootstrap-table .fixed-table-container .table th {
+  vertical-align: top!important;
+}
+.logPanel tr.log-fat td {
+  background-color: #ffcccc;
+  font-weight: bold;
+}
+.logPanel tr.log-err td {
+  background-color: #ffcccc;
+}
+.logPanel tr.log-war td {
+  background-color: #ffe4b5;
+}
+.logPanel tr.log-dbg td {
+  color: #666666;
+  font-style: italic;
+}

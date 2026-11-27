@@ -41,6 +41,10 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::General qw(:all);
 
 use Time::HiRes qw( usleep );
@@ -68,9 +72,9 @@ sub open {
       and
     $self->{Monitor}{ControlAddress} ne 'user:port@ip'
   ) {
-    Debug("Using ControlAddress for credentials: $self->{Monitor}{ControlAddress}");
+    Debug('Using ControlAddress for credentials: '.urlForLog($self->{Monitor}{ControlAddress}));
 
-    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@?(?<ADDRESS>.*)$/)) {
+    if (($self->{Monitor}->{ControlAddress} =~ /^(?<PROTOCOL>https?:\/\/)?(?:(?<USERNAME>[^:@]*)(?::(?<PASSWORD>.*))?@)?(?<ADDRESS>[^@\n]*)$/)) {
       $PROTOCOL = $+{PROTOCOL} if $+{PROTOCOL};
       $USERNAME = $+{USERNAME} if $+{USERNAME};
       $PASSWORD = $+{PASSWORD} if $+{PASSWORD};
@@ -78,27 +82,30 @@ sub open {
     }
   } elsif ( $self->{Monitor}{Path}) {
     my $uri = URI->new($self->{Monitor}{Path});
-    Debug("Using Path for credentials: $self->{Monitor}{Path} $self->{Monitor}{User} $self->{Monitor}{Pass}");
+    Debug('Using Path for credentials: '.urlForLog($self->{Monitor}{Path}).' '.($self->{Monitor}{User} // ''));
     if ($self->{Monitor}{User}) {
       ( $USERNAME, $PASSWORD ) = ($self->{Monitor}{User}, $self->{Monitor}{Pass});
     } else {
-      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo()) if $uri->userinfo();
+      ( $USERNAME, $PASSWORD ) = split(/:/, $uri->userinfo(), 2) if $uri->userinfo();
     }
 
     $ADDRESS = $uri->host();
+    # URI returns an IPv6 host without the brackets a URL needs.
+    $ADDRESS = '['.$ADDRESS.']' if $ADDRESS =~ /:/;
   } else {
-    Error('Failed to parse auth from address ' . $self->{Monitor}->{ControlAddress});
+    Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
-  if ( !($ADDRESS =~ /:/) ) {
-    Debug('You generally need to also specify the port.  I will append :80');
-    $ADDRESS .= ':80';
+  if ( !($ADDRESS =~ /:/) or $ADDRESS =~ /^\[[^\]]*\]$/ ) {
+    my $port = ($PROTOCOL eq 'https://') ? '443' : '80';
+    Debug('You generally need to also specify the port.  I will append :'.$port);
+    $ADDRESS .= ':'.$port;
   }
   $BASE_URL = $PROTOCOL.($USERNAME?$USERNAME.':'.$PASSWORD.'@':'').$ADDRESS;
-  Debug("Base url: $BASE_URL");
+  Debug('Base url: '.urlForLog($BASE_URL));
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent( 'ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION );
   $self->{state} = 'open';
 
@@ -155,48 +162,60 @@ sub close {
 sub get {
   my $self = shift;
   my $url = shift;
-  Debug("Getting $url");
+  Debug('Getting '.urlForLog($url));
   my $response = $self->{ua}->get($url);
   Debug('Response: '. $response->status_line . ' ' . $response->content);
   return $response;
 }
 
+sub _clamp_speed {
+  my $val = shift;
+  return 0 unless defined $val;
+  return -5 if $val < -5;
+  return 5 if $val > 5;
+  return $val;
+}
+
 sub sendCmd {
   my ($self, $cmd, $speedcmd) = @_;
 
-  $self->printMsg( $speedcmd, 'Tx' );
+  $self->printMsg( $speedcmd, 'Tx' ) if defined $speedcmd;
   $self->printMsg( $cmd, 'Tx' );
 
-  my $req = HTTP::Request->new( GET => $BASE_URL."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0&$speedcmd&$cmd");
+  my $req = HTTP::Request->new( GET => $BASE_URL."/cgi-bin/camctrl/eCamCtrl.cgi?stream=0" . (defined $speedcmd && $speedcmd ne '' ? "&$speedcmd" : '') . "&$cmd");
   my $res = $self->{ua}->request($req);
 
   if (!$res->is_success) {
-    Error('Request failed: '.$res->status_line().' (URI: '.$req->as_string().')');
+    Error('Request failed: '.$res->status_line().' (URI: '.urlForLog($req->uri()).')');
   }
   return $res->is_success;
 }
 
 sub moveConUp {
   my ($self, $params) = @_;
-  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  my $val = defined($params->{tiltspeed}) ? $params->{tiltspeed} - 6 : -5;
+  my $speed = 'speedtilt=' . _clamp_speed($val);
   $self->sendCmd( 'move=up', $speed );
 }
 
 sub moveConDown {
   my ($self, $params) = @_;
-  my $speed = 'speedtilt=' . ($params->{tiltspeed} - 6);
+  my $val = defined($params->{tiltspeed}) ? $params->{tiltspeed} - 6 : -5;
+  my $speed = 'speedtilt=' . _clamp_speed($val);
   $self->sendCmd( 'move=down', $speed );
 }
 
 sub moveConLeft {
   my ($self, $params) = @_;
-  my $speed = 'speedpan=-' . $params->{panspeed};
+  my $val = defined($params->{panspeed}) ? $params->{panspeed} - 6 : -5;
+  my $speed = 'speedpan=' . _clamp_speed($val);
   $self->sendCmd( 'move=left', $speed );
 }
 
 sub moveConRight {
   my ($self, $params) = @_;
-  my $speed = 'speedpan=' . ($params->{panspeed} - 6);
+  my $val = defined($params->{panspeed}) ? $params->{panspeed} - 6 : -5;
+  my $speed = 'speedpan=' . _clamp_speed($val);
   $self->sendCmd( 'move=right', $speed );
 }
 
@@ -206,15 +225,23 @@ sub moveStop {
   # not implemented
 }
 
+# The web ui sends zoomStop when a continuous zoom button is released.
+sub zoomStop {
+  my $self = shift;
+  Debug( "Zoom Stop: not implemented" );
+}
+
 sub zoomConTele {
   my ($self, $params) = @_;
-  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  my $val = defined($params->{speed}) ? $params->{speed} - 6 : -5;
+  my $speed = 'speedzoom=' . _clamp_speed($val);
   $self->sendCmd( 'zoom=tele', $speed );
 }
 
 sub zoomConWide {
   my ($self, $params) = @_;
-  my $speed = 'speedzoom=' . ($params->{speed} - 6);
+  my $val = defined($params->{speed}) ? $params->{speed} - 6 : -5;
+  my $speed = 'speedzoom=' . _clamp_speed($val);
   $self->sendCmd( 'zoom=wide', $speed );
 }
 
@@ -233,7 +260,7 @@ sub get_config {
     my $resp = $response->decoded_content;
     return ZoneMinder::General::parseNameEqualsValueToHash($resp);
   }
-  Warning("Failed to get config from $url: " . $response->status_line());
+  Warning('Failed to get config from '.urlForLog($url).': ' . $response->status_line());
   return;
 } # end sub get_config
 

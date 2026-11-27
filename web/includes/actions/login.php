@@ -26,9 +26,11 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   // if captcha existed, it was passed
 
+  $rememberChoice = null;
   if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
-    if (!empty($_REQUEST['remember_me'])) {
-      zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + ZM_COOKIE_LIFETIME));
+    $rememberChoice = !empty($_REQUEST['remember_me']);
+    if ($rememberChoice) {
+      zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + zmCookieLifetime()));
       $_COOKIE['ZM_REMEMBER_ME'] = '1';
     } else {
       zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
@@ -38,12 +40,36 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
 
   zm_session_start();
   if (!isset($user) ) {
-    $_SESSION['loginFailed'] = true;
+    # A default password is not a failed login: the view asks for a new one.
+    if (empty($defaultPasswordChange)) {
+      $_SESSION['loginFailed'] = true;
+    } else {
+      unset($_SESSION['loginFailed']);
+    }
   } else {
     unset($_SESSION['loginFailed']);
     $view = 'postlogin';
+    # Only a successful login uses up the destination; a retry still needs it.
+    unset($_SESSION['postLoginQuery']);
+    # The session cookie was issued during authentication, before the box above
+    # was read, so reissue it to last as long as the choice says.
+    if ($rememberChoice !== null) {
+      $cookieParams = session_get_cookie_params();
+      zm_setcookie(session_name(), session_id(), array(
+        'expires' => $rememberChoice ? time() + zmCookieLifetime() : 0,
+        'path' => $cookieParams['path'],
+        'httponly' => true));
+    }
   }
-  unset($_SESSION['postLoginQuery']);
   session_write_close();
 } # end if doing a login action
+
+# The first-run form (applyFirstRunSetup() in auth.php has already applied it).
+if ('setup' == $action) {
+  if (isset($user)) {
+    $view = 'postlogin'; # the admin password was set and the account logged in
+  } else if (empty($firstRunProblem)) {
+    $redirect = '?view='.getHomeView(); # authentication was turned off, or the first run is over
+  } # else the login view shows the form again with the problem
+}
 ?>

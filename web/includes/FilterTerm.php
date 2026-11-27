@@ -13,6 +13,20 @@ function getFilterQueryConjunctionTypes() {
 }
 
 class FilterTerm {
+  // How far back a DateTime lower bound looks for an event that was already
+  // running. Continuous recording closes and reopens an event every
+  // SectionLength seconds, so a day is comfortably beyond any real event and
+  // keeps the StartDateTime range tight enough to stay indexed.
+  const MAX_EVENT_DAYS = 1;
+
+  // When an event was never closed, EndDateTime is NULL and StartDateTime plus
+  // Length is the best available end. Mirrors the SELECT list in
+  // ajax/events.php; an event with no Length has no span at all.
+  const EFFECTIVE_END_SQL = '(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime END)';
+
   public $filter;
   public $index;
   public $attr;
@@ -24,6 +38,7 @@ class FilterTerm {
   public $cbr;
   public $cookie;
   public $placeholder;
+  private $unparsable_date = false;
   public $collate;
   public $multiple;
   public $chosen;
@@ -113,14 +128,32 @@ class FilterTerm {
   # Returns an array of values.  AS term->value can be a list, we will break it apart, remove quotes etc
   public function sql_values() {
     $values = array();
+    $this->unparsable_date = false;
     if ( !isset($this->val) ) {
       Warning('No value in term '.$this->attr);
       return $values;
     }
 
-    $vals = is_array($this->val) ? $this->val : preg_split('/["\'\s]*?,["\'\s]*?/', preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val));
+    if (is_array($this->val)) {
+      $vals = $this->val;
+    } else {
+      $stripped = preg_replace('/^["\']+?(.+)["\']+?$/', '$1', $this->val);
+      if ($this->op == '=~' or $this->op == '!~') {
+        // A regular expression can contain commas (x{1,3}), so it is one value
+        $vals = array($stripped);
+      } else {
+        // Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+        $vals = array_values(array_filter(array_map(function($v) { return trim($v, "\"' \t\r\n"); }, explode(',', $stripped)), 'strlen'));
+        if (!count($vals)) $vals = array('');
+      }
+    }
     foreach ( $vals as $value ) {
       $value_upper = strtoupper($value);
+      if ( in_array($this->attr, array('CurrentDateTime', 'DateTime', 'StartDateTime', 'EndDateTime', 'CurrentDate', 'Date', 'StartDate', 'EndDate', 'CurrentTime', 'Time', 'StartTime', 'EndTime'))
+        and !in_array($value_upper, array('NULL', 'CURDATE()', 'NOW()')) and strtotime($value) === false ) {
+        Warning("Unable to parse '$value' as a date or time in term ".$this->attr);
+        $this->unparsable_date = true;
+      }
       switch ( $this->attr ) {
       case 'Group': 
         $group = new Group($value);
@@ -133,6 +166,8 @@ class FilterTerm {
         $value = '';
         break;
       case 'DiskPercent':
+      case 'DiskBlocks':
+      case 'SystemLoad':
         $value = '';
         break;
       case 'Tags':
@@ -211,7 +246,7 @@ class FilterTerm {
         break;
       }
       if (is_array($value)) {
-        $values += $value;
+        $values = array_merge($values, $value);
       } else {
         $values[] = $value;
       }
@@ -222,11 +257,13 @@ class FilterTerm {
   public function sql_operator() {
     switch ($this->attr) {
     case 'Group':
-      return ' IN ';
+      return ($this->op == '!=' or $this->op == '![]' or $this->op == 'NOT IN') ? ' NOT IN ' : ' IN ';
     case 'AlarmedZoneId':
       return ' EXISTS ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return '';
     }
 
@@ -281,6 +318,8 @@ class FilterTerm {
       return '/* AlarmedZoneId */ ';
     case 'ExistsInFileSystem':
     case 'DiskPercent':
+    case 'DiskBlocks':
+    case 'SystemLoad':
       return 'TRUE /*'.$this->attr.'*/';
     case 'MonitorName':
       return 'M.Name';
@@ -291,7 +330,7 @@ class FilterTerm {
     case 'MonitorServerId':
       return 'M.ServerId';
     case 'StorageServerId':
-      return 'S.ServerId';
+      return '(SELECT Storage.ServerId FROM Storage WHERE Storage.Id=E.StorageId)';
     case 'FilterServerId':
       return '/* ZM_SERVER_ID:*/'.(defined('ZM_SERVER_ID') ? ZM_SERVER_ID : 0);
       # Unspecified start or end, so assume start, this is to support legacy filters
@@ -302,8 +341,14 @@ class FilterTerm {
     case 'CurrentTime':
       return 'extract(hour_second FROM NOW())';
     case 'CurrentWeekday':
-      return 'weekday(NOW()';
+      return 'weekday(NOW())';
     case 'DateTime':
+      // DateTime is an "event overlaps this instant/window" idiom, not a plain
+      // StartDateTime comparison. A lower bound (>=/>) is satisfied by an event
+      // still running at that time, so it compares against EndDateTime and has
+      // to treat a NULL end as ongoing - sql() emits that whole predicate itself
+      // and never reaches here. An upper bound (<=/</=) is satisfied by an event
+      // that had already started, so compare against StartDateTime. refs #4976
       return 'E.StartDateTime';
     case 'Date':
      return 'to_days(E.StartDateTime)';
@@ -315,7 +360,6 @@ class FilterTerm {
     case 'StartDateTime':
       return 'E.StartDateTime';
     case 'FrameId':
-      return 'Id';
     case 'Type':
     case 'TimeStamp':
     case 'Delta':
@@ -340,7 +384,11 @@ class FilterTerm {
       return 'weekday(E.EndDateTime)';
     case 'Notes':
     case 'Emailed':
+    case 'Executed':
     case 'Id':
+    case 'Messaged':
+    case 'Uploaded':
+    case 'Videoed':
     case 'Name':
     case 'DiskSpace':
     case 'MonitorId':
@@ -378,6 +426,14 @@ class FilterTerm {
     }
     $sql .= ' ';
 
+    // An unparsable date would become 1970-01-01 and match every event, so match none instead.
+    $this->sql_values();
+    if ($this->unparsable_date) {
+      $sql .= '1=0';
+      if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
+      return $sql.PHP_EOL;
+    }
+
     // Date attrs: emit sargable range expression instead of
     // to_days(col) op to_days(val).
     $dateColumn = '';
@@ -393,9 +449,55 @@ class FilterTerm {
       return $sql;
     }
 
+    // DateTime is an "event overlaps this instant/window" idiom: an event is on
+    // the near side of a lower bound if it was still running when that instant
+    // arrived. Two parts:
+    //
+    // The floor on StartDateTime makes the term indexable for a window in the
+    // past, and stops an event that was never closed from matching windows
+    // years later. On its own it is a poor bound for a window near now - it
+    // spans a whole day, which on a busy monitor is thousands of events - so
+    // the EndDateTime conjunct is emitted alongside it. That one is implied by
+    // the effective end below and is there purely so the optimiser has a second
+    // indexable handle to cost: it ranges over Events_EndDateTime_MonitorId_idx
+    // and is narrow exactly when the StartDateTime floor is wide. Whichever is
+    // cheaper for the window at hand gets picked.
+    //
+    // The effective end treats a NULL EndDateTime by falling back to
+    // StartDateTime + Length, exactly as the SELECT list in ajax/events.php
+    // does. Length is flushed during recording, so this tells a live event
+    // (Length still growing, so it reaches the bound) apart from one that zmc
+    // was killed part way through (Length frozen at whatever was recorded).
+    // The old COALESCE(E.EndDateTime, '9999-12-31 23:59:59') could not: it read
+    // every NULL end as "never ends", so every abandoned event matched every
+    // window ever after, and wrapping the column in a function meant no index
+    // could be used either.
+    //
+    // Keep this in sync with ZoneMinder::Filter::Sql. refs #4976
+    if ($this->attr === 'DateTime' and ($this->op == '>=' or $this->op == '>')) {
+      $operator = $this->sql_operator();
+      $subterms = array();
+      foreach ($this->sql_values() as $value) {
+        $subterms[] = '(E.StartDateTime >= DATE_SUB('.$value.', INTERVAL '.self::MAX_EVENT_DAYS.' DAY)'
+          .' AND (E.EndDateTime IS NULL OR E.EndDateTime'.$operator.$value.')'
+          .' AND '.self::EFFECTIVE_END_SQL.$operator.$value.')';
+      }
+      if (count($subterms)) {
+        $sql .= (count($subterms) > 1) ? '('.implode(' OR ', $subterms).')' : $subterms[0];
+        if ( isset($this->cbr) ) $sql .= ' '.str_repeat(')', $this->cbr);
+        $sql .= PHP_EOL;
+        return $sql;
+      }
+    }
+
     $operator = $this->sql_operator();
     $values = $this->sql_values();
-    if ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
+    if (($this->attr === 'Tags') and count($values) and !array_intersect($values, ["'0'", "'-1'"])
+      and in_array($operator, [' = ', ' != ', ' IN ', ' NOT IN ', ' =[] ', ' ![] '])) {
+      // Comparing the joined tag row by row gets "is not" wrong for events with several tags or none.
+      $negate = in_array($operator, [' != ', ' NOT IN ', ' ![] ']);
+      $sql .= ($negate ? 'NOT ' : '').'EXISTS (SELECT NULL FROM Events_Tags AS ET WHERE ET.EventId = E.Id AND ET.TagId IN ('.join(',', $values).'))';
+    } elseif ((count($values) > 1) and !(($operator == ' IN ') or ($operator == ' NOT IN ') or ($operator == ' =[] ') or ($operator == ' ![] '))) {
       $subterms = [];
       foreach ($values as $value) {
         $subterm = $this->sql_attr();
@@ -404,7 +506,9 @@ class FilterTerm {
         $subterm .= $value;
         $subterms[] = $subterm;
       }
-      $sql .= '('.implode(' OR ', $subterms).')';
+      // A negative operator must hold for every value, not just one of them
+      $negative = ($this->op == '!=' or $this->op == 'NOT LIKE' or $this->op == 'IS NOT');
+      $sql .= '('.implode($negative ? ' AND ' : ' OR ', $subterms).')';
     } elseif (($this->attr === 'Tags') && ($values[0] === "'0'")) {
       // "No Tag": = means no tags (NOT EXISTS), != means has tags (EXISTS)
       if ($this->op === '!=' || $this->op === 'IS NOT') {
@@ -440,8 +544,9 @@ class FilterTerm {
   // Returns [$day_start_sql, $next_day_start_sql] for a date value.
   // $value is either a quoted 'YYYY-MM-DD HH:MM:SS', CURDATE(), or NOW().
   private static function dateBounds($value) {
-    if ($value === 'CURDATE()' || $value === 'NOW()') {
-      return array($value, "$value + INTERVAL 1 DAY");
+    // NOW() is the current day, so its bounds are midnight like CURDATE()'s
+    if (in_array(strtoupper($value), array('CURDATE()', 'NOW()'), true)) {
+      return array('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
     }
     $stripped = preg_replace("/^'(.+)'$/", '$1', $value);
     if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})/', $stripped, $m)) {
@@ -522,7 +627,7 @@ class FilterTerm {
     # attr should have been already validated, so shouldn't need htmlspecialchars
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][attr]" value="'.htmlspecialchars($this->attr).'"/>'.PHP_EOL;
     $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][op]" value="'.htmlspecialchars($this->op).'"/>'.PHP_EOL;
-    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars($this->val?$this->val:'').'"/>'.PHP_EOL;
+    $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][val]" value="'.htmlspecialchars((string)$this->val).'"/>'.PHP_EOL;
     if ( $this->cbr )
       $html .= '<input type="hidden" name="filter[Query][terms]['.$this->index.'][cbr]" value="'.$this->cbr.'"/>'.PHP_EOL;
 
@@ -537,21 +642,13 @@ class FilterTerm {
         # The logic on this when there are multiple storage areas breaks.  We will just use the first.
         foreach ( $storage_areas as $storage ) {
           Debug($storage->disk_usage_percent(). ' '.$this->op.'? '.$this->val);
-          switch ($this->op) {
-          case '=':
-            return ($storage->disk_usage_percent() == $this->val);
-          case '>':
-            return ($storage->disk_usage_percent() > $this->val);
-          case '<':
-            return ($storage->disk_usage_percent() < $this->val);
-          case '<=':
-            return ($storage->disk_usage_percent() <= $this->val);
-          case '>=':
-            return ($storage->disk_usage_percent() >= $this->val);
-          default:
-            Warning('Invalid op '.$this->op .' for DiskPercent.');
-          }
+          return $this->compare($storage->disk_usage_percent(), $this->op, $this->val);
         } # end foreach Storage Area
+      } else if ( $this->attr == 'DiskBlocks' ) {
+        # As with DiskPercent, we will just use the first storage area.
+        foreach ( $this->filter->get_StorageAreas() as $storage ) {
+          return $this->compare($storage->disk_used_blocks(), $this->op, $this->val);
+        }
       } else if ( $this->attr == 'SystemLoad' ) {
         $ret = $this->compare(getLoad(), $this->op, $this->val);
         Debug("SystemLoad compare: getLoad() {$this->op} {$this->val} = " . ($ret ? 'true' : 'false'));
@@ -576,7 +673,7 @@ class FilterTerm {
         Debug("DiskPercent compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'DiskBlocks' ) {
-        $ret = $this->compare($event->Storage()->disk_usage_blocks(), $this->op, $this->val);
+        $ret = $this->compare($event->Storage()->disk_used_blocks(), $this->op, $this->val);
         Debug("DiskBlocks compare: " . ($ret ? 'true' : 'false'));
         if ($ret) return true;
       } else if ( $this->attr == 'Tags' ) {
@@ -595,6 +692,8 @@ class FilterTerm {
     if ( $this->attr == 'DiskPercent' )
         return true;
     if ( $this->attr == 'DiskBlocks' )
+        return true;
+    if ( $this->attr == 'SystemLoad' )
         return true;
     return false;
   }
@@ -618,9 +717,14 @@ class FilterTerm {
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
+      'Executed',
+      'Messaged',
+      'Uploaded',
+      'Videoed',
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
+      'SystemLoad',
       'MonitorName',
       'Monitor',
       'ServerId',
@@ -674,10 +778,14 @@ class FilterTerm {
       if (!(is_integer($this->val) or ctype_digit($this->val))) 
         return false;
       return true;
+    case 'CurrentWeekday' :
+      // Monday is 0, which is a value, not a missing one
+      if ($this->val === null or $this->val === '')
+        return false;
+      break;
     case 'CurrentDate' :
     case 'CurrentTime' :
     case 'CurrentDateTime' :
-    case 'CurrentWeekday' :
     case 'EndDate' :
     case 'StartDate' :
     case 'EndDateTime' :
@@ -687,6 +795,11 @@ class FilterTerm {
       break;
     case 'Id' :
     case 'Archived' :
+    case 'Emailed' :
+    case 'Executed' :
+    case 'Messaged' :
+    case 'Uploaded' :
+    case 'Videoed' :
     case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :

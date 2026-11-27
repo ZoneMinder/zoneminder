@@ -23,15 +23,14 @@ if ( ($action == 'setgroup') && canView('Groups')) {
   if ( !empty($_REQUEST['gid']) ) {
     zm_setcookie('zmGroup', validInt($_REQUEST['gid']));
   } else {
-    zm_setcookie('zmGroup', '', time()-3600*24*2);
+    zm_setcookie('zmGroup', '', array('expires'=>time()-3600*24*2));
   }
   $refreshParent = true;
   return;
 }
 
 // Group edit actions
-# Should probably verify that each monitor id is a valid monitor, that we have access to.
-# However at the moment, you have to have System permissions to do this
+# Deleting a group also needs edit on each of its monitors, checked below.
 if ( ! canEdit('Groups') ) {
   ZM\Warning('Need group edit permissions to edit groups');
   return;
@@ -40,11 +39,22 @@ if ( ! canEdit('Groups') ) {
 if ( $action == 'delete' ) {
   if ( !empty($_REQUEST['gid']) ) {
     foreach ( ZM\Group::find(array('Id'=>$_REQUEST['gid'])) as $Group ) {
-      $Group->delete();
+      // Deleting a group removes its monitors from it, which can lift a deny on them.
+      if (!ZM\Group::canEditMembership($Group->MonitorIds())) {
+        ZM\Warning('Need edit permission on every monitor in group '.$Group->Id().' to delete it');
+        $error_message .= 'You need edit permission on every monitor in group '.validHtmlStr($Group->Name()).' to delete it.<br/>';
+        continue;
+      }
+      if ($Group->delete() === false) {
+        $error_message .= 'Error deleting group: '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }
   }
-  $redirect = '?view=groups';
-  $refreshParent = true;
+  if (!$error_message) {
+    $redirect = '?view=groups';
+    $refreshParent = true;
+  }
 } # end if action
 ?>

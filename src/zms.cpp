@@ -18,16 +18,43 @@
 //
 
 #include "zm.h"
+#include "zm_crypt.h"
 #include "zm_db.h"
 #include "zm_user.h"
 #include "zm_signal.h"
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
+#include <climits>
 #include <iomanip>
 #include <sstream>
 #include <string>
 #include <unistd.h>
+
+// Refuses the request with 403. As nph-zms under Apache (nph- handling) the
+// raw status line reaches the client as written. Where the CGI headers are
+// parsed, the Status header sets the status instead: plain zms under any
+// server, and nph-zms behind nginx + fcgiwrap, where the raw line alone is not
+// taken as the status and the refusal went out as an empty 200. In NPH mode
+// both are written, so either server answers 403.
+static void Forbidden(bool nph) {
+  if (nph) fputs("HTTP/1.0 403 Forbidden\r\n", stdout);
+  fputs("Status: 403 Forbidden\r\n\r\n", stdout);
+}
+
+// Splits "name=value" in place at the first '=' and returns the name (nullptr
+// when there is none). A later '=' belongs to the value, so a password such as
+// "a=b" is not cut short. A parameter without '=' has an empty value.
+char *zms_split_param(char *param, const char *&value) {
+  value = "";
+  if (!param || !*param || *param == '=') return nullptr;
+  char *equals = strchr(param, '=');
+  if (equals) {
+    *equals = '\0';
+    value = equals + 1;
+  }
+  return param;
+}
 
 bool ValidateAccess(User *user, int mon_id) {
   bool allowed = true;
@@ -50,6 +77,32 @@ bool ValidateAccess(User *user, int mon_id) {
   return allowed;
 }
 
+// Event access is decided by the monitor the event belongs to, never by a monitor id the
+// client supplies alongside it: an allowed monitor paired with a denied monitor's event id
+// must not stream that event. mon_id is used only when the stream is chosen by monitor and
+// time, in which case it is the monitor whose events are streamed.
+bool ValidateEventAccess(User *user, int mon_id, uint64_t event_id, bool by_monitor_and_time) {
+  if (user->getEvents() < User::PERM_VIEW) {
+    Warning("Insufficient privileges for request user %d %s, user does not have permission view events.",
+            user->Id(), user->getUsername());
+    return false;
+  }
+  if (!by_monitor_and_time) {
+    zmDbRow row;
+    if (!event_id || !row.fetch(stringtf("SELECT `MonitorId` FROM `Events` WHERE `Id` = %" PRIu64, event_id))) {
+      Warning("Unknown event %" PRIu64 " requested by user %d %s", event_id, user->Id(), user->getUsername());
+      return false;
+    }
+    mon_id = row[0] ? atoi(row[0]) : 0;
+  }
+  if (!user->canAccess(mon_id)) {
+    Warning("Insufficient privileges for request user %d %s for event %" PRIu64 " of monitor %d, user does not have permission view this monitor.",
+            user->Id(), user->getUsername(), event_id, mon_id);
+    return false;
+  }
+  return true;
+}
+
 int main(int argc, const char *argv[], char **envp) {
   self = argv[0];
 
@@ -63,7 +116,7 @@ int main(int argc, const char *argv[], char **envp) {
   uint64_t event_id = 0;
   unsigned int frame_id = 1;
   int frames_to_send = -1;
-  unsigned int scale = 100;
+  int scale = 100;
   unsigned int rate = 100;
   double maxfps = 0.0;
   unsigned int bitrate = 100000;
@@ -97,7 +150,19 @@ int main(int argc, const char *argv[], char **envp) {
 
   for (char **env = envp; *env != 0; env++) {
     char *thisEnv = *env;
-    Debug(1, "env: %s", thisEnv);
+    // The query string (user=/pass=, auth=, token=) also appears in
+    // REQUEST_URI and can appear in HTTP_REFERER, and the cookie holds the
+    // web session: log those without their credentials.
+    const char *equals = strchr(thisEnv, '=');
+    std::string name = equals ? std::string(thisEnv, equals - thisEnv) : thisEnv;
+    if (equals && (name == "HTTP_COOKIE" || name.find("QUERY_STRING") != std::string::npos
+                   || name.find("AUTHORIZATION") != std::string::npos)) {
+      Debug(1, "env: %s=<not logged>", name.c_str());
+    } else if (equals && strchr(equals, '?')) {
+      Debug(1, "env: %s=%s", name.c_str(), url_for_log(equals + 1).c_str());
+    } else {
+      Debug(1, "env: %s", thisEnv);
+    }
   }
 
   const char *query = getenv("QUERY_STRING");
@@ -105,8 +170,6 @@ int main(int argc, const char *argv[], char **envp) {
     Fatal("No query string.");
     return exit_zm(0);
   }  // end if query
-
-  Debug(1, "Query: %s", query);
 
   char *q_ptr = (char *)query;
   char *parms[16];  // Shouldn't be more than this
@@ -117,10 +180,10 @@ int main(int argc, const char *argv[], char **envp) {
   }
 
   for ( int p = 0; p < parm_no; p++ ) {
-    char *name = strtok(parms[p], "=");
-    char const *value = strtok(nullptr, "=");
-    if ( !value )
-      value = "";
+    char const *value = "";
+    char *name = zms_split_param(parms[p], value);
+    if ( !name )
+      continue;
     if ( !strcmp(name, "analysis") ) {
       if ( !strcmp(value, "true") ) {
         analysis_frames = true;
@@ -159,34 +222,45 @@ int main(int argc, const char *argv[], char **envp) {
       if ( source == ZMS_UNKNOWN )
         source = ZMS_MONITOR;
     } else if ( !strcmp(name, "datetime") ) {
-      std::tm tm = {};
-      std::stringstream ss(value);
-      ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
-      event_time = std::chrono::system_clock::from_time_t(std::mktime(&tm));
+      // The epoch means the value was not a date. Leave event_time unset rather
+      // than use the 1899 that mktime makes of it, which picks the oldest event.
+      SystemTimePoint parsed = StringToSystemTimePoint(UriDecode(value));
+      if (parsed.time_since_epoch().count()) {
+        event_time = parsed;
+      } else {
+        Warning("Ignoring datetime '%s', expected YYYY-MM-DD HH:MM:SS", value);
+      }
       //Debug(1, "Setting event_time to %s", SystemTimePointToString(event_time).c_str());
     } else if ( !strcmp(name, "time") ) {
-      double double_time = atof(value);
-      std::chrono::duration<double> event_time_seconds(double_time);
-      auto system_duration = std::chrono::duration_cast<std::chrono::system_clock::duration>(event_time_seconds);
-	    event_time = SystemTimePoint{system_duration};
-      //Debug(1, "Setting event_time to %s from %s %.2f %lf",
-          //SystemTimePointToString(event_time).c_str(), value, double_time, event_time_seconds.count());
+      event_time = StreamBase::ParseTimeParam(value);
     } else if ( !strcmp(name, "event") ) {
       event_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frame") ) {
-      frame_id = strtoull(value, nullptr, 10);
+      unsigned long long parsed_frame = strtoull(value, nullptr, 10);
+      if (parsed_frame > UINT_MAX) {
+        Warning("Ignoring frame '%s', out of range", value);
+      } else {
+        frame_id = static_cast<unsigned int>(parsed_frame);
+      }
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frames") ) {
-      frames_to_send = strtoll(value, nullptr, 10);
-    } else if ( !strcmp(name, "scale") ) {
-      scale = atoi(value);
-      if (scale > 1600) {
-        Warning("Limiting scale to 16x");
-        scale = 1600;
+      long long parsed_frames = strtoll(value, nullptr, 10);
+      if (parsed_frames < INT_MIN || parsed_frames > INT_MAX) {
+        Warning("Ignoring frames '%s', out of range", value);
+      } else {
+        frames_to_send = static_cast<int>(parsed_frames);
       }
+    } else if ( !strcmp(name, "scale") ) {
+      scale = StreamBase::ParseScaleParam(value);
+      if (strtol(value, nullptr, 10) > 16*ZM_SCALE_BASE) Warning("Limiting scale to 16x");
     } else if ( !strcmp(name, "rate") ) {
-      rate = atoi(value);
+      long parsed_rate = strtol(value, nullptr, 10);
+      if (parsed_rate < 0 || parsed_rate > 1000000) {
+        Warning("Ignoring rate '%s', out of range", value);
+      } else {
+        rate = static_cast<unsigned int>(parsed_rate);
+      }
     } else if ( !strcmp(name, "maxfps") ) {
       maxfps = atof(value);
     } else if ( !strcmp(name, "bitrate") ) {
@@ -213,17 +287,17 @@ int main(int argc, const char *argv[], char **envp) {
       strncpy(auth, value, sizeof(auth)-1);
     } else if ( !strcmp(name, "token") ) {
       jwt_token_str = value;
-      Debug(1, "ZMS: JWT token found: %s", jwt_token_str.c_str());
+      Debug(1, "ZMS: JWT token found: %s", zm::crypto::LogFingerprint(jwt_token_str).c_str());
     } else if ( !strcmp(name, "user") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "username") ) {
       username = UriDecode(value);
     } else if ( !strcmp(name, "pass") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else if ( !strcmp(name, "password") ) {
       password = UriDecode(value);
-      Debug(1, "Have %s for password", password.c_str());
+      Debug(1, "Have a password");
     } else {
       Debug(1, "Unknown parameter passed to zms %s=%s", name, value);
     }  // end if possible parameter names
@@ -236,6 +310,24 @@ int main(int argc, const char *argv[], char **envp) {
   }
   logInit(log_id_string);
 
+  // Summarise the decoded request so a runaway nph-zms can be tied to its
+  // stream type/params. Debug level because this fires once per process and
+  // there can be many (one per montage tile). refs #5006 (nph-zms
+  // occasionally consuming excessive memory).
+  {
+    static const char *source_names[] = {"unknown", "monitor", "event", "fifo"};
+    static const char *mode_names[] = {"jpeg", "mpeg", "raw", "zip", "single"};
+    Debug(1, "zms request: source=%s mode=%s monitor=%d event=%" PRIu64
+         " frame=%u frames=%d connkey=%u scale=%d rate=%u maxfps=%.2f"
+         " buffer=%u ttl=%u rss=%zuKB",
+         source_names[source], mode_names[mode], monitor_id, event_id,
+         frame_id, frames_to_send, connkey, scale, rate, maxfps,
+         playback_buffer, ttl, zm_get_rss_kb());
+  }
+
+  // The user zms serves; it names the command socket, so only that user's
+  // ajax/stream.php requests reach this stream.
+  int owner_id = 0;
   if ( config.opt_use_auth ) {
     User *user = nullptr;
 
@@ -256,7 +348,7 @@ int main(int argc, const char *argv[], char **envp) {
       }
     }
     if ( !user ) {
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
 
       const char *referer = getenv("HTTP_REFERER");
       const char *request_uri = getenv("REQUEST_URI");
@@ -266,24 +358,37 @@ int main(int argc, const char *argv[], char **envp) {
       // streams whose hash TTL expired; the browser keeps reconnecting with the
       // baked-in URL. Including user/auth-prefix/uri/xff makes the noise diagnosable
       // without flipping on Debug.
-      char auth_prefix[9] = {0};
-      if (*auth) strncpy(auth_prefix, auth, sizeof(auth_prefix)-1);
-      Warning("Unable to authenticate user (user='%s' auth='%s%s' uri='%s' referer='%s' xff='%s' remote='%s')",
+      // Log only the first 8 chars of the hash: enough to correlate, not enough to replay.
+      // The uri and referer go without their query string, which holds the
+      // credentials (pass=, the full auth=, token=); monitor and event say
+      // which stream it was. This Warning reaches the Logs table by default.
+      Warning("Unable to authenticate user (user='%s' auth='%.8s%s' monitor=%d event=%" PRIu64
+              " uri='%s' referer='%s' xff='%s' remote='%s')",
               username.c_str(),
-              auth_prefix,
+              auth,
               (*auth && strlen(auth) > 8) ? "..." : "",
-              request_uri ? request_uri : "",
-              referer ? referer : "",
+              monitor_id, event_id,
+              request_uri ? url_for_log(request_uri).c_str() : "",
+              referer ? url_for_log(referer).c_str() : "",
               xff ? xff : "",
               remote ? remote : "");
       return exit_zm(0);
     }
-    if ( !ValidateAccess(user, monitor_id) ) {
+    bool allowed;
+    if ( source == ZMS_EVENT ) {
+      // Mirrors the setStreamStart() choice below.
+      bool by_monitor_and_time = monitor_id && (event_time != std::chrono::system_clock::time_point::min());
+      allowed = ValidateEventAccess(user, monitor_id, event_id, by_monitor_and_time);
+    } else {
+      allowed = ValidateAccess(user, monitor_id);
+    }
+    if ( !allowed ) {
       delete user;
       user = nullptr;
-      fputs("HTTP/1.0 403 Forbidden\r\n\r\n", stdout);
+      Forbidden(nph);
       return exit_zm(0);
     }
+    owner_id = user->Id();
     delete user;
     user = nullptr;
   }  // end if config.opt_use_auth
@@ -322,6 +427,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setStreamBuffer(playback_buffer);
     stream.setFramesToSend(frames_to_send);
     stream.setStreamStart(monitor_id);
@@ -353,6 +459,7 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
     stream.setStreamQueue(connkey);
+    stream.setStreamOwner(owner_id);
     stream.setFramesToSend(frames_to_send);
     if ( monitor_id && (event_time != std::chrono::system_clock::time_point::min())) {
       stream.setStreamStart(monitor_id, event_time);
@@ -365,6 +472,10 @@ int main(int argc, const char *argv[], char **envp) {
     stream.setStreamFrameType(analysis_frames ? StreamBase::FRAME_ANALYSIS: StreamBase::FRAME_NORMAL);
     if ( mode == ZMS_JPEG ) {
       stream.setStreamType(EventStream::STREAM_JPEG);
+    } else if ( mode == ZMS_RAW ) {
+      stream.setStreamType(EventStream::STREAM_RAW);
+    } else if ( mode == ZMS_ZIP ) {
+      stream.setStreamType(EventStream::STREAM_ZIP);
     } else if ( mode == ZMS_SINGLE ) {
       stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {

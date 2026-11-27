@@ -138,6 +138,7 @@ sub moveConDown
 	Debug( "Move Down" );
 	my $cmd = "cgi-bin/hi3510/ptzctrl.cgi?&-chn=0&-act=down";
 	$self->sendCmd( $cmd );
+	$self->autoStop( $self->{Monitor}->{AutoStopTimeout} );
 }
  
 #Left Arrow
@@ -235,7 +236,7 @@ sub presetHome
 {
 	my $self = shift;
 	Debug( "Home Preset" );
-	my $cmd = "ptzgotopoint.cgi?&-chn=0&-point=1";
+	my $cmd = "cgi-bin/hi3510/ptzgotopoint.cgi?&-chn=0&-point=1";
 	$self->sendCmd( $cmd );
 }
  

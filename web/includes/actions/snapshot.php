@@ -20,63 +20,38 @@
 
 require_once('includes/Snapshot.php');
 require_once('includes/Monitor.php');
+require_once(__DIR__.'/../SnapshotCreate.php');
 
 if ( $action == 'create' ) {
-  if ( ! (isset($_REQUEST['monitor_ids']) and count($_REQUEST['monitor_ids']) > 0 ) ) {
-    ZM\Error('No monitor ids given in snapshot creation request');
-    return;
-  }
-  $snapshot = new ZM\Snapshot();
-  $snapshot->save(array('CreatedBy'=>$user->Id()));
-  ZM\AuditAction('create', 'snapshot', $snapshot->Id(), '');
-
-  foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
-    if (!validCardinal($monitor_id)) {
-      Error("Monitor Id value is invalid $monitor_id");
-      continue;
-    }
-    $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
-    if (!$monitor) {
-      Error("Monitor not found for id $monitor_id");
-      continue;
-    }
-    $snapshot_event = new ZM\Snapshot_Event();
-    $event_id = $monitor->TriggerOn();
-    ZM\Debug("Have event $event_id for monitor $monitor_id");
-    if ( $event_id ) {
-      $snapshot_event->save(array(
-        'SnapshotId'=>$snapshot->Id(),
-        'EventId'=>$event_id
-      ));
-    }
-  }  # end foreach monitor
-  foreach ( $_REQUEST['monitor_ids'] as $monitor_id ) {
-    $monitor = ZM\Monitor::find_one(['Id'=>$monitor_id]);
-    if (!$monitor) continue;
-    $monitor->TriggerOff();
-  }
-  $dbConn->beginTransaction();
-  foreach ( $snapshot->Events() as $event ) {
-    $event->lock();
-    $event->save(array('Archived'=>1));
-  }
-  $dbConn->commit();
-  $redirect = '?view=snapshot&id='.$snapshot->Id();
+  $snapshot_id = ZM\create_snapshot_from_monitors(
+    isset($_REQUEST['monitor_ids']) && is_array($_REQUEST['monitor_ids']) ? $_REQUEST['monitor_ids'] : array()
+  );
+  if (!$snapshot_id) return;
+  $redirect = '?view=snapshot&id='.$snapshot_id;
   return;
 }
 
 // Event scope actions, view permissions only required
 if ( isset($_REQUEST['id']) ) {
-  $snapshot = new ZM\Snapshot($_REQUEST['id']);
+  $snapshot = new ZM\Snapshot(validCardinal($_REQUEST['id']));
+  if ( !$snapshot->Id() ) {
+    // Saving an object that failed to load would insert a new row
+    ZM\Warning('Snapshot '.$_REQUEST['id'].' not found');
+    $redirect = '?view=snapshots';
+    return;
+  }
   if ( ($action == 'save') ) {
     if ( canEdit('Events') or $snapshot->CreatedBy() == $user->Id() ) {
 
-      $changes = $snapshot->changes($_REQUEST['snapshot']);
+      $changes = $snapshot->changes(isset($_REQUEST['snapshot']) && is_array($_REQUEST['snapshot']) ? $_REQUEST['snapshot'] : array());
       if ( count($changes) ) {
         $snapshot->save($changes);
         ZM\AuditAction('update', 'snapshot', $snapshot->Id(), 'Changed: '.implode(', ', array_keys($changes)));
       }
       $redirect = '?view=snapshots';
+    } else {
+      global $error_message;
+      $error_message .= 'You do not have permission to edit this snapshot.<br/>';
     }
   } else if ( $action == 'delete' ) {
     if ( canEdit('Events') ) {

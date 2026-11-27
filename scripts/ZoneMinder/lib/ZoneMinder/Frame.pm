@@ -33,12 +33,11 @@ require ZoneMinder::Object;
 
 use parent qw(ZoneMinder::Object);
 
-use vars qw/ $table $primary_key %fields /;
+use vars qw/ $table @identified_by %fields /;
 $table = 'Frames';
-$primary_key = 'Id';
+@identified_by = ('EventId', 'FrameId');
 
 %fields = (
-        Id      => 'Id',
         EventId => 'EventId',
         FrameId => 'FrameId',
         Type    => 'Type',
@@ -48,6 +47,7 @@ $primary_key = 'Id';
 );
 
 sub Event {
+	require ZoneMinder::Event;
 	return new ZoneMinder::Event( $_[0]{EventId} );
 } # end sub Event
 

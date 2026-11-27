@@ -108,7 +108,6 @@ module.exports = defineConfig([{
   "web/skins/classic/js/jquery-*.js",
   "web/skins/classic/js/jquery-ui-*",
   "web/skins/classic/js/jquery.js",
-  "web/skins/classic/js/moment.js",
   "web/skins/classic/js/video.js",
   "web/skins/classic/assets",
   "web/js/janus.js",

@@ -32,6 +32,7 @@ class Zone extends ZM_Object {
 			'MaxBlobs'            => null,
 			'OverloadFrames'      => 0,
 			'ExtendAlarmFrames'   => 0,
+			'ObjectCoords'        => null,
 			);
 
   public static function find( $parameters = array(), $options = array() ) {
@@ -61,9 +62,16 @@ class Zone extends ZM_Object {
 
   public function svg_polygon($width=0, $height=0) {
     $areaCoords = $this->AreaCoords();
+    if (!($width && $height)) {
+      # The event view passes no size; pixel zones still need the monitor's to scale
+      $monitor = $this->Monitor();
+      $width = $monitor->ViewWidth();
+      $height = $monitor->ViewHeight();
+    }
     if ($width && $height) {
       $points = coordsToPoints($this->Coords());
-      $isPixel = false;
+      // Percent coordinates are always written with decimals; without any they are pixels
+      $isPixel = strpos($this->Coords(), '.') === false;
       foreach ($points as $point) {
         if ($point['x'] > 100 || $point['y'] > 100) {
           $isPixel = true;
@@ -79,7 +87,7 @@ class Zone extends ZM_Object {
         $areaCoords = preg_replace('/\s+/', ',', pointsToCoords($points));
       }
     }
-    return '<polygon points="'.$areaCoords.'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.$this->Name().'</title></polygon>';
+    return '<polygon points="'.$areaCoords.'" class="'.$this->Type().'" data-mid="'.$this->MonitorId().'" data-zid="'.$this->Id().'"><title>'.validHtmlStr($this->Name()).'</title></polygon>';
   }
 } # end class Zone
 ?>

@@ -37,15 +37,27 @@ $tabs['presets'] = translate('Presets');
 
 $tab = isset($_REQUEST['tab']) ? validHtmlStr($_REQUEST['tab']) :'main';
 
-if ( isset($_REQUEST['Control']) ) {
+if ( isset($_REQUEST['Control']) and is_array($_REQUEST['Control']) ) {
   $Control = $_REQUEST['Control'];
 } else {
   if ( !empty($_REQUEST['cid']) ) {
     $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['cid']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+  } else if ( !empty($_REQUEST['dupId']) ) {
+    // Clone: start from an existing control, saved as a new one since cid stays empty
+    $Control = dbFetchOne('SELECT * FROM Controls WHERE Id = ?', NULL, array($_REQUEST['dupId']));
+    if ( !$Control ) {
+      $view = 'error';
+      return;
+    }
+    unset($Control['Id']);
+    $Control['Name'] = mb_substr('Clone of '.$Control['Name'], 0, 64);
   } else {
     $Control = array(
       'Name' => translate('New'),
-      'Type' => 'Local',
       'Protocol' => '',
       'CanWake' => '',
       'CanSleep' => '',
@@ -78,6 +90,7 @@ if ( isset($_REQUEST['Control']) ) {
       'HasTurboTilt' => '',
       'TurboTiltSpeed' => '',
       'CanZoom' => '',
+      'CanAutoZoom' => '',
       'CanZoomAbs' => '',
       'CanZoomRel' => '',
       'CanZoomCon' => '',
@@ -127,6 +140,10 @@ if ( isset($_REQUEST['Control']) ) {
       'CanWhite' => '',
       'CanLight' => '',
       'CanIndicatorLight' => '',
+      'CanAudioPlay' => '',
+      'MinAudioFile' => '',
+      'MaxAudioFile' => '',
+      'CanAudioVolume' => '',
       'CanAutoWhite' => '',
       'CanWhiteAbs' => '',
       'CanWhiteRel' => '',
@@ -206,26 +223,11 @@ switch ( $name ) {
 ?>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="Control[Name]" value="<?php echo validHtmlStr($Control['Name']) ?>"/></td>
-            </tr>
-            <tr>
-              <th class="text-right pr-3" scope="row"><?php echo translate('Type') ?></th>
-              <td>
-<?php 
-    $types = array(
-      'Local'=>translate('Local'),
-      'Remote'=>translate('Remote'),
-      'Ffmpeg'=>translate('Ffmpeg'),
-      'Libvlc'=>translate('Libvlc'),
-      'cURL'=>'cURL'
-    );
-    echo buildSelect('Control[Type]', $types);
-?>
-              </td>
+              <td><input type="text" name="Control[Name]" maxlength="64" value="<?php echo validHtmlStr($Control['Name']) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('Protocol') ?></th>
-              <td><input type="text" name="Control[Protocol]" value="<?php echo validHtmlStr($Control['Protocol']) ?>" size="24"/></td>
+              <td><input type="text" name="Control[Protocol]" maxlength="64" value="<?php echo validHtmlStr($Control['Protocol']) ?>" size="24"/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanWake') ?></th>
@@ -242,6 +244,22 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanIndicatorLight') ?></th>
               <td><input type="checkbox" name="Control[CanIndicatorLight]" value="1"<?php if ( !empty($Control['CanIndicatorLight']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAudioPlay') ?></th>
+              <td><input type="checkbox" name="Control[CanAudioPlay]" value="1"<?php if ( !empty($Control['CanAudioPlay']) ) { ?> checked="checked"<?php } ?>/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MinAudioFile') ?></th>
+              <td><input type="number" name="Control[MinAudioFile]" value="<?php echo validHtmlStr($Control['MinAudioFile']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('MaxAudioFile') ?></th>
+              <td><input type="number" name="Control[MaxAudioFile]" value="<?php echo validHtmlStr($Control['MaxAudioFile']) ?>"/></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAudioVolume') ?></th>
+              <td><input type="checkbox" name="Control[CanAudioVolume]" value="1"<?php if ( !empty($Control['CanAudioVolume']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanReset') ?></th>
@@ -374,6 +392,10 @@ switch ( $name ) {
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoom') ?></th>
               <td><input type="checkbox" name="Control[CanZoom]" value="1"<?php if ( !empty($Control['CanZoom']) ) { ?> checked="checked"<?php } ?>></td>
+            </tr>
+            <tr>
+              <th class="text-right pr-3" scope="row"><?php echo translate('CanAutoZoom') ?></th>
+              <td><input type="checkbox" name="Control[CanAutoZoom]" value="1"<?php if ( !empty($Control['CanAutoZoom']) ) { ?> checked="checked"<?php } ?>/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('CanZoomAbs') ?></th>
@@ -633,7 +655,7 @@ switch ( $name ) {
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('NumPresets') ?></th>
-              <td><input type="number" name="Control[NumPresets]" value="<?php echo validHtmlStr($Control['NumPresets']) ?>"/></td>
+              <td><input type="number" name="Control[NumPresets]" max="255" value="<?php echo validHtmlStr($Control['NumPresets']) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right pr-3" scope="row"><?php echo translate('HasHomePreset') ?></th>

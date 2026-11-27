@@ -1,0 +1,64 @@
+--
+-- Consolidate Event_Summaries maintenance into the triggers on Events.
+--
+-- Events_Hour/Day/Week/Month each carried their own update and delete
+-- trigger, and every one of them issued a separate UPDATE against the same
+-- Event_Summaries row. A single Event delete therefore locked that row five
+-- times, which deadlocked against concurrent writers -- notably zmstats.pl
+-- bulk-deleting aged rows out of Events_Hour.
+--
+-- event_update_trigger and event_delete_trigger now modify the bucket tables
+-- themselves and apply one consolidated UPDATE, using ROW_COUNT() to tell
+-- whether the event was still in each bucket so aged-out events do not
+-- over-adjust the counters.
+--
+-- Consequence worth knowing: a direct DELETE against a bucket table (which is
+-- how zmstats.pl prunes) no longer adjusts Event_Summaries at all. zmstats.pl
+-- resyncs the Hour/Day/Week/Month columns from COUNT(*)/SUM(DiskSpace) on the
+-- same pass it prunes, so those columns are eventually consistent within one
+-- ZM_STATS_UPDATE_INTERVAL rather than exact at every instant. The Total and
+-- Archived columns stay exact, because only the Events triggers touch them.
+--
+
+SELECT 'Dropping the per-bucket cascade triggers';
+
+DROP TRIGGER IF EXISTS Events_Hour_delete_trigger;
+DROP TRIGGER IF EXISTS Events_Hour_update_trigger;
+DROP TRIGGER IF EXISTS Events_Day_delete_trigger;
+DROP TRIGGER IF EXISTS Events_Day_update_trigger;
+DROP TRIGGER IF EXISTS Events_Week_delete_trigger;
+DROP TRIGGER IF EXISTS Events_Week_update_trigger;
+DROP TRIGGER IF EXISTS Events_Month_delete_trigger;
+DROP TRIGGER IF EXISTS Events_Month_update_trigger;
+
+SELECT 'Resyncing Event_Summaries from the events themselves';
+
+-- One-time resync so the new triggers start from ground truth rather than
+-- from whatever the old cascade had accumulated. Also repairs the
+-- ArchivedEventDiskSpace drift the old event_update_trigger left behind: its
+-- only reachable branch for an already-archived event changing size updated
+-- Events_Archived but not Event_Summaries.
+UPDATE Event_Summaries es
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events_Hour     GROUP BY MonitorId) h ON h.MonitorId = es.MonitorId
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events_Day      GROUP BY MonitorId) d ON d.MonitorId = es.MonitorId
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events_Week     GROUP BY MonitorId) w ON w.MonitorId = es.MonitorId
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events_Month    GROUP BY MonitorId) m ON m.MonitorId = es.MonitorId
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events_Archived GROUP BY MonitorId) a ON a.MonitorId = es.MonitorId
+LEFT JOIN (SELECT MonitorId, COUNT(*) c, COALESCE(SUM(DiskSpace),0) s FROM Events          GROUP BY MonitorId) t ON t.MonitorId = es.MonitorId
+SET
+  es.HourEvents             = COALESCE(h.c,0),
+  es.HourEventDiskSpace     = COALESCE(h.s,0),
+  es.DayEvents              = COALESCE(d.c,0),
+  es.DayEventDiskSpace      = COALESCE(d.s,0),
+  es.WeekEvents             = COALESCE(w.c,0),
+  es.WeekEventDiskSpace     = COALESCE(w.s,0),
+  es.MonthEvents            = COALESCE(m.c,0),
+  es.MonthEventDiskSpace    = COALESCE(m.s,0),
+  es.ArchivedEvents         = COALESCE(a.c,0),
+  es.ArchivedEventDiskSpace = COALESCE(a.s,0),
+  es.TotalEvents            = COALESCE(t.c,0),
+  es.TotalEventDiskSpace    = COALESCE(t.s,0);
+
+-- Installs the consolidated event_update_trigger and event_delete_trigger,
+-- and drops the bucket triggers again for good measure.
+source @PKGDATADIR@/db/triggers.sql

@@ -42,6 +42,32 @@ use vars qw/ $table $primary_key %fields /;
 $table = 'Filters';
 $primary_key = 'Id';
 
+# How far back a DateTime lower bound looks for an event that was already
+# running.  Continuous recording closes and reopens an event every SectionLength
+# seconds, so a day is comfortably beyond any real event and keeps the
+# StartDateTime range tight enough to stay indexed.
+use constant MAX_EVENT_DAYS => 1;
+
+# Quote a filter term's value for inclusion in SQL. The terms are stored
+# verbatim by the web tier and rebuilt into SQL here, so a value reaches this
+# exactly as the user typed it; wrapping it in quotes by hand let a value
+# containing one close the literal and continue the statement.
+# See GHSA-p8h3-4x5c-cv7p.
+sub sql_quote {
+  my $value = shift;
+  return 'NULL' if !defined $value;
+  return $ZoneMinder::Database::dbh->quote($value);
+}
+
+
+# When an event was never closed, EndDateTime is NULL and StartDateTime plus
+# Length is the best available end.  Mirrors the SELECT list in
+# web/ajax/events.php; an event with no Length has no span at all.
+use constant EFFECTIVE_END_SQL => '(CASE
+    WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
+    WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
+    ELSE E.StartDateTime END)';
+
 %fields = map { $_ => $_ } qw(
 Id
 Name
@@ -65,6 +91,8 @@ AutoMove
 AutoMoveTo
 AutoCopy
 AutoCopyTo
+AutoTag
+AutoTagId
 UpdateDiskSpace
 UserId
 Background
@@ -116,20 +144,18 @@ sub Execute {
   $sth->finish();
   Debug('Loaded ' . @results . ' events for filter '.$$self{Name}.' using query ('.$sql.')"');
   if ($self->{PostSQLConditions} and @{$self->{PostSQLConditions}}) {
-    my @filtered_events;
     foreach my $term ( @{$$self{PostSQLConditions}} ) {
       if ( $$term{attr} eq 'ExistsInFileSystem' ) {
+        my $want_exists = ($$term{val} eq 'true') ? 1 : 0;
+        $want_exists = !$want_exists if ($$term{op}//'') eq 'IS NOT';
+        my @filtered_events;
         foreach my $row ( @results ) {
           my $event = new ZoneMinder::Event($$row{Id}, $row);
-          if ( -e $event->Path() ) {
-            push @filtered_events, $row if $$term{val} eq 'true';
-          } else {
-            push @filtered_events, $row if $$term{val} eq 'false';
-          }
+          push @filtered_events, $row if (-e $event->Path()) ? $want_exists : !$want_exists;
         }
+        @results = @filtered_events;
       }
     } # end foreach term
-    @results = @filtered_events;
   } # end if has PostSQLConditions
   return @results;
 } # end sub Execute
@@ -155,6 +181,13 @@ sub Sql {
     if ( $filter_expr->{terms} ) {
       foreach my $term ( @{$filter_expr->{terms}} ) {
 
+        # Checked before anything is appended: skipping the term afterwards left
+        # its conjunction and opening bracket in the statement.
+        if (!$term->{attr}) {
+          Error("Invalid term in filter $$self{Id}. Empty attr, skipping filter '$$self{Name}'");
+          return;
+        }
+
         # See getFilterQueryConjunctionTypes()
         if ( exists($term->{cnj}) and $term->{cnj} =~ /^(and|or)$/ ) {
           $self->{Sql} .= ' '.$term->{cnj};
@@ -163,15 +196,40 @@ sub Sql {
         if ( exists($term->{obr}) ) {
           $self->{Sql} .= str_repeat('(', $term->{obr}).' ';
         }
-        if (!$term->{attr}) {
-          Error("Invalid term in filter $$self{Id}. Empty attr");
-          next;
-        }
 
         # Date attrs (Date/StartDate/EndDate) emit sargable range queries
         # against E.StartDateTime / E.EndDateTime instead of wrapping the
         # column in to_days(), which would prevent index use.  See
         # _dateRangeSQL below.
+        # attr and op are concatenated into the statement further down (the
+        # final else emits 'E.'.$term->{attr}, and the generic operator branch
+        # emits $term->{op} as written), so both are checked here the way
+        # web/includes/FilterTerm.php checks them. A filter carrying anything
+        # else is refused rather than run: this daemon executes unattended and
+        # can delete and move events. See GHSA-p8h3-4x5c-cv7p.
+        if ( defined $term->{attr} ) {
+          my $clean_attr = $term->{attr};
+          $clean_attr =~ s/[^A-Za-z0-9\.]//g;
+          if ( $clean_attr ne $term->{attr} ) {
+            Error("Invalid characters in filter attr '$$term{attr}', skipping filter '$$self{Name}'");
+            return;
+          }
+        }
+        if ( defined $term->{op} and $term->{op} ne '' ) {
+          my %valid_ops = map { $_ => 1 } (
+            '=', '!=', '>=', '<=', '>', '<', 'LIKE', 'NOT LIKE', '=~', '!~',
+            '=[]', '![]', 'IN', 'NOT IN', 'EXISTS', 'IS', 'IS NOT',
+          );
+          if ( !$valid_ops{$term->{op}} ) {
+            Error("Invalid operator '$$term{op}' in filter '$$self{Name}', skipping filter");
+            return;
+          }
+        } else {
+          # A term without an operator compares for equality, as in FilterTerm.php
+          $term->{op} = '=';
+        }
+
+        my $tags_exist = 0;
         my $date_column = '';
         if ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' ) {
           $date_column = 'E.StartDateTime';
@@ -179,16 +237,38 @@ sub Sql {
           $date_column = 'E.EndDateTime';
         }
 
+        # A DateTime lower bound also emits a whole predicate rather than an
+        # attribute, so it is flagged here and handled below where the value is
+        # known.  See the DateTime branch.
+        my $datetime_lower_bound = (
+          ($term->{attr} eq 'DateTime')
+          and (($term->{op}//'') eq '>=' or ($term->{op}//'') eq '>')
+        ) ? 1 : 0;
+
+        # Where the attribute text starts, so a multi-value comparison can repeat it
+        my $attr_start = length($self->{Sql});
         if ( $term->{attr} eq 'AlarmedZoneId' ) {
           $term->{op} = 'EXISTS';
+        } elsif ( $term->{attr} eq 'Group' ) {
+          # As in FilterTerm.php: a group stands for the monitors in it
+          $term->{op} = ($term->{op} =~ /^(?:!=|!\[\]|NOT IN)$/) ? 'NOT IN' : 'IN';
+          $self->{Sql} .= 'E.MonitorId';
         } elsif ( $term->{attr} eq 'Tags' ) {
-          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags';
+          $fields .= ', (SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id)) As Tags' if $fields !~ /As Tags/;
+          # Comparing the joined tag row gets "is not" wrong and repeats events with several tags.
+          $tags_exist = (
+            defined($term->{val})
+            and ($term->{op}//'') =~ /^(?:=|!=|=\[\]|!\[\]|IN|NOT IN|IS|IS NOT)$/
+            and !grep { $_ eq '0' or $_ eq '-1' } split(/["'\s]*,["'\s]*/, $term->{val})
+          ) ? 1 : 0;
           # Don't prepend T.Id for special tag values (0="No Tag", -1="Any Tag")
           # as those use EXISTS/NOT EXISTS subqueries instead
-          if (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1')) {
+          if (!$tags_exist and (!defined($term->{val}) or ($term->{val} ne '0' and $term->{val} ne '-1'))) {
             $self->{Sql} .= 'T.Id';
           }
-          $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          if (!$tags_exist and $from !~ /Events_Tags AS ET/) {
+            $from .= ' LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId LEFT JOIN Tags AS T ON T.Id = ET.TagId';
+          }
         } elsif ( $term->{attr} =~ /^Monitor/ ) {
           if (!($fields =~ /MonitorName/)) {
             $fields .= ', M.Name as MonitorName';
@@ -213,8 +293,19 @@ sub Sql {
           $self->{Sql} .= 'extract( hour_second from NOW())';
         } elsif ( $term->{attr} eq 'CurrentDate' ) {
           $self->{Sql} .= 'to_days(NOW())';
+        } elsif ( $term->{attr} eq 'CurrentWeekday' ) {
+          $self->{Sql} .= 'weekday(NOW())';
         } elsif ( $term->{attr} eq 'DateTime' ) {
-          $self->{Sql} .= 'E.StartDateTime';
+          # Mirror web/includes/FilterTerm.php: DateTime is an "event overlaps
+          # this instant/window" idiom, not a plain StartDateTime comparison. A
+          # lower bound (>=/>) is satisfied by an event still running at that
+          # time, so it compares against EndDateTime and has to treat a NULL end
+          # as ongoing - that whole predicate is emitted below, where the value
+          # is known, so nothing is emitted here. An upper bound (<=/</=) is
+          # satisfied by an event that had already started, so compare against
+          # StartDateTime. Keep this in sync with the PHP so the web UI and the
+          # zmfilter.pl daemon select the same events. refs #4976
+          $self->{Sql} .= 'E.StartDateTime' if !$datetime_lower_bound;
         } elsif ( $term->{attr} eq 'Date' ) {
           # column emitted as part of range expression below
         } elsif ( $term->{attr} eq 'StartDate' ) {
@@ -249,6 +340,7 @@ sub Sql {
           $self->{Sql} .= 'E.'.$term->{attr};
         }
 
+        my $attr_sql = substr($self->{Sql}, $attr_start);
         my $value = defined($term->{val}) ? $term->{val} : '';
         my @value_list;
 
@@ -258,25 +350,31 @@ sub Sql {
           my $stripped_value = $value;
           $stripped_value =~ s/^["\']+?(.+)["\']+?$/$1/ if $stripped_value;
 
-          # Empty value will result in () from split
-          foreach my $temp_value ( $stripped_value ne '' ? split( /["'\s]*?,["'\s]*?/, $stripped_value ) : $stripped_value ) {
+          # A regular expression can contain commas (x{1,3}), so it is one value
+          my $is_regex = ($term->{op}//'') =~ /^[=!]~$/;
+          # Trim quotes and spaces off each value and drop empty ones, so "a, b" and a trailing comma do not add values
+          my @temp_values = $is_regex ? ($stripped_value) : grep { $_ ne '' } map { s/^["'\s]+|["'\s]+$//gr } split( /,/, $stripped_value );
+          @temp_values = ('') if !@temp_values;
+          foreach my $temp_value ( @temp_values ) {
             if ( $term->{attr} eq 'AlarmedZoneId' ) {
-              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.$value.')';
-            } elsif ( $term->{attr} =~ /^MonitorName/ ) {
-              $value = "'$temp_value'";
+              $value = '(SELECT * FROM Stats WHERE EventId=E.Id AND Score > 0 AND ZoneId='.int($temp_value).')';
+            } elsif ( $term->{attr} eq 'Group' ) {
+              # No monitors in the group must still leave a valid list that matches nothing
+              push @value_list, _groupMonitorIds($temp_value);
+              next;
             } elsif (
               $term->{attr} eq 'ServerId' or
               $term->{attr} eq 'MonitorServerId' or
               $term->{attr} eq 'StorageServerId' or
               $term->{attr} eq 'FilterServerId' ) {
               if ( $temp_value eq 'ZM_SERVER_ID' ) {
-                $value = "'$ZoneMinder::Config::Config{ZM_SERVER_ID}'";
+                $value = sql_quote($ZoneMinder::Config::Config{ZM_SERVER_ID});
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($ZoneMinder::Config::Config{ZM_SERVER_ID});
               } elsif ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
               } else {
-                $value = "'$temp_value'";
+                $value = sql_quote($temp_value);
                 # This gets used later, I forget for what
                 $$self{Server} = new ZoneMinder::Server($temp_value);
               }
@@ -285,6 +383,7 @@ sub Sql {
               $value = $temp_value ne '' ? int($temp_value) : 'NULL';
               $$self{Storage} = new ZoneMinder::Storage($temp_value);
             } elsif ( $term->{attr} eq 'Name'
+              || $term->{attr} eq 'MonitorName'
               || $term->{attr} eq 'Cause'
               || $term->{attr} eq 'Notes'
               || $term->{attr} eq 'Tags'
@@ -294,7 +393,7 @@ sub Sql {
               ) {
                 $temp_value = '%'.$temp_value.'%' if $temp_value !~ /%/;
               }
-              $value = "'$temp_value'";
+              $value = sql_quote($temp_value);
             } elsif ( $term->{attr} eq 'DateTime' or $term->{attr} eq 'StartDateTime' or $term->{attr} eq 'EndDateTime' or $term->{attr} eq 'CurrentDateTime') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
@@ -309,7 +408,7 @@ sub Sql {
             } elsif ( $term->{attr} eq 'Date' or $term->{attr} eq 'StartDate' or $term->{attr} eq 'EndDate' or $term->{attr} eq 'CurrentDate') {
               if ( uc($temp_value) eq 'NULL' ) {
                 $value = $temp_value;
-              } elsif ( $temp_value eq 'CURDATE()' or $temp_value eq 'NOW()' ) {
+              } elsif ( uc($temp_value) eq 'CURDATE()' or uc($temp_value) eq 'NOW()' ) {
                 # For Date/StartDate/EndDate the value is consumed by
                 # _dateRangeSQL below; leave it raw.  For CurrentDate
                 # (left side is to_days(NOW()), a constant), preserve
@@ -321,7 +420,7 @@ sub Sql {
                   Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
-                $value = $date_column ? "'$value'" : "to_days( '$value' )";
+                $value = $date_column ? sql_quote($value) : 'to_days( '.sql_quote($value).' )';
               }
             } elsif ( $term->{attr} eq 'Time' or $term->{attr} eq 'StartTime' or $term->{attr} eq 'EndTime' or $term->{attr} eq 'CurrentTime') {
               if ( uc($temp_value) eq 'NULL' ) {
@@ -332,13 +431,25 @@ sub Sql {
                   Error("Error parsing date/time '$temp_value', skipping filter '$self->{Name}'");
                   return;
                 }
-                $value = "extract( hour_second from '$value' )";
+                $value = 'extract( hour_second from '.sql_quote($value).' )';
               }
             } else {
-              $value = $temp_value;
+              # Everything else is a plain column comparison, and most of those
+              # columns are numeric. A bare number cannot carry SQL, so it is
+              # left as it was to keep the generated statement identical for
+              # the filters people already have; NULL stays a keyword; anything
+              # else is quoted.
+              if ( uc($temp_value) eq 'NULL' ) {
+                $value = 'NULL';
+              } elsif ( $temp_value =~ /^-?\d+(?:\.\d+)?$/ ) {
+                $value = $temp_value;
+              } else {
+                $value = sql_quote($temp_value);
+              }
             }
             push @value_list, $value;
           } # end foreach temp_value
+          @value_list = (0) if $term->{attr} eq 'Group' and !@value_list;
 
           if ( $term->{op} ) {
             # Date attrs: emit a sargable range expression covering the
@@ -346,6 +457,28 @@ sub Sql {
             # which would defeat the index on StartDateTime/EndDateTime.
             if ( $date_column ) {
               $self->{Sql} .= ' '._dateRangeSQL($date_column, $term->{op}, \@value_list);
+            }
+            # An event is on the near side of a lower bound if it was still
+            # running when that instant arrived.  Mirror of the PHP in
+            # web/includes/FilterTerm.php - see the long comment there.  The
+            # StartDateTime floor bounds a window in the past and stops an event
+            # that was never closed from matching years later; the EndDateTime
+            # conjunct is implied by the effective end and exists only to give
+            # the optimiser a second indexable handle, narrow exactly when the
+            # floor is wide; the effective end falls back to StartDateTime +
+            # Length so a live event (Length still growing) is told apart from
+            # one zmc was killed part way through (Length frozen).
+            elsif ( $datetime_lower_bound and @value_list ) {
+              my @subterms = map {
+                '(E.StartDateTime >= DATE_SUB('.$_.', INTERVAL '.MAX_EVENT_DAYS.' DAY)'
+                .' AND (E.EndDateTime IS NULL OR E.EndDateTime '.$term->{op}.' '.$_.')'
+                .' AND '.EFFECTIVE_END_SQL.' '.$term->{op}.' '.$_.')'
+              } @value_list;
+              $self->{Sql} .= ' '.((@subterms > 1) ? '('.join(' OR ', @subterms).')' : $subterms[0]);
+            }
+            elsif ( $tags_exist ) {
+              $self->{Sql} .= ( $term->{op} =~ /^(?:!=|!\[\]|NOT IN|IS NOT)$/ ? 'NOT ' : '' )
+                .'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id AND ET.TagId IN ('.join(',', @value_list).'))';
             }
             # Handle special tag values before generic operators to avoid
             # LEFT JOIN NULL comparison issues with EXISTS/NOT EXISTS
@@ -363,14 +496,18 @@ sub Sql {
               } else {
                 $self->{Sql} .= 'EXISTS (SELECT NULL FROM `Events_Tags` AS ET WHERE ET.EventId = E.Id)';
               }
+            } elsif ( @value_list > 1 and $term->{op} =~ /^(?:=|!=|<=|>=|<|>|LIKE|NOT LIKE)$/ ) {
+              # A negative operator must hold for every value, not just one of them
+              my $join = ($term->{op} eq '!=' or $term->{op} eq 'NOT LIKE') ? ' AND ' : ' OR ';
+              substr($self->{Sql}, $attr_start) = '('.join($join, map { $attr_sql.' '.$term->{op}.' '.$_ } @value_list).')';
             } elsif ( $term->{op} eq '=~' ) {
               $self->{Sql} .= ' REGEXP '.$value;
             } elsif ( $term->{op} eq '!~' ) {
               $self->{Sql} .= ' NOT REGEXP '.$value;
             } elsif ( $term->{op} eq 'IS' ) {
-              if ( $value eq 'Odd' ) {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
                 $self->{Sql} .= ' % 2 = 1';
-              } elsif ( $value eq 'Even' ) {
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
                 $self->{Sql} .= ' % 2 = 0';
               } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' = '.$value;
@@ -378,9 +515,17 @@ sub Sql {
                 $self->{Sql} .= ' IS '.$value;
               }
             } elsif ( $term->{op} eq 'EXISTS' ) {
-              $self->{Sql} .= ' EXISTS '.$value;
+              if ( @value_list > 1 ) {
+                substr($self->{Sql}, $attr_start) = '('.join(' OR ', map { 'EXISTS '.$_ } @value_list).')';
+              } else {
+                $self->{Sql} .= ' EXISTS '.$value;
+              }
             } elsif ( $term->{op} eq 'IS NOT' ) {
-              if (uc($value) ne 'NULL') {
+              if ( $value eq 'Odd' or $value eq "'Odd'" ) {
+                $self->{Sql} .= ' % 2 = 0';
+              } elsif ( $value eq 'Even' or $value eq "'Even'" ) {
+                $self->{Sql} .= ' % 2 = 1';
+              } elsif (uc($value) ne 'NULL') {
                 $self->{Sql} .= ' != '.$value;
               } else {
                 $self->{Sql} .= ' IS NOT '.$value;
@@ -394,7 +539,13 @@ sub Sql {
             } elsif ( $term->{op} eq 'NOT LIKE' ) {
               $self->{Sql} .= ' NOT LIKE '.$value;
             } else {
-              $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              if ( uc($value) eq 'NULL' and $term->{op} eq '=' ) {
+                $self->{Sql} .= ' IS NULL';
+              } elsif ( uc($value) eq 'NULL' and $term->{op} eq '!=' ) {
+                $self->{Sql} .= ' IS NOT NULL';
+              } else {
+                $self->{Sql} .= ' '.$term->{op}.' '.$value;
+              }
             }
           } # end if has an operator
         } # end if Pre/Post or SQL
@@ -403,11 +554,19 @@ sub Sql {
       } # end foreach term
     } # end if terms
 
+    if ( ($filter_expr->{sort_field} || '') =~ /(?:^|,)\s*MonitorName\b/ ) {
+      $fields .= ', M.Name as MonitorName' if $fields !~ /MonitorName/;
+      $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId' if $from !~ /Monitors as M/;
+    }
+
     my $sql = ' SELECT '.$fields. ' FROM ' . $from;
+    # A filter with no terms has no WHERE clause for the conditions below to continue
+    my $has_where = 0;
     if ( $self->{Sql} ) {
 # Include all events, including events that are still ongoing
 # and have no EndTime yet
       $sql .= ' WHERE ( '.$self->{Sql}.' )';
+      $has_where = 1;
     }
     my @auto_terms;
     if ( $self->{AutoArchive} ) {
@@ -433,8 +592,22 @@ sub Sql {
     if ( $self->{AutoExecute} ) {
       push @auto_terms, 'E.Executed = 0';
     }
+    # The tag id goes into the SQL, so only ever as digits
+    if ( $self->{AutoTag} and ($self->{AutoTagId} // '') =~ /^\s*([1-9]\d*)\s*$/ ) {
+      push @auto_terms, 'NOT EXISTS (SELECT 1 FROM Events_Tags AS ET WHERE ET.EventId=E.Id AND ET.TagId='.$1.')';
+    }
     if ( @auto_terms ) {
-      $sql .= ' AND ( '.join(' or ', @auto_terms).' )';
+      $sql .= ($has_where ? ' AND' : ' WHERE').' ( '.join(' or ', @auto_terms).' )';
+      $has_where = 1;
+    }
+
+    # Leave out events another filter is already working on, so that our LIMIT
+    # fills with events we can actually do something with instead of being used
+    # up by events we would only skip. Done here rather than by skipping at
+    # claim time because a filter whose whole result set is held elsewhere would
+    # otherwise make no progress at all.
+    if ($$self{LockRows} and $filter_expr->{skip_locked}) {
+      $sql .= ($has_where ? ' AND' : ' WHERE').' NOT EXISTS (SELECT 1 FROM Events_Lock AS EL WHERE EL.EventId=E.Id AND EL.ExpiresAt>NOW())';
     }
 
     my $sort_column = '';
@@ -444,13 +617,6 @@ sub Sql {
       } elsif ( $filter_expr->{sort_field} eq 'Tag' ) {
         $sort_column = 'T.Name';
       } elsif ( $filter_expr->{sort_field} eq 'MonitorName' ) {
-        if (!($fields =~ /MonitorName/)) {
-          $fields .= ', M.Name as MonitorName';
-          $from .= ' INNER JOIN Monitors as M on M.Id = E.MonitorId';
-          $sql = ' SELECT '.$fields. ' FROM ' . $from;
-          $sql .= ' WHERE ( '.$self->{Sql}.' )' if $self->{Sql};
-          $sql .= ' AND ( '.join(' or ', @auto_terms).' )' if @auto_terms;
-        }
         $sort_column = 'M.Name';
       } elsif ( $filter_expr->{sort_field} eq 'Name' ) {
         $sort_column = 'E.Name';
@@ -476,30 +642,81 @@ sub Sql {
         $sort_column = 'E.MaxScore';
       } elsif ( $filter_expr->{sort_field} eq 'DiskSpace' ) {
         $sort_column = 'E.DiskSpace';
-      } elsif ( $filter_expr->{sort_field} ne '' ) {
-        $sort_column = 'E.'.$filter_expr->{sort_field};
+      } elsif ( $filter_expr->{sort_field} eq 'Tags' ) {
+        # Tags is not an Events column, and the Tags alias only exists when the filter has a Tags term
+        $sort_column = '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))';
+      } else {
+        # sort_field may be a comma separated list of parts, each
+        # '<Column> [IS [NOT] NULL] [ASC|DESC]' (web/includes/Filter.php
+        # SORT_PART_RE).  Prefix every part's column with E. and keep the
+        # rest of the part, so 'EndDateTime IS NOT NULL, EndDateTime'
+        # becomes 'E.EndDateTime IS NOT NULL, E.EndDateTime'.
+        my @sort_parts = split /,/, $filter_expr->{sort_field}, -1;
+        my @sort_columns;
+        my $sort_valid = 1;
+        foreach my $sort_part ( @sort_parts ) {
+          $sort_part =~ s/^\s+|\s+$//g;
+          if ( $sort_part !~ /^([A-Za-z]\w*)(\s+IS\s+(?:NOT\s+)?NULL)?(\s+(?:ASC|DESC))?$/i ) {
+            $sort_valid = 0;
+            last;
+          }
+          my ($sort_name, $sort_rest) = $sort_part =~ /^(\w+)(.*)$/;
+          my %sort_column_map = (
+            MonitorName => 'M.Name',
+            Tags => '(SELECT GROUP_CONCAT(Name) FROM Tags WHERE Id IN (SELECT TagId FROM Events_Tags WHERE Events_Tags.EventId=E.Id))',
+            StartTime => 'E.StartDateTime',
+            EndTime => 'E.EndDateTime',
+            Secs => 'E.Length',
+          );
+          push @sort_columns, ($sort_column_map{$sort_name} || 'E.'.$sort_name).$sort_rest;
+        }
+        $sort_column = join(', ', @sort_columns) if $sort_valid;
       }
     }
     #$sql .= ' GROUP BY E.Id ';
     if ( $sort_column ne '' ) {
       $sql .= ' ORDER BY '.$sort_column.' '.($filter_expr->{sort_asc} ? 'ASC' : 'DESC');
     }
-    if ($filter_expr->{limit}) {
+    if ($filter_expr->{limit} and $filter_expr->{limit} =~ /^\d+$/) {
       $sql .= ' LIMIT 0,'.$filter_expr->{limit};
     }
-    if ($$self{LockRows}) {
-      $sql .= ' FOR UPDATE';
-      if ($filter_expr->{skip_locked}) {
-        $sql .= ' SKIP LOCKED';
-      }
-    }
+    # LockRows deliberately does NOT add FOR UPDATE here.  Selecting the whole
+    # result set FOR UPDATE means every row lock, and every lock the per-event
+    # work goes on to take (Events_Hour/Day/Week/Month, Event_Summaries,
+    # Storage), is held until the batch commits.  That both deadlocks two
+    # filters against each other and blocks zmc from opening a new event on any
+    # monitor the filter touched.  zmfilter claims one event at a time in the
+    # Events_Lock table instead - see ZoneMinder::Event::acquire_lock.
     $self->{Sql} = $sql;
   } # end if has Sql
   return $self->{Sql};
 } # end sub Sql
 
+# Whether events another filter has claimed should be left out of this filter's
+# results altogether, rather than returned and then skipped one at a time.
+sub skip_locked {
+  my $self = shift;
+  return 0 if !$$self{Query_json};
+  my $filter_expr = ZoneMinder::General::jsonDecode($$self{Query_json});
+  return $filter_expr->{skip_locked} ? 1 : 0;
+}
+
+# The monitors in a group and in the groups below it, as FilterTerm.php lists them
+sub _groupMonitorIds {
+  my ($group_id, $seen) = @_;
+  $seen ||= {};
+  return () if !defined($group_id) or $group_id !~ /^\d+$/ or $seen->{$group_id}++;
+  my $dbh = $ZoneMinder::Database::dbh;
+  my @ids = @{$dbh->selectcol_arrayref('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', undef, $group_id) || []};
+  foreach my $child ( @{$dbh->selectcol_arrayref('SELECT `Id` FROM `Groups` WHERE `ParentId`=?', undef, $group_id) || []} ) {
+    push @ids, _groupMonitorIds($child, $seen);
+  }
+  my %unique;
+  return grep { !$unique{$_}++ } @ids;
+}
+
 sub getDiskPercent {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)%/ms ) {
@@ -509,7 +726,7 @@ sub getDiskPercent {
 }
 
 sub getDiskBlocks {
-  my $command = 'df ' . ($_[0] ? $_[0] : '.');
+  my $command = 'df ' . quotemeta($_[0] ? $_[0] : '.');
   my $df = qx( $command );
   my $space = -1;
   if ( $df =~ /\s(\d+)\s+\d+\s+\d+%/ms ) {
@@ -519,11 +736,12 @@ sub getDiskBlocks {
 }
 
 sub getLoad {
-  my $command = 'uptime .';
+  my $command = 'uptime';
   my $uptime = qx( $command );
   my $load = -1;
-  if ( $uptime =~ /load average:\s+([\d.]+)/ms ) {
-    $load = $1;
+  # Locales with a decimal comma print "load average: 2,52, 1,58, 0,59"
+  if ( $uptime =~ /load averages?:\s+(\d+(?:[.,]\d+)?)/ms ) {
+    ($load = $1) =~ tr/,/./;
     Info("Load: $load");
   }
   return $load;
@@ -554,8 +772,9 @@ sub str_repeat {
 # $value is either 'YYYY-MM-DD HH:MM:SS' (quoted), or CURDATE()/NOW().
 sub _dateBounds {
   my $value = shift;
-  if ( $value eq 'CURDATE()' or $value eq 'NOW()' ) {
-    return ($value, "$value + INTERVAL 1 DAY");
+  # NOW() is the current day, so its bounds are midnight like CURDATE()'s
+  if ( uc($value) eq 'CURDATE()' or uc($value) eq 'NOW()' ) {
+    return ('CURDATE()', 'CURDATE() + INTERVAL 1 DAY');
   }
   my $stripped = $value;
   $stripped =~ s/^'(.+)'$/$1/;

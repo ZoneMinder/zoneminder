@@ -11,7 +11,7 @@ https://en.opensuse.org/Additional_package_repositories#Packman
 
 Look at ZoneMinder.spec at the "BuildRequires" and make sure needed packages are installed on the build machine.
 
-Packages like ffmpeg-6-* & vlc-devel are what are needed from Packman.
+Packages like ffmpeg-6-* are what are needed from Packman.
 
 Other notes:
 libvncclient1 (libvnclient) comes from LibVNCServer-devel

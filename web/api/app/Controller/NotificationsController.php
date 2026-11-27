@@ -64,7 +64,15 @@ class NotificationsController extends AppController {
     if (isset($data['Notification'])) {
       $data = $data['Notification'];
     }
+    if (!is_array($data)) {
+      throw new BadRequestException(__('Notification must be an object'));
+    }
 
+    // The row is chosen here (a new one, or the one holding this Token), never by
+    // an Id in the body: Cake's save() would update that row instead.
+    unset($data['Id']);
+
+    $userIdGiven = $this->_isAdmin() && isset($data['UserId']);
     if (!$this->_isAdmin() || !isset($data['UserId'])) {
       $data['UserId'] = $this->_userId();
     }
@@ -73,7 +81,8 @@ class NotificationsController extends AppController {
       $data['CreatedOn'] = date('Y-m-d H:i:s');
     }
 
-    if (isset($data['Token'])) {
+    // A list or object for Token is left to save(), which refuses it.
+    if (isset($data['Token']) and is_scalar($data['Token'])) {
       $existing = $this->Notification->find('first', array(
         'conditions' => array('Notification.Token' => $data['Token']),
         'recursive' => -1,
@@ -84,6 +93,10 @@ class NotificationsController extends AppController {
         }
         $this->Notification->id = $existing['Notification']['Id'];
         unset($data['CreatedOn']);
+        // Re-registering a token keeps its owner unless an admin names one.
+        if (!$userIdGiven) {
+          unset($data['UserId']);
+        }
       } else {
         $this->Notification->create();
       }
@@ -129,9 +142,14 @@ class NotificationsController extends AppController {
     if (isset($data['Notification'])) {
       $data = $data['Notification'];
     }
+    if (!is_array($data)) {
+      throw new BadRequestException(__('Notification must be an object'));
+    }
     if (!$this->_isAdmin()) {
       unset($data['UserId']);
     }
+    // The row is the one in the URL, whatever Id the body names.
+    $data['Id'] = $id;
     if ($this->Notification->save(array('Notification' => $data))) {
       $notification = $this->Notification->find('first', array(
         'conditions' => array('Notification.Id' => $id),

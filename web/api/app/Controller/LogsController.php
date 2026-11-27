@@ -39,7 +39,12 @@ class LogsController extends AppController {
 	public function index() {
 		$this->Log->recursive = -1;
 		$this->Paginator->settings = $this->paginate;
+		if ( $this->request->params['named'] ) {
+			$this->FilterComponent = $this->Components->load('Filter');
+			$this->Paginator->settings['conditions'] = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Log->schema()));
+		}
 
+		$this->requireScalarSort();
 		$logs = $this->Paginator->paginate('Log');
 		$this->set(compact('logs'));
 	}
@@ -56,7 +61,10 @@ class LogsController extends AppController {
 			throw new NotFoundException(__('Invalid log'));
 		}
 		$options = array('conditions' => array('Log.' . $this->Log->primaryKey => $id));
-		$this->set('log', $this->Log->find('first', $options));
+		$this->set(array(
+			'log' => $this->Log->find('first', $options),
+			'_serialize' => array('log')
+		));
 	}
 
 /**
@@ -71,11 +79,27 @@ class LogsController extends AppController {
       throw new UnauthorizedException(__('Insufficient privileges'));
       return;
     }
+		if (!$this->request->is('post')) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+		}
 		if ($this->request->is('post')) {
+			// ZM_LOG_INJECT lets non-admins add entries; never let one overwrite an existing entry.
+			$this->pinRequestId($this->Log, null);
 			$this->Log->create();
 			if ($this->Log->save($this->request->data)) {
-				return $this->flash(__('The log has been saved.'), array('action' => 'index'));
+				$this->set(array(
+					'message' => 'Saved',
+					'id' => $this->Log->id,
+					'_serialize' => array('message', 'id')
+				));
+				return;
 			}
+			$this->response->statusCode(400);
+			$this->set(array(
+				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
+				'id' => null,
+				'_serialize' => array('message', 'id')
+			));
 		}
 	}
 
@@ -98,12 +122,21 @@ class LogsController extends AppController {
 			throw new NotFoundException(__('Invalid log'));
 		}
 		if ($this->request->is(array('post', 'put'))) {
+			$this->pinRequestId($this->Log, $id);
 			if ($this->Log->save($this->request->data)) {
-				return $this->flash(__('The log has been saved.'), array('action' => 'index'));
+				$this->set(array(
+					'message' => 'Saved',
+					'_serialize' => array('message')
+				));
+				return;
 			}
+			$this->response->statusCode(400);
+			$this->set(array(
+				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
+				'_serialize' => array('message')
+			));
 		} else {
-			$options = array('conditions' => array('Log.' . $this->Log->primaryKey => $id));
-			$this->request->data = $this->Log->find('first', $options);
+			throw new BadRequestException(__('Invalid method. Should be post or put'));
 		}
 	}
 
@@ -115,6 +148,7 @@ class LogsController extends AppController {
  * @return void
  */
 	public function delete($id = null) {
+    global $user;
     $canDelete = (!$user) || ($user->System() == 'Edit');
     if (!$canDelete) {
       throw new UnauthorizedException(__('Insufficient privileges'));
@@ -126,8 +160,12 @@ class LogsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		if ($this->Log->delete()) {
-			return $this->flash(__('The log has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The log could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The log could not be deleted.'));
 		}
 	}}

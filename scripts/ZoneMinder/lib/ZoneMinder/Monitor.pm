@@ -40,6 +40,7 @@ require ZoneMinder::Zone;
 require ZoneMinder::Manufacturer;
 require ZoneMinder::Model;
 use ZoneMinder::Logger qw(:all);
+use ZoneMinder::Database qw(:all);
 
 use parent qw(ZoneMinder::Object);
 
@@ -111,7 +112,6 @@ $serial = $primary_key = 'Id';
   EncoderParameters
   RecordAudio
   RecordingSource
-  RTSPDescribe
   Brightness
   Contrast
   Hue
@@ -131,7 +131,6 @@ $serial = $primary_key = 'Id';
   SectionLength
   SectionLengthWarn
   MinSectionLength
-  FrameSkip
   MotionFrameSkip
   AnalysisFPSLimit
   AnalysisUpdateDelay
@@ -238,7 +237,6 @@ $fields{model} = undef;
     EncoderParameters => '',
     RecordAudio=>0,
     RecordingSource  => q`'Primary'`,
-    RTSPDescribe=>0,
     Brightness  =>  -1,
     Contrast    =>  -1,
     Hue         =>  -1,
@@ -258,7 +256,6 @@ $fields{model} = undef;
     SectionLength      =>  600,
     SectionLengthWarn => 1,
     MinSectionLength    =>  10,
-    FrameSkip           =>  0,
     MotionFrameSkip     =>  0,
     AnalysisFPSLimit  =>  undef,
     AnalysisUpdateDelay  =>  0,
@@ -306,11 +303,18 @@ use constant ANALYSING_NONE     => 1;
 sub save {
   my $self = shift;
 
+  # zmc reads an empty or NULL ONVIF_Alarm_Text as "match every ONVIF event".
+  # set() would put the default back, so an existing row is saved as it is.
+  delete local $defaults{ONVIF_Alarm_Text} if $$self{Id};
+
   my $manufacturer = $self->Manufacturer();
   my $model = $self->Model();
 
   if ($manufacturer->Name() and !$manufacturer->Id()) {
-    if ($manufacturer->save()) {
+    # save() returns the error string on failure, '' on success.
+    if (my $error = $manufacturer->save()) {
+      Error('Failed saving Manufacturer '.$manufacturer->Name().": $error");
+    } else {
       $$self{ManufacturerId} = $manufacturer->Id();
       if ($model->Name()) {
         $model->ManufacturerId($$self{ManufacturerId});
@@ -318,8 +322,10 @@ sub save {
     }
   }
   if ($model->Name() and !$model->Id()) {
-    if ($model->save()) {
-      $$self{ModelId} = $model->Id()
+    if (my $error = $model->save()) {
+      Error('Failed saving Model '.$model->Name().": $error");
+    } else {
+      $$self{ModelId} = $model->Id();
     }
   }
 
@@ -350,6 +356,24 @@ sub control {
   if ($monitor->{Type} eq 'Local') {
     if (!defined $monitor->{Device} or $monitor->{Device} !~ /^\/dev\/[\w\/.\-]+$/) {
       Error("Invalid device path rejected: $monitor->{Device}");
+      return;
+    }
+  }
+
+  # Callers hold a Monitor object for a while before acting on it: zmwatch
+  # fetches its whole list at the top of a pass and then walks it, so a monitor
+  # deleted mid-pass is still restarted from that stale list. The web ui already
+  # stopped its zmc, so the restart resurrects a capture daemon for a monitor
+  # nothing will ever ask about again - an orphan zmc that survives until the
+  # next zmpkg restart. Re-read Deleted from the db before starting anything.
+  if (($command eq 'start' or $command eq 'restart') and $$monitor{Id}) {
+    my $row = zmDbFetchOne('SELECT `Deleted` FROM `Monitors` WHERE `Id`=?', $$monitor{Id});
+    if (!$row) {
+      Info("Not running $command for monitor $$monitor{Id}: no longer exists");
+      return;
+    }
+    if ($$row{Deleted}) {
+      Info("Not running $command for monitor $$monitor{Id}: has been deleted");
       return;
     }
   }
@@ -447,7 +471,7 @@ sub resumeMotionDetection {
   return if $$self{Capturing} eq 'None' or $$self{Analysing} eq 'None';
   ZoneMinder::Logger::Debug(1, "capturing: $$self{Capturing} analysing: $$self{Analysing}");
   my $count = 50;
-  while ($count and !ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1)) {
+  while ($count and ZoneMinder::Memory::zmMemRead($self, 'shared_data:analysing', 1) == ANALYSING_NONE) {
     ZoneMinder::Logger::Debug(1, 'Resuming motion detection');
     ZoneMinder::Memory::zmMonitorResume($self);
     usleep(100000);
@@ -458,6 +482,27 @@ sub resumeMotionDetection {
     ZoneMinder::Memory::zmMemInvalidate($self); # Close our file handle to the zmc process we are about to end
   }
   return 1;
+}
+
+# How long zmwatch lets a capture daemon go without a first image after it set
+# its startup time. zmc sleeps StartupDelay seconds after that before it primes
+# the camera, so the delay is added to the usual limit.
+sub WatchStartupLimit {
+  my ($self, $max_delay) = @_;
+  return $max_delay + ($$self{StartupDelay} || 0);
+}
+
+# How long zmwatch lets capture or analysis go without a new image. A camera
+# limited to less than one frame per second is given three frame intervals,
+# but never less than the usual limit.
+sub WatchImageLimit {
+  my ($self, $max_delay) = @_;
+  my $fps = $$self{MaxFPS};
+  if ($fps and $fps > 0 and $fps < 1) {
+    my $limit = 3/$fps;
+    return $limit > $max_delay ? $limit : $max_delay;
+  }
+  return $max_delay;
 }
 
 sub Control {
@@ -479,6 +524,7 @@ sub Control {
           return undef;
         }
         $Control = $Control->clone(); # Because this object is not per monitor specific
+        $$Control{Protocol} = $Protocol;
         bless $Control, 'ZoneMinder::Control::'.$Protocol;
         $$Control{MonitorId} = $$self{Id};
         $$Control{Monitor} = $self->clone();
@@ -522,7 +568,7 @@ sub zmcControl {
     if ($ZoneMinder::Config{ZM_OPT_USE_AUTH}) {
       if ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'hashed') {
         #$url .= '?auth='.generateAuthHash(ZM_AUTH_HASH_IPS);
-      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} == 'plain') {
+      } elsif ($ZoneMinder::Config{ZM_AUTH_RELAY} eq 'plain') {
         #$url .= '?user='.$_SESSION['username'];
         #$url .= '?pass='.$_SESSION['password'];
       } else {
@@ -531,7 +577,8 @@ sub zmcControl {
       }
     }
     Debug('sending command to '.$url);
-    my $ua = LWP::UserAgent->new();
+    require LWP::UserAgent;
+    my $ua = LWP::UserAgent->new(timeout => 30);
     $ua->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
     my $response = $ua->get($url);
     if (!$response->is_success()) {

@@ -40,15 +40,14 @@ getBodyTopHTML();
   <?php 
   $manufacturers = array_to_hash_by_key('Name', ZM\Manufacturer::find());
   echo htmlSelect('probe_Manufacturer', [''=>translate('All Manufacturers')]+$manufacturers, 
-    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) ? validCardinal($_COOKIE['addMonitorsprobe_Manufacturer']) : ''), [
+    (isset($_COOKIE['addMonitorsprobe_Manufacturer']) && is_string($_COOKIE['addMonitorsprobe_Manufacturer']) && isset($manufacturers[$_COOKIE['addMonitorsprobe_Manufacturer']]) ? $_COOKIE['addMonitorsprobe_Manufacturer'] : ''), [
     #'multiple'=>'multiple',
           'class'=>'chosen']);
   ?>
               <input type="text" id="ip" name="ip" placeholder="<?php echo translate('Camera IP Address') ?>"/>
               <input type="text" id="probe_username" name="probe_username" placeholder="<?php echo translate('Camera Username') ?>"
                 value="<?php echo isset($_COOKIE['addMonitorsprobe_username']) ? validHtmlStr($_COOKIE['addMonitorsprobe_username']) : '' ?>"/>
-              <input type="text" id="probe_password" name="probe_password" placeholder="<?php echo translate('Camera Password') ?>"
-                value="<?php echo isset($_COOKIE['addMonitorsprobe_password']) ? validHtmlStr($_COOKIE['addMonitorsprobe_password']) : '' ?>"/>
+              <input type="text" id="probe_password" name="probe_password" placeholder="<?php echo translate('Camera Password') ?>"/>
             </div>
             <div id="contentButtons">
 <?php 
@@ -104,6 +103,7 @@ getBodyTopHTML();
       <table
         id="AddMonitorsTable"
         data-locale="<?php echo i18n() ?>"
+        data-escape="true"
         data-ajax="ajaxRequest"
         data-pagination="false"
         data-show-pagination-switch="false"
@@ -146,8 +146,8 @@ data-min-width="562"
               <th data-sortable="true" data-field="camera.monitor.Height" class="Height"><?php echo translate('Height') ?></th>
               <th data-sortable="true" data-field="camera.Codec" class="Codec"><?php echo translate('Codec') ?></th>
               <th data-sortable="true" data-field="Monitor.Name" class="MonitorName"><?php echo translate('Monitor') ?></th>
-              <th data-sortable="false" data-field="Thumbnail" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;" class="Thumbnail"><?php echo translate('Thumbnail') ?></th>
-              <th data-sortable="false" data-field="buttons"><?php echo translate('Add').' / '.translate('Edit') ?></th>
+              <th data-sortable="false" data-field="Thumbnail" data-escape="false" style="width: <?php echo ZM_WEB_LIST_THUMB_WIDTH?>px;" class="Thumbnail"><?php echo translate('Thumbnail') ?></th>
+              <th data-sortable="false" data-field="buttons" data-escape="false"><?php echo translate('Add').' / '.translate('Edit') ?></th>
             </tr>
           </thead>
 

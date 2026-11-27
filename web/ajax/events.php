@@ -20,7 +20,8 @@ if (empty($_REQUEST['eids'])) {
   if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
     $message = 'No event id(s) supplied<br/>';
 } else {
-  $eids = $_REQUEST['eids'];
+  // eids=5 arrives as a string, not an array, and foreach over it does nothing.
+  $eids = is_array($_REQUEST['eids']) ? $_REQUEST['eids'] : array($_REQUEST['eids']);
 }
 
 if ($message) {
@@ -29,10 +30,20 @@ if ($message) {
 }
 
 require_once('includes/Filter.php');
+require_once getSkinFile('views/_monitor_filters.php'); // getFilteredMonitorIds()
 $filter = isset($_REQUEST['filter']) ? ZM\Filter::parse($_REQUEST['filter']) : new ZM\Filter();
 if (count( $user->unviewableMonitorIds())) {
   $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$user->viewableMonitorIds()));
   // $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>'5'));
+}
+# Constrain to the monitors selected by the shared monitor-attribute filters
+# (Status/Capturing/Server/Storage/Name/Source) which have no Events column and so
+# can't be expressed as event terms. Null = no such filter active. refs #4976
+$attr_monitor_ids = getFilteredMonitorIds();
+if ($attr_monitor_ids !== null) {
+  // An empty list drops out of the query as a term, so match nothing with an id no monitor has.
+  if (!count($attr_monitor_ids)) $attr_monitor_ids = array(0);
+  $filter = $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=>'IN', 'val'=>$attr_monitor_ids));
 }
 // TODO: Why is $user->viewableMonitorIds() returning $user->unviewableMonitorIds()
 // Error('$user->viewableMonitorIds(): '.print_r($user->viewableMonitorIds()));
@@ -45,40 +56,42 @@ if (!empty($_REQUEST['EndDateTime'])) {
 if (!empty($_REQUEST['MonitorId'])) {
   $filter->addTerm(array('cnj'=>'and', 'attr'=>'MonitorId', 'op'=> '=', 'val'=>$_REQUEST['MonitorId']));
 }
-if (!empty($_REQUEST['Tag'])) {
-  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tag', 'op'=>'=', 'val'=>$_REQUEST['Tag']));
+if (isset($_REQUEST['Tag']) and $_REQUEST['Tag'] !== '') {
+  $filter->addTerm(array('cnj'=>'and', 'attr'=>'Tags', 'op'=>'=', 'val'=>$_REQUEST['Tag']));
 }
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+// Anything that did not decode to an object (garbage, empty, a bare number) is no search
+$advsearch = is_array($advsearch) ? $advsearch : array();
 
 // Order specifies the sort direction, either asc or desc
 $order = $filter->sort_asc() ? 'ASC' : 'DESC';
-if (isset($_REQUEST['order'])) {
+if (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {
     $order = 'ASC';
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning('Invalid value for order ' . $_REQUEST['order']);
+    \ZM\Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 
 // Sort specifies the name of the column to sort on
 $sort = $filter->sort_field();
-if (isset($_REQUEST['sort'])) {
+if (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) {
   $sort = $_REQUEST['sort'];
 }
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
-  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -88,8 +101,8 @@ if (isset($_REQUEST['offset']) and ($_REQUEST['offset'] != 'NaN')) {
 // Set the default to 0 for events view, to prevent an issue with ALL pagination
 $limit = 0;
 if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
-  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -101,7 +114,16 @@ if (isset($_REQUEST['limit']) and ($_REQUEST['limit'] != 'NaN')) {
 
 switch ($task) {
   case 'archive' :
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'unarchive' :
 		# The idea is that anyone can archive, but only people with Event Edit permission can unarchive..
@@ -109,7 +131,16 @@ switch ($task) {
 			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
-    foreach ($eids as $eid) archiveRequest($task, $eid);
+    foreach ($eids as $eid) {
+      $id = validCardinal($eid);
+      $message = archiveRequest($task, $id);
+      if ($message) {
+        if (empty($data['message'])) $data['message'] = [];
+        $data['message'][] = $message;
+        if (empty($data['notChanged'])) $data['notChanged'] = [];
+        $data['notChanged'][] = $id;
+      }
+    }
     break;
   case 'delete' :
 		if (!canEdit('Events'))  {
@@ -117,10 +148,13 @@ switch ($task) {
 			return;
 		}
     foreach ($eids as $eid) {
-      $message = deleteRequest($eid);
+      $id = validCardinal($eid);
+      $message = deleteRequest($id);
       if ($message) {
         if (empty($data['message'])) $data['message'] = [];
         $data['message'][] = $message;
+        if (empty($data['notDeleted'])) $data['notDeleted'] = [];
+        $data['notDeleted'][] = $id;
       }
     }
     break;
@@ -139,13 +173,36 @@ ajaxResponse($data);
 
 function archiveRequest($task, $eid) {
   $archiveVal = ($task == 'archive') ? 1 : 0;
-  dbQuery(
+  // $eids elements come straight from the request and an element may itself be
+  // an array; passed to new ZM\Event() it would be taken as a forged DB row,
+  // bypassing the per-event permission check below. Reduce it to a plain id
+  // (an array becomes '') so ZM\Event loads the real row (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
+  $event = new ZM\Event($eid);
+  if (!$event->Id()) {
+    ZM\Warning('Event '.$eid.' not found');
+    return 'Event '.$eid.' not found';
+  }
+  # Anyone who can view an event may archive it, unarchiving needs edit. Either way
+  # that is checked on the event itself so that its monitor's permission applies.
+  if (!($archiveVal ? $event->canView() : $event->canEdit())) {
+    ZM\Warning('No permission to '.$task.' event '.validCardinal($eid));
+    return 'No permission to '.$task.' event '.validCardinal($eid);
+  }
+  if (!dbQuery(
     'UPDATE Events SET Archived = ? WHERE Id = ?',
-    array($archiveVal, $eid)
-  );
+    array($archiveVal, $event->Id())
+  )) {
+    return 'Failed to update event '.$eid;
+  }
+  return '';
 }
 
 function deleteRequest($eid) {
+  // See archiveRequest(): reduce a possibly-array request element to a plain id
+  // so it can't be taken as a forged row and delete a denied event's files
+  // (refs GHSA-6h8f-gx4m-qqw4).
+  $eid = validCardinal($eid);
   $event = new ZM\Event($eid);
   if (!$event->Id()) {
     return 'Event '.$eid.' not found.';
@@ -154,7 +211,9 @@ function deleteRequest($eid) {
   } else if (!$event->canEdit()) {
     return 'You do not have permission to delete event '.$event->Id();
   } else {
-    $event->delete();
+    if (!$event->delete()) {
+      return 'Event '.$eid.' was not deleted.';
+    }
   }
   
   return '';
@@ -191,9 +250,12 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     // Resolve a whitelisted event column name to its SQL (alias), or null.
     $whitelist = array_merge($columns, $col_alt);
     $resolve = function($col) use ($whitelist) {
+      if ($col == 'MonitorName') $col = 'Monitor';
       if (!in_array($col, $whitelist)) return null;
       if ($col == 'Tags') return 'Tags';
       if ($col == 'Monitor') return 'M.Name';
+      // Storage is a display name; Events only has StorageId.
+      if ($col == 'Storage') return 'E.StorageId';
       return 'E.'.$col;
     };
     // Implicit NULLs-last rewrite when sorting solely by EndDateTime, so events
@@ -217,42 +279,34 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $values = array();
   $likes = array();
   // ZM\Error($filter->sql());
-  $where = $filter->sql()?' WHERE ('.$filter->sql().')' : '';
+  // Monitors are only soft-deleted and their events are not listed. Leave them out here,
+  // before the filter limit, the paging and the totals, so the counts match the rows shown.
+  $where = ' WHERE M.Deleted = false'.($filter->sql() ? ' AND ('.$filter->sql().')' : '');
   $has_post_sql_conditions = count($filter->post_sql_conditions());
 
 
   // For events that never wrote EndDateTime (zmc killed/crashed mid-event),
   // fall back to StartDateTime + Length. Length is flushed to the DB every
   // few seconds during recording, so it reflects the actual recorded
-  // duration even when zmc died without closing the event. Falling back to
-  // NOW() would otherwise extend the event across all the down-time.
+  // duration even when zmc died without closing the event. When Length is 0
+  // too (an empty crash-orphaned event), fall back to StartDateTime so the
+  // event has no span; NOW() would otherwise extend it across all the
+  // down-time and overlap every later event.
   $col_str = '
   E.*,
   UNIX_TIMESTAMP(E.StartDateTime) AS StartTimeSecs,
   CASE
     WHEN E.EndDateTime IS NOT NULL THEN E.EndDateTime
     WHEN E.Length > 0 THEN DATE_ADD(E.StartDateTime, INTERVAL FLOOR(E.Length) SECOND)
-    ELSE NOW()
+    ELSE E.StartDateTime
   END AS EndDateTime,
   CASE
     WHEN E.EndDateTime IS NOT NULL THEN UNIX_TIMESTAMP(E.EndDateTime)
     WHEN E.Length > 0 THEN UNIX_TIMESTAMP(E.StartDateTime) + E.Length
-    ELSE UNIX_TIMESTAMP(NOW())
+    ELSE UNIX_TIMESTAMP(E.StartDateTime)
   END AS EndTimeSecs,
   M.Name AS Monitor,
-  GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags';
-
-  $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
-  INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
-  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
-  LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-  '.$where.' 
-  GROUP BY E.Id, Monitor
-  '.($sort?' ORDER BY '.$sort:'');
-
-  if ((int)($filter->limit()) and !$has_post_sql_conditions) {
-    $sql .= ' LIMIT '.(int)($filter->limit());
-  }
+  GROUP_CONCAT(T.Name ORDER BY T.Name SEPARATOR ", ") AS Tags';
 
   $storage_areas = ZM\Storage::find();
   $StorageById = array();
@@ -260,82 +314,129 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $StorageById[$S->Id()] = $S;
   }
 
-  $unfiltered_rows = array();
-  $event_ids = array();
+  $from = ' FROM `Events` AS E
+  INNER JOIN Monitors AS M ON E.MonitorId = M.Id
+  LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId
+  LEFT JOIN Tags AS T ON T.Id = ET.TagId ';
 
-  ZM\Debug('Calling the following sql query: ' .$sql);
-  $query = dbQuery($sql, $values);
-  if (!$query) {
-    ZM\Error(dbError($sql));
-    ajaxError('Database query failed');
-    return;
-  }
-  while ($row = dbFetchNext($query)) {
-    if ($has_post_sql_conditions) {
-      $event = new ZM\Event($row);
-      $event->remove_from_cache();
-      if (!$filter->test_post_sql_conditions($event)) {
-        continue;
-      }
+  if (!$has_post_sql_conditions and !(int)$filter->limit() and !count($advsearch) and $search == '') {
+    // Let the database count and page the events. Tags are only joined when the filter
+    // or the sort needs them, grouping the join is most of the cost. E.Id orders ties
+    // so they cannot land on two pages.
+    $tag_sort = (strpos($sort, 'Tags') !== false);
+    if ($tag_sort or preg_match('/\bT\./', $where)) {
+      $page_from = $from.$where.' GROUP BY E.Id, M.Name';
+      $count_sql = 'SELECT COUNT(DISTINCT E.Id) AS Total'.$from.$where;
+    } else {
+      $page_from = ' FROM `Events` AS E INNER JOIN Monitors AS M ON E.MonitorId = M.Id'.$where;
+      $count_sql = 'SELECT COUNT(*) AS Total'.$page_from;
     }
-    $event_ids[] = $row['Id'];
-    $unfiltered_rows[] = $row;
-  } # end foreach row
-
-  # Filter limits come before pagination limits.
-  if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
-    ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
-    $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
-
-  $filtered_rows = null;
-
-  if (count($advsearch) or $search != '') {
-    $search_filter = new ZM\Filter();
-    $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>$event_ids));
-
-    // There are two search bars in the log view, normal and advanced
-    // Making an exuctive decision to ignore the normal search, when advanced search is in use
-    // Alternatively we could try to do both
-    if (count($advsearch)) {
-      $terms = array();
-      foreach ($advsearch as $col=>$text) {
-        $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
-      } # end foreach col in advsearch
-      $terms[0]['obr'] = 1;
-      $terms[count($terms)-1]['cbr'] = 1;
-      $search_filter->addTerms($terms);
-    } else if ($search != '') {
-      $search = '%' .$search. '%';
-      $terms = array();
-      foreach ($columns as $col) {
-        $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
-      }
-      $terms[0]['obr'] = 1;
-      $terms[0]['cnj'] = 'and';
-      $terms[count($terms)-1]['cbr'] = 1;
-      $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
-    } # end if search
-
+    $unfiltered_total = dbFetchOne($count_sql, 'Total', $values);
+    if ($unfiltered_total === false) {
+      ajaxError('Database query failed');
+      return;
+    }
+    $unfiltered_total = $filtered_total = (int)$unfiltered_total;
+    $order_by = ' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
+    $ids = dbFetchAll('SELECT E.Id'.($tag_sort ? ', GROUP_CONCAT(T.Name ORDER BY T.Name SEPARATOR ", ") AS Tags' : '')
+      .$page_from.$order_by.($limit ? ' LIMIT '.(int)$offset.', '.(int)$limit : ''), 'Id', $values);
+    $filtered_rows = count($ids) ? dbFetchAll('SELECT '.$col_str.$from.$where.' AND E.Id IN ('.implode(',', array_fill(0, count($ids), '?')).')
+      GROUP BY E.Id, Monitor'.$order_by, false, $ids) : array();
+  } else {
     $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
     INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
     LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
     LEFT JOIN Tags AS T ON T.Id = ET.TagId 
-    WHERE '.$search_filter->sql().'
-    GROUP BY E.Id'
-    .($sort ? ' ORDER BY '.$sort : '');
+    '.$where.' 
+    GROUP BY E.Id, Monitor
+    '.' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
 
-    $filtered_rows = dbFetchAll($sql);
-    ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
-  } else {
-    $filtered_rows = $unfiltered_rows;
-  } # end if search_filter->terms() > 1
+    if ((int)($filter->limit()) and !$has_post_sql_conditions) {
+      $sql .= ' LIMIT '.(int)($filter->limit());
+    }
 
-  if ($limit and ($limit < count($filtered_rows))) {
-    ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
-    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+    $unfiltered_rows = array();
+    $event_ids = array();
+
+    ZM\Debug('Calling the following sql query: ' .$sql);
+    $query = dbQuery($sql, $values);
+    if (!$query) {
+      ZM\Error(dbError($sql));
+      ajaxError('Database query failed');
+      return;
+    }
+    while ($row = dbFetchNext($query)) {
+      if ($has_post_sql_conditions) {
+        $event = new ZM\Event($row);
+        $event->remove_from_cache();
+        if (!$filter->test_post_sql_conditions($event)) {
+          continue;
+        }
+      }
+      $event_ids[] = $row['Id'];
+      $unfiltered_rows[] = $row;
+    } # end foreach row
+
+    # Filter limits come before pagination limits.
+    if ($filter->limit() and ($filter->limit() < count($unfiltered_rows))) {
+      ZM\Debug("Filtering rows due to filter->limit " . count($unfiltered_rows)." limit: ".$filter->limit());
+      $unfiltered_rows = array_slice($unfiltered_rows, 0, $filter->limit());
+    }
+
+    ZM\Debug('Have ' . count($unfiltered_rows) . ' events matching base filter.');
+
+    $filtered_rows = null;
+
+    if (count($advsearch) or $search != '') {
+      $search_filter = new ZM\Filter();
+      $search_filter = $search_filter->addTerm(array('cnj'=>'and', 'attr'=>'Id', 'op'=>'IN', 'val'=>(count($event_ids) ? $event_ids : array(0))));
+
+      // There are two search bars in the log view, normal and advanced
+      // Making an exuctive decision to ignore the normal search, when advanced search is in use
+      // Alternatively we could try to do both
+      if (count($advsearch)) {
+        $terms = array();
+        foreach ($advsearch as $col=>$text) {
+          $terms[] = array('cnj'=>'and', 'attr'=>$col, 'op'=>'LIKE', 'val'=>$text);
+        } # end foreach col in advsearch
+        $terms[0]['obr'] = 1;
+        $terms[count($terms)-1]['cbr'] = 1;
+        $search_filter->addTerms($terms);
+      } else if ($search != '') {
+        // FilterTerm splits a value on commas into alternatives, so match a comma as any one character.
+        $search = '%' .str_replace(',', '_', $search). '%';
+        $terms = array();
+        // MonitorName is M.Name, which the Monitor column shows.
+        foreach (array_merge($columns, array('MonitorName')) as $col) {
+          $terms[] = array('cnj'=>'or', 'attr'=>$col, 'op'=>'LIKE', 'val'=>strtolower($search), 'collate'=>'utf8mb4_general_ci');
+        }
+        $terms[0]['obr'] = 1;
+        $terms[0]['cnj'] = 'and';
+        $terms[count($terms)-1]['cbr'] = 1;
+        $search_filter = $search_filter->addTerms($terms, array('obr'=>1, 'cbr'=>1, 'op'=>'OR'));
+      } # end if search
+
+      $sql = 'SELECT '.$col_str.' FROM `Events` AS E 
+      INNER JOIN Monitors AS M ON E.MonitorId = M.Id 
+      LEFT JOIN Events_Tags AS ET ON E.Id = ET.EventId 
+      LEFT JOIN Tags AS T ON T.Id = ET.TagId 
+      WHERE M.Deleted = false AND ('.$search_filter->sql().')
+      GROUP BY E.Id'
+      .' ORDER BY '.($sort ? $sort.', ' : '').'E.Id';
+
+      $filtered_rows = dbFetchAll($sql);
+      ZM\Debug('Have ' . count($filtered_rows) . ' events matching search filter: '.$sql);
+    } else {
+      $filtered_rows = $unfiltered_rows;
+    } # end if search_filter->terms() > 1
+
+    // Counted before the page is cut out of them
+    $filtered_total = count($filtered_rows);
+    if ($limit and (($limit < count($filtered_rows)) or $offset)) {
+      ZM\Debug("Filtering rows due to limit rows: " . count($filtered_rows)." offset: $offset limit: $limit");
+      $filtered_rows = array_slice($filtered_rows, $offset, $limit);
+    }
+    $unfiltered_total = count($unfiltered_rows);
   }
 
   $returned_rows = array();
@@ -343,7 +444,6 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $event = new ZM\Event($row);
     $event->remove_from_cache();
     if (!$event->canView()) continue;
-    if ($event->Monitor()->Deleted()) continue;
 
     $scale = $event->Width() ? intval(5*100*ZM_WEB_LIST_THUMB_WIDTH / $event->Width()) : 100;
     $imgSrc = $event->getThumbnailSrc(array(), '&amp;');
@@ -373,7 +473,8 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
     $row['Emailed'] = $row['Emailed'] ? translate('Yes') : translate('No');
     $row['Cause'] = validHtmlStr($row['Cause']);
     $row['Tags'] = validHtmlStr($row['Tags']);
-    $row['Storage'] = ( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default';
+    $row['Monitor'] = validHtmlStr($row['Monitor']);
+    $row['Storage'] = validHtmlStr(( $row['StorageId'] and isset($StorageById[$row['StorageId']]) ) ? $StorageById[$row['StorageId']]->Name() : 'Default');
     $row['Notes'] = $row['Notes'] ? nl2br(htmlspecialchars($row['Notes'])) : '';
     $row['DiskSpace'] = human_filesize($event->DiskSpace());
     $returned_rows[] = $row;
@@ -382,9 +483,9 @@ function queryRequest($filter, $search, $advsearch, $sort, $offset, $order, $lim
   $data['rows'] = &$returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
+  $data['totalNotFiltered'] = $unfiltered_total;
   if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
+    $data['total'] = $filtered_total;
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

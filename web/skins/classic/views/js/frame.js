@@ -1,6 +1,8 @@
 const table = $j('#frameStatsTable');
 const backBtn = $j('#backBtn');
 const statsBtn = $j('#statsBtn');
+let wasHidden = false;
+let noStats = false;
 
 function changeScale() {
   const scale = $j('#scale').val();
@@ -15,7 +17,16 @@ function changeScale() {
   if (img) {
     const baseWidth = $j('#base_width').val();
     const baseHeight = $j('#base_height').val();
-    if (!parseInt(scale)) {
+    if (scale == 'fit_to_width') {
+      const newSize = scaleToFit(baseWidth, baseHeight, img, false);
+      newWidth = newSize.width;
+      newHeight = newSize.height;
+    } else if (/^\d+px$/.test(scale)) {
+      // Max width, as in the event view: never wider than the page either
+      const fit = scaleToFit(baseWidth, baseHeight, img, false);
+      newWidth = Math.min(parseInt(scale), fit.width);
+      newHeight = Math.floor(newWidth * baseHeight / baseWidth);
+    } else if (!parseInt(scale)) {
       const newSize = scaleToFit(baseWidth, baseHeight, img, $j('#controls'));
       newWidth = newSize.width;
       newHeight = newSize.height;
@@ -30,8 +41,9 @@ function changeScale() {
   }
   setCookie('zmWatchScale', scale);
   $j.each(controlsLinks, function(k, anchor) { // Make frames respect scale choices
-    if (anchor) {
-      anchor.prop('href', anchor.prop('href').replace(/scale=.*&/, 'scale=' + scale + '&'));
+    // A disabled link has no href; setting one would make it a live link to this page.
+    if (anchor && anchor.prop('href')) {
+      anchor.prop('href', anchor.prop('href').replace(/scale=[^&]*/, 'scale=' + scale));
     }
   });
 
@@ -45,7 +57,7 @@ function getFrameStatsCookie() {
 
   if (!stats) {
     stats = 'on';
-    setCookie(cookie, stats, 10*365);
+    setCookie(cookie, stats);
   }
   return stats;
 }
@@ -56,11 +68,13 @@ function getStat(params) {
         $j('#frameStatsTable').empty().append('<tbody>');
         if (data.result == "Error") {
           console.log(`Error running getStat function: ${data.message}`);
+          noStats = true;
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');
           return;
         }
         if (!data.raw.length) {
+          noStats = true;
           statsBtn.prop('disabled', true);
           statsBtn.prop('title', 'No statistics available for this frame');
           return;
@@ -107,7 +121,7 @@ function onStatsResize(vidwidth) {
     }
   // Show the stats table if we hid it previously and sufficient room becomes available
   } else if (width >= minWidth) {
-    statsBtn.prop('disabled', false);
+    statsBtn.prop('disabled', noStats);
     if (!table.is(':visible') && wasHidden) {
       table.toggle(true);
       wasHidden = false;
@@ -116,7 +130,12 @@ function onStatsResize(vidwidth) {
 }
 
 function initPage() {
-  if (scale == '0' || scale == 'auto') changeScale();
+  // Hide the table first: changeScale() may hide it for lack of room and would
+  // then show it again on a wider window even though the user turned it off.
+  const statsOn = getFrameStatsCookie() == 'on';
+  if (!statsOn) table.toggle(false);
+
+  if (!Number(scale)) changeScale(); // 0, auto, fit_to_width and NNNpx are sized here
 
   // Don't enable the back button if there is no previous zm page to go back to
   backBtn.prop('disabled', !document.referrer.length);
@@ -139,10 +158,10 @@ function initPage() {
 
     // Toggle the visiblity of the stats table and write an appropriate cookie
     if (table.is(':visible')) {
-      setCookie('zmFrameStats', 'off', 10*365);
+      setCookie('zmFrameStats', 'off');
       table.toggle(false);
     } else {
-      setCookie('zmFrameStats', 'on', 10*365);
+      setCookie('zmFrameStats', 'on');
       table.toggle(true);
     }
   });
@@ -156,11 +175,7 @@ function initPage() {
   // Load the frame stats
   getStat({eid: eid, fid: fid});
 
-  if (getFrameStatsCookie() != 'on') {
-    table.toggle(false);
-  } else {
-    onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
-  }
+  if (statsOn && Number(scale)) onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
 
   // Manage the FRAMES Button
   bindButton('#framesBtn', 'click', null, function onFramesClick(evt) {

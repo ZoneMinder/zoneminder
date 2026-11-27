@@ -50,8 +50,6 @@ Camera::Camera(
   record_audio(p_record_audio),
   mVideoStreamId(-1),
   mAudioStreamId(-1),
-  mVideoCodecContext(nullptr),
-  mAudioCodecContext(nullptr),
   mVideoStream(nullptr),
   mAudioStream(nullptr),
   mFormatContext(nullptr),
@@ -106,10 +104,6 @@ Camera::~Camera() {
     Debug(1, "Freeing mFormatContext");
     //avformat_free_context(mFormatContext);
     avformat_close_input(&mFormatContext);
-  }
-  if ( mSecondFormatContext ) {
-    // Should also free streams
-    avformat_free_context(mSecondFormatContext);
   }
   mVideoStream = nullptr;
   mAudioStream = nullptr;

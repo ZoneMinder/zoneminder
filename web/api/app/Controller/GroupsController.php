@@ -23,6 +23,48 @@ class GroupsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    require_once __DIR__ .'/../../../includes/Group.php';
+  }
+
+  # Group membership decides per-monitor access, so require edit on every monitor moved.
+  private function requireMembershipEdit($monitorIds) {
+    if (!ZM\Group::canEditMembership(array_map('intval', $monitorIds))) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+  }
+
+  # The web UI hides a group none of whose monitors the user may view
+  # (ZM\Group::canView); the API does the same.
+  private function canViewGroup($groupId) {
+    global $user;
+    if (!$user) return true;
+    $group = new ZM\Group($groupId);
+    return $group->canView($user);
+  }
+
+  private function viewableGroups($groups) {
+    $viewable = array();
+    foreach ($groups as $group) {
+      if ($this->canViewGroup($group['Group']['Id'])) $viewable[] = $group;
+    }
+    return $viewable;
+  }
+
+  # Drop monitors the user may not view from each group's Monitor list.
+  private function filterGroupMonitors($groups) {
+    $condition = $this->viewableMonitorCondition('Monitor.Id');
+    $allowed = count($condition) ? $condition['Monitor.Id'] : null;
+    $deleted = $this->Group->Monitor->find('list', array(
+      'fields' => array('Id', 'Id'),
+      'conditions' => array('Monitor.Deleted' => 1),
+    ));
+    foreach ($groups as &$group) {
+      if (!isset($group['Monitor'])) continue;
+      $group['Monitor'] = array_values(array_filter($group['Monitor'], function($m) use ($allowed, $deleted) {
+        return !isset($deleted[$m['Id']]) and ($allowed === null or in_array($m['Id'], $allowed));
+      }));
+    }
+    return $groups;
   }
 
 /**
@@ -35,7 +77,9 @@ class GroupsController extends AppController {
 
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      // Groups_Monitors is joined below and has an Id column too, so write Group.Id.
+      $named = $this->FilterComponent->qualifyFields($this->request->params['named'], array('Group' => array_keys($this->Group->schema())));
+      $conditions = $this->FilterComponent->buildFilter($named, array_keys($this->Group->schema()));
     } else {
       $conditions = array();
     }
@@ -55,7 +99,7 @@ class GroupsController extends AppController {
       'group' => '`Group`.`Id`',
     );
 
-		$groups = $this->Group->find('all', $find_array);
+		$groups = $this->filterGroupMonitors($this->viewableGroups($this->Group->find('all', $find_array)));
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')
@@ -76,6 +120,9 @@ class GroupsController extends AppController {
 		}
 		$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
 		$group = $this->Group->find('first', $options);
+		if (!$this->canViewGroup($id)) {
+			throw new NotFoundException(__('Invalid group'));
+		}
 		$this->set(array(
 			'group' => $group,
 			'_serialize' => array('group')
@@ -88,6 +135,10 @@ class GroupsController extends AppController {
  * @return void
  */
 	public function add() {
+		if ( !$this->request->is('post') ) {
+			throw new BadRequestException(__('Invalid method. Should be post'));
+			return;
+		}
 		if ( $this->request->is('post') ) {
 
       global $user;
@@ -99,24 +150,36 @@ class GroupsController extends AppController {
         return;
       }
 
+      $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( is_array($monitorIds) ) $monitorIds = implode(',', array_filter($monitorIds, 'is_numeric'));
+      if ( is_string($monitorIds) and $monitorIds !== '' and ! isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = explode(',', $monitorIds);
+        unset($this->request->data['MonitorIds']);
+        if ( isset($this->request->data['Group']) and is_array($this->request->data['Group']) ) unset($this->request->data['Group']['MonitorIds']);
+      }
+      $monitorIds = $this->requestAssociatedIds('Group', 'Monitor');
+      if ($monitorIds) $this->requireMembershipEdit($monitorIds);
+      $this->pinRequestId($this->Group, null);
 			$this->Group->create();
 
-      if ( $this->request->data['Group']['MonitorIds'] and ! isset($this->request->data['Monitor']) ) {
-        $this->request->data['Monitor'] = explode(',', $this->request->data['Group']['MonitorIds']);
-        unset($this->request->data['Group']['MonitorIds']);
-      }
       if ( $this->Group->saveAssociated($this->request->data, array('atomic'=>true)) ) {
-        return $this->flash(
-          __('The group has been saved.'),
-          array('action' => 'index')
-        );
+        $this->set(array(
+          'message' => 'Saved',
+          'id' => $this->Group->id,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       } else {
         ZM\Error("Failed to save Group");
-        debug($this->Group->invalidFields());
+        $this->response->statusCode(400);
+        $this->set(array(
+          'message' => $this->Group->validationErrors ? $this->Group->validationErrors : 'Error',
+          'id' => null,
+          '_serialize' => array('message', 'id')
+        ));
+        return;
       }
     } # end if post
-    $monitors = $this->Group->Monitor->find('list');
-		$this->set(compact('monitors'));
 	} # end add
 
 /**
@@ -130,6 +193,8 @@ class GroupsController extends AppController {
 		if ( !$this->Group->exists($id) ) {
 			throw new NotFoundException(__('Invalid group'));
 		}
+		$this->request->allowMethod('post', 'put');
+    $message = '';
 		if ( $this->request->is(array('post', 'put'))) {
       global $user;
       # We already tested for auth in appController,
@@ -139,14 +204,41 @@ class GroupsController extends AppController {
         throw new UnauthorizedException(__('Insufficient Privileges'));
         return;
       }
-      $this->Group->id = $id;
+      $this->pinRequestId($this->Group, $id);
+      $group = new ZM\Group($id);
+      $moved = array();
+      $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( (is_array($monitorIds) or (is_string($monitorIds) and $monitorIds !== '')) and !isset($this->request->data['Monitor']) ) {
+        $this->request->data['Monitor'] = is_array($monitorIds) ? $monitorIds : explode(',', $monitorIds);
+        unset($this->request->data['MonitorIds']);
+        if ( isset($this->request->data['Group']) and is_array($this->request->data['Group']) ) unset($this->request->data['Group']['MonitorIds']);
+      }
+      $newIds = $this->requestAssociatedIds('Group', 'Monitor');
+      if ($newIds !== null) {
+        $oldIds = dbFetchAll('SELECT `MonitorId` FROM `Groups_Monitors` WHERE `GroupId`=?', 'MonitorId', array($id));
+        $moved = array_merge(array_diff($oldIds, $newIds), array_diff($newIds, $oldIds));
+      }
+      $parentId = $this->requestField('Group', 'ParentId');
+      # A parent loop makes the group code recurse forever.
+      for ($ancestor = (is_scalar($parentId) ? $parentId : null), $seen = array(); $ancestor and !isset($seen[$ancestor]); $ancestor = $this->Group->field('ParentId', array('Group.Id' => $ancestor))) {
+        if ($ancestor == $id) {
+          throw new BadRequestException(__('A group cannot be placed under itself or one of its own groups'));
+        }
+        $seen[$ancestor] = true;
+      }
+      # Re-parenting moves every monitor of this group and its children between ancestors.
+      if (($parentId !== null) and ($parentId != $group->ParentId())) {
+        $moved = array_merge($moved, $group->MonitorIds());
+      }
+      $this->requireMembershipEdit($moved);
 			if ( $this->Group->save($this->request->data) ) {
         $message = 'Saved';
       } else {
         $message = 'Error';
+        $this->response->statusCode(400);
         // if there is a validation message, use it
-        if ( !$this->group->validates() ) {
-          $message .= ': '.$this->Group->validationErrors;
+        if ( !$this->Group->validates() ) {
+          $message = $this->Group->validationErrors;
         }
 			}
 		} # end if post/put
@@ -155,7 +247,7 @@ class GroupsController extends AppController {
 		$this->set(array(
 			'message' => $message,
 			'group' => $group,
-			'_serialize' => array('group')
+			'_serialize' => array('message', 'group')
 		));
 	}
 
@@ -181,17 +273,24 @@ class GroupsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    # Deleting a group removes its monitors from it, which can lift a deny on them.
+    $group = new ZM\Group($id);
+    $this->requireMembershipEdit($group->MonitorIds());
+    # Children move up to this group's parent, as deleting one in the web ui does.
+    $ds = $this->Group->getDataSource();
+    $ds->begin();
+    $this->Group->query('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
 
 		if ( $this->Group->delete() ) {
-      return $this->flash(
-        __('The group has been deleted.'),
-        array('action' => 'index')
-      );
+      $ds->commit();
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
 		} else {
-      return $this->flash(
-        __('The group could not be deleted. Please, try again.'),
-        array('action' => 'index')
-      );
+      $ds->rollback();
+      throw new InternalErrorException(__('The group could not be deleted.'));
 		}
   } // end function delete
   
@@ -206,6 +305,7 @@ class GroupsController extends AppController {
                                         )
                                       )
                                 );
+            $groups = $this->filterGroupMonitors($this->viewableGroups($groups));
             $this->set(array(
                     'groups' => $groups,
                     '_serialize' => array('groups')

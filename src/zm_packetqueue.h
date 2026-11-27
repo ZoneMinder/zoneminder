@@ -51,10 +51,18 @@ class PacketQueue {
   std::condition_variable condition;
   int warned_count;
   bool has_out_of_order_packets_;
-  int max_keyframe_interval_;
+  // Written under `mutex`, read without it by get_max_keyframe_interval()
+  // (decoder throttle, Monitor::Ready()): atomic.
+  std::atomic<int> max_keyframe_interval_;
   int frames_since_last_keyframe_;
   std::atomic<bool> clear_packets_pending_;
   uint64_t next_queue_index_;
+  uint64_t first_queue_index_;  // queue_index of the first packet queued since the last clear()
+  uint64_t released_before_;    // releaseDecoded() has handled every packet before this queue_index
+  uint64_t capped_before_;      // decoded data freed under max_video_packet_count before this queue_index
+  // A GOP longer than max_video_packet_count was seen with keep_keyframes on and
+  // reported; cleared when either setting changes or the queue is cleared.
+  bool keyframe_interval_over_limit_;
 
  public:
   PacketQueue();
@@ -65,7 +73,8 @@ class PacketQueue {
   int addStream();
   void setMaxVideoPackets(int p);
   void setPreEventVideoPackets(int p);
-  void setKeepKeyframes(bool k) { keep_keyframes = k; };
+  void setKeepKeyframes(bool k);
+  bool keyframe_interval_over_limit() const { return keyframe_interval_over_limit_; }
 
   bool queuePacket(std::shared_ptr<ZMPacket> packet);
   void stop();
@@ -77,9 +86,12 @@ class PacketQueue {
   bool has_out_of_order_packets() {
     std::unique_lock<std::mutex> lck(mutex);
     return has_out_of_order_packets_; };
-  int get_max_keyframe_interval() const { return max_keyframe_interval_; };
+  int get_max_keyframe_interval() const { return max_keyframe_interval_.load(); };
 
   bool clearPackets(const std::shared_ptr<ZMPacket> &packet);
+  // Frees the decoded copies of packets no consumer can read again; see the
+  // definition. Call from the thread that opens events (analysis).
+  void releaseDecoded();
 
   // Lock-free gate for callers: returns false when a clearPackets() call would
   // certainly early-return. When keep_keyframes is on we only have work to do
@@ -111,6 +123,7 @@ class PacketQueue {
   void wait_for(Microseconds duration);
  private:
   packetqueue_iterator deletePacket(packetqueue_iterator it, std::vector<std::shared_ptr<ZMPacket>> &deferred);
+  packetqueue_iterator *start_on_keyframe(packetqueue_iterator *it, packetqueue_iterator snapshot_it);
 };
 
 #endif /* ZM_PACKETQUEUE_H */

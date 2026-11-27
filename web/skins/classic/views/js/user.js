@@ -1,6 +1,7 @@
 function validateForm( form, newUser ) {
   var errors = new Array();
-  if ( !form.elements['user[Username]'].value ) {
+  // A user editing their own account has no Username field.
+  if ( form.elements['user[Username]'] && !form.elements['user[Username]'].value ) {
     errors[errors.length] = "You must supply a username";
   }
   if ( form.elements['user[Password]'].value ) {
@@ -21,7 +22,9 @@ function validateForm( form, newUser ) {
 
 function initPage() {
   $j('#contentForm').submit(function(event) {
-    if ( validateForm(this) ) {
+    // A new user has no Id yet, and then a password is required.
+    const uid = this.elements['uid'];
+    if ( validateForm(this, !uid || !parseInt(uid.value)) ) {
       $j('#contentButtons').hide();
       return true;
     } else {
@@ -56,7 +59,7 @@ function updateEffectivePermissions() {
   for (let monitor_i=0, monitor_len=monitors.length; monitor_i< monitor_len; monitor_i++) {
     const monitor = monitors[monitor_i];
     const perm = getEffectivePermission(monitor);
-    $j('#effective_permission'+monitor.id).html(perm);
+    $j('#effective_permission'+monitor.id).html(permissionStrings[perm] || perm);
   } // end foreach monitor
 } // end funtion updateEffectivePermissions()
 
@@ -76,9 +79,27 @@ function getEffectivePermission(monitor) {
     }
   }
   if (gp_permissions['None']) return 'None';
-  if (gp_permissions['View']) return 'View';
+  // Any group granting Edit makes the monitor editable (editableMonitor()), so Edit wins over View.
   if (gp_permissions['Edit']) return 'Edit';
-  return $j('#user\\[Monitors\\]').val();
+  if (gp_permissions['View']) return 'View';
+  const monitors_permission = $j('#user\\[Monitors\\]').val();
+  if (!role) return monitors_permission;
+
+  // Same order as the server: the role's monitor permission, its groups, then the higher Monitors level.
+  const role_perm = role.monitor_permissions[monitor.id];
+  if (role_perm && role_perm != 'Inherit') return role_perm;
+  const role_gp_permissions = [];
+  for (let group_i=0, group_len=groups.length; group_i < group_len; group_i++) {
+    const group = groups[group_i];
+    const perm = role.group_permissions[group.id];
+    if (perm && group.monitor_ids.includes(monitor.id)) role_gp_permissions[perm] = perm;
+  }
+  if (role_gp_permissions['None']) return 'None';
+  // Any group granting Edit makes the monitor editable (editableMonitor()), so Edit wins over View.
+  if (role_gp_permissions['Edit']) return 'Edit';
+  if (role_gp_permissions['View']) return 'View';
+  const levels = ['None', 'View', 'Edit', 'Create'];
+  return levels.indexOf(role.monitors) > levels.indexOf(monitors_permission) ? role.monitors : monitors_permission;
 }
 
 window.addEventListener('DOMContentLoaded', initPage);

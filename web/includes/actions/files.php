@@ -35,20 +35,35 @@ if ($action == 'delete') {
   } // end if canEdit(System)
 
   $path = (!empty($_REQUEST['path'])) ? detaintPathAllowAbsolute($_REQUEST['path']) : ZM_DIR_EVENTS;
+  # Compare resolved paths, so a trailing ".." can't climb out of the Storage area.
+  $path = realpath($path);
   $is_ok_path = false;
-  foreach (ZM\Storage::find() as $storage) {
-    $rc = strstr($path, $storage->Path(), true);
-    if ((false !== $rc) and ($rc == '')) {
-      # Must be at the beginning
-      $is_ok_path = true;
+  if ($path !== false) {
+    foreach (ZM\Storage::find() as $storage) {
+      # Must be the Storage path or below it: "/events2" is not below "/events".
+      $base = realpath($storage->Path());
+      if ($base !== false and ($path === $base or strpos($path, rtrim($base, '/').'/') === 0)) {
+        $is_ok_path = true;
+      }
     }
   }
   $path_parts = pathinfo($path);
 
+  # $is_ok_path was computed above but never consulted, so a path outside every
+  # Storage area still reached unlink(). detaintPathAllowAbsolute() permits
+  # absolute paths, so this is what keeps the delete inside a Storage area.
+  if (!$is_ok_path) {
+    $error_message .= 'Path is not valid. Path must be below a designated Storage area.<br/>';
+    ZM\Warning("Refusing to delete files under '$path': not below a Storage area");
+    return;
+  }
+
   foreach ($_REQUEST['files'] as $file) {
     $full_path = $path.'/'.detaintPath($file);
     if (is_file($full_path)) {
-      unlink($full_path);
+      if (!@unlink($full_path)) {
+        $error_message .= 'Unable to delete '.validHtmlStr($file).': '.validHtmlStr(ZM\lastErrorForLog()).'<br/>';
+      }
     } else {
       ZM\Debug("$full_path is not a file");
       $error_message .= 'We do not support deleting directories at this time.<br/>';

@@ -41,7 +41,7 @@ class ServerStatsController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params);
+      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->ServerStat->schema()));
     } else {
       $conditions = array();
     }
@@ -70,7 +70,7 @@ class ServerStatsController extends AppController {
     $restricted = '';
     
     $options = array('conditions' => array( 
-          array('Server_Stats.'.$this->ServerStat->primaryKey => $id),
+          array('ServerStat.'.$this->ServerStat->primaryKey => $id),
           $restricted
           )
         );
@@ -87,19 +87,32 @@ class ServerStatsController extends AppController {
  * @return void
  */
   public function add() {
-    if ( $this->request->is('post') ) {
-      global $user;
-      $canEdit = (!$user) || ($user->System() == 'Edit');
-      if (!$canEdit) {
-        throw new UnauthorizedException(__('Insufficient privileges'));
-        return;
-      }
-
-      $this->ServerStat->create();
-      if ( $this->ServerStat->save($this->request->data) ) {
-        return $this->flash(__('The server stat has been saved.'), array('action' => 'index'));
-      }
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
     }
+    global $user;
+    $canEdit = (!$user) || ($user->System() == 'Edit');
+    if (!$canEdit) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+      return;
+    }
+
+    $this->pinRequestId($this->ServerStat, null);
+    $this->ServerStat->create();
+    if ( $this->ServerStat->save($this->request->data) ) {
+      $this->set(array(
+        'message' => 'Saved',
+        'id' => $this->ServerStat->id,
+        '_serialize' => array('message', 'id')
+      ));
+      return;
+    }
+    $this->response->statusCode(400);
+    $this->set(array(
+      'message' => $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error',
+      'id' => null,
+      '_serialize' => array('message', 'id')
+    ));
   }
 
 /**
@@ -122,10 +135,13 @@ class ServerStatsController extends AppController {
     if ( !$this->ServerStat->exists($id) ) {
       throw new NotFoundException(__('Invalid server stat'));
     }
+    $this->request->allowMethod('post', 'put');
+    $this->pinRequestId($this->ServerStat, $id);
     if ( $this->ServerStat->save($this->request->data) ) {
       $message = 'Saved';
     } else {
-      $message = 'Error';
+      $message = $this->ServerStat->validationErrors ? $this->ServerStat->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(
@@ -156,9 +172,13 @@ class ServerStatsController extends AppController {
     $this->request->allowMethod('post', 'delete');
 
     if ( $this->ServerStat->delete() ) {
-      return $this->flash(__('The server stat has been deleted.'), array('action' => 'index'));
+      $this->set(array(
+        'message' => 'Deleted',
+        '_serialize' => array('message'),
+      ));
+      return;
     } else {
-      return $this->flash(__('The server stat could not be deleted. Please, try again.'), array('action' => 'index'));
+      throw new InternalErrorException(__('The server stat could not be deleted.'));
     }
   }
 }

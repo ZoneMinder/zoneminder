@@ -51,12 +51,16 @@ use ZoneMinder::Database qw(:all);
 use parent qw(ZoneMinder::Object);
 
 use vars qw/ $table $primary_key %fields $serial %defaults $debug/;
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 $table = 'Controls';
 $serial = $primary_key = 'Id';
 %fields = map { $_ => $_ } qw(
   Id
   Name
-  Type
   Protocol
   CanWake
   CanSleep
@@ -157,7 +161,6 @@ $serial = $primary_key = 'Id';
   );
 %defaults = (
 	Name => '',
-    Type => q`'Ffmpeg'`,
     CanWake => '0',
     CanSleep => '0',
     CanReset => '0',
@@ -295,8 +298,15 @@ sub loadMonitor {
   my $self = shift;
   if ( !$self->{Monitor} ) {
     if ( !($self->{Monitor} = ZoneMinder::Monitor->find_one(Id=>$self->{MonitorId})) ) {
-      Fatal('Monitor id '.$self->{id}.' not found');
+      Fatal('Monitor id '.$self->{MonitorId}.' not found');
     }
+  }
+  # Monitor::Control() hands us a monitor already, so the conversion cannot
+  # live in the lookup above or the timeout stays in seconds and the modules
+  # usleep() it as microseconds. executeCommand calls this for every command,
+  # so convert once.
+  if ( !$self->{AutoStopTimeoutConverted} ) {
+    $self->{AutoStopTimeoutConverted} = 1;
     if ( defined($self->{Monitor}->{AutoStopTimeout}) ) {
 # Convert to microseconds.
       $self->{Monitor}->{AutoStopTimeout} = int(1000000*$self->{Monitor}->{AutoStopTimeout});
@@ -334,6 +344,16 @@ sub executeCommand {
   &{$self->{$command}}($self, $params);
 }
 
+# Joins $$self{BaseURL} (which ends in a slash after canonical()) and a path with exactly one slash
+sub fullUrl {
+  my ($self, $url) = @_;
+  return $url if !$$self{BaseURL};
+  my $base = $$self{BaseURL};
+  $base =~ s{/+$}{};
+  $url =~ s{^/+}{};
+  return $base.'/'.$url;
+}
+
 # Uses LWP get command and adds debugging
 # if $$self{BaseURL} is defined then it will be prepended
 sub get {
@@ -343,7 +363,7 @@ sub get {
     Error('No url specified in get');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $response = $self->{ua}->get($url);
 
   if (!$response->is_success && !$self->{ssl_verify_disabled} && $response->status_line =~ /SSL|certificate|verify/i) {
@@ -357,7 +377,7 @@ sub get {
     $response = $self->{ua}->get($url);
   }
 
-  Debug("Response from $url: ". $response->status_line . ' ' . $response->content);
+  Debug('Response from '.urlForLog($url).': '. $response->status_line . ' ' . $response->content);
   return $response;
 }
 
@@ -368,7 +388,7 @@ sub put {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $req = HTTP::Request->new(PUT => $url);
 
   my $content = shift;
@@ -417,7 +437,7 @@ sub post {
     Error('No url specified in put');
     return;
   }
-  $url = $$self{BaseURL}.$url if $$self{BaseURL};
+  $url = $self->fullUrl($url);
   my $content = shift if @_;
   my $headers = shift if @_;
   my $req = HTTP::Request->new('POST', $url);
@@ -453,7 +473,7 @@ sub post {
   if (!$res->is_success) {
     Error($res->status_line);
   } # end unless res->is_success
-  Debug('Response for '.$url.': '. $res->status_line . ' ' . $res->content);
+  Debug('Response for '.urlForLog($url).': '. $res->status_line . ' ' . $res->content);
   return $res;
 } # end sub post
 
@@ -470,40 +490,84 @@ sub credentials {
   @$self{'username', 'password'} = @_;
 }
 
+# User info for a base url. LWP sends it as Basic auth, taking it up to the
+# first @ and splitting it on the first :, so both halves are %-encoded. A :
+# in the user stays raw: LWP refuses it encoded, and the header is the same.
+sub _userinfo {
+  my ($user, $pass) = @_;
+  return join(':', (defined $user ? URI::Escape::uri_escape($user, '^A-Za-z0-9\-_.~:') : ()),
+    (defined $pass ? URI::Escape::uri_escape($pass, '^A-Za-z0-9\-_.~') : ()));
+}
+
+# What goes on the wire is UTF-8, as zmc sends the monitor User and Pass; LWP
+# dies on characters above \x{ff}.
+sub _utf8 {
+  my $s = shift;
+  utf8::encode($s) if defined $s;
+  return $s;
+}
+
+# Sets username and password for the drivers and keeps the UTF-8 sent for get_realm
+sub _set_credentials {
+  my ($self, $user, $pass, @wire) = @_;
+  @$self{'username', 'password'} = ($user, $pass);
+  $$self{wire_credentials} = [$user, $pass, @wire];
+}
+
+# The UTF-8 the helpers sent, while username and password are still theirs
+sub _wire_credentials {
+  my $self = shift;
+  my ($user, $pass, @wire) = @{$$self{wire_credentials} // []};
+  my $same = sub { (defined $_[0] ? "=$_[0]" : '') eq (defined $_[1] ? "=$_[1]" : '') };
+  return @wire if @wire and $same->($user, $$self{username}) and $same->($pass, $$self{password});
+  return @$self{'username', 'password'};
+}
+
 sub parse_ControlAddress {
   my $self = shift;
   my $monitor = $self->{Monitor};
+  my $address = $$monitor{ControlAddress} // '';
+  $address =~ s/^\s+|\s+$//g;
   # Extract the username/password host/port from ControlAddress
-  if ($$monitor{ControlAddress}
-      and $$monitor{ControlAddress} ne 'user:pass@ip'
-      and $$monitor{ControlAddress} ne 'user:port@ip'
+  if ($address
+      and $address ne 'user:pass@ip'
+      and $address ne 'user:port@ip'
   ) {
-    my $address = $$monitor{ControlAddress};
-    Debug("Using ControlAddress for credentials: $address");
-    if ($address !~ /^\w+:\/\//) {
-      # Has no scheme at the beginning, so won't parse as a URI
-      $address = 'http://'.$address;
+    Debug('Using ControlAddress for credentials: '.urlForLog($address));
+    my $scheme = ($address =~ s/^(\w+):\/\///) ? $1 : 'http';
+    # Passwords may not be url-encoded: the user info ends at the first @ before a host[:port], else the
+    # last @. An @ after host[:port]/ or host? is in the path; host:port? may begin a password (admin:1234?5@cam).
+    # host#x@y is read as user info, like a#b@cam; such a fragment has to be %-encoded.
+    my $host_re = qr{(?:[A-Za-z0-9._\x{80}-\x{10ffff}-]+|\[[0-9A-Za-z:.%_~-]+\])};
+    my ($userinfo, $end);
+    if ($address !~ m{^$host_re(?:(?::\d*)?/|\?)}) {
+      while ($address =~ /\@/g) {
+        $end = $-[0];
+        last if $address =~ m{\G$host_re(?::\d*)?[/?#]};
+      }
     }
-    # To support older installs which likely have non-url encoded passwords we use a dumber regexp than URI uses.
-    # Don't escape % so that url-encoded passwords (e.g. %40 for @) pass through and decode below.
-    if ($address =~ /^(?<PROTOCOL>(https?|rtsp):\/\/)?(?<USERNAME>[^:@]+)?:?(?<PASSWORD>[^\/@]+)?@(?<ADDRESS>.+)$/) {
-      $address = $+{PROTOCOL}.($+{USERNAME} ? join(':', $+{USERNAME}, URI::Escape::uri_escape($+{PASSWORD}, '^A-Za-z0-9\-_.~%')).'@' : '').$+{ADDRESS};
-    }
-    my $uri = URI->new($address);
+    ($userinfo, $address) = (substr($address, 0, $end), substr($address, $end + 1)) if defined $end;
+    my $uri = URI->new($scheme.'://'.$address);
     $uri = URI->new('http://'.$address) if ref($uri) eq 'URI::_foreign';
     $$self{host} = $uri->host();
 
-    if ($uri->userinfo()) {
-      @$self{'username','password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
-      $$self{password} = URI::Escape::uri_unescape($$self{password});
+    if (defined $userinfo and $userinfo ne '' and $userinfo ne ':') {
+      my ($user, $pass) = split(/:/, $userinfo, 2);
+      $pass //= '';
+      # A user name from the database (a character string) goes to drivers as UTF-8
+      my $driver_user = $user;
+      utf8::encode($driver_user) if utf8::is_utf8($driver_user);
+      my @wire = map { URI::Escape::uri_unescape(_utf8($_)) } $user, $pass;
+      $self->_set_credentials(URI::Escape::uri_unescape($driver_user), URI::Escape::uri_unescape($pass), @wire);
+      $uri->userinfo(_userinfo(@wire));
     }
     # URI gives the explicit port if present, otherwise the scheme default (http 80, https 443, rtsp 554)
     $$self{port} = $uri->port();
     $$self{address} = $uri->host_port();
     $$self{uri} = $uri;
     $$self{BaseURL} = $uri->canonical();
-    $self->{ua}->credentials($uri->host_port(), $$self{realm}, $$self{username}, $$self{password});
-    Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+    $self->{ua}->credentials($uri->host_port(), $$self{realm}, $self->_wire_credentials());
+    Debug('Have base url '.urlForLog($$self{BaseURL}).' with credentials for '.$uri->host_port().' realm '.($$self{realm} // '').' user '.($$self{username} // ''));
     return 1;
   }
   return 0;
@@ -512,7 +576,7 @@ sub parse_ControlAddress {
 sub parse_Path {
   my $self = shift;
   my $monitor = $self->{Monitor};
-  Debug("Using Path for credentials: $$monitor{Path}");
+  Debug('Using Path for credentials: '.urlForLog($$monitor{Path}));
   my $uri = URI->new($$monitor{Path});
   return 0 if !$uri->has_recognized_scheme;
 
@@ -522,21 +586,65 @@ sub parse_Path {
   }
   $uri->path_query('');
   if ( $uri->userinfo()) {
-    @$self{'username', 'password'} = $uri->userinfo() =~ /^(.*):(.*)$/;
+    # The userinfo of a URL is url-encoded (an @ in a password has to be %40),
+    # and the user may have no password at all.
+    my ($user, $pass) = map { URI::Escape::uri_unescape($_) } split(/:/, $uri->userinfo(), 2);
+    # URI %-encodes a byte string byte by byte, so the wire takes the user info from the UTF-8 Path
+    my @wire = map { URI::Escape::uri_unescape($_) } split(/:/, URI->new(_utf8($$monitor{Path}))->userinfo(), 2);
+    $uri->userinfo(_userinfo(@wire));
+    $self->_set_credentials($user, $pass // '', $wire[0], $wire[1] // '');
   } else {
-    $$self{username} = $$monitor{User};
-    $$self{password} = $$monitor{Pass};
-    # This will put it into canonical
-    $uri->userinfo($$self{username}.':'.$$self{password});
+    my ($user, $pass) = @$monitor{'User', 'Pass'};
+    $self->_set_credentials($user, $pass, _utf8($user), _utf8($pass));
+    # This will put it into canonical, unless the camera has no login
+    $uri->userinfo(_userinfo(_utf8($user), _utf8($pass // ''))) if defined($user) and length($user);
   }
   $$self{address} = $uri->host_port();
   $$self{host} = $uri->host();
   $$self{uri} = $uri;
   $$self{port} = $uri->port();
   $$self{BaseURL} = $uri->canonical();
-  $$self{ua}->credentials($uri->host_port(), @$self{'realm', 'username', 'password'});
-  Debug("Have base url $$self{BaseURL} with credentials ".$uri->host_port().join(',', @$self{'realm', 'username', 'password'}));
+  $$self{ua}->credentials($uri->host_port(), $$self{realm}, $self->_wire_credentials());
+  Debug('Have base url '.urlForLog($$self{BaseURL}).' with credentials for '.$uri->host_port().' realm '.($$self{realm} // '').' user '.($$self{username} // ''));
   return 1;
+}
+
+# Whether a keepAlive is due, and if so record that one is being sent.
+#
+# zmcontrol used to ping only when its select() timed out, which meant a
+# monitor with steady command traffic never pinged at all: select returns a
+# ready descriptor every time, the idle branch is never reached, and the
+# camera's session expires while the monitor is at its busiest. Cameras that
+# expire a session on a timer refresh it on the keepAlive alone, not on
+# ordinary requests, so the busiest monitors were the ones that lost their
+# session. Timing it from the last ping instead makes the interval hold
+# regardless of how much else is going on.
+#
+# $now is injectable so the interval can be tested without sleeping.
+sub keepAliveDue {
+  my ($self, $interval, $now) = @_;
+  $now = time() if !defined $now;
+  # First call sets the baseline rather than firing immediately: the session
+  # was just established by open().
+  $self->{last_keepalive} = $now if !defined $self->{last_keepalive};
+  # An ntp step backwards would otherwise hold this off until real time caught
+  # up again - minutes with no ping, which is the failure this exists to stop.
+  $self->{last_keepalive} = $now if $now < $self->{last_keepalive};
+  return 0 if $now - $self->{last_keepalive} < $interval;
+  $self->{last_keepalive} = $now;
+  return 1;
+}
+
+# Seconds the daemon may wait in select() before the next keepAlive is due.
+# Waiting the whole interval after every command lets the gap between pings
+# reach twice the interval: a command just before a ping is due restarts a full
+# wait, and the ping then comes a whole interval later.
+sub keepAliveWait {
+  my ($self, $interval, $now) = @_;
+  $now = time() if !defined $now;
+  return $interval if !defined $self->{last_keepalive} or $now < $self->{last_keepalive};
+  my $left = $interval - ($now - $self->{last_keepalive});
+  return $left > 1 ? $left : 1;
 }
 
 sub guess_credentials {
@@ -555,7 +663,7 @@ sub get_realm {
   my $response = $self->get($url);
   return 1 if $response->is_success();
 
-  if ($response->status_line() eq '401 Unauthorized' and defined $$self{username}) {
+  if ($response->code() == 401 and defined $$self{username}) {
     my $headers = $response->headers();
     foreach my $k ( keys %$headers ) {
       Debug("Initial Header $k => $$headers{$k}");
@@ -567,8 +675,8 @@ sub get_realm {
         if ( $tokens{realm} ) {
           if ((!$$self{realm}) or ($$self{realm} ne $tokens{realm})) {
             $$self{realm} = $tokens{realm};
-            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, $$self{realm}, $$self{username}, $$self{password}");
-            $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+            Debug("Changing REALM to $$self{realm}, $$self{address} or $$self{host}:$$self{port}, user $$self{username}");
+            $self->{ua}->credentials($$self{address}?$$self{address}:"$$self{host}:$$self{port}", $$self{realm}, $self->_wire_credentials());
             $response = $self->get($url);
             if ( !$response->is_success() ) {
               Debug('Authentication still failed after updating REALM' . $response->status_line);
@@ -593,9 +701,27 @@ sub get_realm {
   return undef;
 } # end sub get_realm
 
+# Resolve the camera host/ip from the monitor without opening a connection.
+# Returns the cached $self->{host} if open()/guess_credentials() already set it,
+# otherwise parses it out of the monitor's ControlAddress/Path using the shared
+# guess_credentials() (which only needs a UserAgent, no network I/O). This lets
+# callers such as ping() work before open() has been called.
+sub host {
+  my $self = shift;
+  $$self{host} = shift if @_;
+  return $$self{host} if $$self{host};
+
+  if (!$self->{ua}) {
+    require LWP::UserAgent;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
+  }
+  $self->guess_credentials();
+  return $$self{host};
+}
+
 sub ping {
   my $self = shift;
-  my $ip = @_ ? shift : $$self{host};
+  my $ip = @_ ? shift : $self->host();
   if (!$ip) {
     Warning("No ip to ping. Please either pass ip or populate self{host}");
     return undef;

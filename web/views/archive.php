@@ -18,6 +18,8 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+require_once('includes/download_functions.php');
+
 if (!(canView('Events') or canView('Snapshots'))) {
   $view = 'error';
   return;
@@ -31,15 +33,15 @@ if ( !$archivetype ) {
 
 switch ($archivetype) {
   case 'tar.gz':
-    $mimetype = 'gzip';
+    $mimetype = 'application/gzip';
     $file_ext = 'tar.gz';
     break;
   case 'tar':
-    $mimetype = 'tar';
+    $mimetype = 'application/x-tar';
     $file_ext = 'tar';
     break;
   case 'zip':
-    $mimetype = 'zip';
+    $mimetype = 'application/zip';
     $file_ext = 'zip';
     break;
   default:
@@ -53,19 +55,31 @@ if ( !$mimetype ) {
 }
 
 $connkey = isset($_REQUEST['connkey'])?$_REQUEST['connkey']:'';
-$filename = isset($_REQUEST['file'])?$_REQUEST['file']:"zmExport_$connkey.$file_ext";
-$filename = str_replace('/', '', $filename); # protect system files. must be a filename, not a path
+# Must be a single path component, not a path. Stripping only '/' left '..'
+# intact (GHSA-fvx4-86xp-9v22).
+$filename = isset($_REQUEST['file']) ? safeExportComponent($_REQUEST['file']) : '';
+if ($filename === '') $filename = exportOwnerPrefix()."zmExport_$connkey.$file_ext";
+
+if (!exportNameBelongsToUser($filename)) {
+  ZM\Warning('Refusing an archive that does not belong to the requesting user.');
+  return;
+}
 
 $filename_path = ZM_DIR_EXPORTS.'/'.$filename;
 ZM\Debug('downloading archive from '.$filename_path);
-if ( is_readable($filename_path) ) {
+if ( is_readable($filename_path) and pathWithinExportDir($filename_path, ZM_DIR_EXPORTS) ) {
   while (ob_get_level()) {
     ob_end_clean();
   }
-  header("Content-type: application/$mimetype");
-  header("Content-Disposition: inline; filename=$filename");
+  header("Content-type: $mimetype");
+  header('Content-Disposition: '.contentDispositionAttachment($filename));
   header('Content-Length: '.filesize($filename_path));
   set_time_limit(0);
+  # A client that disconnects mid-download aborts the script, so delete in a
+  # shutdown function to keep the archive from being left behind.
+  register_shutdown_function(function() use ($filename_path) {
+    @unlink($filename_path);
+  });
   if ( !@readfile($filename_path) ) {
     ZM\Error("Error sending $filename_path");
   }

@@ -24,27 +24,39 @@ if (empty($_REQUEST['mid'])) {
   ZM\Warning('Settings requires a monitor id');
   return;
 }
-if (!canView('Control', $_REQUEST['mid'])) {
-  ZM\Warning('Settings requires the Control permission');
+// Changing the settings needs Control edit, as the settings modal shows
+// (ajax/modals/settings.php enables its sliders only with canEdit('Control')).
+// canEdit('Control', $mid) would also demand Monitors edit, so check the monitor
+// with canView and the area with canEdit.
+if (!canView('Control', $_REQUEST['mid']) or !canEdit('Control')) {
+  ZM\Warning('Settings requires the Control edit permission');
   return;
 }
 
 require_once('includes/Monitor.php');
 $mid = validInt($_REQUEST['mid']);
 if ($action == 'settings') {
+  // A camera without one of the controls has no slider for it, so nothing is posted; a bare
+  // option makes zmu read the current value.
   $args = ' -m ' . escapeshellarg($mid);
-  $args .= ' -B' . escapeshellarg($_REQUEST['newBrightness']);
-  $args .= ' -C' . escapeshellarg($_REQUEST['newContrast']);
-  $args .= ' -H' . escapeshellarg($_REQUEST['newHue']);
-  $args .= ' -O' . escapeshellarg($_REQUEST['newColour']);
+  $args .= ' -B' . escapeshellarg(validInt($_REQUEST['newBrightness'] ?? ''));
+  $args .= ' -C' . escapeshellarg(validInt($_REQUEST['newContrast'] ?? ''));
+  $args .= ' -H' . escapeshellarg(validInt($_REQUEST['newHue'] ?? ''));
+  $args .= ' -O' . escapeshellarg(validInt($_REQUEST['newColour'] ?? ''));
 
   $zmuCommand = getZmuCommand($args);
 
   $zmuOutput = exec($zmuCommand);
-  list($brightness, $contrast, $hue, $colour) = explode(' ', $zmuOutput);
-  dbQuery(
-    'UPDATE Monitors SET Brightness = ?, Contrast = ?, Hue = ?, Colour = ? WHERE Id = ?',
-    array($brightness, $contrast, $hue, $colour, $mid));
+  // zmu prints the four values it set; it prints nothing when it refuses (it
+  // checks the user's own permissions) or fails. Store only what it reported.
+  if (preg_match('/^(-?\d+) (-?\d+) (-?\d+) (-?\d+)$/', trim((string)$zmuOutput), $values)) {
+    list(, $brightness, $contrast, $hue, $colour) = $values;
+    dbQuery(
+      'UPDATE Monitors SET Brightness = ?, Contrast = ?, Hue = ?, Colour = ? WHERE Id = ?',
+      array($brightness, $contrast, $hue, $colour, $mid));
+  } else {
+    ZM\Warning('zmu did not report the new settings for monitor '.$mid.', not saving them');
+  }
   global $redirect;
   $redirect = '?view=watch&mid='.$mid;
 }

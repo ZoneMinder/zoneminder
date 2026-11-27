@@ -65,9 +65,12 @@ export class Dms {
      */
     get dmsArray() {
         const absDD = Math.abs(this._dd);
-        const degrees = truncate(absDD);
-        const minutes = truncate((absDD - degrees) * 60);
-        const seconds = (absDD - degrees - minutes / 60) * Math.pow(60, 2);
+        // Work in whole micro-seconds so float noise (10.2 * 3600 is
+        // 36720.00000000001) cannot leave 10 11 59.999999 for 10 12 0.
+        const total = Math.round(absDD * 3600 * 1e6) / 1e6;
+        const degrees = truncate(total / 3600);
+        const minutes = truncate((total - degrees * 3600) / 60);
+        const seconds = total - degrees * 3600 - minutes * 60;
         return [degrees, minutes, seconds, this._hemisphere];
     }
     /**
@@ -77,8 +80,18 @@ export class Dms {
      */
     toString(precision) {
         const dmsArray = this.getDmsArray();
-        const second = isNaN(Number(precision)) ? dmsArray[2] : dmsArray[2].toFixed(precision);
-        return `${dmsArray[0]}°${dmsArray[1]}′${second}″ ${dmsArray[3]}`;
+        let degrees = dmsArray[0];
+        let minutes = dmsArray[1];
+        let second = isNaN(Number(precision)) ? dmsArray[2] : dmsArray[2].toFixed(precision);
+        // Rounding the seconds for display can reach 60: carry it up.
+        if (Number(second) >= 60) {
+            second = isNaN(Number(precision)) ? 0 : (0).toFixed(precision);
+            if (++minutes >= 60) {
+                minutes = 0;
+                degrees++;
+            }
+        }
+        return `${degrees}°${minutes}′${second}″ ${dmsArray[3]}`;
     }
 }
 /**
@@ -179,7 +192,7 @@ export function parseDms(dmsStr) {
         const minutes = typeof (dmsMatch[2]) !== "undefined" ? Number(dmsMatch[2]) / 60 : 0;
         const seconds = typeof (dmsMatch[3]) !== "undefined" ? Number(dmsMatch[3]) / 3600 : 0;
         const hemisphere = dmsMatch[4] || null;
-        if (hemisphere !== null && /[SW]/i.test(hemisphere)) {
+        if (dmsMatch[1].charAt(0) === "-" || (hemisphere !== null && /[SW]/i.test(hemisphere))) {
             output = -Math.abs(degrees) - minutes - seconds;
         }
         else {

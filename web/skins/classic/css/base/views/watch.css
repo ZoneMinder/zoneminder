@@ -22,6 +22,7 @@
 #sidebar {
   min-width: 140px;
   padding-right: 1px;
+  padding-left: 15px;
 }
 
 #sidebar .nav {
@@ -61,6 +62,18 @@
   width: 100%;
 }
 
+/* The overlay covers the whole image, so it must not swallow clicks meant for
+   the stream underneath. */
+.monitor svg.zones {
+  pointer-events: none;
+}
+
+/* Zone overlays are always rendered so toggleZones can show them without a
+   page reload. This hides them until the Show Zones button is pressed. */
+#monitor.hide-zones svg.zones {
+  display: none;
+}
+
 .monitorStream {
   text-align: center;
   margin: 0 auto;
@@ -80,6 +93,20 @@
 
 .monitorStatus > .monitorState {
   display: inline;
+}
+
+/* Keep each status item on a single line.  When the monitor is scaled down (e.g.
+ * a 4k camera shown via the go2rtc player), the status bar is constrained to the
+ * scaled video width.  If its items are allowed to wrap, the bar grows taller as
+ * the video gets narrower, and that extra height feeds back into the Auto
+ * scale-to-fit height calculation, shrinking the video further on each pass.  The
+ * result was the video collapsing in steps.  Truncating with an ellipsis keeps the
+ * bar a fixed height and breaks the feedback loop. */
+.monitor .monitorStatus > * {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 #replayStatus {
@@ -142,11 +169,6 @@
 
 #eventList th, #eventList td {
     text-align: center;
-}
-
-li {
-    display: inline;
-    list-style-type: none;
 }
 
 span.alarm {

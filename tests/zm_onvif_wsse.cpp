@@ -17,6 +17,11 @@
 
 #include "zm_catch2.h"
 
+// The whole case exercises gSOAP's WS-Security plugin, and the headers it
+// needs are only generated in an ONVIF-enabled build. Guarded the same way
+// zm_onvif_auth_error.cpp is, so the file still compiles without gsoap.
+#ifdef WITH_GSOAP
+
 #include <ctime>
 #include <string>
 
@@ -92,3 +97,5 @@ TEST_CASE("ONVIF WS-Security Created timestamps are pinned together") {
     soap_free(soap);
   }
 }
+
+#endif  // WITH_GSOAP

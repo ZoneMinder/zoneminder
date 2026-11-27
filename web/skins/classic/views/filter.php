@@ -29,20 +29,27 @@ require_once('includes/FilterTerm.php');
 require_once('includes/Monitor.php');
 require_once('includes/Zone.php');
 require_once('includes/User.php');
+require_once(getSkinFile('includes/logpanel.php'));
 parseSort();
 
 $filterNames = array(''=>translate('ChooseFilter'));
 
 # Get filter ID from request
 $fid = 0;
+# Normalise the nested id even when the top-level one is given, as filter[...] is
+# applied to the filter object below.
+if (isset($_REQUEST['filter']['Id'])) {
+  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
+}
 if (isset($_REQUEST['Id']) and $_REQUEST['Id']) {
   $fid = validInt($_REQUEST['Id']);
-} else if (isset($_REQUEST['filter']['Id'])) {
-  $fid = $_REQUEST['filter']['Id'] = validInt($_REQUEST['filter']['Id']);
+  if (isset($_REQUEST['filter']['Id'])) $_REQUEST['filter']['Id'] = $fid;
 }
 
 # Build filter names list for dropdown
 foreach (ZM\Filter::find(null, array('order'=>'lower(Name)')) as $Filter) {
+  # Another user's filter, with its command and email address, is not for this user to see.
+  if (!$Filter->canView()) continue;
   $filterNames[$Filter->Id()] = (defined('ZM_WEB_ID_ON_FILTER') and ZM_WEB_ID_ON_FILTER) ? $Filter->Id() . ' ' . $Filter->Name() : $Filter->Name();
   if ($Filter->Background()) $filterNames[$Filter->Id()] .= '*';
   if ($Filter->Concurrent()) $filterNames[$Filter->Id()] .= '&';
@@ -58,9 +65,17 @@ if ($have_query_params) {
   ZM\Debug('Populating filter from query params');
   $filter = new ZM\Filter();
   $filter->set($_REQUEST['filter']);
+  // Keep the saved filter's id, or Save after going back would create a copy.
+  if ($fid and isset($filterNames[$fid])) $filter->Id($fid);
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else if ($fid) {
+  // A filter deleted since the link was made, or not this user's to see. The
+  // blank form shown here before would have been saved as a new filter.
+  ZM\Warning("Filter $fid not found");
+  $view = 'error';
+  return;
 } else {
   ZM\Debug('Creating new empty filter');
   $filter = new ZM\Filter();
@@ -98,10 +113,27 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
+
+// Set by the execute action's redirect.
+if (isset($_REQUEST['executed'])) {
+  if ($_REQUEST['executed'] === '1') {
+    $info_message = translate('FilterExecuted');
+  } else {
+    $error_message .= translate('FilterExecuteFailed').'<br/>';
+  }
+}
 
 $focusWindow = true;
 
 $storageareas = array('' => array('Name'=>'NULL Unspecified'), '0' => array('Name'=>'Zero')) + ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Storage');
+
+// Tags the AutoTag action can add; htmlSelect escapes the names
+$autoTagOptions = array();
+foreach (dbFetchAll('SELECT Id, Name FROM Tags ORDER BY lower(Name)') as $tag) {
+  $autoTagOptions[$tag['Id']] = $tag['Name'];
+}
+$autoTagId = isset($autoTagOptions[$filter->AutoTagId()]) ? $filter->AutoTagId() : null;
 
 $weekdays = array();
 for ( $i = 0; $i < 7; $i++ ) {
@@ -163,12 +195,12 @@ if ( (null !== $filter->Concurrent()) and $filter->Concurrent() )
 ?>
         </div>
       </form>
-      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter&Id=<?php echo $filter->Id() ?>">
+      <form name="contentForm" id="contentForm" method="post" class="validateFormOnSubmit" action="?view=filter&Id=<?php echo validHtmlStr($filter->Id()) ?>">
         <input type="hidden" name="action"/>
         <input type="hidden" name="object" value="filter"/>
 
 <?php if ( $filter->Id() ) { ?>
-        <p class="Id"><label><?php echo translate('Id') ?></label><?php echo $filter->Id() ?></p>
+        <p class="Id"><label><?php echo translate('Id') ?></label><?php echo validHtmlStr($filter->Id()) ?></p>
 <?php } ?>
         <p class="Name">
           <label for="filter[Name]"><?php echo translate('Name') ?></label>
@@ -181,10 +213,13 @@ if (ZM_OPT_USE_AUTH) {
   echo htmlSelect('filter[UserId]',
     ZM\User::Indexed_By_Id(),
     $filter->UserId() ? $filter->UserId() : $user->Id(),
-  ['Id'=>'filter[UserId]', 'class'=>'chosen']
+  ['Id'=>'filter[UserId]', 'class'=>'chosen', 'data-on-change-this'=>'updateButtons']
   );
   echo '</p>'.PHP_EOL;
 }
+?>
+        <fieldset id="QueryOptions"><legend><?php echo translate('Query') ?></legend>
+<?php
 echo $filter->widget();
 ?>
         <table id="sortTable" class="filterTable">
@@ -223,10 +258,13 @@ echo htmlSelect('filter[Query][sort_asc]', $sort_dirns, $filter->sort_asc(), ['c
               <td>
                 <label for="filter[Query][skip_locked]"><?php echo translate('Skip Locked') ?></label>
 <?php
+// No longer gated on the server supporting SELECT ... SKIP LOCKED: filters
+// claim events in the Events_Lock table, which works on any version.
 echo htmlSelect('filter[Query][skip_locked]',
   array('0'=>translate('No'), '1'=>translate('Yes')),
   $filter->skip_locked(),
-  ( db_supports_feature('skip_locks') ? ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen']: ['Id'=>'filter[Query][skip_locked]', 'disabled'=>'disabled', 'title'=>'Database does not support the skip locked feature.', 'class'=>'chosen'])
+  ['Id'=>'filter[Query][skip_locked]', 'class'=>'chosen',
+    'title'=>'Leave out events another filter is already working on. Requires Lock Rows.']
 );
 
 ?>
@@ -239,6 +277,7 @@ echo htmlSelect('filter[Query][skip_locked]',
             </tr>
           </tbody>
         </table>
+        </fieldset>
 <div id="ActionsAndOptions">
         <div id="actionsTable" class="filterTable">
           <fieldset><legend><?php echo translate('Actions') ?></legend>
@@ -286,12 +325,24 @@ if ( ZM_OPT_MESSAGE ) {
             </p>
 <?php
 }
+// AutoExecuteCmd is run verbatim as an OS command by zmfilter.pl, so it is
+// restricted to System editors. Other users get hidden inputs that preserve
+// any existing values so saving unrelated fields does not silently alter them.
+if ( canEdit('System') ) {
 ?>
             <p>
               <label for="filter[AutoExecute]"><?php echo translate('FilterExecuteEvents') ?></label>
-              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?>/>
+              <input type="checkbox" id="filter[AutoExecute]" name="filter[AutoExecute]" value="1"<?php if ( $filter->AutoExecute() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
               <input type="text" name="filter[AutoExecuteCmd]" value="<?php echo (null !==$filter->AutoExecuteCmd())?validHtmlStr($filter->AutoExecuteCmd()):'' ?>" maxlength="255" data-on-change-this="updateButtons"/>
             </p>
+<?php
+} else {
+?>
+            <input type="hidden" name="filter[AutoExecute]" value="<?php echo $filter->AutoExecute() ? 1 : 0 ?>"/>
+            <input type="hidden" name="filter[AutoExecuteCmd]" value="<?php echo validHtmlStr($filter->AutoExecuteCmd()) ?>"/>
+<?php
+}
+?>
             <p>
               <label for="filter[AutoDelete]"><?php echo translate('FilterDeleteEvents') ?></label>
               <input type="checkbox" id="filter[AutoDelete]" name="filter[AutoDelete]" value="1"<?php if ( $filter->AutoDelete() ) { ?> checked="checked"<?php } ?> data-on-click-this="updateButtons"/>
@@ -301,6 +352,13 @@ if ( ZM_OPT_MESSAGE ) {
               <input type="checkbox" id="filter[AutoCopy]" name="filter[AutoCopy]" value="1"<?php if ( $filter->AutoCopy() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autocopy"/>
               <?php echo htmlSelect('filter[AutoCopyTo]', $storageareas, $filter->AutoCopyTo(), $filter->AutoCopy() ? null : array('style'=>'display:none;')); ?>
             </p>
+<?php if (count($autoTagOptions)) { ?>
+            <p>
+              <label for="filter[AutoTag]"><?php echo translate('FilterTagEvents') ?></label>
+              <input type="checkbox" id="filter[AutoTag]" name="filter[AutoTag]" value="1"<?php if ( $filter->AutoTag() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_autotag"/>
+              <?php echo htmlSelect('filter[AutoTagId]', $autoTagOptions, $autoTagId, $filter->AutoTag() ? null : array('style'=>'display:none;')); ?>
+            </p>
+<?php } ?>
             <p>
               <label for="filter[AutoMove]"><?php echo translate('FilterMoveEvents') ?></label>
               <input type="checkbox" id="filter[AutoMove]" name="filter[AutoMove]" value="1"<?php if ( $filter->AutoMove() ) { ?> checked="checked"<?php } ?> data-on-click-this="click_automove"/>
@@ -342,17 +400,21 @@ if ( ZM_OPT_EMAIL ) {
                 <label for="filter[EmailBody]"><?php echo translate('FilterEmailBody') ?></label>
                 <textarea id="filter[EmailBody]" name="filter[EmailBody]" rows="<?php echo count(explode("\n", $filter->EmailBody())) ?>"><?php echo validHtmlStr($filter->EmailBody()) ?></textarea>
               </p>
-              <p>
-                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?>
+              <div class="EmailFormat">
+                <label for="filter[EmailFormat]Individual"><?php echo translate('Email Format') ?></label>
 <?php echo html_radio(
   'filter[EmailFormat]',
   ['Individual'=>translate('Individual'), 'Summary'=>translate('Summary')],
   $filter->EmailFormat()); ?>
-</label>
-              </p>
+              </div>
               <p>
                 <label for="filter[EmailServer]"><?php echo translate('FilterEmailServer') ?></label>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" />
+<?php
+# zmfilter.pl falls back to ZM_EMAIL_HOST when the filter names no server, so
+# show that as the placeholder rather than leaving the field looking unset.
+$default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
+?>
+                <input type="text" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>
@@ -379,6 +441,26 @@ $canDelete = $filter->Id() and $canEdit;
           <button type="button" value="Reset" data-on-click-this="resetFilter"><?php echo translate('Reset') ?></button>
         </div>
       </form>
+<?php
+# Both the background daemons (zmpkg starts one per background filter) and the
+# Execute button run "zmfilter.pl --filter_id=N", and zmfilter.pl calls
+# logInit(id => 'zmfilter_N'), so that component is exactly this filter's log.
+if ($filter->Id() and canView('System')) {
+?>
+      <fieldset id="FilterLog">
+        <legend><?php echo translate('FilterLog') ?></legend>
+<?php
+  echo getLogPanelHTML(array(
+    'id' => 'filterLog',
+    'components' => array('zmfilter_'.$filter->Id()),
+    'page_size' => 10,
+    'nav_buttons' => false,
+  ));
+?>
+      </fieldset>
+<?php
+} # end if filter has an Id and we may read the log
+?>
     </div><!--content-->
   </div><!--page-->
 <?php xhtmlFooter() ?>

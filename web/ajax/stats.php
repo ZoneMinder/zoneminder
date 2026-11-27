@@ -1,4 +1,5 @@
 <?php
+if (!canView('Events')) ajaxError('Insufficient permissions');
 if (empty($_REQUEST['eid'])) ajaxError('Event Id Not Provided');
 if (empty($_REQUEST['fid'])) ajaxError('Frame Id Not Provided');
 
@@ -15,16 +16,24 @@ if ($raw) {
     WHERE S.EventId = ? AND S.FrameId = ? ORDER BY S.ZoneId';
   $stats = dbFetchAll($sql, NULL, array($eid, $fid));
   foreach ($stats as $stat) {
-    $stat['ZoneName'] = validHtmlStr($stat['ZoneName']);
+    // A zone deleted since the event has no name, label it by its id instead of leaving a blank cell
+    $stat['ZoneName'] = validHtmlStr(isset($stat['ZoneName']) ? $stat['ZoneName'] : translate('Zone').' '.$stat['ZoneId']);
     $stat['PixelDiff'] = validHtmlStr($stat['PixelDiff']);
-    $stat['AlarmPixels'] = sprintf('%d (%.1f%%)', $stat['AlarmPixels'], (100*$stat['AlarmPixels']/$stat['Area']));
-    $stat['FilterPixels'] = sprintf('%d (%.1f%%)', $stat['FilterPixels'], (100*$stat['FilterPixels']/$stat['Area']));
-    $stat['BlobPixels'] = sprintf('%d (%.1f%%)', $stat['BlobPixels'], (100*$stat['BlobPixels']/$stat['Area']));
+    // Zone Area is in the 0-10000 percentage coordinate space, the pixel counts are not.
+    $area = floatval($stat['Area']) / 10000.0 * floatval($stat['Width']) * floatval($stat['Height']);
+    $px = function($n) use ($area) {
+      return $area > 0 ? sprintf('%d (%.1f%%)', $n, 100*$n/$area) : sprintf('%d', $n);
+    };
+    $stat['AlarmPixels'] = $px($stat['AlarmPixels']);
+    $stat['FilterPixels'] = $px($stat['FilterPixels']);
+    $stat['BlobPixels'] = $px($stat['BlobPixels']);
     $stat['Blobs'] = validHtmlStr($stat['Blobs']);
     if ($stat['Blobs'] > 1) {
-      $stat['BlobSizes'] = sprintf('%d-%d (%.1f%%-%.1f%%)', $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$stat['Area']), (100*$stat['MaxBlobSize']/$stat['Area']));
+      $stat['BlobSizes'] = $area > 0
+        ? sprintf('%d-%d (%.1f%%-%.1f%%)', $stat['MinBlobSize'], $stat['MaxBlobSize'], (100*$stat['MinBlobSize']/$area), (100*$stat['MaxBlobSize']/$area))
+        : sprintf('%d-%d', $stat['MinBlobSize'], $stat['MaxBlobSize']);
     } else {
-      $stat['BlobSizes'] = sprintf('%d (%.1f%%)', $stat['MinBlobSize'], 100*$stat['MinBlobSize']/$stat['Area']);
+      $stat['BlobSizes'] = $px($stat['MinBlobSize']);
     }
     $stat['AlarmLimits'] = validHtmlStr($stat['MinX'].','.$stat['MinY'].'-'.$stat['MaxX'].','.$stat['MaxY']);
     $data['raw'][] = $stat;

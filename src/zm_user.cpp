@@ -25,7 +25,14 @@
 #include "zm_utils.h"
 #include <cstring>
 
-User::User() : id(0), enabled(false), role_id(0) {
+User::User() :
+  id(0),
+  enabled(false),
+  role_id(0),
+  group_permissions_loaded(false),
+  monitor_permissions_loaded(false),
+  role_group_permissions_loaded(false),
+  role_monitor_permissions_loaded(false) {
   username[0] = password[0] = 0;
   stream = events = control = monitors = system = PERM_NONE;
 }
@@ -80,11 +87,13 @@ void User::loadMonitorPermissions() {
   for (const Monitor_Permission &p : Monitor_Permission::find(id) ) {
     monitor_permissions[p.MonitorId()] = p;
   }
+  monitor_permissions_loaded = true;
   Debug(1, "# of Monitor_Permissions %zu", monitor_permissions.size());
 }
 
 void User::loadGroupPermissions() {
   group_permissions = Group_Permission::find(id);
+  group_permissions_loaded = true;
   Debug(1, "# of Group_Permissions %zu", group_permissions.size());
 }
 
@@ -157,6 +166,8 @@ bool User::canAccess(int monitor_id) {
 
   if (!group_permissions_loaded) loadGroupPermissions();
 
+  // None from any group denies, as the web UI does; otherwise View or Edit from any group grants.
+  bool group_grants = false;
   for (Group_Permission &gp : group_permissions) {
     auto permission = gp.getPermission(monitor_id);
     switch (permission) {
@@ -164,11 +175,10 @@ bool User::canAccess(int monitor_id) {
       Debug(1, "Returning None from group_permission");
       return false;
     case Group_Permission::PERM_VIEW :
-      Debug(1, "Returning true because VIEW from group_permission");
-      return true;
     case Group_Permission::PERM_EDIT :
-      Debug(1, "Returning true because EDIT from group_permission");
-      return true;
+      Debug(1, "VIEW or EDIT from group_permission %d", gp.GroupId());
+      group_grants = true;
+      break;
     case Group_Permission::PERM_INHERIT :
       Debug(1, "INHERIT from group_permission %d", gp.GroupId());
       break;
@@ -177,6 +187,7 @@ bool User::canAccess(int monitor_id) {
       break;
     }
   }  // end foreach Group_Permission
+  if (group_grants) return true;
 
   // Check role permissions if user has a role
   if (role_id > 0) {
@@ -206,6 +217,7 @@ bool User::canAccess(int monitor_id) {
 
     if (!role_group_permissions_loaded) loadRoleGroupPermissions();
 
+    bool role_group_grants = false;
     for (Group_Permission &gp : role_group_permissions) {
       auto permission = gp.getPermission(monitor_id);
       switch (permission) {
@@ -213,11 +225,10 @@ bool User::canAccess(int monitor_id) {
         Debug(1, "Returning None from role_group_permission");
         return false;
       case Group_Permission::PERM_VIEW :
-        Debug(1, "Returning true because VIEW from role_group_permission");
-        return true;
       case Group_Permission::PERM_EDIT :
-        Debug(1, "Returning true because EDIT from role_group_permission");
-        return true;
+        Debug(1, "VIEW or EDIT from role_group_permission %d", gp.GroupId());
+        role_group_grants = true;
+        break;
       case Group_Permission::PERM_INHERIT :
         Debug(1, "INHERIT from role_group_permission %d", gp.GroupId());
         break;
@@ -226,6 +237,7 @@ bool User::canAccess(int monitor_id) {
         break;
       }
     }  // end foreach role Group_Permission
+    if (role_group_grants) return true;
   }  // end if role_id
 
   return (monitors != PERM_NONE);
@@ -285,7 +297,7 @@ std::string User::getAuthHash() {
       now_tm.tm_mday,
       now_tm.tm_mon,
       now_tm.tm_year);
-  Debug(1, "Creating auth_key '%s'", auth_key.c_str());
+  // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
 
   zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
   return ByteArrayToHexString(md5_digest);
@@ -301,6 +313,12 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
       (password.empty() and (!strcmp(config.auth_relay, "none")))  // relay type must be none
       ||
       verifyPassword(username.c_str(), password.c_str(), user->getPassword()) ) {
+    if (isDefaultPassword(password)) {
+      Warning("Refusing user %s: it uses the password admin, which is not accepted. Log in to the web interface to set a new one.",
+              username.c_str());
+      delete user;
+      return nullptr;
+    }
     Debug(1, "Authenticated user '%s'", user->getUsername());
     return user;
   }
@@ -310,6 +328,13 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
 }  // end User *zmLoadUser(const char *username, const char *password)
 
 User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
+  // The shipped ZM_AUTH_HASH_SECRET is public, so a token signed with it proves nothing.
+  // refs GHSA-wmcc-x64g-jr84
+  if (!config.auth_hash_secret || !*config.auth_hash_secret
+      || !strcmp(config.auth_hash_secret, "...Change me to something unique...")) {
+    Error("Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default.");
+    return nullptr;
+  }
   std::string key = config.auth_hash_secret;
   std::string remote_addr;
 
@@ -323,7 +348,8 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
     }
   }
 
-  Debug(1, "Inside zmLoadTokenUser, formed key=%s", key.c_str());
+  // Don't log the key: it is the token signing secret.
+  Debug(1, "Inside zmLoadTokenUser, remote_addr=%s", remote_addr.c_str());
 
   std::pair<std::string, unsigned int> ans = verifyToken(jwt_token_str, key);
   std::string username = zmDbEscapeString(ans.first);
@@ -370,38 +396,24 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 // Function to validate an authentication string
 User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
   const char *remote_addr = "";
-  std::string forwarded_for_first; // must outlive remote_addr
+  std::string client_addr; // must outlive remote_addr
   if (use_remote_addr) {
-    // Prefer HTTP_X_FORWARDED_FOR if available, consistent with PHP session.php which uses it for hash generation.
-    // This ensures that when ZoneMinder is behind a reverse proxy (e.g. Nginx → Apache),
-    // the same IP address is used for both hash generation and validation.
-    // Use only the first IP to guard against spoofed multi-value headers.
+    // Same rule as getRemoteAddr() in web/includes/Network.php, which bound the
+    // hash: X-Forwarded-For only counts when it came from a trusted proxy.
+    const char *direct_addr = getenv("REMOTE_ADDR");
     const char *forwarded_for = getenv("HTTP_X_FORWARDED_FOR");
-    if (forwarded_for && *forwarded_for) {
-      // Extract the first IP from a potentially comma-separated list
-      forwarded_for_first = forwarded_for;
-      auto comma = forwarded_for_first.find(',');
-      if (comma != std::string::npos) {
-        forwarded_for_first = forwarded_for_first.substr(0, comma);
-      }
-      // Trim leading/trailing whitespace
-      auto start = forwarded_for_first.find_first_not_of(' ');
-      auto end = forwarded_for_first.find_last_not_of(' ');
-      if (start != std::string::npos) {
-        forwarded_for_first = forwarded_for_first.substr(start, end - start + 1);
-      }
-      remote_addr = forwarded_for_first.c_str();
-    } else {
-      remote_addr = getenv("REMOTE_ADDR");
-      if (!remote_addr) {
-        Warning("Can't determine remote address, using null");
-        remote_addr = "";
-      }
-    }
+    client_addr = ClientAddress(direct_addr ? direct_addr : "",
+                                forwarded_for ? forwarded_for : "",
+                                config.auth_trusted_proxies);
+    if (client_addr.empty())
+      Warning("Can't determine remote address, using null");
+    remote_addr = client_addr.c_str();
   }
 
-  Debug(1, "Attempting to authenticate user %s from auth string '%s', remote addr(%s)",
-        username.c_str(), auth.c_str(), remote_addr);
+  // The hash is a credential: log its fingerprint so this line can be matched
+  // with the web side's, not the hash.
+  Debug(1, "Attempting to authenticate user %s from auth hash %s, remote addr(%s)",
+        username.c_str(), zm::crypto::LogFingerprint(auth).c_str(), remote_addr);
   std::string sql = "SELECT `Id`, `Username`, `Password`, `Enabled`,"
                     " `Stream`+0, `Events`+0, `Control`+0, `Monitors`+0, `System`+0,"
                     " COALESCE(`RoleId`, 0)"
@@ -456,7 +468,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
       zm::crypto::MD5::Digest md5_digest = zm::crypto::MD5::GetDigestOf(auth_key);
       std::string auth_md5 = ByteArrayToHexString(md5_digest);
 
-      Debug(1, "Checking auth_key '%s' -> auth_md5 '%s' == '%s'", auth_key.c_str(), auth_md5.c_str(), auth.c_str());
+      // auth_key holds ZM_AUTH_HASH_SECRET and the stored password hash: never log it.
+      Debug(1, "Checking auth hash for user '%s'", db_username);
 
       if (auth == auth_md5) {
         // We have a match
@@ -465,13 +478,13 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
         mysql_free_result(result);
         return user;
       } else {
-        Debug(1, "No match for %s", auth.c_str());
+        Debug(1, "No match for user '%s'", db_username);
       }
     }  // end foreach hour
   }  // end foreach user
   mysql_free_result(result);
 
-  Debug(1, "No user found for auth_key %s", auth.c_str());
+  Debug(1, "No user found for auth hash %s", zm::crypto::LogFingerprint(auth).c_str());
   return nullptr;
 }  // end User *zmLoadAuthUser( const std::string &auth, const std::string &username, bool use_remote_addr )
 
@@ -479,7 +492,8 @@ User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool 
 bool checkUser(const std::string &username) {
   if (username.empty())
     return false;
-  if (username.length() > 32)
+  // Users.Username is latin1 varchar(64): up to 192 bytes over the utf8mb4 connection.
+  if (username.length() > 192)
     return false;
 
   return true;
@@ -489,8 +503,13 @@ bool checkUser(const std::string &username) {
 bool checkPass(const std::string &password) {
   if (password.empty())
     return false;
-  if (password.length() > 64)
-    return false;
 
   return true;
+}
+
+// The password db/zm_create.sql gives the admin account, as the user guide
+// states it. Every install starts with it, so it proves nothing; see
+// isDefaultPassword() in web/includes/auth.php.
+bool isDefaultPassword(const std::string &password) {
+  return password == "admin";
 }

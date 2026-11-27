@@ -22,22 +22,6 @@
 // Use skin.js.php for JavaScript that need pre-processing
 //
 
-// Globally define the icons used in the bootstrap-table top-right toolbar
-var icons = {
-  paginationSwitchDown: 'fa-caret-square-o-down',
-  paginationSwitchUp: 'fa-caret-square-o-up',
-  export: 'fa-download',
-  refresh: 'fa-retweet',
-  autoRefresh: 'fa-clock-o',
-  advancedSearchIcon: 'fa-chevron-down',
-  toggleOff: 'fa-toggle-off',
-  toggleOn: 'fa-toggle-on',
-  columns: 'fa-th-list',
-  fullscreen: 'fa-arrows-alt',
-  detailOpen: 'fa-plus',
-  detailClose: 'fa-minus'
-};
-
 var panZoomEnabled = true; //Add it to settings in the future
 var expiredTap; //Time between touch screen clicks. Used to analyze double clicks
 var shifted = false;
@@ -45,9 +29,13 @@ var ctrled = false;
 var alted = false;
 var mainContent = document.getElementById('content');
 var timeOutExtruderChange;
+var lightbox;
 
 const showExtruderPanelOnMouseHover = false;
 const NAVBAR_RELOAD = document.getElementById('reload'); // Top panel with statistics
+// Set by a view that reloads itself in place of navigating (the event view moving to the next
+// event), so the page-leave roll-up in addListenerGlobalBeforeunload() is skipped.
+var skipPageLeaveAnimation = false;
 const BTN_COLLAPSE = document.getElementById('btn-collapse'); // Button to switch the menu view collapsed/expanded
 const SIDEBAR_MAIN = document.getElementById('sidebarMain'); // Left Sidebar with Menu
 const SIDEBAR_MAIN_EXTRUDER = document.getElementById('extruderLeft'); // Sliding extruder panel from the left Sidebar
@@ -99,7 +87,17 @@ window.addEventListener("DOMContentLoaded", function onSkinDCL() {
         url = element.getAttribute("data-url");
       }
       evt.preventDefault();
-      window.location.assign(url);
+      // Only navigate to safe schemes; block javascript:/data:/vbscript: URLs
+      // in href/data-url so a crafted attribute cannot run script on click.
+      try {
+        const parsed = new URL(String(url), document.baseURI);
+        const proto = parsed.protocol.toLowerCase();
+        if (proto === 'http:' || proto === 'https:') {
+          window.location.assign(parsed.href);
+        }
+      } catch {
+        // Ignore invalid URLs
+      }
     });
   });
 
@@ -316,8 +314,9 @@ if ( currentView != 'none' && currentView != 'login' ) {
     $j('#logoutButton').click(clickLogout);
     if ( canEdit.System ) $j('#stateModalBtn').click(getStateModal);
 
-    // Trigger autorefresh of the widget bar stats on the navbar
-    if ( $j('.navbar').length ) {
+    // Trigger autorefresh of the widget bar stats on the navbar. A refresh
+    // time of 0 means off; setInterval would treat it as "as fast as possible".
+    if ( $j('.navbar').length && navBarRefresh > 0 ) {
       setInterval(getNavBar, navBarRefresh);
     }
     // Update zmBandwidth cookie when the user makes a selection from the dropdown
@@ -451,6 +450,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
+    if (!html) {
+      console.error('No html received for modal ' + name);
+      return $j('#' + name);
+    }
     let modal = $j('#' + name);
 
     if (modal.length) {
@@ -461,6 +464,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     return modal;
   }
+
+  // Show the server's message when a modal request comes back as an error
+  function modalReplyFailed(evt, jqxhr, settings) {
+    if (!settings || !settings.url || settings.url.indexOf('request=modal') === -1) return;
+    const reply = jqxhr && jqxhr.responseJSON;
+    if (reply && reply.result == 'Error') {
+      alert(reply.message || 'Unable to load the dialog.');
+    }
+  }
+  $j(document).ajaxSuccess(modalReplyFailed);
 
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
@@ -474,7 +487,7 @@ if ( currentView != 'none' && currentView != 'login' ) {
   }
 
   function getNavBar() {
-    $j.getJSON(thisUrl + '?view=request&request=status&entity=navBar' + (auth_relay?'&'+auth_relay:''))
+    $j.getJSON(zmAuth.appendTo(thisUrl + '?view=request&request=status&entity=navBar'))
         .done(setNavBar)
         .fail(function(jqxhr, textStatus, error) {
           console.log("Request Failed: " + textStatus + ", " + error);
@@ -492,18 +505,13 @@ if ( currentView != 'none' && currentView != 'login' ) {
       console.error("No data in setNavBar");
       return;
     }
-    if (data.auth) {
-      if (data.auth != auth_hash) {
-        console.log("Update auth_hash to "+data.auth);
-        // Update authentication token.
-        auth_hash = data.auth;
-      }
-      delete data.auth;
+    if (zmAuth.update(data)) {
+      console.log("Updated auth to "+zmAuth.hash);
     }
-    if (data.auth_relay) {
-      auth_relay = data.auth_relay;
-      delete data.auth_relay;
-    }
+    // The remaining keys are navbar widgets; drop the credential so the loop
+    // below doesn't go looking for elements named after it.
+    delete data.auth;
+    delete data.auth_relay;
     // iterate through all the keys then update each element id with the same name
     for (const key of Object.keys(data)) {
       if ( $j('#'+key).hasClass("show") ) continue; // don't update if the user has the dropdown open
@@ -538,58 +546,136 @@ if ( currentView != 'none' && currentView != 'login' ) {
 //Shows a message if there is an error in the streamObj or the stream doesn't exist.  Returns true if error, false otherwise.
 function checkStreamForErrors(funcName, streamObj) {
   if ( !streamObj ) {
-    Error(funcName+': stream object was null');
+    zmError(funcName+': stream object was null');
     return true;
   }
   if ( streamObj.responseJSON ) {
     if (streamObj.responseJSON.result == "Error") {
-      Error(funcName+' stream error: '+streamObj.responseJSON.message);
+      zmError(funcName+' stream error: '+streamObj.responseJSON.message);
       return true;
     }
   } else if ( streamObj.result == "Error" ) {
-    Error(funcName+' stream error: '+streamObj.message);
+    zmError(funcName+' stream error: '+streamObj.message);
     return true;
   }
   return false;
 }
 
-function secsToTime( seconds ) {
-  var timeString = "--";
+function formatSeconds(seconds, round='') {
+  let timeSecs = '';
+  if ( seconds < 10 ) {
+    timeSecs = '0'+ ((round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 4 ));
+  } else {
+    timeSecs = (round) ? seconds.toFixed(round) : seconds.toString().substr( 0, 5 );
+  }
+  return timeSecs;
+}
+
+function secsToTime(seconds, round='') {
+  let timeString = "--";
+  // Round before splitting into minutes and seconds, otherwise 119.97 at one
+  // decimal place becomes "1:60.0" and 69.996 at two becomes "1:010.00".
+  if (round) seconds = Number(seconds.toFixed(round));
   if ( seconds < 60 ) {
-    timeString = seconds.toString();
+    timeString = (round) ? seconds.toFixed(round) : seconds.toString(10);
   } else if ( seconds < 60*60 ) {
-    var timeMins = parseInt(seconds/60);
-    var timeSecs = seconds%60;
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
-    }
+    const timeMins = parseInt(seconds/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     timeString = timeMins+":"+timeSecs;
   } else {
-    var timeHours = parseInt(seconds/3600);
-    var timeMins = (seconds%3600)/60;
-    var timeSecs = seconds%60;
+    const timeHours = parseInt(seconds/3600);
+    var timeMins = parseInt((seconds%3600)/60);
+    const timeSecs = formatSeconds(seconds%60, round);
     if ( timeMins < 10 ) {
-      timeMins = '0'+timeMins.toString().substr( 0, 4 );
-    } else {
-      timeMins = timeMins.toString().substr( 0, 5 );
-    }
-    if ( timeSecs < 10 ) {
-      timeSecs = '0'+timeSecs.toString().substr( 0, 4 );
-    } else {
-      timeSecs = timeSecs.toString().substr( 0, 5 );
+      timeMins = '0'+timeMins;
     }
     timeString = timeHours+":"+timeMins+":"+timeSecs;
   }
   return timeString;
 }
 
+// Timeline/epoch helpers. ZoneMinder stores and displays times in the server's
+// timezone (matching how events are recorded), not the browser's. Formatting
+// epoch seconds in the browser timezone shows the wrong wall clock time when the
+// two differ, so anchor to the server timezone here. refs #4977
+// Requires luxon's DateTime (loaded globally as `DateTime`), the ZM_TIMEZONE
+// constant (from skin.js.php) and, as a fallback, server_utc_offset (from the
+// montagereview view).
+function serverTimeZone() {
+  if (typeof ZM_TIMEZONE !== 'undefined' && ZM_TIMEZONE) return ZM_TIMEZONE;
+  // ZM_TIMEZONE not configured: fall back to the fixed offset the server
+  // reported at page load (does not follow DST, but keeps display consistent).
+  if (typeof server_utc_offset !== 'undefined') {
+    const sign = server_utc_offset < 0 ? '-' : '+';
+    const abs = Math.abs(server_utc_offset);
+    const hh = ('0' + Math.floor(abs / 3600)).slice(-2);
+    const mm = ('0' + Math.floor((abs % 3600) / 60)).slice(-2);
+    return 'UTC' + sign + hh + ':' + mm;
+  }
+  return 'local';
+}
+
+// Parse a 'yyyy-MM-dd HH:mm:ss' string (server-local wall clock) into a luxon
+// DateTime anchored to the server timezone.
+function inputstr2dt(str) {
+  return DateTime.fromFormat(str, 'yyyy-MM-dd HH:mm:ss', {zone: serverTimeZone()});
+}
+
+// Format epoch seconds as 'yyyy-MM-ddTHH:mm:ss' in the server timezone.
+function secs2inputstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat("yyyy-MM-dd'T'HH:mm:ss");
+}
+
+// Format epoch seconds as 'yyyy-MM-dd HH:mm:ss' in the server timezone.
+function secs2dbstr(s) {
+  if (!parseInt(s)) {
+    console.warn("Invalid value for " + s + " seconds");
+    return '';
+  }
+  const dt = DateTime.fromSeconds(parseInt(s), {zone: serverTimeZone()});
+  if (!dt.isValid) {
+    console.warn("No valid date for " + s + " seconds");
+    return '';
+  }
+  return dt.toFormat('yyyy-MM-dd HH:mm:ss');
+}
+
+// Resubmit contentForm without saving, so the view re-renders for a value that
+// changes which fields it should show. The monitor view's Method select is the
+// only thing that uses it.
+//
+// The tab to come back on travels in contentForm's hidden "tab" field, which
+// is what the view reads out of $_REQUEST. This used to do
+// form.attr('tab', tab), which set an attribute named "tab" on the <form>
+// element and had no effect whatever: an attribute on a form is not a
+// submitted value.
+//
+// It is not written here at all now, rather than written correctly, because
+// the value it was being given is the wrong one. data-tab-name holds the tab
+// the page loaded on, while the hidden field holds the tab that is on screen:
+// the view writes it, and on the monitor view the pill handler keeps it in
+// step as tabs are clicked. Assigning the attribute's value would have undone
+// that tracking and sent anyone who had switched tabs back to the one they
+// arrived on -- the bug this looks like it would fix.
+//
+// It went unnoticed for the same reason it was harmless: until something
+// tracked tab changes, the two always agreed.
+//
+// $j(...).submit() rather than the element's own submit(), so contentForm's
+// submit handler still runs -- it validates the form and blanks the password
+// fields, and a native submit skips both.
 function submitTab(evt) {
-  var tab = this.getAttribute("data-tab-name");
   var form = $j('#contentForm');
   form.attr('action', '');
-  form.attr('tab', tab);
   form.submit();
   evt.preventDefault();
 }
@@ -714,21 +800,16 @@ function getDelConfirmModal(key, title, formName=null) {
 
 window.addEventListener( 'DOMContentLoaded', checkSize );
 
-function convertLabelFormat(LabelFormat, monitorName) {
-  //convert label format from strftime to luxon's format tokens (originally
-  //based on https://github.com/benjaminoakes/moment-strftime, retargeted to
-  //luxon). added %f and %N below (TODO: add %Q)
-  // luxon renders literal text wrapped in single quotes, and a literal single
-  // quote as ''. Quote each character of the monitor name so any format-token
-  // characters in it (e.g. M, d) are emitted literally and apostrophes survive.
-  var monitorLiteral = monitorName.split('').map(function(c) {
-    return c === "'" ? "''" : "'" + c + "'";
-  }).join('');
-  var replacements = {
+// Render a monitor's label format, a strftime pattern such as "%N - %d/%m/%y %H:%M:%S", for a luxon
+// DateTime the way zmc draws it on the frame. Each %X is formatted on its own and everything else is
+// copied as is, so letters and apostrophes in the literal text or the monitor name are never read as
+// luxon tokens (luxon 3.4 has no way to print an apostrophe from a format string).
+function formatLabel(LabelFormat, monitorName, dt) {
+  const tokens = {
     'a': 'ccc',
     'A': 'cccc',
-    'b': 'MMM',
-    'B': 'MMMM',
+    'b': 'LLL',
+    'B': 'LLLL',
     'd': 'dd',
     'e': 'd',
     'F': 'yyyy-MM-dd',
@@ -743,20 +824,20 @@ function convertLabelFormat(LabelFormat, monitorName) {
     'r': 'hh:mm:ss a',
     'S': 'ss',
     'u': 'E',
-    'w': 'c',
     'W': 'WW',
     'y': 'yy',
     'Y': 'yyyy',
-    'z': 'ZZ',
-    'Z': 'ZZZZ',
-    'f': 'SSS',
-    'N': monitorLiteral,
-    '%': '%'};
-  var luxonLabelFormat = Object.keys(replacements).reduce(function(luxonFormat, key) {
-    var value = replacements[key];
-    return luxonFormat.replace('%' + key, value);
-  }, LabelFormat);
-  return luxonLabelFormat;
+    'z': 'ZZZ',
+    'Z': 'ZZZZ'};
+  return LabelFormat.replace(/%(.)|%$/g, (m, k) => {
+    if (k === 'N') return monitorName;
+    if (k === '%') return '%';
+    // strftime counts Sunday as 0, luxon as 7
+    if (k === 'w') return String(dt.weekday % 7);
+    // zmc's %f is hundredths of a second
+    if (k === 'f') return String(Math.floor(dt.millisecond / 10)).padStart(2, '0');
+    return tokens[k] !== undefined ? dt.toFormat(tokens[k]) : m;
+  });
 }
 
 function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTime) {
@@ -772,15 +853,15 @@ function addVideoTimingTrack(video, LabelFormat, monitorName, duration, startTim
     return;
   }
 
-  var labelFormat = convertLabelFormat(LabelFormat, monitorName);
-  // StartDateTime comes from the DB as 'YYYY-MM-DD HH:mm:ss' (SQL); fall back
-  // to ISO parsing just in case. luxon DateTime is immutable.
-  let cueTime = luxon.DateTime.fromSQL(startTime);
-  if (!cueTime.isValid) cueTime = luxon.DateTime.fromISO(startTime);
+  // StartDateTime is the server's wall clock as 'yyyy-MM-dd HH:mm:ss'. English names match the label zmc
+  // draws on the frame.
+  const opts = {zone: serverTimeZone(), locale: 'en-US'};
+  let cueTime = DateTime.fromSQL(startTime, opts);
+  if (!cueTime.isValid) cueTime = DateTime.fromISO(startTime, opts);
 
   // In Video.js 8, we need to add cues using the addCue method
   for (let i = 0; i <= duration; i++) {
-    var cue = new VTTCue(i, i + 1, cueTime.toFormat(labelFormat));
+    var cue = new VTTCue(i, i + 1, formatLabel(LabelFormat, monitorName, cueTime));
     cue.id = i;
     try {
       track.addCue(cue);
@@ -887,6 +968,13 @@ function isJSON(str) {
   }
 }
 
+// Cookies holding an absolute date range. They are shared between the events
+// list and montage review (refs #4976), but do not age well: kept for decades by
+// the default below, a window picked months ago is restored on a bare page load
+// and the view opens on a range with no events. Session scope keeps the sharing
+// and lets a new session fall back to the last hour.
+const sessionCookies = ['zmFilter_StartDateTime', 'zmFilter_EndDateTime'];
+
 function setCookie(name, value, seconds) {
   var newValue = (typeof value === 'string' || typeof value === 'boolean') ? value : JSON.stringify(value);
   let expires = "";
@@ -894,16 +982,33 @@ function setCookie(name, value, seconds) {
     const date = new Date();
     date.setTime(date.getTime() + (seconds*1000));
     expires = "; expires=" + date.toUTCString();
+  } else if (sessionCookies.includes(name)) {
+    expires = "";
   } else {
-    // 2147483647 is 2^31 - 1 which is January of 2038 to avoid the 32bit integer overflow bug.
+    // Max-Age is a duration in seconds counted from now, not an absolute date
+    // (RFC 6265 section 5.2.2), so this is roughly 68 years out rather than the
+    // January 2038 this comment used to claim. 2^31 - 1 is the largest value
+    // that cannot overflow a signed 32bit int in a client that converts it.
     expires = "; max-age=2147483647";
   }
-  document.cookie = name + "=" + (newValue || "") + expires + "; path=/; samesite=strict";
+  // Encoded so a ';' or '%' in a typed filter value is not cut off or decoded
+  // twice; PHP decodes $_COOKIE and getCookie() below decodes it again.
+  document.cookie = name + "=" + encodeURIComponent(newValue || "") + expires + "; path=/; samesite=strict";
 }
 
 /*
 * If JSON is stored in cookies, the function will return an array or object of values.
 */
+// Select value in a <select>, adding an option for it when the list has none.
+// With no matching option jQuery leaves nothing selected and val() is null.
+function setSelectValue(select, value, text) {
+  select.val(value);
+  if (select.val() === null) {
+    select.append($j('<option></option>').val(value).text(text === undefined ? value : text));
+    select.val(value);
+  }
+}
+
 function getCookie(name) {
   var nameEQ = name + "=";
   var result = null;
@@ -914,6 +1019,11 @@ function getCookie(name) {
     while (c.charAt(0)==' ') c = c.substring(1, c.length);
     if (c.indexOf(nameEQ) == 0) {
       result = c.substring(nameEQ.length, c.length);
+      try {
+        result = decodeURIComponent(result);
+      } catch {
+        // Written before values were encoded and holding a bare '%': keep it as is
+      }
       break;
     }
   }
@@ -948,9 +1058,11 @@ function bwClickFunction() {
 }
 
 function reminderClickFunction() {
-  $j("#dropdown_reminder a").click(function() {
+  $j("#dropdown_reminder + .dropdown-menu a").click(function() {
     var option = $j(this).data('pdsa-dropdown-val');
-    $j.getJSON(thisUrl + '?view=version&action=version&option=' + option)
+    // The version view has no page, so the response is HTML, not JSON.
+    // index.php only runs actions sent by POST; csrf-magic adds the token to it.
+    $j.post(thisUrl + '?view=version', {action: 'version', option: option})
         .done(function() {
           window.location.reload(true); // Do a full refresh to update ZM_DYN_LAST_VERSION
         })
@@ -1067,11 +1179,19 @@ function stateStuff(action, runState, newState) {
     timeout: 0
   }).done(function(data) {
     location.reload();
+  }).fail(function(jqxhr, textStatus, error) {
+    // Put the modal back so the user can see it failed and try again.
+    $j('#pleasewait').addClass('hidden');
+    logAjaxFail(jqxhr, textStatus, error);
   });
 }
 
 function strip_html(string) {
-  return string.replace(/<[^>]+>/g, '');
+  // Parse as HTML and return only the text content. Regex tag-stripping is
+  // an incomplete sanitizer (e.g. nested/overlapping tags) and can backtrack;
+  // letting the parser extract textContent is both correct and linear.
+  const doc = new DOMParser().parseFromString(String(string), 'text/html');
+  return doc.body.textContent || '';
 }
 
 function escapeHTML(text) {
@@ -1110,7 +1230,7 @@ function getModal(id, parameters, buttonconfig=null) {
           return;
         }
 
-        insertModalHtml(id, data.html);
+        insertModalHtml(id + 'Modal', data.html);
         buttonconfig ? buttonconfig() : manageModalBtns(id);
         var modal = $j('#'+id+'Modal');
         if ( ! modal.length ) {
@@ -1165,7 +1285,9 @@ function human_filesize(size, precision = 2) {
   var units = Array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
   var step = 1024;
   var i = 0;
-  while ((size / step) > 0.9) {
+  // NaN (a blank field) would print "NaNB" and Infinity would loop for ever.
+  if (!Number.isFinite(size)) return 'n/a';
+  while ((size / step) > 0.9 && i < units.length - 1) {
     size = size / step;
     i++;
   }
@@ -1193,10 +1315,13 @@ function manageShutdownBtns(element) {
   $j.getJSON(thisUrl + '?request=shutdown&when=' + when + '&command=' + cmd)
       .done(function(data) {
         respText.removeClass('invisible');
-        if ( data.rc ) {
-          respText.html('<h2>Error</h2>' + data.output);
+        if ( data.result == 'Error' ) {
+          respText.html('<h2>Error</h2>' + data.message);
+        } else if ( data.rc ) {
+          const lines = [].concat(data.output || []).map(escapeHTML);
+          respText.html('<h2>Error</h2>' + lines.join('<br/>'));
         } else {
-          $j('#cancelBtn').prop('disabled', false);
+          $j('#cancelBtn').prop('disabled', cmd == 'cancel');
           if ( cmd == 'cancel' ) {
             respText.html('<h2>Success</h2>Event has been cancelled');
           } else {
@@ -1361,9 +1486,13 @@ function determineOverlaySrc(img, streamType, monitorId, useGo2rtc, m3u8Exists) 
   return streamSrc;
 }
 
-function calculateOverlayDimensions(img) {
-  const imgWidth = img.naturalWidth || img.width;
-  const imgHeight = img.naturalHeight || img.height;
+/*
+* obj - an object of type VIDEO or IMG. VIDEO takes precedence.
+*/
+function calculateOverlayDimensions(obj) {
+  const imgWidth = obj.videoWidth || obj.naturalWidth || obj.width;
+  const imgHeight = obj.videoHeight || obj.naturalHeight || obj.height;
+
   if (!imgWidth || !imgHeight) return null;
 
   const aspectRatio = imgWidth / imgHeight;
@@ -1440,7 +1569,7 @@ function createThumbnailOverlay(img, overlaySrc, dimensions, streamType, monitor
   }
 
   if (isLive && useGo2rtc) {
-    createGo2rtcStream(container, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
+    createGo2rtcStream(container, img, go2rtcSrc, monitorId || go2rtcMid, fallbackToMjpeg);
   } else if (streamType === 'rtsp2web') {
     createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventStart, statusBar);
   } else if (m3u8Exists && currentView !== 'frames') {
@@ -1480,22 +1609,71 @@ function formatDateTime(date) {
   return date.toLocaleString(undefined, options);
 }
 
-function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
+// The go2rtc API base for a ZM_GO2RTC_PATH, as a URL. go2rtc serves its API, and
+// the /ws websocket under it, at /api, but the natural thing to enter is the server
+// address, so "http://host:1984" and "http://host:1984/api" both work.
+function go2rtcApiUrl(path) {
+  const url = new URL(path);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//api".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  if (!pathname.endsWith('/api')) pathname += '/api';
+  url.pathname = pathname;
+  return url;
+}
+
+// The RTSP2Web URL for a ZM_RTSP2WEB_PATH plus a suffix such as
+// "/stream/1/channel/0/webrtc". ZM_RTSP2WEB_PATH may include a path prefix when
+// RTSP2Web is behind a reverse proxy, so the suffix is appended to the base path
+// rather than replacing it, the way zmc talks to RTSP2Web.
+function rtsp2webUrl(base, suffix) {
+  const url = new URL(base);
+  // Build the path in one go: a URL's pathname is never empty, so stripping the
+  // slash from "/" and appending to it would give "//stream".
+  let pathname = url.pathname.replace(/\/+$/, '');
+  pathname += suffix.startsWith('/') ? suffix : '/' + suffix;
+  url.pathname = pathname;
+  // Credentials in the configured path are for zmc, not for the browser.
+  url.username = '';
+  url.password = '';
+  return url;
+}
+
+function createGo2rtcStream(container, img, src, mid, fallbackToMjpeg) {
   ensureVideoStreamLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(src);
+    const channel = (img.dataset.streamChannel && img.dataset.streamChannel.toLowerCase().indexOf("direct") !== -1 ) ? img.dataset.streamChannel : 'CameraDirectPrimary';
+    const url = go2rtcApiUrl(src);
     url.protocol = (url.protocol === 'https:') ? 'wss:' : 'ws:';
     url.pathname += '/ws';
     //url.search = 'src=' + mid + '_0';
-    url.search = 'src=' + mid + '_CameraDirectPrimary';
+    url.search = 'src=' + mid + '_' + channel;
 
     const stream = document.createElement('video-stream');
+    stream.handlerEventListener = {};
     stream.style.cssText = 'width: 100%; height: 100%; display: block;';
     stream.background = true;
     stream.muted = getCookie('zmWatchMuted') === 'true';
     stream.src = url.href;
     container.appendChild(stream);
+
+    stream.handlerEventListener['go2rtc.events.error'] = manageEventListener.addEventListener(stream, 'go2rtc.events.error',
+        (e) => {
+          console.debug('Go2RTC playback error:', e.detail);
+          const innerVideo = stream.querySelector('video');
+          if (innerVideo && !innerVideo.paused && innerVideo.readyState >= 2) {
+            // A player mode we aren't using reported an error (eg the webrtc
+            // watchdog while MSE carries playback). Video is running, keep it.
+            return;
+          }
+          clearTimeout(stream._fallbackTimer);
+          manageEventListener.removeEventListener(stream.handlerEventListener['go2rtc.events.error']);
+          disconnectVideoStream(stream);
+          stream.remove();
+          fallbackToMjpeg();
+        }
+    );
 
     const attachPlayListener = function() {
       const innerVideo = stream.querySelector('video');
@@ -1519,6 +1697,7 @@ function createGo2rtcStream(container, src, mid, fallbackToMjpeg) {
     stream._fallbackTimer = setTimeout(function() {
       const innerVideo = stream.querySelector('video');
       if (!innerVideo || innerVideo.readyState < 2) {
+        disconnectVideoStream(stream);
         stream.remove();
         fallbackToMjpeg();
       }
@@ -1536,8 +1715,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
   ensureHlsLoaded().then(function() {
     if (!document.getElementById('thumb-overlay')) return;
 
-    const url = new URL(rtsp2webSrc);
-    const hlsUrl = url.protocol + '//' + url.host + '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8';
+    const hlsUrl = rtsp2webUrl(rtsp2webSrc, '/stream/' + monitorId + '/channel/' + channel + '/hls/live/index.m3u8').href;
 
     const video = document.createElement('video');
     video.removeAttribute('controls');
@@ -1548,8 +1726,18 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
     container.appendChild(video);
     video.streamType = 'rtsp2web';
 
+    // Fallback after 5s if video hasn't loaded
+    video._fallbackTimer = setTimeout(function() {
+      if (video.readyState < 2) {
+        hlsDestroy(video);
+        video.remove();
+        fallbackToMjpeg();
+      }
+    }, 5000);
+
     if (Hls.isSupported()) {
       const hls = new Hls();
+      video._hls = hls;
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
@@ -1558,6 +1746,7 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
         if (infoStatusBar) infoStatusBar.innerHTML = ' [RTSP2Web Loading] ';
         thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
         console.debug("HLS Event = MEDIA_ATTACHED");
+        clearTimeout(video._fallbackTimer);
       });
       hls.on(Hls.Events.FRAG_LOADED, () => {
         console.debug("HLS Event = FRAG_LOADED");
@@ -1574,44 +1763,92 @@ function createRtsp2webStream(container, img, monitorId, fallbackToMjpeg, eventS
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
-        hls.destroy();
+        hlsDestroy(video);
         clearTimeout(video._fallbackTimer);
         video.remove();
         fallbackToMjpeg();
       });
-      video._hls = hls;
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
       video.src = hlsUrl;
       thumbnailVideoPlay(video, 'RTSP2Web', eventStart, statusBar);
       video.addEventListener('error', function() {
         video.remove();
+        clearTimeout(video._fallbackTimer);
         fallbackToMjpeg();
         return;
       });
     } else {
       video.remove();
+      clearTimeout(video._fallbackTimer);
       fallbackToMjpeg();
       return;
     }
-
-    // Fallback after 5s if video hasn't loaded
-    video._fallbackTimer = setTimeout(function() {
-      if (video.readyState < 2) {
-        if (video._hls) video._hls.destroy();
-        video.remove();
-        fallbackToMjpeg();
-      }
-    }, 5000);
   }).catch(function(e) {
     console.error(e);
     fallbackToMjpeg();
   });
 }
 
+/*
+* obj - can be either an HLS instance or an object containing an HLS instance in its property.
+*/
+const hlsDestroy = function(obj) {
+  if (typeof Hls === 'undefined') {
+    console.warn("The hls.js library is not loaded.");
+    return;
+  }
+  if (!obj) {
+    console.warn("No object was passed as an argument to the hlsDestroy() function.");
+    return;
+  }
+  let hls = null;
+  let propertyName = null;
+  if (obj instanceof Hls) {
+    hls = obj;
+  } else if ('hls' in obj) {
+    hls = obj.hls;
+    propertyName = 'hls';
+  } else if ('_hls' in obj) {
+    hls = obj._hls;
+    propertyName = '_hls';
+  }
+
+  if (!hls || !(hls instanceof Hls)) {
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value instanceof Hls) {
+        hls = value;
+        propertyName = key;
+        break;
+      }
+    }
+  }
+
+  if (hls) {
+    hls.off();
+    hls.destroy();
+    hls = null;
+    // If propertyName is null, it means an HLS instance was passed to the function.
+    if (propertyName) obj[propertyName] = null;
+  } else {
+    console.warn(`Hls for object`, obj, `cannot be destroyed because it is not loaded.`);
+  }
+};
+
 function thumbnailVideoPlay(video, currentMode, eventStart, statusBar) {
   const infoStatusBar = (statusBar) ? statusBar.querySelector("#info-status-bar") : null;
   video.play().then(() => {
+    if (currentMode == 'RTSP2Web') {
+      const container = document.getElementById('monitor-thumb-overlay');
+      if (container) {
+        const dimensions = calculateOverlayDimensions(video);
+        if (dimensions) {
+          container.style.width = dimensions.width+'px';
+          container.style.height = dimensions.height+'px';
+        }
+      }
+    }
     if (infoStatusBar && currentMode) infoStatusBar.innerHTML = ' [' + currentMode + '] ';
     console.debug(currentMode + " video player started playing");
     if (eventStart && statusBar) updateTimeWallClock(video, eventStart, statusBar);
@@ -1756,8 +1993,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       video._fallbackTimer = setTimeout(function() {
         // If the index.m3u8 manifest is bad, playback may not start, although there will be no errors.
         if (video.readyState < 2) {
+          hlsDestroy(video);
           video.remove();
-          hls.destroy();
           tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
         }
       }, 2000);
@@ -1777,8 +2014,8 @@ function playEventHLS(container, img, monitorId, fallbackToMjpeg, statusBar, eve
       hls.on(Hls.Events.ERROR, function(event, data) {
         console.warn("HLS Event = ERROR", "\n", "event:", event, "\n", "errorType:", data.type, "\n", "errorDetails:", data.details, "\n", "errorFatal:", data.fatal);
         if (!data || !data.fatal) return;
+        hlsDestroy(video);
         video.remove();
-        hls.destroy();
         clearTimeout(video._fallbackTimer);
         tryPlayMp4(container, img, monitorId, fallbackToMjpeg, statusBar);
       });
@@ -1847,18 +2084,30 @@ function thumbnail_onmouseout(event) {
 
 function cleanupVideoStream(videoStream) {
   if (!videoStream) return;
+  manageEventListener.removeEventListener(videoStream.handlerEventListener['go2rtc.events.error']);
   if (videoStream._fallbackTimer) clearTimeout(videoStream._fallbackTimer);
+  disconnectVideoStream(videoStream);
   videoStream.close();
+}
+
+// video-stream elements in the hover overlay run with background=true, so
+// disconnectedCallback() won't tear anything down when we remove them. Without
+// this the websocket and RTCPeerConnection stay open for the life of the page
+// and every hover leaves another consumer on the camera.
+function disconnectVideoStream(videoStream) {
+  if (videoStream.wsState === WebSocket.CLOSED && videoStream.pcState === WebSocket.CLOSED) return;
+  try {
+    videoStream.ondisconnect();
+  } catch (e) {
+    console.warn(e);
+  }
 }
 
 function cleanupVideoElement(video) {
   if (!video) return;
   if (video._fallbackTimer) clearTimeout(video._fallbackTimer);
   clearInterval(video._fallbackTimerTime);
-  if (video._hls) {
-    video._hls.destroy();
-    video._hls = null;
-  }
+  if (video._hls) hlsDestroy(video);
   video.pause();
   video.src = '';
   video.load();
@@ -1875,6 +2124,20 @@ function initThumbAnimation() {
     // Preload the video-stream module so it's ready when the user hovers
     if (hasGo2rtc) ensureVideoStreamLoaded();
   }
+}
+
+function addOrUpdateRandParam(src) {
+  const rand = Date.now();
+  if (/[?&]rand=\d+/i.test(src)) {
+    return src.replace(/([?&])rand=\d+/i, '$1rand=' + rand);
+  }
+  return src + (src.includes('?') ? '&' : '?') + 'rand=' + rand;
+}
+
+function refreshStreamSrc(stream, src) {
+  src = addOrUpdateRandParam(src);
+  stream.src = '';
+  stream.src = src;
 }
 
 /* View in fullscreen */
@@ -2035,7 +2298,8 @@ function thisClickOnStreamObject(clickObj) {
     } else return false;
   } else {
     // When using go2rtc there will be a <video> element with no ID wrapped in a <video-stream> with an ID of !
-    if (clickObj.closest('video-stream')) return true;
+    // Also, the ".zoompan" object does not have an ID, but we need to ensure that it contains a stream.
+    if (clickObj.closest('video-stream') || clickObj.querySelector('video[id^="liveStream"], video-stream[id^="liveStream"]')) return true;
   }
   return false;
 }
@@ -2082,7 +2346,7 @@ var doubleClickOnStream = function(event, touchEvent) {
       if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
         //Event page
         eventStats.toggle(true);
-        wrapperEventVideo.removeClass('col-sm-12').addClass('col-sm-8');
+        showEventStats(eventStatsDetails.is(':visible'));
         changeScale();
       } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
         //Watch page
@@ -2094,7 +2358,7 @@ var doubleClickOnStream = function(event, touchEvent) {
       if (getCookie('zmEventStats') && typeof eventStats !== "undefined") {
         //Event page
         eventStats.toggle(false);
-        wrapperEventVideo.removeClass('col-sm-8').addClass('col-sm-12');
+        wrapperEventVideo.removeClass('col-sm-9').addClass('col-sm-12');
         changeScale();
       } else if (getCookie('zmCycleShow') && typeof sidebarView !== "undefined") {
         //Watch page
@@ -2313,10 +2577,16 @@ function insertControlModuleMenu() {
     filter = document.createElement('div');
     filter.setAttribute("id", "filterMontagereview");
 
-    const filterOne = document.querySelector('#mfbpanel .controlHeader');
+    // Named precisely: #fieldsTable also carries .controlHeader, so a looser
+    // '#mfbpanel .controlHeader' silently matches it instead when the monitor
+    // filter bar is absent, which hides the fact that the attribute filters
+    // never made it into the extruder.
+    const filterOne = document.querySelector('#monitorFilterBar .controlHeader');
     const filterTwo = document.querySelector('#fieldsTable');
-    filter.prepend(filterTwo);
-    filter.prepend(filterOne);
+    // Either can be absent - a filter with no terms renders no #fieldsTable -
+    // and prepend() stringifies null into a literal 'null' text node.
+    if (filterTwo) filter.prepend(filterTwo);
+    if (filterOne) filter.prepend(filterOne);
   } else if (currentView == 'watch') {
     destroyChosen();
     filter = document.querySelector('.controlHeader form');
@@ -2555,8 +2825,9 @@ function handleTouchActionGeneral(action, evt) {
   }
 }
 
-/* Processing any key press*/
+/* Processing any key press */
 function handleKeydownGeneral(evt) {
+  if (isLightboxOpen()) return;
   const target = evt.target;
   const key = evt.key;
   // Controls pressing "Enter" inside the sliding panel from Sidebar. Used to submit the form to the Console page.
@@ -2573,6 +2844,51 @@ function handleKeydownGeneral(evt) {
       submitThisForm();
     }
   }
+
+  // Handle Left/Right arrow navigation for visible replay controls in zone view
+  if (currentView == 'zone') {
+    if (evt.code === "ArrowRight" || evt.code === "ArrowLeft") {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+      const controls = document.getElementById('replayControls');
+      if (controls && isElementReallyVisible(controls)) {
+        evt.preventDefault();
+        zoneObjectSize_stepReplay(evt.code === "ArrowRight" ? 1 : -1);
+      }
+    }
+  }
+}
+
+//Checks whether an element is visually rendered and at least partially within the viewport.
+function isElementReallyVisible(el) {
+  if (!el) return false;
+
+  // 1. Check CSS visibility (display: none, visibility: hidden, opacity: 0)
+  if (typeof el.checkVisibility === 'function') {
+    if (!el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) {
+      return false;
+    }
+  }
+
+  // 2. Check element dimensions and viewport intersection
+  const rect = el.getBoundingClientRect();
+
+  // Element has zero width or height
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+
+  // Check if the element is completely outside the viewport
+  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+
+  const isInViewport = (
+    rect.top < windowHeight &&
+    rect.bottom > 0 &&
+    rect.left < windowWidth &&
+    rect.right > 0
+  );
+
+  return isInViewport;
 }
 
 function handleMouseover(evt) {
@@ -2588,6 +2904,10 @@ function handleMouseout(evt) {
   if (navbar_type == 'left') {
     manageVisibilitySidebarExtruderPanel(evt, 'hide');
   }
+}
+
+function isLightboxOpen() {
+  return $j('body').hasClass('glightbox-open');
 }
 
 function manageVisibilitySidebarExtruderPanel(evt, action) {
@@ -2650,45 +2970,37 @@ function initDatepicker() {
 }
 
 function managePanZoomButton(evt) {
-  var url = null;
+  var url = "";
   if (panZoomEnabled) {
-    const targetId = evt.target.id;
-    var monitorId_ = null; // Resolve variable conflict. ToDo: In general, you need to use objects.
-    if (!evt.target.closest('.imageFeed') && !(evt.target.closest('#videoFeed'))) {
-      // Click was outside '.imageFeed'
+    const target = evt.target.closest('[id^="imageFeed"], [id^="videoFeedStream"], [id^="videoFeed"]');
+    if (!target) {
+      // Click was outside imageFeed & videoFeedStream
       $j('[id^="button_zoom"]').addClass('hidden');
       return;
-    } else {
-      $j('#button_zoom' + stringToNumber(targetId)).removeClass('hidden');
     }
-    if (!('getAttribute' in evt.currentTarget)) return; // Touchscreen tap on '.imageFeed' does not have 'currentTarget'
-    //evt.preventDefault();
-    // We are looking for an object with an ID, because there may be another element in the button.
-    const obj = targetId ? evt.target : evt.target.parentElement;
-    if (!obj) {
-      console.log("No obj found", targetId, evt.target, evt.target.parentElement);
+    let mid = stringToNumber(target.id);
+    if (Number.isNaN(mid)) {
+      // For example, MJPEG on Event page
+      mid = stringToNumber(target.querySelector('[id^="imageFeed"], [id^="videoFeedStream"]')?.id);
+    }
+    if (Number.isNaN(mid)) {
+      console.log("Unable to get monitor ID for the clicked object", evt.target);
       return;
     }
+    const buttonClicked = evt.target.closest('button, .btn');
+    $j('#button_zoom' + mid).removeClass('hidden');
 
-    if (currentView == 'watch') {
-      monitorId_ = monitorId;
-    } else if (currentView == 'montage') {
-      // On Montage page with mode==EDITING it is forbidden to use PanZoom
-      if (mode == EDITING) return;
-      monitorId_ = evt.currentTarget.getAttribute("data-monitor-id");
-    } else if (currentView == 'event') {
-      monitorId_ = eventData.MonitorId;
-    }
-
-    if (obj.className.includes('btn-view-watch')) {
-      url = '?view=watch&mid='+monitorId_;
-    } else if (obj.className.includes('btn-edit-monitor')) {
-      url = '?view=monitor&mid='+monitorId_;
-    } else if (obj.className.includes('btn-fullscreen')) {
-      if (document.fullscreenElement) {
-        closeFullscreen();
-      } else {
-        openFullscreen(document.getElementById('monitor'+evt.currentTarget.getAttribute("data-monitor-id")));
+    if (buttonClicked) {
+      if (buttonClicked.className.includes('btn-view-watch')) {
+        url = '?view=watch&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-edit-monitor')) {
+        url = '?view=monitor&mid='+mid;
+      } else if (buttonClicked.className.includes('btn-fullscreen')) {
+        if (document.fullscreenElement) {
+          closeFullscreen();
+        } else {
+          openFullscreen(document.getElementById('monitor'+mid));
+        }
       }
     }
     if (url) {
@@ -2698,9 +3010,12 @@ function managePanZoomButton(evt) {
         window.location.assign(url);
       }
     }
-    // Zoom by mouse click
-    if (thisClickOnStreamObject(obj)) {
-      zmPanZoom.click(monitorId_);
+
+    // On Montage page with mode==EDITING it is forbidden to use PanZoom
+    if (currentView == 'montage' && mode == EDITING) return;
+    if (thisClickOnStreamObject(evt.target)) {
+      // Zoom by mouse click
+      zmPanZoom.click(mid);
     }
   }
 }
@@ -2795,8 +3110,16 @@ function initPageGeneral() {
     });
   }
 
+  // The stats panel can wrap to another line, which moves everything below the navbar, so
+  // rescale then. Only a change of height matters: a ResizeObserver also reports the size it
+  // starts with, and the figures change width on every refresh, and rescaling for either
+  // resized the video on the event and watch views for nothing.
+  // The left navbar can be collapsed and expanded, which will change the space available for displaying the stream.
+  let navbarReloadHeight = null;
   var observerNavbarReload = new window.ResizeObserver((entries) => {
-    endOfResize();
+    const height = entries[entries.length - 1].contentRect.height;
+    if ((navbarReloadHeight !== null && height != navbarReloadHeight) || navbar_type == 'left') endOfResize();
+    navbarReloadHeight = height;
   });
   if (NAVBAR_RELOAD) {
     observerNavbarReload.observe(NAVBAR_RELOAD);
@@ -2869,7 +3192,7 @@ function initPageGeneral() {
       return;
     }
 
-    if (mainContent) {
+    if (mainContent && !skipPageLeaveAnimation) {
       if (mainContentJ.css('display') == 'flex') {
         // If flex-grow is set to a value > 0 then "height" will be ignored!
         mainContentJ.css({flex: "0 1 auto"});
@@ -2914,6 +3237,41 @@ function initPageGeneral() {
       }
     });
   });
+
+  // Opens images in a zoomable GLightbox viewer.
+  // GLightbox inserts data-title as HTML. Use only trusted, fixed titles;
+  // never pass event or monitor text (Name, Cause, Notes).
+  if (typeof GLightbox === 'function') {
+    // Otherwise, GLightbox will not be able to determine the type of object being returned by the PHP script.
+    document.querySelectorAll('a.glightbox').forEach((link) => {
+      if (link.href.includes('view=image')) link.dataset.type = 'image';
+
+      // Prefer data-title, falling back to the link's title and then the nested image's title.
+      const title = link.dataset.title ||
+        link.getAttribute('title') ||
+        link.querySelector('img')?.title;
+
+      if (title) {
+        // Escape HTML special characters to ensure the title is displayed as plain text by GLightbox.
+        link.dataset.title = escapeHTML(title);
+      }
+    });
+
+    try {
+      // eslint-disable-next-line new-cap
+      lightbox = GLightbox({
+        touchNavigation: true,
+        loop: true
+      });
+      if (lightbox && typeof lightbox.on === 'function') {
+        document.dispatchEvent(new CustomEvent('zm:lightboxReady', {
+          detail: lightbox
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to initialize GLightbox:', error);
+    }
+  }
 }
 
 // Called when monitor filters change - refreshes table via AJAX instead of full page reload
@@ -3159,13 +3517,22 @@ function pauseAudioMotion(mid) {
 async function getTracksFromStream(videoFeedStream) {
   if (!videoFeedStream) {
     console.log(`Unable to get tracks from stream because the stream is missing.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'invalid-stream'
+    });
     return;
   }
   const mid = (typeof eventData !== 'undefined') ? eventData.MonitorId : (videoFeedStream) ? videoFeedStream.id : null;
   if (!mid) {
     console.log(`getTracksFromStream: Unable to get Monitor.ID for`, videoFeedStream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'monitor-id-not-found'
+    });
     return;
   }
+  const playbackSessionId = videoFeedStream.playbackSessionId;
 
   let el = null;
   if (currentView == 'watch' || currentView == 'montage' || currentView == 'zones' || currentView == 'zone') {
@@ -3177,6 +3544,10 @@ async function getTracksFromStream(videoFeedStream) {
 
   if (!el) {
     console.log(`"Video stream" NOT found for monitor ID=${mid}.`);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'failed',
+      reason: 'video-element-not-found'
+    });
     return;
   }
   let streamCaptureNotSupported = false;
@@ -3193,15 +3564,42 @@ async function getTracksFromStream(videoFeedStream) {
     console.warn(`"captureStream" NOT found in STREAM for monitor ID=${mid} or not supported by the browser.`);
     streamCaptureNotSupported = true; // This will enable the volume control if the browser does not support captureStream (for example, Safari)
   }
+  if (!streamSessionActive(videoFeedStream, playbackSessionId)) {
+    console.debug(`RACE [${playbackSessionId}] getTracksFromStream() aborted`);
+    stopMediaStreamTracks(stream);
+    dispatchTracksReceived(videoFeedStream, {
+      status: 'aborted',
+      reason: 'playback-session-changed'
+    });
+    return;
+  }
 
   if (stream) {
     const timeoutStreamActive = 20000;
     const startTime = Date.now();
-    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive, stream.active); // We are waiting for the stream to become active.
+    const streamActive = await waitUntil(() => (stream.active || videoFeedStream.started === false), timeoutStreamActive); // We are waiting for the stream to become active.
+    if (!streamSessionActive(videoFeedStream, playbackSessionId)) {
+      console.debug(`RACE [${playbackSessionId}] waitUntil() aborted`);
+      stopMediaStreamTracks(stream);
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'aborted',
+        reason: 'playback-session-changed'
+      });
+      return;
+    }
     if (streamActive !== false && videoFeedStream.started !== false) {
       console.debug(`Stream for monitor with ID=${mid} became active within ${(streamActive/1000).toFixed(2)} seconds.`);
     } else {
       console.warn(`Within ${((Date.now() - startTime)/1000).toFixed(2)} seconds, the stream for monitor with ID=${mid} did not become active.`);
+
+      // The captured MediaStream never became active.
+      // Stop all tracks to release browser resources before returning.
+      stopMediaStreamTracks(stream);
+
+      dispatchTracksReceived(videoFeedStream, {
+        status: 'failed',
+        reason: 'stream-inactive'
+      });
       return;
     }
 
@@ -3224,15 +3622,59 @@ async function getTracksFromStream(videoFeedStream) {
   }
 
   console.debug(`mediaStream for ID=${mid}:`, videoFeedStream.mediaStream);
-  console.debug(`audioTrack  for ID=${mid}:`, videoFeedStream.audioTrack);
-  console.debug(`videoTrack  for ID=${mid}:`, videoFeedStream.videoTrack);
+  console.debug(`audioTrack for ID=${mid}:`, videoFeedStream.audioTrack);
+  console.debug(`videoTrack for ID=${mid}:`, videoFeedStream.videoTrack);
   if (currentView == 'watch' || currentView == 'montage') {
     (videoFeedStream.audioTrack || streamCaptureNotSupported) ? videoFeedStream.volumeControlsHandler('enable') : videoFeedStream.volumeControlsHandler('disable');
   } else if (currentView == 'event') {
 
   }
 
-  connectAudioMotion(mid);
+  if (videoFeedStream.started === false) {
+    console.debug(`RACE [${playbackSessionId}] activePlayer: "${videoFeedStream.activePlayer || "not defined"}" skip tracksReceived because stream for monitor ID=${mid} stopped`);
+    return;
+  }
+
+  dispatchTracksReceived(videoFeedStream, {
+    status: 'success'
+  });
+};
+
+/**
+* status: 'failed', 'aborted', 'success'
+*/
+const dispatchTracksReceived = function(videoFeedStream, {
+  status,
+  reason = null
+} = {}) {
+  const objStream = (videoFeedStream?.dispatchEvent instanceof Function) ? videoFeedStream : videoFeedStream?.element;
+  if (objStream) {
+    objStream.dispatchEvent(new CustomEvent('zm:tracksReceived', {
+      detail: {
+        monitorId: (typeof eventData !== 'undefined') ? eventData.MonitorId : videoFeedStream?.id,
+        status,
+        reason,
+        activePlayer: videoFeedStream?.activePlayer ?? null,
+        stream: {
+          mediaStream: videoFeedStream?.mediaStream ?? null,
+          audioTrack: videoFeedStream?.audioTrack ?? null,
+          videoTrack: videoFeedStream?.videoTrack ?? null
+        }
+      }
+    }));
+  } else {
+    console.warn(`No stream found for ${videoFeedStream}. dispatchEvent for 'zm:tracksReceived' will not be added.`);
+  }
+};
+
+/**
+ * Stop all tracks of a MediaStream and release its resources.
+ *
+ * @param {MediaStream|null|undefined} stream
+ */
+function stopMediaStreamTracks(stream) {
+  if (!(stream instanceof MediaStream)) return;
+  stream.getTracks().forEach((track) => track.stop());
 }
 
 const waitUntil = (condition, timeout = 0) => {
@@ -3458,45 +3900,243 @@ const createClickableLink = function(text) {
   return text1.replace(/(^|[^\/])(www\.[\S]+(\b|$))/gim, '$1<a target="_blank" href="http://$2">$2</a>');
 };
 
-// https://stackoverflow.com/a/69273090
+const zmAlert = function(message, title = "") {
+  const visibleBlocks = document.querySelectorAll('[id^="modalInfoMessageBlock"]');
+  const numberVisibleBlocks = (visibleBlocks) ? visibleBlocks.length : 0;
+  if (numberVisibleBlocks >= 5) {
+    console.warn("The number of visible information blocks has exceeded 5. New blocks are not displayed.");
+    if (title !== '') console.log("TITLE: ", title);
+    console.log("MESSAGE: ", message);
+    return;
+  }
+  const rnd = (Math.floor((Math.random() * 999999) + 1)); // Required for displaying multiple blocks simultaneously.
+  const idModalInfoMessageBlock = 'modalInfoMessageBlock'; // This is stated in ajax/modals/infoMessageBlock.php
+  const currentIdModalInfoMessageBlock = idModalInfoMessageBlock + '_' + rnd.toString();
+
+  $j.getJSON(thisUrl, {
+    request: "modal",
+    modal: "infoMessageBlock",
+    title: title,
+    message: message,
+  })
+      .done(function(data) {
+        if (data.result == "Error") {
+          console.warn("Error: ", data.message);
+          return;
+        }
+        insertModalHtml(idModalInfoMessageBlock, data.html);
+        const modalInfoMessageBlock = document.getElementById(idModalInfoMessageBlock);
+        if (!modalInfoMessageBlock) {
+          console.warn("Modal information block not found.", data);
+          return;
+        }
+        modalInfoMessageBlock.id = currentIdModalInfoMessageBlock;
+        modalInfoMessageBlock.style.top = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.style.left = 20*numberVisibleBlocks + 'px';
+        modalInfoMessageBlock.setAttribute("data-date-time-show", Date.now());
+        $j(modalInfoMessageBlock).one('shown.bs.modal', modalInfoMessageBlock, function() {
+          // Actions after the modal window becomes visible
+          const observer = new MutationObserver(function(_mutations, obs) {
+            // We don't care what happened; we'll just remove the block from the DOM.
+            _mutations[0].target.remove();
+            obs.disconnect();
+          });
+          observer.observe(modalInfoMessageBlock, {
+            childList: true,
+            subtree: false,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+          });
+        });
+
+        $j(modalInfoMessageBlock).on('hidden.bs.modal', function() {
+          // We don't need to leave the modal window in the DOM after we've informed the user.
+          // Removing Bootstrap settings
+          $j(this).removeData('bs.modal');
+
+          // Now we remove the element from the DOM
+          $j(this).remove();
+        });
+
+        $j(modalInfoMessageBlock).on('hidePrevented.bs.modal', function() {
+          // Called when the modal window is hidden by clicking on the page background.
+        });
+
+        $j(modalInfoMessageBlock).modal('show');
+      })
+      .fail(function(data) {
+        logAjaxFail(data);
+      });
+  return currentIdModalInfoMessageBlock;
+};
+
+const closeZmAlert = async function(id) {
+  // We should wait for the modal window to appear before closing it to avoid problems when we call the modal window and try to close it immediately.
+  const promiseModalInfoMessageBlock = await waitUntil(() => (document.querySelector('#'+id+'.show')), 2000);
+  const modalInfoMessageBlock = document.getElementById(id);
+  if (!promiseModalInfoMessageBlock && !modalInfoMessageBlock) {
+    console.log(`modalInfoMessageBlock with ID=${id} not present.`);
+    return false;
+  }
+  // Minimum modal window display time = 2 sec.
+  await waitUntil(() => (Date.now() - modalInfoMessageBlock.dataset.dateTimeShow > 2000), 2000);
+  $j(modalInfoMessageBlock).modal('hide');
+  return true;
+};
+
+const stringToLocaleString = function(str) {
+  let result = str;
+  if (str) {
+    const matches = str.match(/([\D]+)+|(\d+)/g);
+    if (matches) {
+      result = '';
+      matches.forEach((match, index) => {
+        const num = Number(match);
+        // Number(' ') is 0, so whitespace between two numbers must stay as is
+        result += (match.trim() !== '' && !isNaN(num)) ? num.toLocaleString() : match;
+      });
+    }
+  }
+  return result;
+};
+
+// Based on the original implementation: https://stackoverflow.com/a/69273090
+// Modified to prevent duplicate event listener registration while remaining
+// fully compatible with the original API and method calls.
+//
+// New feature: use the `replaceId` option to automatically replace
+// an existing event listener instead of registering a duplicate:
+//
+// let id;
+// id = addEventListener(element, type, listener, {
+//   replaceId: id
+// });
 class ManageEventListener {
   #listeners = {}; // # in a JS class signifies private
   #idx = 1;
 
   // add event listener, returns integer ID of new listener
   addEventListener(element, type, listener, options = {}) {
-    this.#privateAddEventListener(element, this.#idx, type, listener, options);
-    return this.#idx++;
+    const id = this.#idx++;
+    this.#privateAddEventListener(element, id, type, listener, options);
+    return id;
   }
 
-  // add event listener with custom ID (avoids need to retrieve return ID since you are providing it yourself)
+  // add event listener with custom ID
   addEventListenerById(element, id, type, listener, options = {}) {
     this.#privateAddEventListener(element, id, type, listener, options);
     return id;
   }
 
   #privateAddEventListener(element, id, type, listener, options) {
-    if (this.#listeners[id]) throw Error(`A listener with id ${id} already exists`);
-    element.addEventListener(type, listener, options);
-    this.#listeners[id] = {element, type, listener, options};
+    let eventOptions = options;
+
+    // Automatically remove previously registered listener
+    // before adding the new one.
+    if (options && typeof options === 'object' && options.replaceId != null) {
+      if (this.#listeners[options.replaceId]) {
+        console.warn(
+            'Replacing existing event listener:',
+            {
+              id: options.replaceId,
+              type,
+              element,
+              previous: this.#listeners[options.replaceId]
+            }
+        );
+      }
+
+      this.removeEventListener(options.replaceId);
+
+      // Don't pass our internal option to addEventListener()
+      eventOptions = {...options};
+      delete eventOptions.replaceId;
+
+      if (!Object.keys(eventOptions).length) {
+        eventOptions = undefined;
+      }
+    }
+
+    if (this.#listeners[id]) {
+      throw new Error(`A listener with id ${id} already exists`);
+    }
+
+    element.addEventListener(type, listener, eventOptions);
+
+    this.#listeners[id] = {
+      element,
+      type,
+      listener,
+      options: eventOptions
+    };
   }
 
-  // remove event listener with given ID, returns ID of removed listener or null (if listener with given ID does not exist)
+  // remove event listener with given ID,
+  // returns ID of removed listener or null
   removeEventListener(id) {
     const listen = this.#listeners[id];
+
     if (listen) {
-      listen.element.removeEventListener(listen.type, listen.listener, listen.options);
+      listen.element.removeEventListener(
+          listen.type,
+          listen.listener,
+          listen.options
+      );
       delete this.#listeners[id];
     }
-    return !!listen ? id : null;
+
+    return listen ? id : null;
   }
 
-  // returns number of events listeners
+  // returns number of event listeners
   length() {
     return Object.keys(this.#listeners).length;
   }
 }
 const manageEventListener = new ManageEventListener();
 window.manageEventListener = manageEventListener;
+
+/**
+ * Generate an RFC4122 version 4 UUID.
+ * Uses crypto.randomUUID() when available, otherwise falls back to
+ * crypto.getRandomValues() for compatibility with older browsers.
+*/
+function generateUUID() {
+  // Modern browsers
+  if (window.crypto?.randomUUID) {
+    return window.crypto.randomUUID();
+  }
+
+  // Older browsers with Web Crypto API
+  if (window.crypto?.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+
+    // RFC4122 version 4
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0'));
+
+    return (
+      hex.slice(0, 4).join('') + '-' +
+      hex.slice(4, 6).join('') + '-' +
+      hex.slice(6, 8).join('') + '-' +
+      hex.slice(8, 10).join('') + '-' +
+      hex.slice(10, 16).join('')
+    );
+  }
+
+  console.warn('Web Crypto API is not supported. Unable to generate UUID.');
+  return null;
+}
+
+function isCurrentPlaybackSession(videoFeedStream, playbackSessionId) {
+  return playbackSessionId === videoFeedStream.playbackSessionId;
+}
+
+function streamSessionActive(stream, playbackSessionId) {
+  return (isCurrentPlaybackSession(stream, playbackSessionId) && (("sessionActive" in stream) ? stream.isActive : true));
+};
 
 $j( window ).on("load", initPageGeneral);

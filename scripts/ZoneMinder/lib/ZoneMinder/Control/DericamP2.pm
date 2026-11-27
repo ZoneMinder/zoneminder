@@ -31,6 +31,10 @@ require ZoneMinder::Control;
 
 our @ISA = qw(ZoneMinder::Control);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 our %CamParams = ();
 
 # ==========================================================================
@@ -56,7 +60,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -79,7 +83,7 @@ sub sendCmd
     printMsg( $cmd, "Tx" );
 
     my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
-    Info( "http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice} );
+    Info( urlForLog("http://".$self->{Monitor}->{ControlAddress}."/$cmd".$self->{Monitor}->{ControlDevice}) );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -99,7 +103,7 @@ sub getCamParams
     my $self = shift;
     my $cmd = "cgi-bin/hi3510/param.cgi?cmd=getimageattr";
     
-    my $req = $self->sendCmd( $cmd );
+    my $req = HTTP::Request->new( GET=>"http://".$self->{Monitor}->{ControlAddress}."/$cmd" );
     my $res = $self->{ua}->request($req);
 
     if ( $res->is_success )
@@ -108,7 +112,11 @@ sub getCamParams
         my $content = $res->decoded_content;
 
         while ($content =~ s/var\s+([^=]+)=([^;]+);//ms) {
-            $CamParams{$1} = $2;
+            my $key = $1;
+            my $val = $2;
+            $val =~ s/^\s+|\s+$//g;
+            $val =~ s/^["']|["']$//g;
+            $CamParams{$key} = $val;
         }
     }
     else
@@ -264,7 +272,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downnleft&-speed=45";
+    my $cmd = "cgi-bin/hi3510/param.cgi?cmd=ptzctrl&-step=0&-act=downleft&-speed=45";
     $self->sendCmd( $cmd );
 }
 

@@ -44,6 +44,7 @@ our @EXPORT_OK = ( @{ $EXPORT_TAGS{all} } );
 our @EXPORT = qw();
 
 use Data::UUID;
+use Scalar::Util qw(blessed);
 
 use vars qw( $verbose $soap_version );
 
@@ -115,47 +116,50 @@ sub interpret_messages {
       next;
     }
 
-    my $xaddr;
-    my $probe_match = $result->get_ProbeMatch();
-    next if ! $probe_match;
-    foreach my $l_xaddr (split ' ', $probe_match->get_XAddrs()) {
+    my $pm_raw = $result->get_ProbeMatch();
+    next if ! $pm_raw;
+    my @probe_matches = ref($pm_raw) eq 'ARRAY' ? @$pm_raw : ($pm_raw);
+    foreach my $probe_match ( @probe_matches ) {
+      my $xaddr;
+      foreach my $l_xaddr (split ' ', $probe_match->get_XAddrs()) {
 #   find IPv4 address
-      print "l_xaddr = $l_xaddr\n" if $verbose;
-      if ( $l_xaddr =~ m|//[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[:/]| ) {
-        $xaddr = $l_xaddr;
-        last;
-      } else {
-        print STDERR "Unable to find IPv4 address from xaddr $l_xaddr\n";
+        print "l_xaddr = $l_xaddr\n" if $verbose;
+        if ( $l_xaddr =~ m{^https?://[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(?::[0-9]+)?(?:/|$)} ) {
+          $xaddr = $l_xaddr;
+          last;
+        } else {
+          print STDERR "Unable to find IPv4 address from xaddr $l_xaddr\n";
+        }
       }
-    }
 
 # No usable address found
-    next if not $xaddr;
+      next if not $xaddr;
 
 # ignore multiple responses from one service
-    next if defined $services->{$xaddr};
-    $services->{$xaddr} = 1;
+      next if defined $services->{$xaddr};
+      $services->{$xaddr} = 1;
 
-    print $xaddr.', '.$svc_discover->get_soap_version().', ';
+      print $xaddr.', '.$svc_discover->get_soap_version().', ';
 
-    print '(';
-    my $scopes = $result->get_ProbeMatch()->get_Scopes();
-    my $count = 0;
-    my %scopes;
-    foreach my $scope (split ' ', $scopes) {
-      if ( $scope =~ m|onvif://www\.onvif\.org/(.+)/(.*)| ) {
-        my ($attr, $value) = ($1,$2);
+      print '(';
+      my $scopes = $probe_match->get_Scopes();
+      my $count = 0;
+      my %scopes;
+      foreach my $scope (split ' ', $scopes) {
+        if ( $scope =~ m|onvif://www\.onvif\.org/([^/]+)/(.*)| ) {
+          my ($attr, $value) = ($1,$2);
 			print ', ' if 0 < $count ++;
-        print $attr . '=\'' . $value . '\'';
-        $scopes{$attr} = $value;
+          print $attr . '=\'' . $value . '\'';
+          $scopes{$attr} = $value;
+        }
       }
-    }
-    print ")\n";
-    push @results, {
+      print ")\n";
+      push @results, {
 			xaddr					=> $xaddr,
-      soap_version  => $svc_discover->get_soap_version(),
-      scopes 				=> \%scopes,
-    };
+        soap_version  => $svc_discover->get_soap_version(),
+        scopes 				=> \%scopes,
+      };
+    } # end foreach probe_match
   }
   return @results;
 } # end sub interpret_messages
@@ -202,9 +206,9 @@ sub discover {
 						 Types => 'http://www.onvif.org/ver10/network/wsdl:NetworkVideoTransmitter http://www.onvif.org/ver10/device/wsdl:Device', # QNameListType
 					 ) : (
 						 xmlattr => { 'xmlns:dn'  => 'http://www.onvif.org/ver10/network/wsdl', },
+						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 					 )
 				),
-						 Types => 'dn:NetworkVideoTransmitter', # QNameListType
 				Scopes =>  { value => '' },
         },
         WSDiscovery10::Elements::Header->new({
@@ -241,7 +245,8 @@ sub profiles {
     my $dom = XML::LibXML->load_xml(string=>$result);
     print "Received message:\n" . $dom->toString(1) . "\n";
   }
-  my @Profiles = @{ $result->get_Profiles() };
+  my $raw_profiles = $result->get_Profiles();
+  my @Profiles = ref($raw_profiles) eq 'ARRAY' ? @$raw_profiles : (defined($raw_profiles) ? ($raw_profiles) : ());
   if ( !@Profiles ) {
     print "No profiles returned from get_Profiles\n";
     return;
@@ -336,7 +341,13 @@ sub profiles {
 sub move {
   my ($client, $dir) = @_;
 
-  my $result = $client->get_endpoint('ptz')->GetNodes( { } ,, );
+  my $ptz = $client->get_endpoint('ptz');
+  if ( !$ptz ) {
+    print "No ptz endpoint for client.\n";
+    return;
+  }
+
+  my $result = $ptz->GetNodes( { } ,, );
 
   die $result if not $result;
   print $result . "\n";

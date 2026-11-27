@@ -36,7 +36,7 @@ class ZMPacket;
 //
 class Camera {
  protected:
-  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, LIBVLC_SRC, CURL_SRC, VNC_SRC } SourceType;
+  typedef enum { LOCAL_SRC, REMOTE_SRC, FILE_SRC, FFMPEG_SRC, CURL_SRC, VNC_SRC } SourceType;
 
   const Monitor *monitor;
   SourceType    type;
@@ -56,8 +56,9 @@ class Camera {
   bool          record_audio;
   int                 mVideoStreamId;
   int                 mAudioStreamId;
-  AVCodecContext      *mVideoCodecContext;
-  AVCodecContext      *mAudioCodecContext;
+  // No decoders here at all. The monitor opens the video decoder against
+  // mVideoStream; audio is decoded by whoever needs it, from the stream's
+  // codecpar. A camera finds streams and produces packets.
   AVStream *mVideoStream;
   AVStream *mAudioStream;
   AVFormatContext *mFormatContext; // One for video, one for audio
@@ -94,7 +95,6 @@ class Camera {
   bool IsRemote() const { return type == REMOTE_SRC; }
   bool IsFile() const { return type == FILE_SRC; }
   bool IsFfmpeg() const { return type == FFMPEG_SRC; }
-  bool IsLibvlc() const { return type == LIBVLC_SRC; }
   bool IscURL() const { return type == CURL_SRC; }
   bool IsVNC() const { return type == VNC_SRC; }
   unsigned int Width() const { return width; }
@@ -130,8 +130,6 @@ class Camera {
 
   virtual AVStream      *getVideoStream();
   virtual AVStream      *getAudioStream() { return mAudioStream; };
-  virtual AVCodecContext     *getVideoCodecContext() { return mVideoCodecContext; };
-  virtual AVCodecContext     *getAudioCodecContext() { return mAudioCodecContext; };
   int            getVideoStreamId() { return mVideoStreamId; };
   int            getAudioStreamId() { return mAudioStreamId; };
 

@@ -15,26 +15,112 @@ class ConfigsController extends AppController {
 	public $components = array('RequestHandler');
 
 /**
+ * Reading configuration requires the same System permission the web ui's
+ * Options page requires. Without it any enabled, API-enabled account could read
+ * the effective configuration, which includes secrets (GHSA-m896-3fc6-2jf5).
+ * Mutation already required System Edit; this makes reads consistent with it.
+ *
+ * @throws UnauthorizedException
+ * @return void
+ */
+  private function requireSystemView() {
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+    }
+  }
+
+/**
+ * Values that must never leave the API, whatever the caller's permission.
+ *
+ * The Private flag marks the secrets that live in the Config table, such as
+ * ZM_AUTH_HASH_SECRET, which is enough to forge an authentication hash for any
+ * user. The database credentials are read from zm.conf and conf.d rather than
+ * the table, so they have no row and no flag to carry, and are listed by name.
+ * Nothing outside the server has any use for either, so they are withheld from
+ * administrators too.
+ *
+ * The Private flag is read from $zm_config, which config.php populates from the
+ * table, so callers need not select it and the response keeps its shape.
+ *
+ * @param array $config a Config array, optionally carrying Name and Private
+ * @param string $name the config name, for callers whose row omits it
+ * @return array the same array, with any secret Value emptied
+ */
+  private function isSecretConfig($config, $name = null) {
+    $secret_names = array('ZM_DB_HOST', 'ZM_DB_NAME', 'ZM_DB_USER', 'ZM_DB_PASS', 'ZM_DB_TYPE');
+    if ($name === null) $name = isset($config['Name']) ? $config['Name'] : '';
+
+    global $zm_config;
+    $private = !empty($config['Private'])
+      || (isset($zm_config[$name]) && !empty($zm_config[$name]['Private']));
+
+    return $private or in_array($name, $secret_names, true);
+  }
+
+  private function redactSecret($config, $name = null) {
+    if ($this->isSecretConfig($config, $name)) {
+      $config['Value'] = '';
+    }
+    return $config;
+  }
+
+  // Whether the caller's named filter tests the Value column (as Value, or
+  // Model.Value, with any operator). buildFilter() parses the field the same
+  // way. refs GHSA-8g63-hqg8-82cv
+  private function filterReferencesValue($namedParams) {
+    foreach (array_keys($namedParams) as $attribute) {
+      if (preg_match('/^(?P<field>[a-z0-9.]+)/i', trim($attribute), $m)) {
+        $field = $m['field'];
+        $bare = (false !== strpos($field, '.'))
+          ? substr($field, strrpos($field, '.') + 1)
+          : $field;
+        if (strcasecmp($bare, 'Value') === 0) return true;
+      }
+    }
+    return false;
+  }
+
+/**
  * resolves the issue of not returning all config parameters
  * refer https://github.com/ZoneMinder/ZoneMinder/issues/953
  * index method
  *
  * @return void
- */      
+ */
   public function index() {
+    $this->requireSystemView();
     $this->Config->recursive = -1; // Configs have no associations anyways
 
     $conditions = [];
+    $filters_value = false;
     if ( $this->request->params['named'] ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($this->request->params['named']);
+      $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Config->schema()));
+      $filters_value = $this->filterReferencesValue($this->request->params['named']);
     }
 
     $configs = $this->Config->find('all', ['conditions' => &$conditions]);
 
+    // redactSecret() blanks a secret Value in the response, but the caller's
+    // WHERE clause is applied first, so a filter on Value (e.g. Value LIKE 'a%')
+    // turns the returned row count into an oracle that leaks a secret such as
+    // ZM_AUTH_HASH_SECRET one character at a time. When the filter tests Value,
+    // drop the secret rows so their presence reveals nothing; a filter on any
+    // other column is unaffected. refs GHSA-8g63-hqg8-82cv
+    if ($filters_value) {
+      $visible = array();
+      foreach ($configs as $c) {
+        if (!$this->isSecretConfig($c['Config'])) $visible[] = $c;
+      }
+      $configs = $visible;
+    }
+
+    # References into $configs itself: a reference to the loop's copy $c is lost
+    # once the loop moves on, and the conf.d values below never reached the response.
     $config_by_name = [];
-    foreach ($configs as $c) {
-      $config_by_name[$c['Config']['Name']] = &$c['Config'];
+    foreach (array_keys($configs) as $i) {
+      $config_by_name[$configs[$i]['Config']['Name']] = &$configs[$i]['Config'];
     }
 
     global $zm_config;
@@ -45,6 +131,10 @@ class ConfigsController extends AppController {
         $configs[] = ['Config'=>$c];
       }
     }
+    foreach ($configs as &$config) {
+      $config['Config'] = $this->redactSecret($config['Config']);
+    }
+    unset($config);
     $this->set(array(
       'configs' => $configs,
       '_serialize' => array('configs')
@@ -59,6 +149,7 @@ class ConfigsController extends AppController {
  * @return void
  */
 	public function view($id = null) {
+		$this->requireSystemView();
 		if (!$this->Config->exists($id)) {
 			throw new NotFoundException(__('Invalid config'));
 		}
@@ -68,6 +159,7 @@ class ConfigsController extends AppController {
     # Value might be overriden in /etc/zm/conf.d
     global $zm_config;
     $config['Config']['Value'] = $zm_config[$config['Config']['Name']]['Value'];
+    $config['Config'] = $this->redactSecret($config['Config']);
 		$this->set(array(
 			'config' => $config,
 			'_serialize' => array('config')
@@ -75,15 +167,17 @@ class ConfigsController extends AppController {
 	}
 
 	public function viewByName($name = null) {
+		$this->requireSystemView();
 		$config = $this->Config->findByName($name, array('fields' => 'Value'));
 
     global $zm_config;
 		if (!$config) {
-      global $zm_config;
       if ( isset($zm_config[$name]) ) {
         $config = array('Config'=>$zm_config[$name]);
       } else {
-        ZM\Error(print_r($zm_config, true));
+        # Logging $zm_config here copied the whole effective configuration,
+        # secrets included, into the log and anything collecting it.
+        ZM\Debug('No such config '.$name);
         throw new NotFoundException(__('Invalid config'));
       }
     } else if ( isset($zm_config[$name]) ) {
@@ -91,7 +185,7 @@ class ConfigsController extends AppController {
 		}
 
 		$this->set(array(
-			'config' => $config['Config'],
+			'config' => $this->redactSecret($config['Config'], $name),
 			'_serialize' => array('config')
 		));
 	}
@@ -105,7 +199,7 @@ class ConfigsController extends AppController {
  */
 	public function edit($id = null) {
 		global $user;
-		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		$canEdit = (!$user) || ($user->System() == 'Edit');
 		if (!$canEdit) {
 			throw new UnauthorizedException(__('Insufficient privileges'));
 			return;
@@ -125,12 +219,26 @@ class ConfigsController extends AppController {
 			if (!empty($config['Config']['Readonly'])) {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
-			if ($this->Config->save($this->request->data)) {
-				return $this->flash(__('The config has been saved.'), array('action' => 'index'));
+			// Config.Name is the primary key, so a Name in the body would move the save
+			// to another row than the one validated here.
+			$this->pinRequestId($this->Config, $id);
+			$value = $this->requestField('Config', 'Value');
+			if (($config['Config']['Name'] == 'ZM_AUTH_HASH_SECRET') and ($value !== null)
+				and !authHashSecretValid($value)) {
+				throw new BadRequestException(__('ZM_AUTH_HASH_SECRET must be at least %d characters long', ZM_AUTH_HASH_SECRET_MIN_LENGTH));
 			}
+			if ($this->Config->save($this->request->data)) {
+				$message = 'Saved';
+			} else {
+				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
+				$this->response->statusCode(400);
+			}
+			$this->set(array(
+				'message' => $message,
+				'_serialize' => array('message')
+			));
 		} else {
-			$options = array('conditions' => array('Config.' . $this->Config->primaryKey => $id));
-			$this->request->data = $this->Config->find('first', $options);
+			$this->view($id);
 		}
 	}
 
@@ -143,7 +251,7 @@ class ConfigsController extends AppController {
  */
 	public function delete($id = null) {
 		global $user;
-		$canEdit = (!$user) || ($user['System'] == 'Edit');
+		$canEdit = (!$user) || ($user->System() == 'Edit');
 		if (!$canEdit) {
 			throw new UnauthorizedException(__('Insufficient privileges'));
 			return;
@@ -154,10 +262,21 @@ class ConfigsController extends AppController {
 			throw new NotFoundException(__('Invalid config'));
 		}
 		$this->request->allowMethod('post', 'delete');
+		$config = $this->Config->find('first', array('conditions' => array('Config.' . $this->Config->primaryKey => $id)));
+		if (!empty($config['Config']['System'])) {
+			throw new ForbiddenException(__('Cannot delete a system Config entry'));
+		}
+		if (!empty($config['Config']['Readonly'])) {
+			throw new ForbiddenException(__('Cannot delete a readonly Config entry'));
+		}
 		if ($this->Config->delete()) {
-			return $this->flash(__('The config has been deleted.'), array('action' => 'index'));
+			$this->set(array(
+				'message' => 'Deleted',
+				'_serialize' => array('message'),
+			));
+			return;
 		} else {
-			return $this->flash(__('The config could not be deleted. Please, try again.'), array('action' => 'index'));
+			throw new InternalErrorException(__('The config could not be deleted.'));
 		}
 	}
 
@@ -168,6 +287,7 @@ class ConfigsController extends AppController {
  */
 
 	public function categories($category = null) {
+		$this->requireSystemView();
 		$categories = $this->Config->find('all', array(
 			'fields' => array('DISTINCT Config.Category'),
 			'conditions' => array('Config.Category !=' => 'hidden'),

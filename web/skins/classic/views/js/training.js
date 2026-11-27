@@ -174,7 +174,8 @@ AnnotationEditor.prototype.init = function() {
   this.canvas.addEventListener('mousemove', function(e) {
     self._onMouseMove(e);
   });
-  this.canvas.addEventListener('mouseup', function(e) {
+  // On document so releasing outside the canvas still ends the gesture
+  document.addEventListener('mouseup', function(e) {
     self._onMouseUp(e);
   });
 
@@ -228,6 +229,8 @@ AnnotationEditor.prototype.open = function(initialFrame) {
     if (!self.dirty) return;
     const link = e.target.closest('a[href]');
     if (!link) return;
+    // In-page links (e.g. the frame browser's pagination) don't leave the page.
+    if (link.getAttribute('href').startsWith('#')) return;
     const msg = self.translations.TrainingUnsaved ||
         'You have unsaved annotations. Discard changes?';
     if (!confirm(msg)) {
@@ -348,6 +351,8 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = function() {
+    // A newer frame was requested while this one loaded; let that one win.
+    if (self.currentFrameId !== frameId) return;
     self.image = img;
     self.imageNaturalW = img.naturalWidth;
     self.imageNaturalH = img.naturalHeight;
@@ -363,6 +368,7 @@ AnnotationEditor.prototype._loadFrameImage = function(frameId) {
     self._render();
   };
   img.onerror = function() {
+    if (self.currentFrameId !== frameId) return;
     if (self.canvas) {
       self.canvas.style.filter = '';
       self.canvas.style.opacity = '';
@@ -391,6 +397,8 @@ AnnotationEditor.prototype._loadSavedAnnotations = function(eid, fid) {
   $j.getJSON(thisUrl + '?request=training&action=load_saved&eid=' + eid +
       '&fid=' + encodeURIComponent(fid))
       .done(function(data) {
+        // Another frame was chosen, or editing started, before this arrived.
+        if (String(self.currentFrameId) !== String(fid) || self.dirty) return;
         const resp = data.response || data;
         const saved = resp.annotations || [];
         if (saved.length === 0) return;
@@ -446,6 +454,9 @@ AnnotationEditor.prototype.switchFrame = function(frameId) {
 
   this._loadFrameImage(frameId);
   this._updateSidebar();
+  // Show the boxes already saved for this frame, so editing and saving it
+  // again doesn't start from an empty frame and overwrite its labels.
+  if (this.eventId) this._loadSavedAnnotations(this.eventId, frameId);
 };
 
 /**
@@ -650,7 +661,7 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     if (this.selectedIndex >= 0) {
       const handle = this._hitTestHandles(pos, this.annotations[this.selectedIndex]);
       if (handle) {
-        this._pushUndo();
+        this._undoPending = true;
         this.isResizing = true;
         this.resizeHandle = handle;
         return;
@@ -660,7 +671,7 @@ AnnotationEditor.prototype._onMouseDown = function(e) {
     // Check if clicking on any box
     const hitIndex = this._hitTestBoxes(pos);
     if (hitIndex >= 0) {
-      this._pushUndo();
+      this._undoPending = true;
       this.selectAnnotation(hitIndex);
       this.isDragging = true;
       const ann = this.annotations[hitIndex];
@@ -692,6 +703,11 @@ AnnotationEditor.prototype._onMouseMove = function(e) {
     this.drawCurrent = pos;
     this._scheduleRender();
     return;
+  }
+
+  if ((this.isDragging || this.isResizing) && this._undoPending) {
+    this._undoPending = false;
+    this._pushUndo();
   }
 
   if (this.isDragging && this.selectedIndex >= 0) {
@@ -749,6 +765,8 @@ AnnotationEditor.prototype._onMouseUp = function(e) {
   if (this.isDrawing) {
     this.isDrawing = false;
     const pos = this._mouseToImage(e);
+    pos.x = Math.max(0, Math.min(pos.x, this.canvas.width));
+    pos.y = Math.max(0, Math.min(pos.y, this.canvas.height));
     const rect = this._getNormalizedRect(this.drawStart.x, this.drawStart.y, pos.x, pos.y);
     const x1 = rect.x1;
     const y1 = rect.y1;
@@ -994,7 +1012,7 @@ AnnotationEditor.prototype._showLabelPicker = function(x1, y1, x2, y2, mouseEven
     e.stopPropagation();
     if (e.key === 'Enter') {
       const label = input.value.trim().toLowerCase();
-      if (label && /^[a-zA-Z0-9_-]+$/.test(label)) {
+      if (label && /^[\p{L}\p{M}0-9_-]+$/u.test(label)) {
         self._pushUndo();
         self._addAnnotation(label, x1, y1, x2, y2);
         self._hideLabelPicker();
@@ -1096,9 +1114,6 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
   if (index < 0 || index >= this.annotations.length) return;
   this._pushUndo();
   this.annotations.splice(index, 1);
-  if (this.selectedIndex >= this.annotations.length) {
-    this.selectedIndex = this.annotations.length - 1;
-  }
   if (this.selectedIndex === index) {
     this.selectedIndex = -1;
   } else if (this.selectedIndex > index) {
@@ -1117,6 +1132,10 @@ AnnotationEditor.prototype.deleteAnnotation = function(index) {
       data: {eid: this.eventId, fid: this.currentFrameId},
       dataType: 'json'
     }).done(function(data) {
+      if (data.result === 'Error') {
+        self._setStatus(data.message || self.translations.TrainingDeleteFailed || 'Failed to delete', 'error');
+        return;
+      }
       const resp = data.response || data;
       self._setStatus(
           self.translations.TrainingRemoved || 'Training annotation removed',
@@ -1196,6 +1215,8 @@ AnnotationEditor.prototype.detect = function() {
   );
 
   $j('#annotationDetectBtn').prop('disabled', true);
+  // Detection can be slow; the user may move to another frame meanwhile.
+  const fid = this.currentFrameId;
 
   $j.ajax({
     url: thisUrl + '?request=training&action=detect',
@@ -1208,6 +1229,7 @@ AnnotationEditor.prototype.detect = function() {
     dataType: 'json'
   }).done(function(data) {
     $j('#annotationDetectBtn').prop('disabled', false);
+    if (self.currentFrameId !== fid) return;
 
     if (data.result === 'Error') {
       self._setStatus(data.message, 'error');
@@ -1843,6 +1865,11 @@ AnnotationEditor.prototype.browseTrainingData = function() {
           $j.ajax({url: thisUrl + '?request=training&action=browse_delete&path=' +
               encodeURIComponent(file.path), method: 'POST', dataType: 'json'})
               .done(function(data) {
+                if (data.result === 'Error') {
+                  alert(data.message || t.TrainingDeleteFailed || 'Failed to delete');
+                  delBtn.prop('disabled', false);
+                  return;
+                }
                 const resp = data.response || data;
                 browseChanged = true;
                 // Remove deleted files from treeData

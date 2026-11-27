@@ -24,6 +24,7 @@
 #include <array>
 #include <cctype>
 #include <cstdarg>
+#include <cstdio>
 #include <cstring>
 #include <fcntl.h> /* Definition of AT_* constants */
 #include <unistd.h>
@@ -37,6 +38,47 @@
 
 unsigned int sse_version = 0;
 unsigned int neonversion = 0;
+
+std::string Utf8Sanitize(const std::string &str) {
+  std::string out;
+  out.reserve(str.size());
+  size_t i = 0;
+  while (i < str.size()) {
+    unsigned char c = static_cast<unsigned char>(str[i]);
+    size_t len = 0;
+    unsigned int min_cp = 0;
+    unsigned int cp = 0;
+    if (c < 0x80) {
+      out += static_cast<char>(c);
+      i++;
+      continue;
+    } else if (c >= 0xC2 && c <= 0xDF) {
+      len = 2; cp = c & 0x1F; min_cp = 0x80;
+    } else if (c >= 0xE0 && c <= 0xEF) {
+      len = 3; cp = c & 0x0F; min_cp = 0x800;
+    } else if (c >= 0xF0 && c <= 0xF4) {
+      len = 4; cp = c & 0x07; min_cp = 0x10000;
+    }
+    bool ok = len != 0 && i + len <= str.size();
+    for (size_t j = 1; ok && j < len; j++) {
+      unsigned char cc = static_cast<unsigned char>(str[i + j]);
+      if ((cc & 0xC0) != 0x80) {
+        ok = false;
+      } else {
+        cp = (cp << 6) | (cc & 0x3F);
+      }
+    }
+    if (ok && (cp < min_cp || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF))) ok = false;
+    if (ok) {
+      out.append(str, i, len);
+      i += len;
+    } else {
+      out += '?';
+      i++;
+    }
+  }
+  return out;
+}
 
 // Trim Both leading and trailing sets
 std::string Trim(const std::string &str, const std::string &char_set) {
@@ -120,6 +162,34 @@ std::string Join(const StringVector &values, const std::string &delim) {
   return ss.str();
 }
 
+std::string UrlHost(const std::string &host) {
+  if (host.find(':') != std::string::npos && host[0] != '[')
+    return "[" + host + "]";
+  return host;
+}
+
+std::string ClientAddress(const std::string &remote_addr,
+                          const std::string &forwarded_for,
+                          const std::string &trusted_proxies) {
+  const StringVector trusted = Split(trusted_proxies, " \t\r\n,");
+  auto is_trusted = [&trusted](const std::string &addr) {
+    return !addr.empty() && std::find(trusted.begin(), trusted.end(), addr) != trusted.end();
+  };
+  if (forwarded_for.empty() || !is_trusted(remote_addr))
+    return remote_addr;
+
+  StringVector hops;
+  for (const std::string &hop : Split(forwarded_for, ',')) {
+    std::string trimmed = TrimSpaces(hop);
+    if (!trimmed.empty()) hops.push_back(trimmed);
+  }
+  for (auto it = hops.rbegin(); it != hops.rend(); ++it) {
+    if (!is_trusted(*it)) return *it;
+  }
+  // Every hop is a trusted proxy; the left-most is the origin.
+  return hops.empty() ? remote_addr : hops.front();
+}
+
 std::string stringtf(const char* format, ...) {
   va_list args;
   va_start(args, format);
@@ -176,7 +246,7 @@ std::string Base64Encode(const std::string &str) {
   std::string outString;
   outString.reserve(2 * str.size());
 
-  const char *inPtr = str.c_str();
+  const unsigned char *inPtr = reinterpret_cast<const unsigned char *>(str.c_str());
   while (*inPtr) {
     unsigned char selection = *inPtr >> 2;
     unsigned char remainder = (*inPtr++ & 0x03) << 4;
@@ -215,7 +285,11 @@ std::string TimevalToString(timeval tv) {
     return "";
   }
 
-  return stringtf("%s.%06ld", tm_buf.data(), tv.tv_usec);
+  // %jd/intmax_t, not %ld: under glibc's 64 bit time ABI (Debian trixie on
+  // armhf, for one) tv_usec is __suseconds64_t while long is still 32 bits, so
+  // %ld reads half the argument and misaligns the rest of the varargs. Harmless
+  // enough on stdout, but this one lands in a buffer that gets used. refs #4580
+  return stringtf("%s.%06jd", tm_buf.data(), static_cast<intmax_t>(tv.tv_usec));
 }
 
 /* Detect special hardware features, such as SIMD instruction sets */
@@ -351,6 +425,22 @@ void touch(const char *pathname) {
   close(fd);
 }
 
+size_t zm_get_rss_kb() {
+  // /proc/self/statm reports memory in pages: field 2 is resident set size.
+  FILE *fp = fopen("/proc/self/statm", "r");
+  if (!fp) return 0;
+  long rss_pages = 0;
+  // First field (total program size) is skipped, second is resident pages.
+  if (fscanf(fp, "%*s %ld", &rss_pages) != 1) {
+    fclose(fp);
+    return 0;
+  }
+  fclose(fp);
+  long page_kb = sysconf(_SC_PAGESIZE) / 1024;
+  if (page_kb <= 0) page_kb = 4;  // sane default if sysconf fails
+  return static_cast<size_t>(rss_pages) * static_cast<size_t>(page_kb);
+}
+
 std::string UriDecode(const std::string &encoded) {
   const char *src = encoded.c_str();
   std::string retbuf;
@@ -382,25 +472,67 @@ std::string UriDecode(const std::string &encoded) {
   return retbuf;
 }
 
+std::string Go2RTCApiEndpoint(std::string path) {
+  while (!path.empty() && path.back() == '/') path.pop_back();
+  if (path.empty()) return path;
+  const std::string api = "/api";
+  if (path.size() < api.size() || path.compare(path.size() - api.size(), api.size(), api) != 0)
+    path += api;
+  return path;
+}
+
 std::string UriEncode(const std::string &value) {
   const char *src = value.c_str();
   std::string retbuf;
   retbuf.reserve(value.length() * 3); // at most all characters get replaced with the escape
 
-  char tmp[5] = "";
+  char tmp[4] = "";
   while (*src) {
-    std::string::value_type c = *src;
+    // Must be unsigned: a signed char sign-extends bytes >= 0x80 when promoted
+    // for isalnum()/snprintf(), which mangles every non-ASCII UTF-8 byte.
+    const unsigned char c = static_cast<unsigned char>(*src);
     if (c == ' ') {
       retbuf.append("%20");
-    } else if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
-      retbuf.push_back(c);
+    } else if ((c < 0x80) && (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')) {
+      // The unreserved set is ASCII-only, so bytes >= 0x80 are always escaped
+      // rather than left to a locale-dependent isalnum().
+      retbuf.push_back(static_cast<char>(c));
     } else {
-      snprintf(tmp, 4, "%%%02X", c);
+      snprintf(tmp, sizeof(tmp), "%%%02X", c);
       retbuf.append(tmp);
     }
     src++;
   }
   return retbuf;
+}
+
+// Where the userinfo of url ends: the last '@' before the path, query or
+// fragment, or npos if there is none. ffmpeg and cameras split the authority
+// at its last '@', so a password with a raw '@' in it works; ending at the
+// first one would leave the rest of that password in the masked url. An '@'
+// in the path or query is not userinfo.
+static std::size_t userinfo_end(const std::string &url) {
+  std::size_t scheme_at = url.find("://");
+  std::size_t start = (scheme_at == std::string::npos) ? 0 : scheme_at + 3;
+  std::size_t end = url.find_first_of("/?#", start);
+  if (end == std::string::npos) end = url.size();
+  if (end == start) return std::string::npos;
+  std::size_t at_at = url.rfind('@', end - 1);
+  if (at_at == std::string::npos or at_at < start) return std::string::npos;
+  return at_at;
+}
+
+std::string UrlWithCredentials(const std::string &url, const std::string &user, const std::string &pass) {
+  // Reserved characters in the credentials would otherwise end the userinfo
+  // early and leave a broken url.
+  const std::string credentials = UriEncode(user) + ":" + UriEncode(pass) + "@";
+  size_t scheme_end = url.find("://");
+  if (scheme_end == std::string::npos) return "rtsp://" + credentials + url;
+  // A url that already has credentials keeps them; inserting a second
+  // userinfo would give something like rtsp://u:p@old:pw@cam/s.
+  if (userinfo_end(url) != std::string::npos) return url;
+  scheme_end += 3;
+  return url.substr(0, scheme_end) + credentials + url.substr(scheme_end);
 }
 
 QueryString::QueryString(std::istream &input) {
@@ -439,16 +571,17 @@ const QueryParameter *QueryString::get(const std::string &name) const {
 std::string QueryString::parseName(std::istream &input) {
   std::string name;
 
-  while (!input.eof() && input.peek() != '=') {
+  // A '&' ends a name that has no '=', and is left for parseValue to eat.
+  while (!input.eof() && input.peek() != '=' && input.peek() != '&') {
     name.push_back(input.get());
   }
 
   //Eat the '='
-  if (!input.eof()) {
+  if (!input.eof() && input.peek() == '=') {
     input.get();
   }
 
-  return name;
+  return UriDecode(name);
 }
 
 std::string QueryString::parseValue(std::istream &input) {
@@ -469,7 +602,7 @@ std::string QueryString::parseValue(std::istream &input) {
 
 std::string mask_authentication(const std::string &url) {
   std::string masked_url = url;
-  std::size_t at_at = masked_url.find("@");
+  std::size_t at_at = userinfo_end(masked_url);
   if (at_at == std::string::npos) {
     return masked_url;
   }
@@ -497,7 +630,7 @@ std::string mask_authentication(const std::string &url) {
 }
 
 std::string remove_authentication(const std::string &url) {
-  std::size_t at_at = url.find("@");
+  std::size_t at_at = userinfo_end(url);
   if (at_at == std::string::npos) {
     return url;
   }
@@ -523,20 +656,124 @@ std::string remove_authentication(const std::string &url) {
   return result;
 }
 
+std::string url_for_log(const std::string &url) {
+  std::size_t query_at = url.find('?');
+  if (query_at == std::string::npos) return remove_authentication(url);
+  return remove_authentication(url.substr(0, query_at)) + "?...";
+}
+
+std::string request_for_log(const std::string &request) {
+  std::string out;
+  out.reserve(request.size());
+  std::size_t start = 0;
+  bool first = true;
+  while (start < request.size()) {
+    std::size_t eol = request.find('\n', start);
+    std::size_t next = (eol == std::string::npos) ? request.size() : eol + 1;
+    std::size_t end = next;
+    while (end > start and (request[end-1] == '\n' or request[end-1] == '\r')) end--;
+    std::string line = request.substr(start, end - start);
+    if (first) {
+      // METHOD SP target SP version
+      std::size_t sp1 = line.find(' ');
+      std::size_t sp2 = (sp1 == std::string::npos) ? sp1 : line.find(' ', sp1 + 1);
+      if (sp2 != std::string::npos)
+        line = line.substr(0, sp1 + 1) + url_for_log(line.substr(sp1 + 1, sp2 - sp1 - 1)) + line.substr(sp2);
+      first = false;
+    } else {
+      std::size_t colon = line.find(':');
+      if (colon != std::string::npos) {
+        std::string name = StringToLower(line.substr(0, colon));
+        if (name == "authorization" or name == "proxy-authorization")
+          line = line.substr(0, colon) + ": <not logged>";
+      }
+    }
+    out += line + request.substr(end, next - end);
+    start = next;
+  }
+  return out;
+}
+
+std::string options_for_log(const std::string &options) {
+  std::string out;
+  out.reserve(options.size());
+  std::size_t start = 0;
+  while (start < options.size()) {
+    std::size_t sep = options.find_first_of(kOptionSeparators, start);
+    std::size_t end = (sep == std::string::npos) ? options.size() : sep;
+    std::string entry = options.substr(start, end - start);
+    std::size_t eq = entry.find('=');
+    std::string key = (eq == std::string::npos) ? "" : StringToLower(TrimSpaces(entry.substr(0, eq)));
+    if (key == "headers" or key == "cookies" or key == "http_proxy") {
+      out += entry.substr(0, eq + 1) + "<not logged>";
+    } else if (StringToLower(entry).find("authorization") != std::string::npos) {
+      out += "<not logged>";
+    } else {
+      out += entry;
+    }
+    if (sep == std::string::npos) break;
+    out += options[sep];
+    start = sep + 1;
+  }
+  return out;
+}
+
 std::string remove_newlines( std::string str ) {
   while (!str.empty() && str.find("\n") != std::string::npos)
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());
   return str;
 }
 
-std::string escape_json_string( std::string input ) {
-  std::string tmp;
-  tmp = regex_replace(input, std::regex("\n"), "\\n");
-  tmp = regex_replace(tmp,   std::regex("\b"), "\\b");
-  tmp = regex_replace(tmp,   std::regex("\f"), "\\f");
-  tmp = regex_replace(tmp,   std::regex("\r"), "\\r");
-  tmp = regex_replace(tmp,   std::regex("\t"), "\\t");
-  tmp = regex_replace(tmp,   std::regex("\""), "\\\"");
-  tmp = regex_replace(tmp,   std::regex("[\\\\]"), "\\\\");
-  return tmp;
+std::string escape_json_string(std::string input) {
+  // One pass over the input, so each byte produces its escape exactly once.
+  // The previous implementation ran a chain of regex_replace calls with the
+  // backslash pass last, which re-escaped the backslashes the earlier passes
+  // had just introduced: a quote came out as \\" , an escaped backslash
+  // followed by a bare quote, which terminates the JSON string it is sitting
+  // in. It also left control characters other than \b \f \n \r \t unescaped,
+  // which RFC 8259 does not allow.
+  std::string output;
+  output.reserve(input.size());
+
+  for (unsigned char c : input) {
+    switch (c) {
+    case '"':  output += "\\\""; break;
+    case '\\': output += "\\\\"; break;
+    case '\b': output += "\\b"; break;
+    case '\f': output += "\\f"; break;
+    case '\n': output += "\\n"; break;
+    case '\r': output += "\\r"; break;
+    case '\t': output += "\\t"; break;
+    default:
+      if (c < 0x20) {
+        // Control characters with no short form have to go out as \u00XX.
+        char buffer[7];
+        snprintf(buffer, sizeof(buffer), "\\u%04x", c);
+        output += buffer;
+      } else {
+        // Bytes >= 0x80 are passed through so UTF-8 stays intact.
+        output += static_cast<char>(c);
+      }
+      break;
+    }
+  }
+  return output;
+}
+
+size_t zm_parse_leb128(const unsigned char *data, size_t max_size, uint32_t &value) {
+  uint64_t result = 0;
+  size_t bytes_read = 0;
+
+  for (size_t i = 0; i < max_size && i < 8; i++) {
+    uint8_t byte = data[i];
+    result |= static_cast<uint64_t>(byte & 0x7F) << (7 * i);
+    bytes_read++;
+
+    if ((byte & 0x80) == 0) {
+      break;
+    }
+  }
+
+  value = static_cast<uint32_t>(result);
+  return bytes_read;
 }

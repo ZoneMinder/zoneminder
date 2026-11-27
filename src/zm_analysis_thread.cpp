@@ -30,6 +30,8 @@ void AnalysisThread::Join() {
 }
 
 void AnalysisThread::Run() {
+  // Report a stack overflow on this thread like one in main.
+  zmSetThreadAltStack();
   while (!(terminate_ or zm_terminate)) {
     // Some periodic updates are required for variable capturing framerate
     if (!monitor_->Analyse()) {

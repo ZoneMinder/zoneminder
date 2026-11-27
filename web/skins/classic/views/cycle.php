@@ -60,18 +60,21 @@ $heights = array(
 );
 
 
+// The legacy Function column is no longer maintained, Capturing says whether
+// a monitor is disabled.
+function cycleSkipsMonitor($row) {
+  return $row['Capturing'] == 'None';
+}
+
 $monIdx = 0;
 $monitors = array();
 $monitor = NULL;
 foreach( $displayMonitors as &$row ) {
-  if ( $row['Function'] == 'None' )
+  if ( cycleSkipsMonitor($row) )
     continue;
   if ( isset($_REQUEST['mid']) && ($row['Id'] == $_REQUEST['mid']) )
     $monIdx = count($monitors);
 
-  $row['ScaledWidth'] = reScale($row['Width'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['ScaledHeight'] = reScale($row['Height'], $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
-  $row['PopupScale'] = reScale(SCALE_BASE, $row['DefaultScale'], ZM_WEB_DEFAULT_SCALE);
    if ( !isset($widths[$row['Width'].'px']) ) {
     $widths[$row['Width'].'px'] = $row['Width'].'px';
   }
@@ -93,12 +96,20 @@ if ( !$monitor ) {
 
 zm_session_start();
 
+$sanitizeScale = function($scale) {
+  if ( is_array($scale) ) {
+    return '0';
+  }
+  $scale = (string)$scale;
+  return preg_match('/^\d+$/', $scale) ? $scale : '0';
+};
+
 if ( isset($_REQUEST['scale']) ) {
-  $options['scale'] = validInt($_REQUEST['scale']);
+  $options['scale'] = $sanitizeScale($_REQUEST['scale']);
 } else if ( isset($_COOKIE['zmCycleScale']) ) {
-  $options['scale'] = validInt($_COOKIE['zmCycleScale']);
+  $options['scale'] = $sanitizeScale($_COOKIE['zmCycleScale']);
 } else if ( $monitor ) {
-  $options['scale'] = validInt($monitor->DefaultScale());
+  $options['scale'] = $sanitizeScale($monitor->DefaultScale());
 }
 
 if ( !isset($options['scale']) )
@@ -165,14 +176,14 @@ echo $navbar = getNavBarHTML();
           <ul class="nav nav-pills flex-column h-100">
   <?php
   foreach ( $monitors as $m ) {
-            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.$m->Name().'</a></li>';
+            echo '<li class="nav-item"><a class="nav-link'.( $m->Id() == $monitor->Id() ? ' active' : '' ).'" href="?view=cycle&amp;mid='.$m->Id().'">'.validHtmlStr($m->Name()).'</a></li>';
   }
   ?>
           </ul>
         </nav>
         <div class="container-fluid col-sm-offset-2 h-100 pr-0">
 
-          <div id="imageFeed<?php echo $monitor->Id() ?>" class="imageFeed">
+          <div id="imageFeed<?php echo $monitor ? $monitor->Id() : '' ?>" class="imageFeed">
           <?php 
             if ( $monitor ) {
               echo $monitor->getStreamHTML($options);
@@ -194,14 +205,14 @@ echo $navbar = getNavBarHTML();
     </div>
 <script src="<?php echo cache_bust('js/adapter.min.js') ?>"></script>
 <?php
-if ( $monitor->JanusEnabled() ) {
+if ( $monitor and $monitor->JanusEnabled() ) {
 ?>
   <script src="/javascript/janus/janus.js"></script>
 <?php
 }
 ?>
 <?php
-if ( $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
+if ( $monitor and $monitor->RTSP2WebEnabled() and $monitor->RTSP2WebType == "HLS") {
 ?>
   <script src="<?php echo cache_bust('js/hls-1.6.13/hls.min.js') ?>"></script>
 <?php

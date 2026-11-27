@@ -30,7 +30,9 @@ if ( 0 and ZM\Logger::fetch()->debugOn() ) {
   ZM\Debug(ob_get_contents());
   ob_end_clean();
 }
-ZM\Debug(print_r($_REQUEST, true));
+// The request carries the login password, auth hashes, tokens and camera
+// credentials: log it redacted.
+ZM\Debug(print_r(ZM\redactForLog($_REQUEST), true));
 
 if (
   (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on')
@@ -70,12 +72,10 @@ if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
   $skin = 'classic';
 }
 
-if (!is_dir('skins/'.$skin) ) {
-  $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
-  if (!in_array($skin, $skins)) {
-    ZM\Error("Invalid skin '$skin' setting to ".$skins[0]);
-    $skin = $skins[0];
-  }
+$skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
+if (!is_string($skin) or !in_array($skin, $skins, true)) {
+  ZM\Error('Invalid skin '.(is_string($skin) ? "'$skin'" : '(not a string)').' setting to '.$skins[0]);
+  $skin = $skins[0];
 }
 global $css;
 if (defined('ZM_FORCE_CSS_DEFAULT')) {
@@ -89,7 +89,7 @@ if (defined('ZM_FORCE_CSS_DEFAULT')) {
 } else {
   $css = 'classic';
 }
-if (!is_dir("skins/$skin/css/$css")) {
+if (!is_string($css) or !preg_match('/^[\w.-]+$/', $css) or $css === '.' or $css === '..' or !is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
   if (count($css_skins)) {
     if (!in_array($css, $css_skins)) {
@@ -114,7 +114,7 @@ $valid_navbar_types = ['normal'=>1, 'collapsed'=>1, 'left'=>1];
 
 # Cookie overrides session
 if (isset($_COOKIE['zmNavbar_type'])) {
-  if (isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
+  if (is_string($_COOKIE['zmNavbar_type']) and isset($valid_navbar_types[$_COOKIE['zmNavbar_type']])) {
     $navbar_type = $_COOKIE['zmNavbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_COOKIE['zmNavbar_type'].' specified');
@@ -122,7 +122,7 @@ if (isset($_COOKIE['zmNavbar_type'])) {
 }
 
 if (isset($_REQUEST['navbar_type'])) {
-  if (isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
+  if (is_string($_REQUEST['navbar_type']) and isset($valid_navbar_types[$_REQUEST['navbar_type']])) {
     $navbar_type = $_REQUEST['navbar_type'];
   } else {
     ZM\Error('Invalid navbar_type '.$_REQUEST['navbar_type'].' specified');
@@ -195,12 +195,14 @@ CORSHeaders();
 $running = null;
 $action = null;
 $error_message = null;
+$info_message = null;
 $redirect = null;
 $view = isset($_REQUEST['view']) ? detaintPath($_REQUEST['view']) : null;
 $user = null;
 $request = isset($_REQUEST['request']) ? detaintPath($_REQUEST['request']) : null;
 
 require_once('includes/auth.php');
+zm_authenticate_request();
 
 # Only one request can open the session file at a time, so let's close the session here to improve concurrency.
 # Any file/page that sets session variables must re-open it.
@@ -222,7 +224,7 @@ if (isset($_POST['action'])) {
   # Actions can only be performed on POST because we don't check csrf on GETs.
   $action = detaintPath($_POST['action']);
 } else if (isset($_REQUEST['action']) and $_REQUEST['action'] and empty($_REQUEST['request'])) {
-  ZM\Error('actions can no longer be performed without POST.');
+  ZM\Debug('actions can no longer be performed without POST.');
 }
 
 # The only variable we really need to set is action. The others are informal.
@@ -238,6 +240,7 @@ ZM\Debug("View: $view Request: $request Action: $action User: " . ( isset($user)
 if (
   ZM_ENABLE_CSRF_MAGIC &&
   ( $action != 'login' ) &&
+  ( $action != 'setup' ) && // first-run form: checked against its own session nonce, applyFirstRunSetup()
   ( $view != 'view_video' ) && // only video no html
   ( $view != 'view_hls' ) && // HLS manifest, not html
   ( $view != 'image' ) && // view=image doesn't return html, just image data.
@@ -252,7 +255,8 @@ if (
 }
 
 # If I put this here, it protects all views and popups, but it has to go after actions.php because actions.php does the actual logging in.
-if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'none') ) {
+# The login and none views are exempt so they can render, but no request is: view=none&request=... must not reach ajax/.
+if ( ZM_OPT_USE_AUTH and (!isset($user) or !($user instanceof ZM\User)) and ($request or (($view != 'login') and ($view != 'none'))) ) {
   if ($request) {
     # requests only return json
     header('HTTP/1.1 401 Unauthorized');
@@ -262,9 +266,10 @@ if ( ZM_OPT_USE_AUTH and (!isset($user)) and ($view != 'login') and ($view != 'n
   $postLoginQuery = $_SERVER['QUERY_STRING'];
   $redirect = '?view=login'.($postLoginQuery?'&postLoginQuery=' . urlencode($postLoginQuery):'');
   zm_session_start();
+  zm_session_persist(); // must survive the redirect even if the client had no cookie
   $_SESSION['postLoginQuery'] = $postLoginQuery;
   session_write_close();
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 } else if ( ZM_SHOW_PRIVACY && ($view != 'privacy') && ($view != 'options') && (!$request) && canEdit('System') ) {
@@ -283,12 +288,17 @@ if ( $action and $view and !$request ) {
 }
 if ($error_message) ZM\Warning($error_message);
 
+# Check if already authenticated (e.g. Apache REMOTE_USER)
+if (ZM_OPT_USE_AUTH and ($view == 'login') and ($user instanceof ZM\User)) {
+  $redirect = '?view='.getHomeView();
+}
+
 if ( isset($_REQUEST['redirect']) ) {
   $redirect = '?view='.detaintPath($_REQUEST['redirect']);
 }
 
 if ($redirect) {
-  ZM\Debug("Redirecting to $redirect");
+  ZM\Debug('Redirecting to '.ZM\redactQueryString(urldecode($redirect)));
   header('Location: '.$redirect);
   return;
 }

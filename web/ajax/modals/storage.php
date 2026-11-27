@@ -41,7 +41,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('Storage') .' - '. $newStorage->Name() ?></h5>
+        <h5 class="modal-title"><?php echo translate('Storage') .' - '. validHtmlStr($newStorage->Name()) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -59,15 +59,15 @@
           <tbody>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Name') ?></th>
-              <td><input type="text" name="newStorage[Name]" value="<?php echo $newStorage->Name() ?>"/></td>
+              <td><input type="text" name="newStorage[Name]" value="<?php echo validHtmlStr($newStorage->Name()) ?>" maxlength="64"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Path') ?></th>
-              <td><input type="text" name="newStorage[Path]" value="<?php echo $newStorage->Path() ?>"/></td>
+              <td><input type="text" name="newStorage[Path]" value="<?php echo validHtmlStr($sid ? ($newStorage->{'Path'} ?? '') : $newStorage->Path()) ?>" maxlength="64"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Url') ?></th>
-              <td><input type="text" name="newStorage[Url]" value="<?php echo $newStorage->Url() ?>"/></td>
+              <td><input type="text" name="newStorage[Url]" maxlength="255" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Server') ?></th>

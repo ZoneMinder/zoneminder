@@ -20,7 +20,7 @@ if (empty($_REQUEST['ids'])) {
   if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
     $message = 'No id(s) supplied<br/>';
 } else {
-  $ids = $_REQUEST['ids'];
+  $ids = (array)$_REQUEST['ids'];
 }
 
 if ($message) {
@@ -32,32 +32,32 @@ require_once('includes/Filter.php');
 require_once('includes/Report.php');
 
 // Search contains a user entered string to search on
-$search = isset($_REQUEST['search']) ? $_REQUEST['search'] : '';
+$search = (isset($_REQUEST['search']) and is_string($_REQUEST['search'])) ? $_REQUEST['search'] : '';
 
 // Advanced search contains an array of "column name" => "search text" pairs
 // Bootstrap table sends json_ecoded array, which we must decode
-$advsearch = isset($_REQUEST['advsearch']) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
+$advsearch = (isset($_REQUEST['advsearch']) and is_string($_REQUEST['advsearch'])) ? json_decode($_REQUEST['advsearch'], JSON_OBJECT_AS_ARRAY) : array();
 
 $order = 'ASC';
 // Order specifies the sort direction, either asc or desc
-if (isset($_REQUEST['order'])) {
+if (isset($_REQUEST['order']) and is_string($_REQUEST['order'])) {
   if (strtolower($_REQUEST['order']) == 'asc') {
     $order = 'ASC';
   } else if (strtolower($_REQUEST['order']) == 'desc') {
     $order = 'DESC';
   } else {
-    Warning('Invalid value for order ' . $_REQUEST['order']);
+    \ZM\Warning('Invalid value for order ' . $_REQUEST['order']);
   }
 }
 
 // Sort specifies the name of the column to sort on
-$sort = (isset($_REQUEST['sort'])) ? $_REQUEST['sort'] : '';
+$sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST['sort'] : '';
 
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if (isset($_REQUEST['offset'])) {
-  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -67,8 +67,8 @@ if (isset($_REQUEST['offset'])) {
 // Set the default to 0 for reports view, to prevent an issue with ALL pagination
 $limit = 0;
 if (isset($_REQUEST['limit'])) {
-  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -81,15 +81,14 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
+    $messages = array();
     foreach ($ids as $id) {
-      $message = deleteRequest($id);
-      if (count($message)) {
-        $data[] = $message;
-      }
+      $messages = array_merge($messages, deleteRequest($id));
     }
+    $data = array('message' => $messages);
     break;
   case 'query' :
     $data = queryRequest($search, $advsearch, $sort, $offset, $order, $limit);
@@ -106,13 +105,17 @@ ajaxResponse($data);
 
 function deleteRequest($id) {
   $message = array();
+  $id = validCardinal($id);
+  if ($id === '') {
+    return array('Report not found.');
+  }
   $report = new ZM\Report($id);
   if ( !$report->Id() ) {
-    $message[] = array($id=>'Report not found.');
+    $message[] = 'Report not found.';
   } else if (!$report->canEdit()) {
-    $message[] = array($id=>'You do not have permission to delete report '.$report->Id());
-  } else {
-    $report->delete();
+    $message[] = 'You do not have permission to delete report '.$report->Id();
+  } else if ( !$report->delete() ) {
+    $message[] = 'Report '.$id.' could not be deleted.';
   }
   
   return $message;
@@ -139,11 +142,9 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
       ZM\Error('Invalid sort field: ' . $sort);
       $sort = '';
     } else if ($sort == 'EndDateTime') {
-      if ($order == 'ASC') {
-        $sort = 'EndDateTime IS NULL, E.EndDateTime';
-      } else {
-        $sort = 'EndDateTime IS NOT NULL, E.EndDateTime';
-      }
+      $sort = ($order == 'ASC') ? 'EndDateTime IS NULL ASC, EndDateTime' : 'EndDateTime IS NOT NULL ASC, EndDateTime';
+    } else {
+      $sort = '`'.$sort.'`';
     }
   }
 
@@ -151,9 +152,14 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $likes = array();
   $where = '';
 
+  if ($search != '') {
+    $where = ' WHERE `Name` LIKE ?';
+    $values[] = '%'.$search.'%';
+  }
+
   $col_str = '*';
   $sql = 'SELECT ' .$col_str. ' FROM `Reports` '.$where.($sort?' ORDER BY '.$sort.' '.$order:'');
-  if ($limit) $sql .= ' LIMIT '.$limit;
+  if ($limit) $sql .= ' LIMIT '.$offset.','.$limit;
 
   $unfiltered_rows = array();
   $ids = array();
@@ -161,7 +167,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {
@@ -171,19 +178,7 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
     $unfiltered_rows[] = $row;
   } # end foreach row
 
-  # Filter limits come before pagination limits.
-  if ($limit and ($limit > count($unfiltered_rows))) {
-    ZM\Debug('Filtering rows due to filter->limit '.count($unfiltered_rows).' limit: '.$limit);
-    $unfiltered_rows = array_slice($unfiltered_rows, 0, $limit);
-  }
-
-  ZM\Debug('Have ' . count($unfiltered_rows) . ' reports matching base filter.');
   $filtered_rows = $unfiltered_rows;
-
-  if ($limit) {
-    ZM\Debug("Filtering rows due to limit " . count($filtered_rows)." offset: $offset limit: $limit");
-    $filtered_rows = array_slice($filtered_rows, $offset, $limit);
-  }
 
   $returned_rows = array();
   foreach ($filtered_rows as $row) {
@@ -198,9 +193,9 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   $data['rows'] = $returned_rows;
 
   # totalNotFiltered must equal total, except when either search bar has been used
-  $data['totalNotFiltered'] = count($unfiltered_rows);
-  if ( $search != '' || count($advsearch) ) {
-    $data['total'] = count($filtered_rows);
+  $data['totalNotFiltered'] = dbFetchOne('SELECT COUNT(*) AS Total FROM `Reports`', 'Total');
+  if ( $search != '' ) {
+    $data['total'] = dbFetchOne('SELECT COUNT(*) AS Total FROM `Reports`'.$where, 'Total', $values);
   } else {
     $data['total'] = $data['totalNotFiltered'];
   }

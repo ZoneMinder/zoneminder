@@ -181,7 +181,17 @@ else
 
       # Number of commits since the version file was last changed
       numcommits=$(git rev-list ${versionhash}..HEAD --count)
-      SNAPSHOT="`date +%Y%m%d.`$(git rev-list ${versionhash}..HEAD --count)"
+      SNAPSHOT="`date +%Y%m%d.`${numcommits}"
+
+      # date+numcommits is not unique per build: every build of the same tip on
+      # the same day produces the same string, and the repo then holds one
+      # version whose content changed underneath it. A client that read Packages
+      # before a republish and fetched the .deb after it gets a hash mismatch.
+      # GITHUB_RUN_ID is unique and never reused, and appending a component
+      # keeps the version strictly greater than the ones already published.
+      if [ -n "$GITHUB_RUN_ID" ]; then
+        SNAPSHOT="${SNAPSHOT}.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT:-1}"
+      fi
     fi;
   fi;
 fi;
@@ -219,10 +229,11 @@ fi;
 
 echo "Doing $TYPE release $DIRECTORY";
 mv "${GITHUB_FORK}_zoneminder_release" "$DIRECTORY.orig";
-if [ $? -ne 0 ]; then
-  echo "Error status code is: $?"
+status=$?
+if [ $status -ne 0 ]; then
+  echo "Error status code is: $status"
   echo "Setting up build dir failed.";
-  exit $?;
+  exit $status;
 fi;
 
 cd "$DIRECTORY.orig";
@@ -310,12 +321,19 @@ EOF
 
   # Leave the .orig so that we don't pollute it when building deps
   cd ..
-  if [ $TYPE == "binary" ]; then
+  if [ $TYPE == "binary" -o $TYPE == "binary-arch" ]; then
 	  # Auto-install all ZoneMinder's dependencies using the Debian control file
 	  sudo apt-get install devscripts equivs
 	  sudo mk-build-deps -ir $DIRECTORY.orig/debian/control
 	  echo "Status: $?"
-	  DEBUILD="debuild -b -uc -us"
+	  # binary-arch skips Architecture: all packages. Used on secondary
+	  # architectures so that the arch-independent .debs are only built and
+	  # uploaded once, by the amd64 builders.
+	  if [ $TYPE == "binary-arch" ]; then
+		  DEBUILD="debuild -B -uc -us"
+	  else
+		  DEBUILD="debuild -b -uc -us"
+	  fi;
   else
 	  if [ $TYPE == "local" ]; then
 		  # Auto-install all ZoneMinder's dependencies using the Debian control file
@@ -337,15 +355,16 @@ EOF
   # Add any extra options specified on the CLI
   DEBUILD="$DEBUILD $DEBBUILD_EXTRA"
   eval $DEBUILD
-  if [ $? -ne 0 ]; then
-    echo "Error status code is: $?"
+  status=$?
+  if [ $status -ne 0 ]; then
+    echo "Error status code is: $status"
     echo "Build failed.";
-    exit $?;
+    exit $status;
   fi;
 
   cd ../
 
-  if [ $TYPE == "binary" ]; then
+  if [ $TYPE == "binary" -o $TYPE == "binary-arch" ]; then
     if [ "$INTERACTIVE" != "no" ]; then
       read -p "Not doing dput since it's a binary release. Do you want to install it? (y/N)"
       if [[ $REPLY == [yY] ]]; then
@@ -354,13 +373,13 @@ EOF
       read -p "Do you want to upload this binary to zmrepo? (y/N)"
       if [[ $REPLY == [yY] ]]; then
         if [ "$RELEASE" != "" ]; then
-          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
-          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
+          echo "scp \"zoneminder_${VERSION}-${DISTRO}\"* \"zoneminder-doc_${VERSION}-${DISTRO}\"* \"zoneminder-dbg_${VERSION}-${DISTRO}\"* \"zoneminder_${VERSION}.orig.tar.gz\" \"zmrepo@zmrepo.zoneminder.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/\"";
+          scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/release-${VERSION_PARTS[0]}.${VERSION_PARTS[1]}/mini-dinstall/incoming/"
         else
           if [ "$BRANCH" == "" ]; then
-            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/master/mini-dinstall/incoming/"
+            scp "zoneminder_${VERSION}-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/master/mini-dinstall/incoming/"
           else
-            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.connortechnology.com:debian/${BRANCH}/mini-dinstall/incoming/"
+            scp "$DIRECTORY-${DISTRO}"* "zoneminder-doc_${VERSION}-${DISTRO}"* "zoneminder-dbg_${VERSION}-${DISTRO}"* "zoneminder_${VERSION}.orig.tar.gz" "zmrepo@zmrepo.zoneminder.com:debian/${BRANCH}/mini-dinstall/incoming/"
           fi;
         fi;
       fi;

@@ -30,6 +30,9 @@
 // Class representing 'remote' cameras, i.e. those which are
 // accessed over a network connection.
 //
+// Strips a leading "user[:pass]@" from host into user and pass. Returns true if one was present.
+bool SplitUserInfo(std::string &host, std::string &user, std::string &pass);
+
 class RemoteCamera : public Camera {
  protected:
   std::string  protocol;

@@ -1,20 +1,30 @@
 
+let downloadTimer = null;
+
 // Manage the DELETE CONFIRMATION modal button
 function manageDelConfirmModalBtns() {
   document.getElementById('delConfirmBtn').addEventListener('click', function onDelConfirmClick(evt) {
-    if ( !canEdit.Events ) {
+    if ( !canEdit.Snapshots ) {
       enoperm();
       return;
     }
 
     evt.preventDefault();
-    /*
-    $j.getJSON(thisUrl + '?request=events&task=delete&eids[]='+eventData.Id)
+    $j.getJSON(thisUrl + '?request=snapshots&task=delete&ids[]='+snapshot.Id)
         .done(function(data) {
-          streamNext(true);
+          if (data.result != 'Ok') {
+            console.error('snapshot delete refused', data.message);
+            return;
+          }
+          if (Array.isArray(data.message) && data.message.length) {
+            // The server answers Ok and lists the snapshots it could not delete in message.
+            $j('#deleteConfirm').modal('hide');
+            alert(data.message.join('\n'));
+            return;
+          }
+          window.location.assign('?view=snapshots');
         })
         .fail(logAjaxFail);
-        */
   });
 
   // Manage the CANCEL modal button
@@ -75,7 +85,7 @@ function initPage() {
   $j('#downloadBtn').prop('disabled', !canView.Snapshots);
   bindButton('#downloadBtn', 'click', null, function onDownloadClick(evt) {
     evt.preventDefault();
-    formData = {
+    const formData = {
       eids: snapshot.EventIds,
       exportImages: 0,
       exportVideo: 0,
@@ -89,12 +99,17 @@ function initPage() {
     };
     $j.getJSON(thisUrl + '?view=event&request=event&action=export', formData)
         .done(downloadResponse)
-        .fail(logAjaxFail);
+        .fail(function(jqxhr, textStatus, error) {
+          clearInterval(downloadTimer);
+          $j('#downloadProgressTicker').text(downloadFailedString);
+          logAjaxFail(jqxhr, textStatus, error);
+        });
 
     $j('#downloadProgress').removeClass('hidden');
     $j('#downloadProgress').addClass('warnText');
-    $j('#downloadProgress').text(downloadProgressString);
+    $j('#downloadProgressText').text(downloadProgressString);
 
+    clearInterval(downloadTimer); // a second click would orphan the first ticker
     downloadTimer = setInterval(downloadProgress, 500);
   });
 
@@ -120,9 +135,9 @@ function initPage() {
   });
 */
   // Manage the DELETE button
-  $j('#deleteBtn').prop('disabled', !canEdit.Events);
+  $j('#deleteBtn').prop('disabled', !canEdit.Snapshots);
   bindButton('#deleteBtn', 'click', null, function onDeleteClick(evt) {
-    if ( !canEdit.Events ) {
+    if ( !canEdit.Snapshots ) {
       enoperm();
       return;
     }
@@ -130,7 +145,7 @@ function initPage() {
     evt.preventDefault();
     if ( ! $j('#deleteConfirm').length ) {
       // Load the delete confirmation modal into the DOM
-      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm')
+      $j.getJSON(thisUrl + '?request=modal&modal=delconfirm&key=ConfirmDeleteSnapshots')
           .done(function(data) {
             insertModalHtml('deleteConfirm', data.html);
             manageDelConfirmModalBtns();

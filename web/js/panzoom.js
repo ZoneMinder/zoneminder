@@ -72,6 +72,12 @@ var zmPanZoom = {
       //if (!('canvas' in params)) params.canvas = this.canvas;
       if (!('touchAction' in params)) params.touchAction = this.touchAction;
 
+      // Re-enabling must not leave the previous wheel listener behind
+      const previous = this.panZoom[objPanZoom];
+      if (previous && previous.wheelHandler && previous.target && previous.target.parentElement) {
+        previous.target.parentElement.removeEventListener('wheel', previous.wheelHandler);
+      }
+
       //Direct initialization Panzoom
       this.panZoom[objPanZoom] = Panzoom(params['obj'], params);
       this.panZoom[objPanZoom].target = params['obj'];
@@ -79,12 +85,13 @@ var zmPanZoom = {
       //panZoom[id].pan(10, 10);
       //panZoom[id].zoom(1, {animate: true});
       // Binds to shift || alt + wheel
-      params['obj'].parentElement.addEventListener('wheel', function(event) {
-        if (!_this.shifted && !_this.alted) {
+      const wheelHandler = function(event) {
+        // Read the modifiers from the event, tracked key state goes stale when the window loses focus
+        if (!event.shiftKey && !event.altKey) {
           return;
         }
 
-        if (_this.shifted && _this.alted) {
+        if (event.shiftKey && event.altKey) {
           event.preventDefault(); //Avoid page scrolling
           if (!_this.panZoom[objPanZoom].additional) return;
 
@@ -95,16 +102,21 @@ var zmPanZoom = {
           const y = objDim.y;
           const scale = (event.deltaY < 0) ? _this.panZoom[objPanZoom].getScale() * Math.exp(_this.panZoomStep)/*scrolling up*/ : _this.panZoom[objPanZoom].getScale() / Math.exp(_this.panZoomStep)/*scrolling down*/;
           _this.panZoom[objPanZoom].zoomToPoint(scale, {clientX: x, clientY: y});
-        } else if (_this.shifted && !_this.alted) {
+        } else if (event.shiftKey && !event.altKey) {
           if (!_this.panZoom[id]) return;
+          // Watch also listens on the .imageFeed parent; zoomWithWheel() below already ran for this event
+          if (event.defaultPrevented) return;
           _this.panZoom[id].zoomWithWheel(event);
         } else {
           return;
         }
         _this.setTriggerChangedMonitors(id);
-      });
+      };
+      this.panZoom[objPanZoom].wheelHandler = wheelHandler;
+      params['obj'].parentElement.addEventListener('wheel', wheelHandler);
 
-      $j(document).on('keyup.panzoom keydown.panzoom', function(e) {
+      const nameSpace = '.panzoom_' + id;
+      $j(document).off(nameSpace).on('keyup' + nameSpace + ' keydown' + nameSpace, function(e) {
         _this.shifted = e.shiftKey ? e.shiftKey : e.shift;
         _this.ctrled = e.ctrlKey;
         _this.alted = e.altKey;
@@ -123,8 +135,13 @@ var zmPanZoom = {
         console.log(`PanZoom for monitor "${params['id']}" was not initialized.`);
         return;
       }
-      //Disables for the entire document!//$j(document).off('keyup.panzoom keydown.panzoom');
+      const nameSpace = '.panzoom_' + params['id'];
+      $j(document).off(nameSpace);
       const obj = this.panZoom[params['id']].target;
+      const wheelHandler = this.panZoom[params['id']].wheelHandler;
+      if (wheelHandler && obj.parentElement) {
+        obj.parentElement.removeEventListener('wheel', wheelHandler);
+      }
       // #videoFeed - Event page, #monitorX - Montage & Watch page
       const el = document.getElementById('videoFeed');
       const wrapper = el ? el : document.getElementById('monitor'+params['id']);
@@ -191,81 +208,83 @@ var zmPanZoom = {
   */
   manageCursor: function(id) {
     if (!this.panZoom[id]) {
-      console.log(`PanZoom for monitor ID=${id} was not initialized.`);
+      console.log(`PanZoom object for monitor ID=${id} was not initialized.`);
       return;
     }
-    var obj;
-    var obj_btn;
     const disablePan = this.panZoom[id].getOptions().disablePan;
     const disableZoom = this.panZoom[id].getOptions().disableZoom;
+    const panZoomTarget = this.panZoom[id].target;
+    const blockButtonZoom = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image.
 
-    obj = this.getStream(id);
-    if (obj) { //Montage & Watch page
-      obj_btn = document.getElementById('button_zoom'+id); //Change the cursor when you hover over the block of buttons at the top of the image. Not required on Event page
-    } else { //Event page
-      obj = document.getElementById('videoFeedStream'+id);
-    }
-
-    if (!obj) {
-      console.log(`Stream with id=${id} not found.`);
+    if (!panZoomTarget) {
+      console.log(`PanZoom object for monitor ID=${id} has no target property.`);
       return;
     }
     const currentScale = this.panZoom[id].getScale().toFixed(1);
 
     if (this.shifted && this.ctrled) {
       const cursor = (disableZoom) ? 'auto' : 'zoom-out';
-      obj.style['cursor'] = cursor;
-      if (obj_btn) {
-        obj_btn.style['cursor'] = cursor;
+      panZoomTarget.style['cursor'] = cursor;
+      if (blockButtonZoom) {
+        blockButtonZoom.style['cursor'] = cursor;
       }
     } else if (this.shifted) {
       const cursor = (disableZoom) ? 'auto' : 'zoom-in';
-      obj.style['cursor'] = cursor;
-      if (obj_btn) {
-        obj_btn.style['cursor'] = cursor;
+      panZoomTarget.style['cursor'] = cursor;
+      if (blockButtonZoom) {
+        blockButtonZoom.style['cursor'] = cursor;
       }
     } else if (this.ctrled) {
       if (currentScale == 1.0) {
-        obj.style['cursor'] = 'auto';
-        if (obj_btn) {
-          obj_btn.style['cursor'] = 'auto';
+        panZoomTarget.style['cursor'] = 'auto';
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = 'auto';
         }
       } else {
         const cursor = (disableZoom) ? 'auto' : 'zoom-out';
-        obj.style['cursor'] = cursor;
-        if (obj_btn) {
-          obj_btn.style['cursor'] = cursor;
+        panZoomTarget.style['cursor'] = cursor;
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = cursor;
         }
       }
     } else { //No ctrled & no shifted
       if (currentScale == 1.0) {
-        obj.style['cursor'] = 'auto';
-        if (obj_btn) {
-          obj_btn.style['cursor'] = 'auto';
+        panZoomTarget.style['cursor'] = 'auto';
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = 'auto';
         }
       } else {
         const cursor = (disablePan) ? 'auto' : 'move';
-        obj.style['cursor'] = cursor;
-        if (obj_btn) {
-          obj_btn.style['cursor'] = cursor;
+        panZoomTarget.style['cursor'] = cursor;
+        if (blockButtonZoom) {
+          blockButtonZoom.style['cursor'] = cursor;
         }
       }
     }
 
-    const videoJs = document.querySelector('.video-js .vjs-tech');
-
-    if (this.panZoom[id].getScale().toFixed(1) > 1) {
+    const video = panZoomTarget.querySelector(`video, .vjs-tech`);
+    if (currentScale > 1) {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {
         event.preventDefault();
       }});
-      if (videoJs) videoJs.style.pointerEvents = 'none';
+      if (video) video.style.pointerEvents = 'none';
     } else {
       this.panZoom[id].setOptions({handleStartEvent: (event) => {}});
-      if (videoJs) videoJs.style.pointerEvents = '';
+      if (video) {
+        if (this.shifted || this.ctrled || this.alted) {
+          video.style.pointerEvents = 'none';
+        } else {
+          video.style.pointerEvents = '';
+        }
+      }
     }
   },
 
   click: function(id) {
+    if (!this.panZoom[id]) {
+      console.warn(`panZoom for object with ID=${id} not found`);
+      return;
+    }
     if (this.ctrled && this.shifted) {
       this.panZoom[id].zoom(1, {animate: true});
     } else if (this.ctrled) {

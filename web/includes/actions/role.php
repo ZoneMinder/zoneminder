@@ -35,8 +35,19 @@ if ($action == 'Save') {
   $rid = isset($_REQUEST['rid']) ? validInt($_REQUEST['rid']) : 0;
   $dbRole = new ZM\User_Role($rid);
 
+  # Saving a role that failed to load would insert a new one
+  if ($rid and !$dbRole->Id()) {
+    ZM\Warning('Role '.$rid.' not found');
+    $error_message = 'Role not found<br/>';
+    unset($_REQUEST['redirect']);
+    return;
+  }
+
   # Need to check for uniqueness of Name
-  if (isset($_REQUEST['role']['Name']) && $_REQUEST['role']['Name']) {
+  if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name'])) {
+    $_REQUEST['role']['Name'] = trim($_REQUEST['role']['Name']);
+  }
+  if (isset($_REQUEST['role']) && is_array($_REQUEST['role']) && isset($_REQUEST['role']['Name']) && is_string($_REQUEST['role']['Name']) && $_REQUEST['role']['Name'] !== '') {
     $role_with_my_name = ZM\User_Role::find_one(array('Name'=>$_REQUEST['role']['Name']));
     if ($role_with_my_name and
       (($rid and ($role_with_my_name->Id() != $rid)) or !$rid)
@@ -61,14 +72,20 @@ if ($action == 'Save') {
     ZM\AuditAction(($rid ? 'update' : 'create'), 'role', $dbRole->Id(), 'Name: '.$dbRole->Name());
   }
 
+  $valid_permissions = array('Inherit', 'None', 'View', 'Edit');
+
   # Save group permissions
   if (isset($_POST['group_permission'])) {
     foreach (ZM\Group::find() as $g) {
       $permission = $dbRole->Group_Permission($g->Id());
       $new_permission = isset($_POST['group_permission'][$g->Id()]) ? $_POST['group_permission'][$g->Id()] : 'Inherit';
+      if (!is_string($new_permission) or !in_array($new_permission, $valid_permissions, true)) continue;
       if ($permission->Permission() != $new_permission) {
         $permission->RoleId($dbRole->Id());
-        $permission->save(array('Permission'=>$new_permission));
+        if (!$permission->save(array('Permission'=>$new_permission))) {
+          $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+          unset($_REQUEST['redirect']);
+        }
       }
     }
   }
@@ -79,9 +96,13 @@ if ($action == 'Save') {
       if (isset($_POST['monitor_permission'][$m->Id()])) {
         $permission = $dbRole->Monitor_Permission($m->Id());
         $new_permission = $_POST['monitor_permission'][$m->Id()];
+        if (!is_string($new_permission) or !in_array($new_permission, $valid_permissions, true)) continue;
         if ($permission->Permission() != $new_permission) {
           $permission->RoleId($dbRole->Id());
-          $permission->save(['Permission'=>$new_permission]);
+          if (!$permission->save(['Permission'=>$new_permission])) {
+            $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+            unset($_REQUEST['redirect']);
+          }
         }
       }
     }

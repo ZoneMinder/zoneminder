@@ -5,12 +5,6 @@ Options - Email
 
 OPT_EMAIL - In ZoneMinder you can create event filters that specify whether events that match certain criteria should have their details emailed to you at a designated email address. This will allow you to be notified of events as soon as they occur and also to quickly view the events directly. This option specifies whether this functionality should be available. The email created with this option can be any size and is intended to be sent to a regular email reader rather than a mobile device.
 
-EMAIL_ADDRESS - This option is used to define the email address that any events that match the appropriate filters will be sent to.
-
-EMAIL_SUBJECT - This option is used to define the subject of the email that is sent for any events that match the appropriate filters.
-
-EMAIL_BODY - This option is used to define the content of the email that is sent for any events that match the appropriate filters.
-
 .. todo:: 
   check if any other tags have been added
 

@@ -42,6 +42,11 @@ struct HashAlgorithmMapper<HashAlgorithms::kSHA1> {
   static constexpr gnutls_digest_algorithm_t algorithm = GNUTLS_DIG_SHA1;
 };
 
+template<>
+struct HashAlgorithmMapper<HashAlgorithms::kSHA256> {
+  static constexpr gnutls_digest_algorithm_t algorithm = GNUTLS_DIG_SHA256;
+};
+
 template<HashAlgorithms Algorithm>
 class GenericHashImpl : public GenericHash<GenericHashImpl<Algorithm>, Algorithm> {
  public:

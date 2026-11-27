@@ -14,6 +14,12 @@ if (!$monitor) {
   ZM\Warning("Monitor $mid not found.");
   return;
 }
+
+if (!$monitor->canView()) {
+  ZM\Warning("No permission to view monitor $mid for the settings modal.");
+  return;
+}
+
 $zmuCommand = getZmuCommand(' -m '.escapeshellarg($mid).' -B -C -H -O');
 $zmuOutput = exec( $zmuCommand );
 if ($zmuOutput) {
@@ -40,12 +46,13 @@ if ($zmuOutput) {
         // We have to manually insert the csrf key into the form when using a modal generated via ajax call
         echo getCSRFinputHTML();
         ?>
-        <input type="hidden" name="view" value="<?php echo $view ?>"/>
+        <input type="hidden" name="view" value="settings"/>
         <input type="hidden" name="action" value="settings"/>
         <input type="hidden" name="mid" value="<?php echo $mid; ?>"/>
         <table id="contentTable" class="major">
           <tbody>
 <?php
+$ctls = '';
 if (!$monitor->Device()) {
   ZM\Warning("Please populate monitor Device");
 } else {
@@ -83,13 +90,15 @@ $ctls = explode("\n", $ctls);
 
 foreach ($ctls as $line) {
   $ctl = explode(':', $line);
+  // Skip blank lines and the control class headings ("User Controls") v4l2-ctl prints
+  if (count($ctl) < 2) continue;
   $type_info = explode(' ', trim($ctl[0]));
 
   $setting = trim($type_info[0]);
   if ($setting == 'saturation')
     $setting = 'colour';
   $setting_uc = ucwords($setting);
-  $type = $type[2];
+  $type = $type_info[2] ?? '';
 
   $min = '';
   $max = '';
@@ -99,7 +108,7 @@ foreach ($ctls as $line) {
 
   # The purpose is security
   foreach (explode(' ', trim($ctl[1])) as $index=>$prop) {
-    list($key,$val) = explode('=', $prop);
+    list($key, $val) = array_pad(explode('=', $prop, 2), 2, '');
 
     // get current value
     if ($key == 'value') {
@@ -132,7 +141,7 @@ foreach ($ctls as $line) {
     echo '
             <tr>
               <th scope="row">'.$label.'</th>
-              <td></td><td>'.html_radio('new'.$setting_uc, array('0'=>translate('True'), '1', translate('False')), $value, array('disabled'=>'disabled')).'
+              <td></td><td>'.html_radio('new'.$setting_uc, array('1'=>translate('True'), '0'=>translate('False')), $value, array(), array('disabled'=>'disabled')).'
               </td><td></td>
             </tr>
 ';
@@ -140,7 +149,7 @@ foreach ($ctls as $line) {
     echo '
             <tr>
               <th scope="row">'.$label.'</th>
-              <td></td><td><input type="range" '.$ctl[1].' disabled="disabled"/></td><td></td>
+              <td></td><td><input type="range" min="'.$min.'" max="'.$max.'" step="'.$step.'" value="'.$value.'" disabled="disabled"/></td><td></td>
             </tr>
 ';
     } else {
@@ -158,7 +167,7 @@ foreach ($ctls as $line) {
         </table>
       </div>
       <div class="modal-footer">
-        <button type="submit" class="btn btn-primary" id="settingsSubmitModal" value="Save"<?php echo canView('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
+        <button type="submit" class="btn btn-primary" id="settingsSubmitModal" value="Save"<?php echo canEdit('Control') ? '' : ' disabled="disabled"' ?>><?php echo translate('Save') ?></button>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
       </div>
     </form>

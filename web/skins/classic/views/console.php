@@ -19,7 +19,10 @@
 //
 
 $canEditMonitors = canEdit('Monitors');
-$canCreateMonitors = canCreate('Monitors');
+// A user limited to certain monitors cannot add one (actions/monitor.php refuses
+// it), so do not offer the button only for the save to be turned away.
+global $user;
+$canCreateMonitors = canCreate('Monitors') && !($user && $user->unviewableMonitorIds());
 
 $eventCounts = array(
   'Total'=>  array(
@@ -107,7 +110,7 @@ $colAllAvailableMonitors = $resultMonitorFilters['selected_monitor_ids'];
 
 $displayMonitorIds = array_map(function($m){return $m['Id'];}, $displayMonitors);
 
-$show_storage_areas = (count($storage_areas) > 1) and (canEdit('System') ? 1 : 0);
+$show_storage_areas = (count($storage_areas) > 1) && canEdit('System');
 $zoneCount = 0;
 $total_capturing_bandwidth = 0;
 $total_fps = 0;
@@ -116,7 +119,10 @@ $total_analysis_fps = 0;
 $status_counts = array();
 for ( $i = 0; $i < count($displayMonitors); $i++ ) {
   $monitor = &$displayMonitors[$i];
-  if ( !$monitor['Status'] ) {
+  if ( $monitor['Deleted'] ) {
+    # Whatever Monitor_Status row a deleted monitor left behind is stale.
+    $monitor['Status'] = 'Deleted';
+  } else if ( !$monitor['Status'] ) {
     if ( $monitor['Type'] == 'WebSite' )
      $monitor['Status'] = 'Running';
     else
@@ -126,20 +132,6 @@ for ( $i = 0; $i < count($displayMonitors); $i++ ) {
     $status_counts[$monitor['Status']] = 0;
   $status_counts[$monitor['Status']] += 1;
   $zoneCount += $monitor['ZoneCount'];
-
-  $counts = array();
-  foreach ( array_keys($eventCounts) as $j ) {
-    $filter = addFilterTerm(
-      $eventCounts[$j]['filter'],
-      count($eventCounts[$j]['filter']['Query']['terms']),
-      array('cnj'=>'and', 'attr'=>'Monitor', 'op'=>'=', 'val'=>$monitor['Id'])
-    );
-    parseFilter($filter);
-    #$counts[] = 'count(if(1'.$filter['sql'].",1,NULL)) AS EventCount$j, SUM(if(1".$filter['sql'].",DiskSpace,NULL)) As DiskSpace$j";
-    $monitor['eventCounts'][$j]['filter'] = $filter;
-    $eventCounts[$j]['totalevents'] += $monitor[$j.'Events'];
-    $eventCounts[$j]['totaldiskspace'] += $monitor[$j.'EventDiskSpace'];
-  }
   unset($monitor);
 } // end foreach display monitor
 
@@ -157,7 +149,7 @@ echo $navbar ?>
 <div id="page">
   <div id="content">
 
-    <div id="fbpanel" class="filterBar<?php echo (defined('ZM_WEB_FILTER_SETTINGS_POSITION') && ZM_WEB_FILTER_SETTINGS_POSITION == 'inline') ? '' : ' hidden-shift' ?>">
+    <div id="fbpanel" class="filterBar<?php echo filterSettingsInline() ? '' : ' hidden-shift' ?>">
       <form name="monitorFiltersForm" id="monitorFiltersForm" method="post" action="?view=<?php echo $view; ?>">
       <?php echo $filterbar ?>
       </form>
@@ -220,7 +212,7 @@ echo $navbar ?>
         </button>
       </div>
         
-<?php if (!defined('ZM_WEB_FILTER_SETTINGS_POSITION') || ZM_WEB_FILTER_SETTINGS_POSITION != 'inline') { ?>
+<?php if (filterSettingsInline()) { ?>
         &nbsp;<a href="#" data-flip-control-object="#fbpanel"><i id="fbflip" class="material-icons" data-icon-visible="filter_alt_off" data-icon-hidden="filter_alt"></i></a>
 <?php } ?>
     

@@ -462,6 +462,8 @@ int main(int argc, const char *argv[], char **envp) {
       stream.setStreamType(EventStream::STREAM_JPEG);
     } else if ( mode == ZMS_RAW ) {
       stream.setStreamType(EventStream::STREAM_RAW);
+    } else if ( mode == ZMS_ZIP ) {
+      stream.setStreamType(EventStream::STREAM_ZIP);
     } else if ( mode == ZMS_SINGLE ) {
       stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {

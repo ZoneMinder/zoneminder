@@ -18,6 +18,7 @@
 //
 
 #include "zm_monitor_onvif.h"
+#include "zm_config.h"
 #include "zm_monitor.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -1082,8 +1083,16 @@ void ONVIF::parse_onvif_options() {
         Error("ONVIF: Invalid max_retries value '%s': %s", value.c_str(), e.what());
       }
     } else if (key == "soap_log") {
-      soap_log_file = value;
-      Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
+      // The option comes from the monitor form and the log holds the camera credentials' WS-Security
+      // headers, so it is only written inside the ZoneMinder log directory.
+      const std::string log_dir = staticConfig.PATH_LOGS + "/";
+      if (staticConfig.PATH_LOGS.empty() || !StartsWith(value, log_dir) || value.size() == log_dir.size()
+          || value.find("/../") != std::string::npos || (value.size() >= 3 && value.compare(value.size() - 3, 3, "/..") == 0)) {
+        Warning("ONVIF: soap_log '%s' is not a file inside %s, ignoring it", value.c_str(), staticConfig.PATH_LOGS.c_str());
+      } else {
+        soap_log_file = value;
+        Debug(2, "ONVIF: Will enable SOAP logging to %s", soap_log_file.c_str());
+      }
     } else if (key == "closes_event") {
       if (value == "false" || value == "0" || value == "no") {
         closes_event = false;

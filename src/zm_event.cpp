@@ -42,6 +42,11 @@ const char * Event::frame_type_names[3] = { "Normal", "Bulk", "Alarm" };
 
 int Event::pre_alarm_count = 0;
 
+std::string EventNameOnCloseSql(const std::string &prefix, uint64_t id) {
+  return stringtf("IF(Name='New Event', CONCAT(LEFT('%s', %d), '%" PRIu64 "'), Name)",
+                  zmDbEscapeString(prefix).c_str(), EventNamePrefixLength(id), id);
+}
+
 Event::PreAlarmData Event::pre_alarm_data[MAX_PRE_ALARM_FRAMES] = {};
 
 Event::Event(
@@ -342,12 +347,12 @@ Event::~Event() {
   // Conditionally update Name only if it hasn't been changed by the user during recording.
   std::string sql = stringtf(
       "UPDATE Events SET"
-      " Name = IF(Name='New Event', CONCAT(LEFT('%s', %d), '%" PRIu64 "'), Name),"
+      " Name = %s,"
       " EndDateTime = from_unixtime(%jd), Length = %.2f, Frames = %d,"
       " AlarmFrames = %d, TotScore = %d, AvgScore = %d, MaxScore = %d,"
       " MaxScoreFrameId=%d, DefaultVideo='%s', DiskSpace=%" PRIu64
       " WHERE Id = %" PRIu64,
-      monitor->Substitute(monitor->EventPrefix(), start_time).c_str(), EventNamePrefixLength(id), id,
+      EventNameOnCloseSql(monitor->Substitute(monitor->EventPrefix(), start_time), id).c_str(),
       static_cast<intmax_t>(std::chrono::system_clock::to_time_t(end_time.load())),
       delta_time.count(),
       frames.load(), alarm_frames.load(),

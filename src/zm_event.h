@@ -92,6 +92,10 @@ inline int EventNamePrefixLength(uint64_t id) {
   return 64 - digits;
 }
 
+// SQL expression that names an event "<prefix><id>" when the user has not renamed it. The prefix is
+// expanded from the monitor's EventPrefix, so it can hold quotes, and it is escaped for the query.
+std::string EventNameOnCloseSql(const std::string &prefix, uint64_t id);
+
 inline bool EventCountsFrameStats(SystemTimePoint timestamp, SystemTimePoint boundary) {
   return boundary == SystemTimePoint() or timestamp >= boundary;
 }

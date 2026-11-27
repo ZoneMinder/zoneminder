@@ -123,3 +123,15 @@ TEST_CASE("EventKeepsDraining") {
     CHECK(EventKeepsDraining(true, boundary, &packet));
   }
 }
+
+TEST_CASE("EventNameOnCloseSql escapes the event prefix") {
+  // The prefix is the expanded EventPrefix, so it can hold the monitor name or trigger text.
+  REQUIRE(EventNameOnCloseSql("Front-", 12) ==
+          "IF(Name='New Event', CONCAT(LEFT('Front-', 62), '12'), Name)");
+  REQUIRE(EventNameOnCloseSql("Joe's-", 12) ==
+          "IF(Name='New Event', CONCAT(LEFT('Joe\\'s-', 62), '12'), Name)");
+  REQUIRE(EventNameOnCloseSql("',Name),Cause=USER(),Name=IF(1,'", 7) ==
+          "IF(Name='New Event', CONCAT(LEFT('\\',Name),Cause=USER(),Name=IF(1,\\'', 63), '7'), Name)");
+  REQUIRE(EventNameOnCloseSql("a\\", 7) ==
+          "IF(Name='New Event', CONCAT(LEFT('a\\\\', 63), '7'), Name)");
+}

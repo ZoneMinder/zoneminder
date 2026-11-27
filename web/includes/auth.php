@@ -466,6 +466,10 @@ function authHashSessionAddrs() {
 
 function getAuthUser($auth) {
   if (ZM_OPT_USE_AUTH && (ZM_AUTH_RELAY == 'hashed') && !empty($auth)) {
+    if (!authHashSecretIsSet()) {
+      ZM\Error('Refusing auth hash authentication: ZM_AUTH_HASH_SECRET is empty, shorter than '.ZM_AUTH_HASH_SECRET_MIN_LENGTH.' characters or still the shipped default. '.authHashSecretFix(loadConfigFiles()));
+      return null;
+    }
     $liveAddr = getRemoteAddr();
     if (ZM_AUTH_HASH_IPS and ($liveAddr === '')) {
       ZM\Error("Can't determine remote address for authentication, using empty string");

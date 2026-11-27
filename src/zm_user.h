@@ -99,4 +99,7 @@ bool checkPass(const std::string &password);
 // zmLoadUser() refuses it: the web login asks for a new one first.
 bool isDefaultPassword(const std::string &password);
 
+// False for an empty ZM_AUTH_HASH_SECRET or the public shipped default, which prove nothing.
+bool isUsableAuthHashSecret(const char *secret);
+
 #endif // ZM_USER_H

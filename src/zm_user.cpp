@@ -330,8 +330,7 @@ User *zmLoadUser(const std::string &username, const std::string &password) {
 User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
   // The shipped ZM_AUTH_HASH_SECRET is public, so a token signed with it proves nothing.
   // refs GHSA-wmcc-x64g-jr84
-  if (!config.auth_hash_secret || !*config.auth_hash_secret
-      || !strcmp(config.auth_hash_secret, "...Change me to something unique...")) {
+  if (!isUsableAuthHashSecret(config.auth_hash_secret)) {
     Error("Refusing token authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default.");
     return nullptr;
   }
@@ -395,6 +394,11 @@ User *zmLoadTokenUser(const std::string &jwt_token_str, bool use_remote_addr) {
 
 // Function to validate an authentication string
 User *zmLoadAuthUser(const std::string &auth, const std::string &username, bool use_remote_addr) {
+  // The shipped ZM_AUTH_HASH_SECRET is public, so a hash made with it proves nothing.
+  if (!isUsableAuthHashSecret(config.auth_hash_secret)) {
+    Error("Refusing auth hash authentication: ZM_AUTH_HASH_SECRET is empty or still the shipped default.");
+    return nullptr;
+  }
   const char *remote_addr = "";
   std::string client_addr; // must outlive remote_addr
   if (use_remote_addr) {
@@ -512,4 +516,8 @@ bool checkPass(const std::string &password) {
 // isDefaultPassword() in web/includes/auth.php.
 bool isDefaultPassword(const std::string &password) {
   return password == "admin";
+}
+
+bool isUsableAuthHashSecret(const char *secret) {
+  return secret && *secret && strcmp(secret, "...Change me to something unique...") != 0;
 }

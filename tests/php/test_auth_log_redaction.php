@@ -77,6 +77,7 @@ namespace {
   define('ZM_AUTH_RELAY', 'hashed');
   define('ZM_AUTH_HASH_IPS', false);
   define('ZM_AUTH_HASH_TTL', 2);
+  define('ZM_AUTH_HASH_SECRET_DEFAULT', '...Change me to something unique...');
   define('ZM_AUTH_HASH_SECRET', 'test-secret-0123456789abcdef0123456789ab');
   define('ZM_CASE_INSENSITIVE_USERNAMES', false);
 

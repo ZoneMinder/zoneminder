@@ -32,6 +32,7 @@ namespace AuthHashCompareTest {
   const ZM_AUTH_HASH_IPS = false;
   const ZM_AUTH_HASH_TTL = 2;
   const ZM_AUTH_HASH_SECRET = 'test-secret';
+  const ZM_AUTH_HASH_SECRET_MIN_LENGTH = 32;
   const ZM_CASE_INSENSITIVE_USERNAMES = false;
 
   $GLOBALS['md5_override'] = null;
@@ -41,6 +42,10 @@ namespace AuthHashCompareTest {
   function md5($s) {
     return $GLOBALS['md5_override'] !== null ? $GLOBALS['md5_override'] : \md5($s);
   }
+  $GLOBALS['secret_usable'] = true;
+  function authHashSecretIsSet() { return $GLOBALS['secret_usable']; }
+  function loadConfigFiles() { return array(); }
+  function authHashSecretFix($c) { return 'fix'; }
   function getRemoteAddr() { return ''; }
   function authHashSessionAddrs() { return array(''); }
   function requestString($key) {
@@ -52,7 +57,7 @@ namespace AuthHashCompareTest {
 }
 
 namespace {
-  $auth_src = file_get_contents(__DIR__.'/../../web/includes/auth.php');
+  $auth_src = file_get_contents((isset($argv[1]) ? $argv[1] : __DIR__.'/../..').'/web/includes/auth.php');
   if ($auth_src === false) {
     echo "FAIL could not read auth.php\n";
     exit(1);
@@ -113,6 +118,14 @@ namespace {
   check('fallback: the exact hash still matches', $auth('0e462097431906509019562988736854') !== null);
   $GLOBALS['md5_override'] = null;
   check('fallback: the right hash logs the user in', $auth(current_hash($alice)) !== null);
+
+  // An empty or shipped-default ZM_AUTH_HASH_SECRET is public, so a hash built with it must not log anyone in.
+  $GLOBALS['rows'] = array($alice);
+  $GLOBALS['alt_rows'] = array();
+  $GLOBALS['secret_usable'] = false;
+  check('an unusable secret refuses the hash it would otherwise accept', $auth(current_hash($alice)) === null);
+  $GLOBALS['secret_usable'] = true;
+  check('a usable secret accepts it again', $auth(current_hash($alice)) !== null);
 
   echo "\n$passes passed, $failures failed\n";
   exit($failures ? 1 : 0);

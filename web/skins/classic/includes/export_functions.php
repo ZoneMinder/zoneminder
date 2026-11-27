@@ -643,7 +643,7 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStr
 		<li class="active"><a href="#all"> All </a></li>
 		<?php
 		foreach ($monitors as $monitor) {
-			echo "<li><a href=\"#tab$monitor\">" . $monitorNames[$monitor] . '</a></li>';
+			echo "<li><a href=\"#tab$monitor\">" . validHtmlStr($monitorNames[$monitor]) . '</a></li>';
 		}
 		?>
 	</ul>
@@ -662,7 +662,7 @@ function exportEventImagesMaster($eids, $exportDetail, $exportFrames, $exportStr
 <?php
   foreach ($monitors as $monitor_id) {
 		echo '<div class="tab_content" id="tab'.$monitor_id.'">';
-		echo '<h2>Monitor: '.$monitorNames[$monitor_id].'</h2>';
+		echo '<h2>Monitor: '.validHtmlStr($monitorNames[$monitor_id]).'</h2>';
 		foreach ($events as $event) {
 			if ($event->MonitorId() == $monitor_id) {
 		    echo eventlist_html($event, $exportDetail, $exportFrames, $exportStructure);

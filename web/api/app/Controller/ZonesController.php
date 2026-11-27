@@ -212,6 +212,8 @@ class ZonesController extends AppController {
         $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
+    } else {
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
     $this->set(array(
       'message' => $message,

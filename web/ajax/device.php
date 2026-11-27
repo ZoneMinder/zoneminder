@@ -39,15 +39,20 @@ if ( $action == 'device' ) {
       ajaxError('Invalid device');
       return;
     }
+    $failed = false;
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
       ZM\Warning('did value is: '.$_REQUEST['did']);
       ZM\Warning('newDevice array value is: '.print_r($_REQUEST['newDevice'],true));
-      dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
+      if ( dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
+        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) ) === null ) $failed = true;
     } else {
 
-      dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString']) );
+      if ( dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
+        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString']) ) === null ) $failed = true;
+    }
+    if ( $failed ) {
+      ajaxError('Failed to save device: '.dbLastError());
+      return;
     }
   }
   ajaxResponse();

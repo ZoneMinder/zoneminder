@@ -33,7 +33,9 @@ namespace {
   function setDeviceStatusX10($key, $status) { return 'unknown'; }
   function dbQuery($sql, $params = array()) {
     $GLOBALS['db_calls'][] = array($sql, $params);
+    return true;
   }
+  function dbLastError() { return ''; }
   function ajaxResponse($data = array()) { throw new StopRequest('ok'); }
   function ajaxError($m) { throw new StopRequest($m); }
 

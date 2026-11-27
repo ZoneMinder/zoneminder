@@ -94,16 +94,18 @@ if (count($user->unviewableMonitorIds())) {
 }
 
 parseSort();
-if ( isset($_REQUEST['eid']) and $_REQUEST['eid'] ) {
+// An id that is an array (eids[][]=1) is no id: bound to the query it raises an array to string conversion.
+$eids = (isset($_REQUEST['eids']) and is_array($_REQUEST['eids'])) ? array_values(array_filter($_REQUEST['eids'], 'is_scalar')) : array();
+if ( isset($_REQUEST['eid']) and is_scalar($_REQUEST['eid']) and $_REQUEST['eid'] ) {
   $eventsWhere[] = 'E.Id=?';
   $eventsValues[] = $_REQUEST['eid'];
-} else if ( isset($_REQUEST['eids']) and is_array($_REQUEST['eids']) and count($_REQUEST['eids']) > 0 ) {
-  $eventsWhere[] = 'E.Id IN ('.implode(',', array_map(function(){return '?';}, $_REQUEST['eids'])). ')';
-  $eventsValues = array_merge($eventsValues, array_values($_REQUEST['eids']));
+} else if ( count($eids) > 0 ) {
+  $eventsWhere[] = 'E.Id IN ('.implode(',', array_map(function(){return '?';}, $eids)). ')';
+  $eventsValues = array_merge($eventsValues, $eids);
   // Keep the selection when a column header is clicked
   $selectionQuery = implode('&amp;', array_map(function($id) {
     return 'eids%5B%5D='.urlencode($id);
-  }, array_values($_REQUEST['eids'])));
+  }, $eids));
 } else if ( isset($_REQUEST['filter']) ) {
   $filter = ZM\Filter::parse($_REQUEST['filter']);
   $filterQuery = $filter->querystring();

@@ -747,9 +747,9 @@ zmonvif-trigger.pl - ZoneMinder ONVIF trigger daemon
 
 =head1 OPTIONS
 
-    local-addr    - local address to bind to
-    script|s=s   - script to run
-    verbose|v    - increase verbosity
+ -l, --local-addr=<host[:port]> - Local address to listen on
+ -s, --script=<script>          - Run this script instead of generating ZoneMinder events
+ -v, --verbose                  - Increase verbosity
 
 =cut
 

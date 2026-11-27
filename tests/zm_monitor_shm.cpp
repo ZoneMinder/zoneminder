@@ -77,6 +77,14 @@ TEST_CASE("Monitor shm time accessors are safe before connect()", "[Monitor]") {
   }
 }
 
+TEST_CASE("Monitor image buffer count of zero or less is raised to 2", "[Monitor]") {
+  REQUIRE(Monitor::SanitiseImageBufferCount(0) == 2);
+  REQUIRE(Monitor::SanitiseImageBufferCount(-5) == 2);
+  REQUIRE(Monitor::SanitiseImageBufferCount(1) == 1);
+  REQUIRE(Monitor::SanitiseImageBufferCount(2) == 2);
+  REQUIRE(Monitor::SanitiseImageBufferCount(3) == 3);
+  REQUIRE(Monitor::SanitiseImageBufferCount(300) == 300);
+}
 #if ZM_MEM_MAPPED
 namespace {
 

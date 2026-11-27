@@ -176,9 +176,14 @@ AVCodecContext *open_fallback_decoder(const AVCodecParameters *codecpar, const A
     Error("Failed to allocate context for fallback decoder %s", codec->name);
     return nullptr;
   }
-  avcodec_parameters_to_context(ctx, codecpar);
+  int ret = avcodec_parameters_to_context(ctx, codecpar);
+  if (ret < 0) {
+    Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+    avcodec_free_context(&ctx);
+    return nullptr;
+  }
   zm_dump_codec(ctx);
-  int ret = avcodec_open2(ctx, codec, nullptr);
+  ret = avcodec_open2(ctx, codec, nullptr);
   if (ret < 0) {
     Error("Could not open fallback decoder %s (error '%s')",
         codec->name, av_make_error_string(ret).c_str());
@@ -233,7 +238,12 @@ AVCodecContext *open_video_decoder(
     }
 
     ctx = avcodec_alloc_context3(codec);
-    avcodec_parameters_to_context(ctx, stream->codecpar);
+    ret = avcodec_parameters_to_context(ctx, stream->codecpar);
+    if (ret < 0) {
+      Error("Could not copy codec parameters (error '%s')", av_make_error_string(ret).c_str());
+      avcodec_free_context(&ctx);
+      continue;
+    }
     ctx->framerate = stream->r_frame_rate;
     ctx->sw_pix_fmt = chosen_codec_data->sw_pix_fmt;
 

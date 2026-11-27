@@ -81,7 +81,7 @@ echo getNavBarHTML();
 <?php if (canEdit('System')) { ?>
                     <tr>
                       <th scope="row"><?php echo translate('Username') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" maxlength="64" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
                     </tr>
 <?php } ?>
                     <tr>
@@ -108,11 +108,11 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" maxlength="64" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" maxlength="64" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>
@@ -144,6 +144,11 @@ echo getNavBarHTML();
       'montagereview'=> translate('Montage Review'),
       'watch' => translate('Watch'),
     ];
+    // Keep a saved home view the list does not offer, or saving the form would reset it to Default.
+    $saved_home_view = $User->HomeView();
+    if ($saved_home_view and !isset($homeview_options[$saved_home_view])) {
+      $homeview_options[$saved_home_view] = $saved_home_view;
+    }
 echo htmlSelect('user[HomeView]', $homeview_options, $User->HomeView(), ['class'=>'form-control form-control-sm']);
 ?></td>
                     </tr>
@@ -331,9 +336,11 @@ if (canEdit('Groups')) {
   # This  array is indexed by parent_id
   $children = array();
   foreach ($groups as $id=>$group) {
-    if (!isset($children[$group->ParentId()]))
-      $children[$group->ParentId()] = array();
-    $children[$group->ParentId()][] = $group;
+    // From PHP 8.5, using 'null' as an array offset is deprecated
+    $parentId = $group->ParentId() ?? '';
+    if (!isset($children[$parentId]))
+      $children[$parentId] = array();
+    $children[$parentId][] = $group;
     if ($max_depth < $group->depth())
       $max_depth = $group->depth();
   }
@@ -373,8 +380,8 @@ if (canEdit('Groups')) {
     }
     return $html;
   }
-  if (isset($children[null])) {
-    foreach ($children[null] as $group) {
+  if (isset($children[''])) {
+    foreach ($children[''] as $group) {
       echo group_line($group);
     }
   }

@@ -147,6 +147,9 @@ if ( $action == 'delete' ) {
     // Readonly rows are maintained by the daemons (version detection, telemetry),
     // so a posted value for one is not saved, and not counted as a change.
     if (!empty($config['Readonly'])) continue;
+    // System rows (paths the daemons execute, such as ZM_PATH_FFMPEG) are only changed in
+    // the config files, as the Options page already shows them.
+    if (!empty($config['System'])) continue;
     if ( ($config['Type'] == 'boolean') and empty($_REQUEST['newConfig'][$config['Name']]) ) {
       // A checkbox disabled for unmet requirements isn't sent: not the user turning it off.
       if (!empty($config['Requires']) and !configRequirementsMet($config['Requires'], $effective)) continue;
@@ -231,39 +234,10 @@ if ( $action == 'delete' ) {
   if (isset($_REQUEST['object'])) {
     if ($_REQUEST['object'] == 'dnsmasq') {
       $config = isset($_REQUEST['config']) ? $_REQUEST['config'] : [];
-      $conf = '';
-      foreach ($config as $name=>$value) {
-        if ($name == 'dhcp-host') {
-          foreach ($value as $mac=>$ip) {
-            $conf .= $name.'='.$mac.','.$ip.PHP_EOL;
-          }
-        } else if ($name == 'dhcp-option') {
-          foreach ($value as $option_name=>$option_value) {
-            $conf .= $name.'='.$option_name.','.$option_value.PHP_EOL;
-          }
-        } else if (
-            ($name == 'bind-interfaces')
-            or
-            ($name == 'dhcp-authoritative')
-            ) {
-          if ($value=='yes') {
-            $conf .= $name.PHP_EOL;
-          }
-        } else if ($name == 'dhcp-range') {
-          $conf .= $name.'='.$value['min'].','.$value['max'].','.$value['expires'].PHP_EOL;
-        } else {
-          if (is_array($value)) {
-            foreach ($value as $v) {
-            }
-          } else if ($value === '') {
-            # an option without a value, e.g. no-resolv
-            $conf .= $name.PHP_EOL;
-          } else {
-            $conf .= $name.'='.$value.PHP_EOL;
-          }
-        }
-      }
-      if (false===file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf)) {
+      $conf = dnsmasqConfText($config);
+      if ($conf === false) {
+        ZM\Warning('Refusing to write the dnsmasq configuration: it names a directive that is not allowed or has a line break in it');
+      } else if (false===file_put_contents(ZM_PATH_DNSMASQ_CONF, $conf)) {
         ZM\Warning("Failed to writh to ".ZM_PATH_DNSMASQ_CONF);
       } else {
         exec('sudo -n /bin/systemctl restart dnsmasq.service');

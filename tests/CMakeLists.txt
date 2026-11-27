@@ -47,6 +47,7 @@ set(TEST_SOURCES
   zm_monitor_ondemand.cpp
   zm_monitor_privacy.cpp
   zm_monitor_substitute.cpp
+  zm_monitor_convert_context.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp
@@ -77,6 +78,7 @@ set(TEST_SOURCES
   zm_rtsp_deprecation.cpp
   zm_rtsp_server_keyframe.cpp
   zm_rtsp_server_main.cpp
+  zm_rtsp_server_authenticator.cpp
   zm_rtsp_server_pts_tracker.cpp
   zm_rtsp_server_marker.cpp
   zm_rtsp_server_nal_split.cpp
@@ -99,6 +101,7 @@ set(TEST_SOURCES
   zm_user_default_password.cpp
   zm_user_group.cpp
   zm_remote_camera.cpp
+  zm_remote_camera_response_cap.cpp
   zm_uri.cpp
   zm_utils.cpp
   zm_mem_utils.cpp
@@ -139,7 +142,8 @@ set(TEST_SOURCES
   zm_local_camera.cpp
   zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp
-  zm_stream_manager_json.cpp)
+  zm_stream_manager_json.cpp
+  zm_storage_fallback.cpp)
 
 add_executable(tests ${TEST_SOURCES})
 

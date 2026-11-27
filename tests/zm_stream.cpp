@@ -23,10 +23,14 @@
 #include "zm_image.h"
 #include "zm_signal.h"
 
+#include <atomic>
 #include <cerrno>
+#include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <limits>
+#include <memory>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/un.h>
@@ -66,6 +70,8 @@ class TestStream : public StreamBase {
   void commandLoop() {
     checkCommandQueue();
   }
+  void updateRate(double fps) { updateFrameRate(fps); }
+  int frameMod() const { return frame_mod; }
 
  protected:
   void processCommand(const CmdMsg *) override {}
@@ -630,4 +636,46 @@ TEST_CASE("StreamBase: a stream's JPEGs are encoded at its quality", "[StreamBas
   TestStream stream;
   stream.setStreamQuality(250);
   REQUIRE(stream.streamQuality() == 0);
+}
+
+TEST_CASE("StreamBase::updateFrameRate with an unbounded maxfps", "[StreamBase]") {
+  // updateFrameRate compared (int)effective_fps with (int)max_fps. Casting an
+  // infinite or huge maxfps to int is undefined and gives INT_MIN, so the loop
+  // halving the rate never finished and the stream thread spun forever. Run
+  // the update on its own thread and give up after two seconds.
+  auto run_update_rate = [](double max_fps, double fps) {
+    auto stream = std::make_shared<TestStream>();
+    stream->setStreamMaxFPS(max_fps);
+    auto done = std::make_shared<std::atomic<bool>>(false);
+    std::thread thread([stream, done, fps]() {
+      stream->updateRate(fps);
+      done->store(true);
+    });
+
+    for (int waited = 0; waited < 200 && !done->load(); waited++) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+
+    if (!done->load()) {
+      // The captured shared_ptrs keep the stream and the flag alive, so a hung
+      // thread cannot touch the stack of this test after it fails.
+      thread.detach();
+    }
+    REQUIRE(done->load());
+    if (thread.joinable()) thread.join();
+    return stream->frameMod();
+  };
+
+  for (double max : {std::numeric_limits<double>::infinity(), 3e9, 1e300}) {
+    CAPTURE(max);
+    CHECK(run_update_rate(max, 30.0) == 1);
+  }
+
+  SECTION("half the frame rate halves the frames actually sent") {
+    CHECK(run_update_rate(15.0, 30.0) == 2);
+  }
+
+  SECTION("a maxfps at the frame rate sends every frame") {
+    CHECK(run_update_rate(30.0, 30.0) == 1);
+  }
 }

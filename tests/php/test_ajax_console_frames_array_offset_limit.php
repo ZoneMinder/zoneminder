@@ -1,5 +1,5 @@
 <?php
-// The console and frames lists read the table's offset and limit from the query string.
+// The console, frames and events lists read the table's offset and limit from the query string.
 // A request that passes offset[]=x or limit[]=y (an array) must be rejected with a ZM\Error
 // and leave the values at 0, without PHP emitting a deprecation or warning while comparing
 // the array against the 'NaN' string. Plain scalar digits must still be accepted, and
@@ -51,7 +51,7 @@ namespace {
   $root = isset($argv[1]) ? $argv[1] : dirname(__DIR__, 2);
   $failures = 0;
 
-  foreach (array('console', 'frames') as $name) {
+  foreach (array('console', 'frames', 'events') as $name) {
     $src = file_get_contents($root.'/web/ajax/'.$name.'.php');
     $code = ($src === false) ? null : extract_validation($src);
     if ($code === null) {

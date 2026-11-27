@@ -1,5 +1,5 @@
 <?php
-// Models.Name and EncoderTemplates.Encoder/Name/Params are NOT NULL with no
+// Manufacturers.Name, Models.Name and EncoderTemplates.Encoder/Name/Params are NOT NULL with no
 // default. An API add without one reached MySQL, which refused the INSERT, and
 // the client got a 500. Each must be required on create (and only on create, so
 // an edit may leave it out), which turns the request into a validation error.
@@ -11,7 +11,7 @@ class App { public static function uses($class, $package) {} }
 class AppModel {}
 
 $root = __DIR__.'/../..';
-foreach (array('CameraModel', 'EncoderTemplate') as $c) require_once $root.'/web/api/app/Model/'.$c.'.php';
+foreach (array('CameraModel', 'EncoderTemplate', 'Manufacturer') as $c) require_once $root.'/web/api/app/Model/'.$c.'.php';
 $schema = file_get_contents($root.'/db/zm_create.sql.in');
 
 $passes = 0;
@@ -22,6 +22,7 @@ function check($ok, $what) {
 }
 
 $cases = array(
+  array('Manufacturer', 'Manufacturers', 'Name'),
   array('CameraModel', 'Models', 'Name'),
   array('EncoderTemplate', 'EncoderTemplates', 'Encoder'),
   array('EncoderTemplate', 'EncoderTemplates', 'Name'),

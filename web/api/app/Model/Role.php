@@ -10,6 +10,7 @@ class Role extends AppModel {
         'Name' => array(
             'required' => array(
                 'rule' => array('notBlank'),
+                'required' => 'create',
                 'message' => 'A role name is required'
             ),
             'unique' => array(

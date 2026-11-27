@@ -460,8 +460,8 @@ if ( count($other_zones) ) {
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneFilterSize') ?></th>
-									<td><input type="number" name="newZone[FilterX]" value="<?php echo $zone['FilterX'] ?>" min="0"/></td>
-									<td><input type="number" name="newZone[FilterY]" value="<?php echo $zone['FilterY'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterX]" max="255" value="<?php echo $zone['FilterX'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[FilterY]" max="255" value="<?php echo $zone['FilterY'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneArea') ?></th>
@@ -485,16 +485,16 @@ if ( count($other_zones) ) {
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneMinMaxBlobs') ?></th>
-									<td><input type="number" name="newZone[MinBlobs]" value="<?php echo $zone['MinBlobs'] ?>" min="0"/></td>
-									<td><input type="number" name="newZone[MaxBlobs]" value="<?php echo $zone['MaxBlobs'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[MinBlobs]" max="65535" value="<?php echo $zone['MinBlobs'] ?>" min="0"/></td>
+									<td><input type="number" name="newZone[MaxBlobs]" max="65535" value="<?php echo $zone['MaxBlobs'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneOverloadFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" value="<?php echo $zone['OverloadFrames'] ?>" min="0"/></td>
+									<td colspan="2"><input type="number" name="newZone[OverloadFrames]" max="65535" value="<?php echo $zone['OverloadFrames'] ?>" min="0"/></td>
 								</tr>
 								<tr>
 									<th scope="row"><?php echo translate('ZoneExtendAlarmFrames') ?></th>
-									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" value="<?php echo $zone['ExtendAlarmFrames'] ?>" min="0"/></td>
+									<td colspan="2"><input type="number" name="newZone[ExtendAlarmFrames]" max="65535" value="<?php echo $zone['ExtendAlarmFrames'] ?>" min="0"/></td>
 								</tr>
 							</tbody>
 						</table>

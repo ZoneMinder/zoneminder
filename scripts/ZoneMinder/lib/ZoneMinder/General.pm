@@ -616,6 +616,7 @@ sub jsonDecode {
   my $out = '';
   my @chars = split(//, $value);
   for ( my $i = 0; $i < @chars; $i++ ) {
+    my $escaped = 0;
     if ( !$comment ) {
       if ( $chars[$i] eq ':' ) {
         $out .= '=>';
@@ -625,6 +626,9 @@ sub jsonDecode {
     } elsif ( !$unescape ) {
       if ( $chars[$i] eq '\\' ) {
         $unescape = 1;
+      } elsif ( $chars[$i] eq '$' or $chars[$i] eq '@' ) {
+        # The text is eval'd inside double quotes: don't let it interpolate.
+        $out .= '\\'.$chars[$i];
       } else {
         $out .= $chars[$i];
       }
@@ -634,11 +638,20 @@ sub jsonDecode {
       }
       $out .= $chars[$i];
       $unescape = 0;
+      $escaped = 1;
     }
-    if ( $chars[$i] eq '"' ) {
+    # An escaped quote does not end the string.
+    if ( $chars[$i] eq '"' and !$escaped ) {
       $comment = !$comment;
     }
   }
+  # Outside strings only JSON punctuation, JSON number tokens and true/false/null may appear;
+  # anything else would be run as Perl by the eval below.
+  my $skeleton = $out;
+  $skeleton =~ s/"(?:[^"\\]|\\.)*"//gs;
+  $skeleton =~ s/\b(?:true|false|null)\b//g;
+  $skeleton =~ s/-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?//g;
+  Fatal("Unable to decode JSON string '$value': unexpected content") if $skeleton !~ /\A[\s\{\}\[\],=>]*\z/;
   $out =~ s/=>true/=>1/g;
   $out =~ s/=>false/=>0/g;
   $out =~ s/=>null/=>undef/g;

@@ -74,10 +74,21 @@ function ajaxRequest(params) {
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so params.success()
+          // would never run and the table would load for ever.
+          eventListTable.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         const rows = processRows(data.rows);
         params.success(rows);
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Without this the table stays on "Loading, please wait" for good.
+        eventListTable.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
+      });
 }
 
 function processRows(rows) {

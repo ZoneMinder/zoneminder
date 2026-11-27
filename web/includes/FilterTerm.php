@@ -384,7 +384,11 @@ class FilterTerm {
       return 'weekday(E.EndDateTime)';
     case 'Notes':
     case 'Emailed':
+    case 'Executed':
     case 'Id':
+    case 'Messaged':
+    case 'Uploaded':
+    case 'Videoed':
     case 'Name':
     case 'DiskSpace':
     case 'MonitorId':
@@ -713,6 +717,10 @@ class FilterTerm {
       'EventId',
       'ExistsInFileSystem',
       'Emailed',
+      'Executed',
+      'Messaged',
+      'Uploaded',
+      'Videoed',
       'DiskSpace',
       'DiskPercent',
       'DiskBlocks',
@@ -787,6 +795,11 @@ class FilterTerm {
       break;
     case 'Id' :
     case 'Archived' :
+    case 'Emailed' :
+    case 'Executed' :
+    case 'Messaged' :
+    case 'Uploaded' :
+    case 'Videoed' :
     case 'Tags' :
     case 'Monitor' :
     case 'MonitorId' :

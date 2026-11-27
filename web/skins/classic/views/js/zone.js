@@ -384,7 +384,13 @@ function highlightOff(index) {
   $j('#point'+index).removeClass('highlight');
 }
 
+var activePointIndex = -1;
+
 function setActivePoint(index) {
+  if ( activePointIndex >= 0 && activePointIndex != index ) {
+    unsetActivePoint(activePointIndex);
+  }
+  activePointIndex = index;
   highlightOff(index);
   $j('#row'+index).addClass('active');
   $j('#point'+index).addClass('active');
@@ -393,6 +399,90 @@ function setActivePoint(index) {
 function unsetActivePoint(index) {
   $j('#row'+index).removeClass('active');
   $j('#point'+index).removeClass('active');
+  if ( activePointIndex == index ) {
+    activePointIndex = -1;
+  }
+}
+
+/* Keyboard nudging: a selected point can be moved a coordinate unit at a time,
+ * through the same update path as typing in the point table. */
+function zoneModalOpen() {
+  if ( document.querySelector && document.querySelector('.modal.show') ) return true;
+  const modal = document.getElementById('deleteConfirm');
+  return !!(modal && modal.classList && modal.classList.contains('show'));
+}
+
+function isTextEntryTarget(target) {
+  if ( !target ) return false;
+  const tag = (target.tagName || '').toUpperCase();
+  if ( tag == 'INPUT' || tag == 'TEXTAREA' || tag == 'SELECT' ) return true;
+  return !!target.isContentEditable;
+}
+
+function nudgeSelectedPoint(dx, dy) {
+  const index = activePointIndex;
+  if ( index < 0 || index >= zone['Points'].length ) return;
+  const point = zone['Points'][index];
+
+  if ( dx ) {
+    const input = document.getElementById('newZone[Points]['+index+'][x]');
+    const target = input || {value: 0, getAttribute: function() {
+      return String(index);
+    }};
+    target.value = parseFloat(point.x) + dx;
+    updateX(target);
+    if ( input ) input.value = parseFloat(zone['Points'][index].x).toFixed(2);
+  }
+
+  if ( dy ) {
+    const input = document.getElementById('newZone[Points]['+index+'][y]');
+    const target = input || {value: 0, getAttribute: function() {
+      return String(index);
+    }};
+    target.value = parseFloat(point.y) + dy;
+    updateY(target);
+    if ( input ) input.value = parseFloat(zone['Points'][index].y).toFixed(2);
+  }
+}
+
+function onZoneKeydown(event) {
+  if ( !event ) return;
+  if ( event.ctrlKey || event.altKey || event.metaKey ) return;
+  if ( isTextEntryTarget(event.target) ) return;
+  if ( zoneModalOpen() ) return;
+
+  const step = event.shiftKey ? 10 : 1;
+  let dx = 0;
+  let dy = 0;
+  switch ( event.key ) {
+    case 'ArrowLeft': dx = -step; break;
+    case 'ArrowRight': dx = step; break;
+    case 'ArrowUp': dy = -step; break;
+    case 'ArrowDown': dy = step; break;
+    default: return;
+  }
+
+  // Only act while a point is selected. This leaves arrow keys alone for other
+  // page behaviour when none is.
+  if ( activePointIndex < 0 ) return;
+  event.preventDefault();
+  nudgeSelectedPoint(dx, dy);
+}
+
+function zonePointIndexFromNode(node) {
+  while ( node && node !== document ) {
+    if ( node.classList && node.classList.contains('zonePoint') ) {
+      const index = parseInt(node.getAttribute('data-point-index'), 10);
+      return isNaN(index) ? -1 : index;
+    }
+    node = node.parentNode;
+  }
+  return -1;
+}
+
+function onZonePointSelect(event) {
+  const index = zonePointIndexFromNode(event.target);
+  if ( index >= 0 ) setActivePoint(index);
 }
 
 function getCoordString() {
@@ -665,6 +755,7 @@ function saveChanges(element) {
 function drawZonePoints() {
   var imageFeed = document.getElementById('imageFeed'+zone.MonitorId);
   $j('.zonePoint').remove();
+  activePointIndex = -1;
   var frameW = imageFeed.clientWidth;
   var frameH = imageFeed.clientHeight;
 
@@ -674,6 +765,7 @@ function drawZonePoints() {
       'id': 'point'+i,
       'data-point-index': i,
       'class': 'zonePoint',
+      'tabindex': '0',
       'title': 'Point '+(i+1)
     });
     div.css({
@@ -1218,3 +1310,9 @@ document.onvisibilitychange = () => {
 };
 
 window.addEventListener('DOMContentLoaded', initPage);
+
+if ( typeof document !== 'undefined' && document.addEventListener ) {
+  document.addEventListener('click', onZonePointSelect);
+  document.addEventListener('focusin', onZonePointSelect);
+  document.addEventListener('keydown', onZoneKeydown);
+}

@@ -50,6 +50,25 @@ use ZoneMinder::Trigger::Channel::Unix;
 use ZoneMinder::Trigger::Channel::Serial;
 use ZoneMinder::Trigger::Connection;
 
+use Getopt::Long;
+use autouse 'Pod::Usage'=>qw(pod2usage);
+
+my $help = 0;
+my $version = 0;
+
+GetOptions(
+  'help|h'    => \$help,
+  'version|v' => \$version
+  ) or pod2usage(-exitstatus => -1);
+
+if ( $help ) {
+  pod2usage(-exitstatus => 0, -verbose => 1);
+}
+if ( $version ) {
+  print ZoneMinder::Base::ZM_VERSION."\n";
+  exit(0);
+}
+
 my @connections;
 push( @connections,
     ZoneMinder::Trigger::Connection->new(
@@ -490,6 +509,24 @@ __END__
 =head1 NAME
 
 zmtrigger.pl - ZoneMinder External Trigger Script
+
+=head1 SYNOPSIS
+
+ zmtrigger.pl [--help|-h] [--version|-v]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h>, B<--help>
+
+Print this help and exit.
+
+=item B<-v>, B<--version>
+
+Print the ZoneMinder version and exit.
+
+=back
 
 =head1 DESCRIPTION
 

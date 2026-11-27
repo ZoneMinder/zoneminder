@@ -91,7 +91,7 @@ check('Events=View owner CANNOT edit AutoExecute filter', $f->canEdit($eventsVie
 // Each side-effect alone must block a view-only user (the `and` -> `or` fix).
 foreach (array('AutoExecute','AutoDelete','AutoUnarchive','AutoArchive',
                'AutoMove','AutoCopy','AutoVideo','AutoUpload',
-               'AutoEmail','AutoMessage') as $flag) {
+               'AutoEmail','AutoMessage','AutoTag') as $flag) {
   $f = make_filter(3, array($flag => 1));
   check("Events=View owner blocked when only $flag set", $f->canEdit($eventsViewer), false);
 }

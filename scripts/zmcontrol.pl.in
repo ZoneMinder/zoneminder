@@ -32,10 +32,24 @@ use POSIX qw/strftime EPIPE EINTR/;
 use Socket;
 use Data::Dumper;
 use JSON::MaybeXS qw(decode_json);
+use B ();
 
 use constant MAX_CONNECT_DELAY => 15;
 use constant MAX_COMMAND_WAIT => 1800;
 use constant CLIENT_READ_TIMEOUT => 5;
+
+# The method a control command names, or undef. A command from a web request must run a method
+# the control module itself defines, not an infrastructure method of ZoneMinder::Control (open,
+# close, get, post, ...) or a function imported into the module (Fatal, Error, ...).
+sub control_method {
+  my ($control, $command) = @_;
+  my $code = $control->can($command);
+  return undef if !$code;
+  my $stash = B::svref_2object($code)->GV->STASH->NAME;
+  # ZoneMinder::Control and the classes above it (Object, Base) hold internals, not commands.
+  return undef if ZoneMinder::Control->isa($stash) or !$control->isa($stash);
+  return $code;
+}
 
 $| = 1;
 
@@ -297,7 +311,7 @@ if ($options{command}) {
           # down. Swapping a camera for a different make leaves exactly this
           # behind: a LightOn action pointing at a protocol with no lightOn,
           # which used to die with "Can't locate object method".
-          if ( !$control->can($command) ) {
+          if ( !control_method($control, $command) ) {
             # ${id} braced: "$id's" parses as $id::s, the old package
             # separator, so the id silently vanished from the message.
             Error("Control protocol $protocol does not implement '$command',"
@@ -399,6 +413,7 @@ running ZoneMinder instance. Useful for testing control modules.
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+ --file [ id ]       - Audio file id to play (IPSpeaker audioPlay)
 
 =head1 EXAMPLES
 

@@ -30,7 +30,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
   if (defined('ZM_OPT_USE_REMEMBER_ME') && ZM_OPT_USE_REMEMBER_ME != 'None' && ZM_OPT_USE_REMEMBER_ME != '' && ZM_OPT_USE_REMEMBER_ME != '0') {
     $rememberChoice = !empty($_REQUEST['remember_me']);
     if ($rememberChoice) {
-      zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + ZM_COOKIE_LIFETIME));
+      zm_setcookie('ZM_REMEMBER_ME', '1', array('expires' => time() + zmCookieLifetime()));
       $_COOKIE['ZM_REMEMBER_ME'] = '1';
     } else {
       zm_setcookie('ZM_REMEMBER_ME', '', array('expires' => time() - 31536000));
@@ -56,7 +56,7 @@ if ( ('login' == $action) && isset($_REQUEST['username']) && ( ZM_AUTH_TYPE == '
     if ($rememberChoice !== null) {
       $cookieParams = session_get_cookie_params();
       zm_setcookie(session_name(), session_id(), array(
-        'expires' => $rememberChoice ? time() + ZM_COOKIE_LIFETIME : 0,
+        'expires' => $rememberChoice ? time() + zmCookieLifetime() : 0,
         'path' => $cookieParams['path'],
         'httponly' => true));
     }

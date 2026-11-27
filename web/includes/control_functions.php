@@ -41,16 +41,22 @@ function forwardControlRequest($url) {
     'ssl'=>array('verify_peer'=>false, 'verify_peer_name'=>false),
     'http'=>array('timeout'=>15, 'ignore_errors'=>true),
   ));
-  $reply = @file_get_contents($url, false, $context);
+  // $http_response_header is deprecated since PHP 8.5, so read the status line from the stream.
+  $fp = @fopen($url, 'r', false, $context);
+  $reply = $fp ? stream_get_contents($fp) : false;
   if ( $reply === false ) {
+    if ( $fp ) fclose($fp);
     ZM\Error('Could not forward the control request to '.strtok($url, '?'));
     return false;
   }
+  $meta = stream_get_meta_data($fp);
+  fclose($fp);
+  $status = isset($meta['wrapper_data'][0]) ? $meta['wrapper_data'][0] : null;
   // ignore_errors=true returns the body even on a 4xx/5xx; treat anything but a
   // 2xx (e.g. a login redirect's HTML when the auth relay was rejected) as a
   // failure rather than relaying it to the browser as a control reply.
-  if ( isset($http_response_header[0]) && !preg_match('#^HTTP/\S+\s+2\d\d#', $http_response_header[0]) ) {
-    ZM\Error('Control request to '.strtok($url, '?').' answered '.$http_response_header[0]);
+  if ( is_string($status) && !preg_match('#^HTTP/\S+\s+2\d\d#', $status) ) {
+    ZM\Error('Control request to '.strtok($url, '?').' answered '.$status);
     return false;
   }
   return $reply;

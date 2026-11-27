@@ -49,12 +49,22 @@ class Storage extends AppModel {
 		),
 		// Only the characters the web console keeps in a storage Name and Path.
 		'Name' => array(
+			'notBlank' => array(
+				'rule' => array('notBlank'),
+				'required' => 'create',
+				'message' => 'Storage area Name is required',
+			),
 			'characters' => array(
 				'rule' => array('custom', '/^[\w\-\.\(\)\:\/ ]*$/uD'),
 				'message' => 'Name may only hold letters, digits, space and - . ( ) : /',
 			),
 		),
 		'Path' => array(
+			'notBlank' => array(
+				'rule' => array('notBlank'),
+				'required' => 'create',
+				'message' => 'Storage area Path is required',
+			),
 			'characters' => array(
 				'rule' => array('custom', '/^[\w\-\.\(\)\:\/ ]*$/uD'),
 				'message' => 'Path may only hold letters, digits, space and - . ( ) : /',

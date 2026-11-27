@@ -1184,6 +1184,35 @@ function click_download() {
       .fail(logAjaxFail);
 } // end function click_download
 
+// Build the filter[Query][terms][n][...] query parameters for a list of terms.
+function filterTermsQueryString(terms) {
+  let query = '';
+  terms.forEach(function(term, index) {
+    const prefix = 'filter[Query][terms][' + index + ']';
+    if (term.cnj) query += '&' + encodeURIComponent(prefix + '[cnj]') + '=' + encodeURIComponent(term.cnj);
+    if (term.obr) query += '&' + encodeURIComponent(prefix + '[obr]') + '=' + encodeURIComponent(term.obr);
+    query += '&' + encodeURIComponent(prefix + '[attr]') + '=' + encodeURIComponent(term.attr);
+    query += '&' + encodeURIComponent(prefix + '[op]') + '=' + encodeURIComponent(term.op);
+    query += '&' + encodeURIComponent(prefix + '[val]') + '=' + encodeURIComponent(term.val);
+    if (term.cbr) query += '&' + encodeURIComponent(prefix + '[cbr]') + '=' + encodeURIComponent(term.cbr);
+  });
+  return query;
+}
+
+// List the events in the window being reviewed, on the monitors shown.
+// DateTime is what this view's filter and Download use: it means the event was
+// running then, so an event already recording when the window opens is kept.
+function click_events() {
+  const terms = [
+    {attr: 'DateTime', op: '>=', val: secs2dbstr(minTimeSecs)},
+    {cnj: 'and', attr: 'DateTime', op: '<=', val: secs2dbstr(maxTimeSecs)},
+  ];
+  const ids = [];
+  for (let i = 0; i < numMonitors; i++) ids.push(monitorPtr[i]);
+  if (ids.length) terms.push({cnj: 'and', attr: 'MonitorId', op: 'IN', val: ids.join(',')});
+  window.location = '?view=events' + filterTermsQueryString(terms);
+}
+
 function click_all_events() {
   clicknav(0, 0, 0);
 }

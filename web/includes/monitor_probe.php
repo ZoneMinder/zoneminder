@@ -288,7 +288,6 @@ function curl($method, $url, $username, $password) {
           $errno == CURLE_SSL_CACERT_BADFILE || $errno == CURLE_SSL_CERTPROBLEM ||
           $errno == 51 || strpos($error, 'SSL') !== false) {
         ZM\Warning('SSL certificate verification failed for '.ZM\urlForLog($url)." ($error), retrying without verification");
-        curl_close($ch);
         
         // Retry without SSL verification
         $ch = curl_init();
@@ -310,7 +309,6 @@ function curl($method, $url, $username, $password) {
     $status = curl_getinfo($ch);
     ZM\Debug(print_r($status, true));
     $headerSize = curl_getinfo( $ch , CURLINFO_HEADER_SIZE );
-    curl_close($ch);
     $headerStr = substr( $res , 0 , $headerSize );
     $bodyStr = substr( $res , $headerSize );
     return $bodyStr;

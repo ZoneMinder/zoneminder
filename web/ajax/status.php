@@ -1,4 +1,5 @@
 <?php
+require_once('includes/log_redact.php');
 if (!isset($_REQUEST['entity'])) {
   \ZM\Error("No entity pass to status request.");
   http_response_code(404);
@@ -255,6 +256,15 @@ $statusData = array(
   )
 );
 
+// Camera credentials are for users who can edit the monitor. A viewer gets Host, Path and ControlAddress without the user:password@ part.
+function statusHideMonitorCredentials(array $row) {
+  if (!isset($row['Id']) || editableMonitor($row['Id'])) return $row;
+  foreach (array('Host', 'Path', 'ControlAddress') as $field) {
+    if (isset($row[$field]) && $row[$field] !== '') $row[$field] = ZM\removeUserinfo($row[$field]);
+  }
+  return $row;
+}
+
 function collectData() {
   global $statusData;
 
@@ -458,6 +468,7 @@ function collectData() {
             return;
           }
         }
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
@@ -476,6 +487,7 @@ function collectData() {
           if (!$object->canView()) continue;
         }
 
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )

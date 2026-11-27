@@ -413,6 +413,7 @@ running ZoneMinder instance. Useful for testing control modules.
  --tiltspeed [ arg ] -
  --tiltstep [ arg ]  -
  --preset [ arg ]    -
+ --file [ id ]       - Audio file id to play (IPSpeaker audioPlay)
 
 =head1 EXAMPLES
 

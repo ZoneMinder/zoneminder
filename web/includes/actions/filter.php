@@ -148,8 +148,9 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
         }
 
         if ($filter->canEdit()) {
+          $stop_after_save = false;
           if ($filter->Id() and ($action == 'Save')) {
-            $filter->control('stop');
+            $stop_after_save = true;
           } else if ($action == 'execute') {
             # If there are changes use a temp filter to do the execute
             $filter->Name('_TempFilter'.time());
@@ -165,6 +166,9 @@ if (isset($_REQUEST['object']) and ($_REQUEST['object'] == 'filter')) {
             // No new Id means no copy exists; don't pretend by redirecting to the original.
             $error_message .= 'Failed to save a copy of the filter.<br/>';
             return;
+          }
+          if ($stop_after_save) {
+            $filter->control('stop');
           }
           ZM\AuditAction('save', 'filter', $filter->Id(), 'Name: '.$filter->Name().' Action: '.$action);
           if ($action == 'Save' or $action == 'SaveAs' ) {

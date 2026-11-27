@@ -59,6 +59,9 @@ class ZonesController extends AppController {
     $monitor = $this->Monitor->find('first', array(
       'conditions' => array('Monitor.Id' => $id)
     ));
+    if ( $monitor['Monitor']['Deleted'] ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     $MonitorObj = new ZM\Monitor($monitor['Monitor']);
     if ( !$MonitorObj->canView() ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
@@ -138,6 +141,11 @@ class ZonesController extends AppController {
       throw new BadRequestException(__('MonitorId is required'));
     }
     $this->requireMonitorEdit($monitorId);
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if ( $monitor->Deleted() ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     $this->pinRequestId($this->Zone, null);
 
     $zone = null;
@@ -204,6 +212,8 @@ class ZonesController extends AppController {
         $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
+    } else {
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
     $this->set(array(
       'message' => $message,

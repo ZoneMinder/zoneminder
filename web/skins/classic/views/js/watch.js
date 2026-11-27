@@ -74,10 +74,21 @@ function ajaxRequest(params) {
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so params.success()
+          // would never run and the table would load for ever.
+          eventListTable.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         const rows = processRows(data.rows);
         params.success(rows);
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Without this the table stays on "Loading, please wait" for good.
+        eventListTable.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
+      });
 }
 
 function processRows(rows) {
@@ -475,8 +486,8 @@ function controlCmd(event) {
     const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
     control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
-  xtell = button.getAttribute('data-xtell');
-  ytell = button.getAttribute('data-ytell');
+  xtell = parseInt(button.getAttribute('data-xtell')) || 0; // "0": that axis is not used
+  ytell = parseInt(button.getAttribute('data-ytell')) || 0;
 
   var data = {};
 

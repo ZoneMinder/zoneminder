@@ -332,6 +332,7 @@ class EventsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     $EventObj = new ZM\Event($event['Event']);
+    if (isset($event['Storage'])) $event['Storage'] = $this->hideStorageSecrets($event['Storage']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -794,6 +795,63 @@ class EventsController extends AppController {
       'changed' => $changed,
       'refused' => $refused,
       '_serialize' => array('changed', 'refused')
+    ));
+  }
+
+  // POST /api/events/video/<id>.json renders the event to a video file with
+  // zmvideo.pl, as the event view's Video page does (ajax/event.php action=video),
+  // and answers the file name. Viewing the event is enough, as on that page.
+  public function video($id = null) {
+    $this->request->allowMethod('post');
+    $this->Event->recursive = -1;
+    if (!$this->Event->exists($id)) {
+      throw new NotFoundException(__('Invalid event'));
+    }
+    if (!(defined('ZM_OPT_FFMPEG') and ZM_OPT_FFMPEG)) {
+      throw new BadRequestException(__('Video generation is turned off (ZM_OPT_FFMPEG)'));
+    }
+
+    $data = $this->request->data;
+    $param = function($name) use ($data) {
+      return (isset($data[$name]) and is_scalar($data[$name])) ? trim((string)$data[$name]) : '';
+    };
+    $format = $param('videoFormat');
+    $rate = $param('rate');
+    $scale = $param('scale');
+    $transform = $param('transform');
+
+    // The formats ZM_FFMPEG_FORMATS offers, without their default markers.
+    $formats = array();
+    foreach (preg_split('/\s+/', defined('ZM_FFMPEG_FORMATS') ? ZM_FFMPEG_FORMATS : '', -1, PREG_SPLIT_NO_EMPTY) as $f) {
+      $formats[] = rtrim($f, '*');
+    }
+    if (!in_array($format, $formats, true)) {
+      throw new BadRequestException(__('videoFormat must be one of: ').implode(', ', $formats));
+    }
+    if (!preg_match('/^\d+$/', $rate) or !(int)$rate) {
+      throw new BadRequestException(__('rate must be a positive whole number'));
+    }
+    if (!preg_match('/^(\d+|\d+x\d+)$/', $scale) or !(int)$scale) {
+      throw new BadRequestException(__('scale must be a positive whole number or WxH'));
+    }
+    if (!preg_match('/^[\w=]*$/', $transform)) {
+      throw new BadRequestException(__('Invalid transform'));
+    }
+
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $id)));
+    $EventObj = new ZM\Event($event['Event']);
+    // canView() enforces the per-monitor ACL.
+    if (!$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+
+    $file = $EventObj->createVideo($format, $rate, $scale, $transform, !empty($data['overwrite']));
+    if (!$file) {
+      throw new InternalErrorException(__('Video generation failed'));
+    }
+    $this->set(array(
+      'video' => $file,
+      '_serialize' => array('video')
     ));
   }
 

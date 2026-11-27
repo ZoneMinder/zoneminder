@@ -691,10 +691,6 @@ bool zm::Select::addReader(CommsBase *comms) {
 }
 
 bool zm::Select::deleteReader(CommsBase *comms) {
-  if (!comms->isOpen()) {
-    Error("Unable to delete closed reader");
-    return false;
-  }
   if (mReaders.erase(comms)) {
     calcMaxFd();
     return true;
@@ -740,13 +736,17 @@ int zm::Select::wait() {
   mReadable.clear();
   FD_ZERO(&rfds);
   for (CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter) {
-    FD_SET((*iter)->getReadDesc(), &rfds);
+    const int fd = (*iter)->getReadDesc();
+    if (fd >= 0)
+      FD_SET(fd, &rfds);
   }
 
   mWriteable.clear();
   FD_ZERO(&wfds);
   for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-    FD_SET((*iter)->getWriteDesc(), &wfds);
+    const int fd = (*iter)->getWriteDesc();
+    if (fd >= 0)
+      FD_SET(fd, &wfds);
   }
 
   int nFound = select(mMaxFd + 1, &rfds, &wfds, nullptr, selectTimeout);
@@ -756,12 +756,14 @@ int zm::Select::wait() {
     Error("Select error: %s", strerror(errno));
   } else {
     for (CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter) {
-      if (FD_ISSET((*iter)->getReadDesc(), &rfds)) {
+      const int fd = (*iter)->getReadDesc();
+      if (fd >= 0 && FD_ISSET(fd, &rfds)) {
         mReadable.push_back(*iter);
       }
     }
     for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-      if (FD_ISSET((*iter)->getWriteDesc(), &wfds)) {
+      const int fd = (*iter)->getWriteDesc();
+      if (fd >= 0 && FD_ISSET(fd, &wfds)) {
         mWriteable.push_back(*iter);
       }
     }

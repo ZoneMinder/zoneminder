@@ -28,6 +28,7 @@ function frameSeconds() {
   return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
 }
 var intervalRewind;
+var gapCountdownTimer = null; // countdown to the next event after a gap
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is rendered
@@ -171,10 +172,11 @@ function vjsReplay() {
           overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
           const gapEnd = Date.now() + (nextStartTime - endTime);
           const messageP = $j('.vjsMessage');
-          const x = setInterval(function() {
+          clearInterval(gapCountdownTimer);
+          gapCountdownTimer = setInterval(function() {
             const remainder = gapEnd - Date.now();
             if ( remainder <= 0 ) {
-              clearInterval(x);
+              clearInterval(gapCountdownTimer);
               streamNext(true);
               return;
             }
@@ -525,8 +527,8 @@ function getCmdResponse(respObj, respText) {
   //  setButtonState('zoomOutBtn', 'inactive');
   //}
 
-  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
-    console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
+  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != zmsScale(currentScale))) {
+    console.log("Stream not scaled, re-applying, current: ", zmsScale(currentScale), " stream: ", streamStatus.scale);
     streamScale(currentScale);
   }
   const fps = document.getElementById('fpsValue');
@@ -791,6 +793,7 @@ function streamNext(action) {
     return;
   }
 
+  clearInterval(gapCountdownTimer);
   $j(".vjsMessage").remove();//This shouldn't happen
   if (nextEventId == 0) { //handles deleting last event.
     pauseClicked();
@@ -919,10 +922,15 @@ function streamZoomOut() {
 }
 */
 
-function streamScale(scale) {
+// The scale zms is asked for: the stream quality applied, and never over 100%.
+function zmsScale(scale) {
   scale += deltaScale();
+  return (scale>100) ? 100 : scale;
+}
+
+function streamScale(scale) {
   if (document.getElementById('evtStream')) {
-    streamReq({command: CMD_SCALE, scale: (scale>100) ? 100 : scale});
+    streamReq({command: CMD_SCALE, scale: zmsScale(scale)});
   }
 }
 

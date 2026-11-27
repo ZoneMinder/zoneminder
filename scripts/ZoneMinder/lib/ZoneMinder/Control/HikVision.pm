@@ -98,7 +98,7 @@ sub open {
       $$self{password} = $self->{Monitor}->{Pass};
     }
     # Check if it is a host and port or just a host
-    if ( $$self{host} =~ /([^:]+):(.+)/ ) {
+    if ( $$self{host} !~ /:.*:/ and $$self{host} =~ /([^:]+):(.+)/ ) {
       $$self{host} = $1;
       $$self{port} = $2 ? $2 : $$self{port};
     }
@@ -127,14 +127,14 @@ Debug("Have " . $+{USERNAME});
     Debug('Not using credentials');
   }
   # Save the base url
-  $self->{BaseURL} = "http://$$self{host}:$$self{port}";
+  $self->{BaseURL} = 'http://'.$self->_host_port();
   $ChannelID = $self->{Monitor}{ControlDevice} if $self->{Monitor}{ControlDevice} and ($self->{Monitor}{ControlDevice} =~ /^\d+$/);
   $$self{realm} = defined($self->{Monitor}->{ControlDevice}) ? $self->{Monitor}->{ControlDevice} : '';
 
   # Save and test the credentials
   if (defined($$self{username})) {
     Debug("Credentials: $$self{host}:$$self{port}, realm:$$self{realm}, user $$self{username}");
-    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $self->{ua}->credentials($self->_host_port(), $$self{realm}, $$self{username}, $$self{password});
   } # end if defined user
 
   my $url = '/ISAPI/System/deviceInfo';
@@ -144,6 +144,13 @@ Debug("Have " . $+{USERNAME});
   }
   return undef;
 } # end sub open
+
+# URI returns an IPv6 host without the brackets a URL needs.
+sub _host_port {
+  my $self = shift;
+  my $host = $$self{host} =~ /:/ ? '['.$$self{host}.']' : $$self{host};
+  return $host.':'.$$self{port};
+}
 
 sub get {
   my $self = shift;
@@ -180,7 +187,7 @@ sub PutCmd {
     if ( $res->code == 401 ) {
       $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
       $self->{ua}->cookie_jar( {} );
-      $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+      $self->{ua}->credentials($self->_host_port(), $$self{realm}, $$self{username}, $$self{password});
 
       $res = $self->{ua}->request($req);
       if (!$res->is_success) {
@@ -532,7 +539,7 @@ sub GetWithRetry {
   if ($r and !$r->is_success and $r->code == 401) {
     $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
-    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $self->{ua}->credentials($self->_host_port(), $$self{realm}, $$self{username}, $$self{password});
     $r = $self->get($url);
   }
   return $r;
@@ -571,7 +578,7 @@ sub PutXML {
   if (!$res->is_success and $res->code == 401) {
     $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar({});
-    $self->{ua}->credentials("$$self{host}:$$self{port}", $$self{realm}, $$self{username}, $$self{password});
+    $self->{ua}->credentials($self->_host_port(), $$self{realm}, $$self{username}, $$self{password});
     $res = $self->{ua}->request($req);
   }
   if (!$res->is_success) {

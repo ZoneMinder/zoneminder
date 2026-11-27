@@ -20,6 +20,10 @@ use URI::Escape qw(uri_escape_utf8);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::Database qw(zmDbConnect);
 
 sub new
@@ -84,7 +88,7 @@ sub open
 
     use LWP::UserAgent;
     use IO::Socket::SSL;
-    $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    $self->{ua} = LWP::UserAgent->new(keep_alive => 1, timeout => HTTP_TIMEOUT);
     # Try with SSL verification enabled first
     $self->{ua}->ssl_opts(
       verify_hostname => 1,

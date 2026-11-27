@@ -5,6 +5,7 @@
 # Tests:
 # 1. Diagonal moves with AutoStopTimeout must start both directions before
 #    stopping either.
+# 3. moveStop after a diagonal without AutoStopTimeout stops both axes.
 #
 # Run as: perl tests/perl/test_foscamcgi_diagonal.pl
 #
@@ -114,6 +115,26 @@ sub camera {
   my $commands = join(',', map { (($_->uri.'') =~ /command=(\d+)/)[0] } @{$ua->{reqs}});
   check('moveConUpRight without AutoStopTimeout only starts',
     $commands, '0,6');
+}
+
+# 6. moveStop after a diagonal without AutoStopTimeout stops both axes
+{
+  my ($control, $ua) = camera(AutoStopTimeout => 0);
+  $control->moveConUpRight();
+  @{$ua->{reqs}} = ();
+  $control->moveStop();
+  my $commands = join(',', map { (($_->uri.'') =~ /command=(\d+)/)[0] } @{$ua->{reqs}});
+  check('moveStop after moveConUpRight sends both stop codes', $commands, '1,7');
+}
+# 7. a later single-axis move replaces the diagonal stop codes
+{
+  my ($control, $ua) = camera(AutoStopTimeout => 0);
+  $control->moveConUpRight();
+  $control->moveConUp();
+  @{$ua->{reqs}} = ();
+  $control->moveStop();
+  my $commands = join(',', map { (($_->uri.'') =~ /command=(\d+)/)[0] } @{$ua->{reqs}});
+  check('moveStop after a single move sends one stop code', $commands, '1');
 }
 
 print "\n$passes passed, $failures failed\n";

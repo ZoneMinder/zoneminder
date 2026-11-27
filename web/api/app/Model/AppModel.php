@@ -66,10 +66,22 @@ class AppModel extends Model {
           if ($number < $min or $number > $max) {
             $this->invalidate($field, $type == 'biginteger' ? $field.' must not be negative' : $field.' must be between '.$min.' and '.$max);
           }
+        } else if ($type == 'decimal' and isset($column['length']) and preg_match('/^(\d+)(?:,(\d+))?$/', (string)$column['length'], $d)) {
+          // DECIMAL(M,D) holds M-D digits before the point, and an unsigned column takes no negative value. MySQL refuses both.
+          $scale = isset($d[2]) ? (int)$d[2] : 0;
+          $limit = pow(10, (int)$d[1] - $scale);
+          $number = round((float)$value, $scale);
+          $max = number_format($limit - pow(10, -$scale), $scale, '.', '');
+          if (!empty($column['unsigned']) and (float)$value < 0) {
+            $this->invalidate($field, $field.' must not be negative');
+          } else if ($number >= $limit or $number <= -$limit) {
+            $this->invalidate($field, $field.' must be between '.(!empty($column['unsigned']) ? '0' : '-'.$max).' and '.$max);
+          }
         }
       } else if (in_array($type, array('datetime', 'timestamp', 'date'))) {
-        if (!preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T]\d{1,2}:\d{1,2}(?::\d{1,2}(?:\.\d+)?)?)?$/', $value, $m)
-            or !checkdate((int)$m[2], (int)$m[3], (int)$m[1])) {
+        if (!preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{1,2})(?::(\d{1,2})(?:\.\d+)?)?)?$/', $value, $m)
+            or !checkdate((int)$m[2], (int)$m[3], (int)$m[1])
+            or (isset($m[4]) and ((int)$m[4] > 23 or (int)$m[5] > 59 or (isset($m[6]) and (int)$m[6] > 59)))) {
           $this->invalidate($field, $field.' must be a date like 2026-01-31 13:45:00');
         }
       } else if ($type == 'string' and !empty($column['length'])) {

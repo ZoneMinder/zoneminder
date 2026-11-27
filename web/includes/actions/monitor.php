@@ -324,9 +324,23 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
+        $dupId = empty($_REQUEST['dupId']) ? 0 : validCardinal($_REQUEST['dupId']);
+        $dupZones = (!empty($_REQUEST['cloneZones']) and $dupId and canView('Monitors', $dupId))
+          ? dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($dupId)) : array();
+        foreach ($dupZones as $dupZone) {
+          unset($dupZone['Id']);
+          $dupZone['MonitorId'] = $mid;
+          $zone = new ZM\Zone();
+          if (!$zone->save($dupZone)) {
+            $error_message .= $zone->get_last_error();
+            ZM\Error('Error cloning zone: '.$error_message);
+          }
+        }
         // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+        if ($dupZones) {
+          // zones were cloned, no default zone needed
+        } else if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,
@@ -415,10 +429,12 @@ if ($action == 'save') {
 
     $submitted_ids = array();
     foreach ( $_REQUEST['newAction'] as $posted ) {
+      if ( !is_array($posted) ) continue;
+
       # A row with no target is how the editor expresses "unused": the spare
       # blank row on every page, or an existing action the operator cleared.
-      $target = empty($posted['TargetMonitorId']) ? 0 : validInt($posted['TargetMonitorId']);
-      $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
+      $target = (empty($posted['TargetMonitorId']) or is_array($posted['TargetMonitorId'])) ? 0 : validInt($posted['TargetMonitorId']);
+      $action_id = (empty($posted['Id']) or is_array($posted['Id'])) ? 0 : validInt($posted['Id']);
 
       if ( !$target ) {
         if ( $action_id ) {
@@ -439,8 +455,19 @@ if ($action == 'save') {
       # Never store an action the target cannot perform. The editor filters the
       # dropdown, but the request is not to be trusted. A disabled select is
       # not submitted at all, so the key may simply be absent.
-      $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
-      $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
+      $action_type = (isset($posted['ActionType']) and is_string($posted['ActionType'])) ? $posted['ActionType'] : '';
+      $trigger_on = (isset($posted['TriggerOn']) and is_string($posted['TriggerOn'])) ? $posted['TriggerOn'] : 'EventStart';
+
+      $valid_triggers = array('EventStart', 'EventEnd', 'Alarm', 'AlarmEnd', 'Manual', 'Schedule');
+      if ( !in_array($trigger_on, $valid_triggers, true) ) {
+        $error_message .= 'Ignoring action: "'.validHtmlStr($trigger_on).'" is not a trigger.<br/>';
+        continue;
+      }
+      $valid_action_types = array('LightOn', 'LightOff', 'IndicatorLightOn', 'IndicatorLightOff', 'AudioPlay', 'AudioStop');
+      if ( !in_array($action_type, $valid_action_types, true) ) {
+        $error_message .= 'Ignoring action: "'.validHtmlStr($action_type).'" is not an action type.<br/>';
+        continue;
+      }
 
       # The editor collects "Every <when> at <time>"; cron's five fields are
       # what gets stored and written to the crontab. A schedule it could not
@@ -452,11 +479,11 @@ if ($action == 'save') {
       # be on this side of the request.
       $schedule = '';
       if ( $trigger_on == 'Schedule' ) {
-        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+        if ( isset($posted['ScheduleRaw']) and is_string($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
           $schedule = trim($posted['ScheduleRaw']);
         } else {
-          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
-          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          $frequency = (isset($posted['ScheduleFrequency']) and is_string($posted['ScheduleFrequency'])) ? $posted['ScheduleFrequency'] : '';
+          $time = (isset($posted['ScheduleTime']) and is_string($posted['ScheduleTime'])) ? trim($posted['ScheduleTime']) : '';
           # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
           if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
             $error_message .= 'Ignoring action: "'.validHtmlStr($time).
@@ -491,7 +518,7 @@ if ($action == 'save') {
         'TriggerOn'       => $trigger_on,
         'Schedule'        => $schedule,
         'ActionType'      => $action_type,
-        'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
+        'AudioFile'       => (!isset($posted['AudioFile']) or is_array($posted['AudioFile']) or $posted['AudioFile'] === '')
                                ? null : validInt($posted['AudioFile']),
         'Enabled'         => empty($posted['Enabled']) ? 0 : 1,
       );

@@ -370,7 +370,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <i class="material-icons md-18">pause</i>
           </button>
 <?php
-if ($showControl) {
+if ($showControl and canView('Control')) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {

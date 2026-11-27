@@ -1694,30 +1694,36 @@ function isVector(&$array) {
 
 function checkJsonError($value) {
   if ( function_exists('json_last_error') ) {
+    if ( json_last_error() === JSON_ERROR_NONE ) return;
     $value = var_export($value, true);
     switch ( json_last_error() ) {
       case JSON_ERROR_DEPTH :
-        ZM\Error("Unable to decode JSON string '$value', maximum stack depth exceeded");
+        $message = "Unable to decode JSON string '$value', maximum stack depth exceeded";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_CTRL_CHAR :
-        ZM\Error("Unable to decode JSON string '$value', unexpected control character found");
+        $message = "Unable to decode JSON string '$value', unexpected control character found";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_STATE_MISMATCH :
-        ZM\Error("Unable to decode JSON string '$value', invalid or malformed JSON");
+        $message = "Unable to decode JSON string '$value', invalid or malformed JSON";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       case JSON_ERROR_SYNTAX :
-        ZM\Error("Unable to decode JSON string '$value', syntax error");
+        $message = "Unable to decode JSON string '$value', syntax error";
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
       default :
-        ZM\Error("Unable to decode JSON string '$value', unexpected error ".json_last_error());
+        $message = "Unable to decode JSON string '$value', unexpected error ".json_last_error();
+        ZM\Error($message);
         $backTrace = debug_backtrace();
         ZM\Debug($message.' from '.print_r($backTrace, true));
         break;
@@ -2264,6 +2270,15 @@ function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
 }
 
+function scalar_values_differ($old, $new) {
+  if (is_array($old) or is_array($new)) {
+    return $old != $new;
+  }
+  if (is_bool($old)) $old = (int)$old;
+  if (is_bool($new)) $new = (int)$new;
+  return (string)($old === null ? '' : $old) !== (string)($new === null ? '' : $new);
+}
+
 function array_recursive_diff($aArray1, $aArray2) {
   $aReturn = array();
   if ( ! (is_array($aArray1) and is_array($aArray2) ) ) {
@@ -2284,7 +2299,7 @@ function array_recursive_diff($aArray1, $aArray2) {
           $aReturn[$mKey] = $mValue;
         }
       } else {
-        if ( $mValue != $aArray2[$mKey] ) {
+        if ( scalar_values_differ($mValue, $aArray2[$mKey]) ) {
           $aReturn[$mKey] = $mValue;
         }
       }

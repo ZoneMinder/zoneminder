@@ -897,12 +897,16 @@ void Event::Run() {
       }
     }
     if (!storage) {
-      storage = new Storage();
-      Warning("Failed to find a storage area to save events.");
+      // Last resort: keep the monitor's own area (the built-in default path when no Storage rows exist).
+      // Events.StorageId already holds that area's Id from the insert, so the row stays consistent with the files.
+      storage = monitor->getStorage();
+      Error("Failed to find a storage area to save events, event %" PRIu64 " will use %s which could not be written", id, storage->Path());
+      SetPath(storage);
+    } else {
+      sql = stringtf("UPDATE Events SET StorageId = '%d', Scheme = '%s' WHERE Id=%" PRIu64, storage->Id(), storage->SchemeString().c_str(), id);
+      zmDbDo(sql);
+      storage_id = storage->Id();
     }
-    sql = stringtf("UPDATE Events SET StorageId = '%d', Scheme = '%s' WHERE Id=%" PRIu64, storage->Id(), storage->SchemeString().c_str(), id);
-    zmDbDo(sql);
-    storage_id = storage->Id();
   }  // end if ! setPath(Storage)
   Debug(1, "Using storage area at %s", path.c_str());
 

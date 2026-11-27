@@ -130,6 +130,11 @@ function onStatsResize(vidwidth) {
 }
 
 function initPage() {
+  // Hide the table first: changeScale() may hide it for lack of room and would
+  // then show it again on a wider window even though the user turned it off.
+  const statsOn = getFrameStatsCookie() == 'on';
+  if (!statsOn) table.toggle(false);
+
   if (!Number(scale)) changeScale(); // 0, auto, fit_to_width and NNNpx are sized here
 
   // Don't enable the back button if there is no previous zm page to go back to
@@ -170,11 +175,7 @@ function initPage() {
   // Load the frame stats
   getStat({eid: eid, fid: fid});
 
-  if (getFrameStatsCookie() != 'on') {
-    table.toggle(false);
-  } else {
-    if (Number(scale)) onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
-  }
+  if (statsOn && Number(scale)) onStatsResize($j('#base_width').val() * scale / SCALE_BASE);
 
   // Manage the FRAMES Button
   bindButton('#framesBtn', 'click', null, function onFramesClick(evt) {

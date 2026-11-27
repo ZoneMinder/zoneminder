@@ -197,7 +197,7 @@ sub moveDiagonal {
   my ($self, $vcmd, $vstop, $hcmd, $hstop) = @_;
   $self->sendCmd( "decoder_control.cgi?command=$vcmd" );
   $self->sendCmd( "decoder_control.cgi?command=$hcmd" );
-  $self->{stop_command} = $hstop;
+  $self->{stop_command} = [$vstop, $hstop];
   my $timeout = $self->{Monitor}->{AutoStopTimeout};
   $self->autoStop( $vstop, $timeout );
   $self->sendCmd( "decoder_control.cgi?command=$hstop" ) if $timeout;
@@ -244,8 +244,9 @@ sub moveStop
 {
   my $self = shift;
   Debug( "Move Stop" );
-  my $cmd = "decoder_control.cgi?command=" . ($self->{stop_command} || 1);
-  $self->sendCmd( $cmd );
+  my $stop = $self->{stop_command};
+  my @stops = ref($stop) eq 'ARRAY' ? @$stop : (defined $stop && length $stop ? $stop : 1);
+  foreach my $s (@stops) { $self->sendCmd( "decoder_control.cgi?command=$s" ); }
 }
 
 #Zoom Stop

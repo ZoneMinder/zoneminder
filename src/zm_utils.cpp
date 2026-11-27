@@ -694,6 +694,30 @@ std::string request_for_log(const std::string &request) {
   return out;
 }
 
+std::string options_for_log(const std::string &options) {
+  std::string out;
+  out.reserve(options.size());
+  std::size_t start = 0;
+  while (start < options.size()) {
+    std::size_t sep = options.find_first_of(kOptionSeparators, start);
+    std::size_t end = (sep == std::string::npos) ? options.size() : sep;
+    std::string entry = options.substr(start, end - start);
+    std::size_t eq = entry.find('=');
+    std::string key = (eq == std::string::npos) ? "" : StringToLower(TrimSpaces(entry.substr(0, eq)));
+    if (key == "headers" or key == "cookies" or key == "http_proxy") {
+      out += entry.substr(0, eq + 1) + "<not logged>";
+    } else if (StringToLower(entry).find("authorization") != std::string::npos) {
+      out += "<not logged>";
+    } else {
+      out += entry;
+    }
+    if (sep == std::string::npos) break;
+    out += options[sep];
+    start = sep + 1;
+  }
+  return out;
+}
+
 std::string remove_newlines( std::string str ) {
   while (!str.empty() && str.find("\n") != std::string::npos)
     str.erase(std::remove(str.begin(), str.end(), '\n'), str.cend());

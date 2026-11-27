@@ -42,6 +42,10 @@ It can also apply and configure upgrades etc, including on the fly upgrades.
                                      If interactive will try once, print out result and quit.
  -f, --freshen                     - Freshen the configuration in the database. Equivalent of old zmconfig.pl -noi
  --migrate-events                  - Update database structures as per USE_DEEP_STORAGE setting.
+ --rename                          - Rename event image files from the old capture-NNN.jpg and
+                                     analyse-NNN.jpg form to NNN-capture.jpg and NNN-analyse.jpg
+ --zone-fix                        - For zones in percent units, multiply the Min/Max Alarm, Filter
+                                     and Blob thresholds by the monitor area over the zone area
  -v <version>, --version=<version> - Force upgrade to the current version from <version>
  -u <dbuser>, --user=<dbuser>      - Alternate DB user with privileges to alter DB
  -p <dbpass>, --pass=<dbpass>      - Password of alternate DB user with privileges to alter DB
@@ -171,7 +175,7 @@ if ($check) {
   }
 
   use LWP::UserAgent;
-  my $ua = LWP::UserAgent->new;
+  my $ua = LWP::UserAgent->new(timeout => 30);
   $ua->agent('ZoneMinder Update Agent/'.ZM_VERSION);
   if ( $Config{ZM_UPDATE_CHECK_PROXY} ) {
     $ua->proxy('https', $Config{ZM_UPDATE_CHECK_PROXY});
@@ -269,7 +273,7 @@ if ( $zoneFix ) {
 
 if ( $migrateEvents ) {
   my $webUid = (getpwnam($Config{ZM_WEB_USER}))[2];
-  my $webGid = (getgrnam($Config{ZM_WEB_USER}))[2];
+  my $webGid = (getgrnam($Config{ZM_WEB_GROUP}))[2];
 
   if ( !(($> == 0) || ($> == $webUid)) ) {
     print("Error, migrating events can only be done as user root or ".$Config{ZM_WEB_USER}.".\n");
@@ -910,10 +914,10 @@ if ( $version ) {
 
     my $columns = $sth->{NAME};
     if ( ! grep(/^Colours$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;});
+      $dbh->do(q{alter table Monitors add column `Colours` tinyint(3) unsigned NOT NULL default '1' after `Height`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     if ( ! grep(/^Deinterlacing$/, @$columns ) ) {
-      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;});
+      $dbh->do(q{alter table Monitors add column `Deinterlacing` INT unsigned NOT NULL default '0' after `Orientation`;}) or die "Error: ".$dbh->errstr()."\n";
     } # end if
     $sth->finish();
 

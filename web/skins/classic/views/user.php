@@ -81,7 +81,7 @@ echo getNavBarHTML();
 <?php if (canEdit('System')) { ?>
                     <tr>
                       <th scope="row"><?php echo translate('Username') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Username]" maxlength="64" pattern="[A-Za-z0-9_ .@]+" placeholder="<?php echo translate('NewUser') ?>" value="<?php echo validHtmlStr($User->Username()); ?>"<?php echo $User->Username() == 'admin' ? ' readonly="readonly"':''?>/></td>
                     </tr>
 <?php } ?>
                     <tr>
@@ -108,11 +108,11 @@ echo getNavBarHTML();
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Full Name') ?></th>
-                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
+                      <td><input type="text" class="form-control form-control-sm" name="user[Name]" maxlength="64" value="<?php echo validHtmlStr($User->Name()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Email Address') ?></th>
-                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
+                      <td><input type="email" class="form-control form-control-sm" name="user[Email]" maxlength="64" value="<?php echo validHtmlStr($User->Email()) ?>"<?php echo canEdit('System') ? '' : ' disabled="disabled"' ?>/></td>
                     </tr>
                     <tr>
                       <th scope="row"><?php echo translate('Phone') ?></th>

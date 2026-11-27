@@ -206,10 +206,18 @@ int RemoteCameraHttp::Disconnect() {
 
 int RemoteCameraHttp::SendRequest() {
   Debug(2, "Sending request: %s", request_for_log(request).c_str());
-  if ( write(sd, request.data(), request.length()) < 0 ) {
-    Error("Can't write: %s", strerror(errno));
-    Disconnect();
-    return -1;
+  const size_t request_length = request.length();
+  size_t bytes_sent = 0;
+  while ( bytes_sent < request_length ) {
+    ssize_t sent = write(sd, request.data() + bytes_sent, request_length - bytes_sent);
+    if ( sent < 0 && errno == EINTR )
+      continue;
+    if ( sent <= 0 ) {
+      Error("Can't write: %s", strerror(errno));
+      Disconnect();
+      return -1;
+    }
+    bytes_sent += static_cast<size_t>(sent);
   }
   format = UNDEF;
   state = HEADER;
@@ -1241,6 +1249,13 @@ int RemoteCameraHttp::Capture(std::shared_ptr<ZMPacket> &packet) {
     if (!image->DecodeJpeg(buffer.extract(content_length), content_length, colours, subpixelorder)) {
       Error("Unable to decode jpeg");
       return -1;
+    }
+    // The camera serves whatever size it likes, and the monitor size may differ on
+    // purpose. Everything downstream is sized for the monitor, so scale the frame to
+    // it, as decoded frames are scaled to the camera size.
+    if (image->Width() != Width() || image->Height() != Height()) {
+      Debug(2, "Scaling %ux%u image to the monitor's %ux%u", image->Width(), image->Height(), Width(), Height());
+      image->Scale(Width(), Height());
     }
     break;
   case X_RGB :

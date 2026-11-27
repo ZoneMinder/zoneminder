@@ -450,6 +450,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
+    if (!html) {
+      console.error('No html received for modal ' + name);
+      return $j('#' + name);
+    }
     let modal = $j('#' + name);
 
     if (modal.length) {
@@ -460,6 +464,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     return modal;
   }
+
+  // Show the server's message when a modal request comes back as an error
+  function modalReplyFailed(evt, jqxhr, settings) {
+    if (!settings || !settings.url || settings.url.indexOf('request=modal') === -1) return;
+    const reply = jqxhr && jqxhr.responseJSON;
+    if (reply && reply.result == 'Error') {
+      alert(reply.message || 'Unable to load the dialog.');
+    }
+  }
+  $j(document).ajaxSuccess(modalReplyFailed);
 
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {
@@ -2830,7 +2844,7 @@ function handleTouchActionGeneral(action, evt) {
   }
 }
 
-/* Processing any key press*/
+/* Processing any key press */
 function handleKeydownGeneral(evt) {
   if (isLightboxOpen()) return;
   const target = evt.target;
@@ -2849,6 +2863,51 @@ function handleKeydownGeneral(evt) {
       submitThisForm();
     }
   }
+
+  // Handle Left/Right arrow navigation for visible replay controls in zone view
+  if (currentView == 'zone') {
+    if (evt.code === "ArrowRight" || evt.code === "ArrowLeft") {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+      const controls = document.getElementById('replayControls');
+      if (controls && isElementReallyVisible(controls)) {
+        evt.preventDefault();
+        zoneObjectSize_stepReplay(evt.code === "ArrowRight" ? 1 : -1);
+      }
+    }
+  }
+}
+
+//Checks whether an element is visually rendered and at least partially within the viewport.
+function isElementReallyVisible(el) {
+  if (!el) return false;
+
+  // 1. Check CSS visibility (display: none, visibility: hidden, opacity: 0)
+  if (typeof el.checkVisibility === 'function') {
+    if (!el.checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) {
+      return false;
+    }
+  }
+
+  // 2. Check element dimensions and viewport intersection
+  const rect = el.getBoundingClientRect();
+
+  // Element has zero width or height
+  if (rect.width === 0 || rect.height === 0) {
+    return false;
+  }
+
+  // Check if the element is completely outside the viewport
+  const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+  const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+
+  const isInViewport = (
+    rect.top < windowHeight &&
+    rect.bottom > 0 &&
+    rect.left < windowWidth &&
+    rect.right > 0
+  );
+
+  return isInViewport;
 }
 
 function handleMouseover(evt) {

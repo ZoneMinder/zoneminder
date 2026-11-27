@@ -52,6 +52,10 @@ our %CamParams = ();
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
 
 sub open
@@ -61,7 +65,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -235,7 +239,7 @@ sub moveDiagonal
     # instead of finishing one axis before starting the other.
     $self->sendCmd( "decoder_control.cgi?command=$vcmd" );
     $self->sendCmd( "decoder_control.cgi?command=$hcmd" );
-    $self->{stop_command} = $hstop;
+    $self->{stop_command} = [$vstop, $hstop];
     my $timeout = $self->{Monitor}->{AutoStopTimeout};
     $self->autoStop( $vstop, $timeout );
     $self->sendCmd( "decoder_control.cgi?command=$hstop" ) if $timeout;
@@ -281,8 +285,9 @@ sub moveStop
     my $self = shift;
     Debug( "Move Stop" );
     # Each direction has its own stop code, saved by the move that started it.
-    my $cmd = "decoder_control.cgi?command=".($self->{stop_command} // "1");
-    $self->sendCmd( $cmd );
+    my $stop = $self->{stop_command};
+    my @stops = ref($stop) eq 'ARRAY' ? @$stop : (defined $stop && length $stop ? $stop : 1);
+    foreach my $s (@stops) { $self->sendCmd( "decoder_control.cgi?command=$s" ); }
 }
 
 #Set Camera Preset

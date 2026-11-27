@@ -33,6 +33,23 @@ class GroupsController extends AppController {
     }
   }
 
+  # The web UI hides a group none of whose monitors the user may view
+  # (ZM\Group::canView); the API does the same.
+  private function canViewGroup($groupId) {
+    global $user;
+    if (!$user) return true;
+    $group = new ZM\Group($groupId);
+    return $group->canView($user);
+  }
+
+  private function viewableGroups($groups) {
+    $viewable = array();
+    foreach ($groups as $group) {
+      if ($this->canViewGroup($group['Group']['Id'])) $viewable[] = $group;
+    }
+    return $viewable;
+  }
+
   # Drop monitors the user may not view from each group's Monitor list.
   private function filterGroupMonitors($groups) {
     $condition = $this->viewableMonitorCondition('Monitor.Id');
@@ -82,7 +99,7 @@ class GroupsController extends AppController {
       'group' => '`Group`.`Id`',
     );
 
-		$groups = $this->filterGroupMonitors($this->Group->find('all', $find_array));
+		$groups = $this->filterGroupMonitors($this->viewableGroups($this->Group->find('all', $find_array)));
 		$this->set(array(
 			'groups' => $groups,
 			'_serialize' => array('groups')
@@ -103,6 +120,9 @@ class GroupsController extends AppController {
 		}
 		$options = array('conditions' => array('Group.' . $this->Group->primaryKey => $id));
 		$group = $this->Group->find('first', $options);
+		if (!$this->canViewGroup($id)) {
+			throw new NotFoundException(__('Invalid group'));
+		}
 		$this->set(array(
 			'group' => $group,
 			'_serialize' => array('group')
@@ -131,6 +151,7 @@ class GroupsController extends AppController {
       }
 
       $monitorIds = $this->requestField('Group', 'MonitorIds');
+      if ( is_array($monitorIds) ) $monitorIds = implode(',', array_filter($monitorIds, 'is_numeric'));
       if ( is_string($monitorIds) and $monitorIds !== '' and ! isset($this->request->data['Monitor']) ) {
         $this->request->data['Monitor'] = explode(',', $monitorIds);
         unset($this->request->data['MonitorIds']);
@@ -254,15 +275,19 @@ class GroupsController extends AppController {
     $group = new ZM\Group($id);
     $this->requireMembershipEdit($group->MonitorIds());
     # Children move up to this group's parent, as deleting one in the web ui does.
-    dbQuery('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
+    $ds = $this->Group->getDataSource();
+    $ds->begin();
+    $this->Group->query('UPDATE `Groups` SET `ParentId`=? WHERE `ParentId`=?', array($group->ParentId(), $id));
 
 		if ( $this->Group->delete() ) {
+      $ds->commit();
       $this->set(array(
         'message' => 'Deleted',
         '_serialize' => array('message'),
       ));
       return;
 		} else {
+      $ds->rollback();
       throw new InternalErrorException(__('The group could not be deleted.'));
 		}
   } // end function delete
@@ -278,7 +303,7 @@ class GroupsController extends AppController {
                                         )
                                       )
                                 );
-            $groups = $this->filterGroupMonitors($groups);
+            $groups = $this->filterGroupMonitors($this->viewableGroups($groups));
             $this->set(array(
                     'groups' => $groups,
                     '_serialize' => array('groups')

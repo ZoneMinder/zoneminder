@@ -1478,7 +1478,7 @@ function getMontageReviewHTML($view, $forLeftBar = false, $customLabel = null) {
   $skipTranslate = $customLabel !== null;
 
   if ( canView('Events') ) {
-    if ( isset($_REQUEST['filter']['Query']['terms']['attr']) ) {
+    if ( isset($_REQUEST['filter']['Query']['terms']) and is_array($_REQUEST['filter']['Query']['terms']) ) {
       $terms = $_REQUEST['filter']['Query']['terms'];
       $count = 0;
       foreach ($terms as $term) {

@@ -261,6 +261,13 @@ class ConfigsController extends AppController {
 			throw new NotFoundException(__('Invalid config'));
 		}
 		$this->request->allowMethod('post', 'delete');
+		$config = $this->Config->find('first', array('conditions' => array('Config.' . $this->Config->primaryKey => $id)));
+		if (!empty($config['Config']['System'])) {
+			throw new ForbiddenException(__('Cannot delete a system Config entry'));
+		}
+		if (!empty($config['Config']['Readonly'])) {
+			throw new ForbiddenException(__('Cannot delete a readonly Config entry'));
+		}
 		if ($this->Config->delete()) {
 			$this->set(array(
 				'message' => 'Deleted',

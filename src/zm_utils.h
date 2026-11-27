@@ -197,6 +197,10 @@ std::string url_for_log(const std::string &url);
 // url_for_log() and the value of any Authorization or Proxy-Authorization
 // header (Basic carries user:password, only base64-encoded) replaced.
 std::string request_for_log(const std::string &request);
+// A monitor's Options string as it may be logged: the values of headers,
+// cookies and http_proxy (which carry credentials) and any entry mentioning
+// authorization are replaced with "<not logged>".
+std::string options_for_log(const std::string &options);
 
 std::string UriEncode(const std::string &value);
 // url with user:pass@ inserted after its scheme://, as stored (not encoded: a

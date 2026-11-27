@@ -118,7 +118,8 @@ sub open {
   }
   $USERNAME = $self->{username} if $self->{username};
   $PASSWORD = $self->{password} if defined $self->{password};
-  $ADDRESS = $self->{host};
+  # URI returns an IPv6 host without the brackets a URL needs.
+  $ADDRESS = $self->{host} =~ /:/ ? '['.$self->{host}.']' : $self->{host};
   # guess_credentials sets $self->{host} for ping. Keep the https:// default for
   # the control API; the camera's HTTP/HTTPS port is independent of the stream port.
   $BASE_URL = $PROTOCOL.$ADDRESS;

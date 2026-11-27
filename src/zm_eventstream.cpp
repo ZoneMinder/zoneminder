@@ -486,6 +486,11 @@ int EventStream::LoopedFrameId(int frame_id, int num_frames) {
   return frame_id < 1 ? num_frames : 1;
 }
 
+Microseconds EventStream::TailPollDelta(bool in_progress, int frame_id, int num_frames, Microseconds delta) {
+  if (in_progress && frame_id > num_frames) return std::chrono::duration_cast<Microseconds>(STREAM_PAUSE_WAIT);
+  return delta;
+}
+
 int EventStream::InitialFrameId(int requested, size_t num_frames) {
   return (requested < 1 || requested > (int)num_frames) ? 1 : requested;
 }
@@ -1463,6 +1468,7 @@ void EventStream::runStream() {
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event
+        delta = TailPollDelta(event_data->in_progress, curr_frame_id, num_frames, delta);
       } else if (holding_for_hint) {
         // Holding on the last frame, like a pause, until the UI's hint arrives.
         // Check back soon: the hint is usually a request or two away.

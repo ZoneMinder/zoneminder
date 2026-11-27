@@ -72,7 +72,9 @@ sub open {
   # wrong for RPC. Only honour {port} if it looks like a web port.
   my $port = ($self->{port} && $self->{port} != 554) ? $self->{port} : 80;
   # JSON-RPC auth is in-band; do not put userinfo in the URL.
-  $self->{RPCBase} = 'http://'.$self->{host}.':'.$port.'/';
+  # URI returns an IPv6 host without the brackets a URL needs.
+  my $host = $self->{host} =~ /:/ ? '['.$self->{host}.']' : $self->{host};
+  $self->{RPCBase} = 'http://'.$host.':'.$port.'/';
   $self->{rpc_id} = 0;
 
   if ($self->login()) {

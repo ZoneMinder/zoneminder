@@ -68,9 +68,9 @@ function decorateStreams(streams) {
     if (seen[key]) key += '#' + i;
     seen[key] = true;
     if (stream.Monitor) {
-      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+key+'"/>';
+      stream.buttons = '<input type="button" value="Edit" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
     } else if (stream.url && user.Monitors == 'Create') {
-      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+key+'"/>';
+      stream.buttons = '<input type="button" value="Add" data-on-click-this="addMonitor" data-url="'+escapeHTML(key)+'"/>';
     }
     if (ZM_WEB_LIST_THUMBS && stream.camera && stream.camera.mjpegstream) {
       // The image proxy requires the CSRF token since it is exempt from the POST check.

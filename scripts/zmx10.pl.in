@@ -39,7 +39,7 @@ management of the ZM daemons based on the receipt of X10 signals.
  -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
- -v, --verison                           - Pirnts the currently installed version of ZoneMinder
+ -v, --version                           - Prints the currently installed version of ZoneMinder
 
 =cut
 use strict;
@@ -177,6 +177,8 @@ our %pending_tasks;
 
 sub runServer {
   Info('X10 server starting');
+  # A client may hang up before our reply is written; a failed write must not kill the daemon
+  $SIG{PIPE} = 'IGNORE';
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE);
@@ -442,7 +444,8 @@ sub loadTasks {
   my $sql = 'SELECT M.*,T.* FROM Monitors as M
   INNER JOIN TriggersX10 as T on (M.Id = T.MonitorId)
   WHERE M.Capturing != \'None\'
-  AND find_IN_set(\'X10\', M.Triggers)';
+  AND find_IN_set(\'X10\', M.Triggers)
+  AND M.Deleted = 0';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute()
@@ -459,6 +462,7 @@ sub loadTasks {
     if ( $monitor->{Activation} ) {
       Debug("$monitor->{Name} has active string '$monitor->{Activation}'");
       foreach my $code_string ( split(',', $monitor->{Activation}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -486,6 +490,7 @@ sub loadTasks {
     if ( $monitor->{AlarmInput} ) {
       Debug("$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'");
       foreach my $code_string ( split(',', $monitor->{AlarmInput}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -513,6 +518,7 @@ sub loadTasks {
     if ( $monitor->{AlarmOutput} ) {
       Debug("$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'");
       foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );

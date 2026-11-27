@@ -70,6 +70,12 @@ if ($have_query_params) {
 } else if ($fid and isset($filterNames[$fid])) {
   ZM\Debug("Loading filter $fid from database");
   $filter = ZM\Filter::find_one(array('Id'=>$fid));
+} else if ($fid) {
+  // A filter deleted since the link was made, or not this user's to see. The
+  // blank form shown here before would have been saved as a new filter.
+  ZM\Warning("Filter $fid not found");
+  $view = 'error';
+  return;
 } else {
   ZM\Debug('Creating new empty filter');
   $filter = new ZM\Filter();
@@ -107,6 +113,16 @@ $archiveTypes = array(
 );
 
 $booleanValues = ZM\Filter::booleanValues();
+$stateTypes = ZM\Filter::stateTypes();
+
+// Set by the execute action's redirect.
+if (isset($_REQUEST['executed'])) {
+  if ($_REQUEST['executed'] === '1') {
+    $info_message = translate('FilterExecuted');
+  } else {
+    $error_message .= translate('FilterExecuteFailed').'<br/>';
+  }
+}
 
 $focusWindow = true;
 
@@ -398,7 +414,7 @@ if ( ZM_OPT_EMAIL ) {
 # show that as the placeholder rather than leaving the field looking unset.
 $default_email_server = (defined('ZM_EMAIL_HOST') and ZM_EMAIL_HOST) ? ZM_EMAIL_HOST : 'localhost';
 ?>
-                <input type="email" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
+                <input type="text" id="filter[EmailServer]" name="filter[EmailServer]" value="<?php echo validHtmlStr($filter->EmailServer()) ?>" placeholder="<?php echo validHtmlStr($default_email_server) ?>"/>
               </p>
               
             </div>

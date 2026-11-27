@@ -53,4 +53,12 @@ class State extends AppModel {
 		),
 	);
 
+	// Deleting the active state would leave none active, so events would be recorded with no
+	// StateId. Fall back to default, as the console and zmpkg.pl do.
+	public function afterDelete() {
+		if (!$this->find('count', array('conditions' => array('State.IsActive' => 1), 'recursive' => -1))) {
+			$this->updateAll(array('State.IsActive' => 1), array('State.Name' => 'default'));
+		}
+	}
+
 }

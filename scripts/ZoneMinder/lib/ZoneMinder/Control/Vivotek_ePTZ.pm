@@ -86,11 +86,13 @@ sub open {
     }
 
     $ADDRESS = $uri->host();
+    # URI returns an IPv6 host without the brackets a URL needs.
+    $ADDRESS = '['.$ADDRESS.']' if $ADDRESS =~ /:/;
   } else {
     Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
-  if ( !($ADDRESS =~ /:/) ) {
+  if ( !($ADDRESS =~ /:/) or $ADDRESS =~ /^\[[^\]]*\]$/ ) {
     my $port = ($PROTOCOL eq 'https://') ? '443' : '80';
     Debug('You generally need to also specify the port.  I will append :'.$port);
     $ADDRESS .= ':'.$port;

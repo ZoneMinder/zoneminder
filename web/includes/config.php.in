@@ -237,10 +237,10 @@ function loadConfigFiles() {
         if ($newconfig) $file_config = array_merge($file_config, $newconfig);
       }
     } else {
-      error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.$configSubFolder);
+      error_log('WARNING: ZoneMinder configuration subfolder found but is not readable. Check folder permissions on '.ZM_CONFIG_SUBDIR);
     }
   } else {
-    error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.$configSubFolder);
+    error_log('WARNING: ZoneMinder configuration subfolder found but is not a directory. Check '.ZM_CONFIG_SUBDIR);
   }
   return $file_config;
 }

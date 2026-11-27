@@ -12,6 +12,15 @@
 namespace ZM {
   // The modal calls ZM\Error() when it rejects an id.
   function Error($m) {}
+
+  // The modal looks the event up and checks it has an objdetect image; any id
+  // finds an event that may be viewed and has objdetect.jpg in its path.
+  class Event {
+    public static $path;
+    public static function find_one(array $criteria) { return new Event(); }
+    public function canView() { return true; }
+    public function Path() { return self::$path; }
+  }
 }
 
 namespace {
@@ -46,6 +55,10 @@ namespace {
   }
   define('ZM_OPT_TRAINING', 1);
 
+  \ZM\Event::$path = sys_get_temp_dir().'/zm_objdetect_eid_test_'.getmypid();
+  mkdir(\ZM\Event::$path, 0700, true);
+  file_put_contents(\ZM\Event::$path.'/objdetect.jpg', 'jpg');
+
   function render($eid) {
     global $modal;
     $_REQUEST = array('eid' => $eid);
@@ -72,6 +85,9 @@ namespace {
 
   // A value with no digits is not an event id, so nothing is rendered.
   check('a non-numeric eid renders nothing', render('abc'), '');
+
+  unlink(\ZM\Event::$path.'/objdetect.jpg');
+  rmdir(\ZM\Event::$path);
 
   echo "\n$passed passed, $failed failed\n";
   exit($failed ? 1 : 0);

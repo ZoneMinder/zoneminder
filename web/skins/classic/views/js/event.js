@@ -28,6 +28,7 @@ function frameSeconds() {
   return (isFinite(spf) && spf > 0) ? Math.round(spf*1000000)/1000000 : 1/25;
 }
 var intervalRewind;
+var gapCountdownTimer = null; // countdown to the next event after a gap
 var revSpeed = .5;
 var cueFrames = null; //make cueFrames available even if we don't send another ajax query
 var cueSeries = null; //parsed levels for the cue graph, rebuilt whenever it is rendered
@@ -50,6 +51,7 @@ let pageMonitorId = null;
 // null while they are not hidden for that reason.
 let zonesShownBeforeHiding = null;
 var realEventHeight = 0;
+var prevStateStarted = null;
 
 var PrevCoordinatFrame = {x: null, y: null};
 var coordinateMouse = {
@@ -63,6 +65,8 @@ var currentScale = 100; // Temporarily, because need to put things in order with
 
 $j(document).on("keydown", "", function(e) {
   e = e || window.event;
+  // The image viewer (GLightbox) handles its own keys while it is open.
+  if (isLightboxOpen()) return;
   if (!$j(".tag-input").is(":focus")) {
     // Keys typed into a field, or used to pick from a select, are that
     // control's own and must not drive the player or the page.
@@ -168,10 +172,11 @@ function vjsReplay() {
           overLaid.append('<p class="vjsMessage" style="height: '+overLaid.height()+'px; line-height: '+overLaid.height()+'px;"></p>');
           const gapEnd = Date.now() + (nextStartTime - endTime);
           const messageP = $j('.vjsMessage');
-          const x = setInterval(function() {
+          clearInterval(gapCountdownTimer);
+          gapCountdownTimer = setInterval(function() {
             const remainder = gapEnd - Date.now();
             if ( remainder <= 0 ) {
-              clearInterval(x);
+              clearInterval(gapCountdownTimer);
               streamNext(true);
               return;
             }
@@ -553,6 +558,7 @@ function pauseClicked() {
 }
 
 function streamPause() {
+  if (!isLightboxOpen()) prevStateStarted = 'paused';
   $j('#modeValue').html('Paused');
 
   $j('#pauseBtn').hide();
@@ -599,6 +605,7 @@ function vjsPlay() { //catches if we change mode programatically
 }
 
 function streamPlay() {
+  if (!isLightboxOpen()) prevStateStarted = 'played';
   $j('#pauseBtn').show();
   $j('#playBtn').hide();
   setButtonState('pauseBtn', 'inactive');
@@ -786,6 +793,7 @@ function streamNext(action) {
     return;
   }
 
+  clearInterval(gapCountdownTimer);
   $j(".vjsMessage").remove();//This shouldn't happen
   if (nextEventId == 0) { //handles deleting last event.
     pauseClicked();
@@ -2129,7 +2137,27 @@ function initPage() {
 
   const toggleZonesButton = document.getElementById('toggleZonesButton');
   if (toggleZonesButton) toggleZonesButton.addEventListener('click', toggleZones);
+
+  if (window.lightbox) {
+    bindLightboxEvents(window.lightbox);
+  } else {
+    document.addEventListener('zm:lightboxReady', (event) => {
+      bindLightboxEvents(event.detail);
+    }, {once: true});
+  }
 } // end initPage
+
+function bindLightboxEvents(lightbox) {
+  lightbox.on('open', () => {
+    // Viewer opened.
+    if (prevStateStarted == 'played') pauseClicked();
+  });
+
+  lightbox.on('close', () => {
+    // Viewer closed.
+    if (prevStateStarted == 'played') playClicked();
+  });
+}
 
 function addOrCreateTag(tagValue, buttonPressed = null) {
   const tagNames = availableTags.map((t) => t.Name.toLowerCase());

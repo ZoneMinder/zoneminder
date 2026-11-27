@@ -47,6 +47,7 @@ set(TEST_SOURCES
   zm_monitor_ondemand.cpp
   zm_monitor_privacy.cpp
   zm_monitor_substitute.cpp
+  zm_monitor_convert_context.cpp
   zm_monitorlink_expression.cpp
   zm_monitorstream.cpp
   zm_monitorlink_token.cpp
@@ -141,7 +142,8 @@ set(TEST_SOURCES
   zm_local_camera.cpp
   zm_libvnc_loader.cpp
   zm_restream_user_missing.cpp
-  zm_stream_manager_json.cpp)
+  zm_stream_manager_json.cpp
+  zm_storage_fallback.cpp)
 
 add_executable(tests ${TEST_SOURCES})
 

@@ -2270,6 +2270,15 @@ function format_duration($time, $separator=':') {
   return sprintf('%02d%s%02d%s%02d', floor($time/3600), $separator, ($time/60)%60, $separator, $time%60);
 }
 
+function scalar_values_differ($old, $new) {
+  if (is_array($old) or is_array($new)) {
+    return $old != $new;
+  }
+  if (is_bool($old)) $old = (int)$old;
+  if (is_bool($new)) $new = (int)$new;
+  return (string)($old === null ? '' : $old) !== (string)($new === null ? '' : $new);
+}
+
 function array_recursive_diff($aArray1, $aArray2) {
   $aReturn = array();
   if ( ! (is_array($aArray1) and is_array($aArray2) ) ) {
@@ -2290,7 +2299,7 @@ function array_recursive_diff($aArray1, $aArray2) {
           $aReturn[$mKey] = $mValue;
         }
       } else {
-        if ( $mValue != $aArray2[$mKey] ) {
+        if ( scalar_values_differ($mValue, $aArray2[$mKey]) ) {
           $aReturn[$mKey] = $mValue;
         }
       }

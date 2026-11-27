@@ -20,6 +20,50 @@
 
 global $error_message;
 
+// Restart the daemons of each selected monitor the user may edit. Actions are
+// dispatched from POST only, but check here too so the action cannot be run
+// from a GET if it ever reaches this file another way.
+function restartMonitors($monitor_ids) {
+  global $error_message;
+
+  if (!isset($_SERVER['REQUEST_METHOD']) or $_SERVER['REQUEST_METHOD'] != 'POST') {
+    $error_message .= 'Restart requires a POST request.<br/>';
+    return false;
+  }
+
+  foreach ((array)$monitor_ids as $monitor_id) {
+    $monitor_id = validCardinal($monitor_id);
+    if (!$monitor_id) {
+      $error_message .= 'Invalid monitor id.<br/>';
+      continue;
+    }
+    $monitor = ZM\Monitor::find_one(array('Id'=>$monitor_id));
+    if (!$monitor) {
+      $error_message .= 'Monitor '.validHtmlStr($monitor_id).' not found.<br/>';
+      continue;
+    }
+    if (!$monitor->canEdit()) {
+      $error_message .= 'You do not have permission to restart monitor '.validHtmlStr($monitor->Name()).'.<br/>';
+      continue;
+    }
+    $monitor->zmcControl('restart');
+    ZM\AuditAction('restart', 'monitor', $monitor->Id(), 'Name: '.$monitor->Name());
+  }
+
+  return true;
+}
+
+if ($action == 'restart') {
+  if (!canEdit('Monitors')) {
+    ZM\Warning('No permission to restart monitors');
+    $error_message .= 'You do not have permission to restart monitors.<br/>';
+  } else if (!isset($_REQUEST['markMids'])) {
+    $error_message .= 'No monitors selected to restart.<br/>';
+  } else {
+    restartMonitors((array)$_REQUEST['markMids']);
+  }
+}
+
 if ($action == 'delete') {
   if (!canEdit('Monitors')) {
     ZM\Warning('No permission to delete monitors');

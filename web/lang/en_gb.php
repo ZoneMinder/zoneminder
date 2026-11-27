@@ -786,6 +786,7 @@ $SLANG = array(
     'RequestMissing'        => 'The request is missing',
     'RequiresAudioMotionEnabled' => 'Requires installation of the file "skins/classic/assets/audioMotion-analyzer/src/audioMotion-analyzer.js"',
     'ResetEventCounts'      => 'Reset Event Counts',
+    'Restart'               => 'Restart',
     'RestrictedCameraIds'   => 'Restricted Camera Ids',
     'RestrictedMonitors'    => 'Restricted Monitors',
     'ResumeAll'             => 'Resume All',

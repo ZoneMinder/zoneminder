@@ -200,6 +200,10 @@ echo $navbar ?>
           <i class="material-icons">delete</i>
           <span class="text">&nbsp;<?php echo translate('Delete') ?></span>
         </button>
+        <button type="button" name="restartBtn" data-on-click-this="restartMonitor" disabled="disabled" title="<?php echo translate('Restart')?>">
+          <i class="material-icons">autorenew</i>
+          <span class="text">&nbsp;<?php echo translate('Restart') ?></span>
+        </button>
         <button type="button" name="selectBtn" data-on-click-this="selectMonitor" disabled="disabled" title="<?php echo translate('Select')?>">
           <i class="material-icons">view_list</i>
           <span class="text">&nbsp;<?php echo translate('Select') ?></span>

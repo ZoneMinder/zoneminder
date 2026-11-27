@@ -366,6 +366,7 @@ function setButtonStates() {
   form.editBtn.disabled = !any;
   form.deleteBtn.disabled = !any;
   form.selectBtn.disabled = !any;
+  form.restartBtn.disabled = !any;
   // Clone copies a single monitor, so it needs exactly one selected row.
   form.cloneBtn.disabled = !(selections && selections.length == 1);
 }
@@ -429,6 +430,23 @@ function deleteMonitor(element) {
 
     form.submit();
   }
+}
+
+function restartMonitor(element) {
+  const selections = table.bootstrapTable('getSelections');
+  if (!selections || selections.length == 0) return;
+
+  const form = element.form;
+  form.elements['action'].value = 'restart';
+  selections.forEach(function(sel) {
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'markMids[]';
+    input.value = sel._id;
+    form.appendChild(input);
+  });
+
+  form.submit();
 }
 
 function selectMonitor(element) {

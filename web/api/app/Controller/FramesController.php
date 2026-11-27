@@ -176,6 +176,7 @@ class FramesController extends AppController {
 			$message = 'Saved';
 		} else {
 			$message = $this->Frame->validationErrors ? $this->Frame->validationErrors : 'Error';
+			$this->response->statusCode(400);
 		}
 		$this->set(array(
 			'message' => $message,
@@ -207,6 +208,7 @@ class FramesController extends AppController {
 				$message = 'Saved';
 			} else {
 				$message = count($columns) ? 'Error' : 'No fields to save';
+				$this->response->statusCode(400);
 			}
 			$this->set(array(
 				'message' => $message,

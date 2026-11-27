@@ -15,7 +15,7 @@ function validateForm(form) {
       obrCount += parseInt(form.elements['filter[Query][terms][' + i + '][obr]'].value);
       cbrCount += parseInt(form.elements['filter[Query][terms][' + i + '][cbr]'].value);
     }
-    if ( form.elements['filter[Query][terms][' + i + '][val]'].value == '' ) {
+    if ( (form.elements['filter[Query][terms][' + i + '][val]'] || form.elements['filter[Query][terms][' + i + '][val][]']).value == '' ) {
       alert(errorValue);
       return false;
     }
@@ -219,6 +219,17 @@ function deleteFilter(element) {
   }
 }
 
+function termOpTypes(attr) {
+  if (attr == 'ExistsInFileSystem' || stateAttrs.includes(attr)) return {'IS': opTypes['IS'], 'IS NOT': opTypes['IS NOT']};
+  if (attr == 'Tags') return tags_opTypes;
+  return opTypes;
+}
+function termOpValue(attr, opVal) {
+  const types = termOpTypes(attr);
+  if (opVal && Object.prototype.hasOwnProperty.call(types, opVal)) return opVal;
+  return (attr == 'ExistsInFileSystem' || stateAttrs.includes(attr)) ? 'IS' : '=';
+}
+
 function parseRows(rows) {
   for ( let rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     const queryPrefix = 'filter[Query][terms][';
@@ -270,7 +281,7 @@ function parseRows(rows) {
       const archiveVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(archiveSelect).children().val(archiveVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'AlarmedZoneId' ) {
-      const zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const zoneSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       for ( const monitor_id in monitors ) {
         for ( const zone_id in zones ) {
           const zone = zones[zone_id];
@@ -280,7 +291,7 @@ function parseRows(rows) {
         } // end foreach zone
       } // end foreach monitor
       const zoneVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(zoneSelect).children().val(zoneVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(zoneSelect).children().val(typeof zoneVal === 'string' && zoneVal.includes(',') ? zoneVal.split(',') : zoneVal).addClass('chosen chosen-full-width');
     } else if ( attr.indexOf('Weekday') >= 0 ) { //Weekday selection
       const weekdaySelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
       for (let i = 0; i < weekdays.length; i++) {
@@ -296,40 +307,40 @@ function parseRows(rows) {
       const stateVal = inputTds.eq(4).children().val();
       inputTds.eq(4).html(stateSelect).children().val(stateVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ServerId' || attr == 'MonitorServerId' || attr == 'StorageServerId' || attr == 'FilterServerId' ) { //Select Server
-      const serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const serverSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       for (const key in servers) {
         serverSelect.append('<option value="' + key + '">' + servers[key] + '</option>');
       }
       const serverVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(serverSelect).children().val(serverVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(serverSelect).children().val(typeof serverVal === 'string' && serverVal.includes(',') ? serverVal.split(',') : serverVal).addClass('chosen chosen-full-width');
     } else if ( (attr == 'StorageId') || (attr == 'SecondaryStorageId') ) { //Choose by storagearea
-      const storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const storageSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       for (const key in storageareas ) {
         storageSelect.append('<option value="' + key + '">' + storageareas[key].Name + '</option>');
       }
       const storageVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(storageSelect).children().val(storageVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(storageSelect).children().val(typeof storageVal === 'string' && storageVal.includes(',') ? storageVal.split(',') : storageVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Monitor' ) {
-      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       sorted_monitor_ids.forEach(function(monitor_id) {
         monitorSelect.append('<option value="' + monitor_id + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       const monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(monitorSelect).children().val(typeof monitorVal === 'string' && monitorVal.includes(',') ? monitorVal.split(',') : monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'MonitorName' ) { //Monitor names
-      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const monitorSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       sorted_monitor_ids.forEach(function(monitor_id) {
         monitorSelect.append('<option value="' + escapeHTML(monitors[monitor_id].Name) + '">' + escapeHTML(monitors[monitor_id].Name) + '</option>');
       });
       const monitorVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(monitorSelect).children().val(monitorVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(monitorSelect).children().val(typeof monitorVal === 'string' && monitorVal.includes(',') ? monitorVal.split(',') : monitorVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'Tags' ) { // Tags
-      const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]');
+      const tagSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val][]').attr('id', queryPrefix + rowNum + '][val]').attr('multiple', 'multiple');
       availableTags.forEach((tag) => {
         tagSelect.append('<option value="' + tag.Id + '">' + escapeHTML(tag.Name) + '</option>');
       });
       const tagVal = inputTds.eq(4).children().val();
-      inputTds.eq(4).html(tagSelect).children().val(tagVal).addClass('chosen chosen-full-width');
+      inputTds.eq(4).html(tagSelect).children().val(typeof tagVal === 'string' && tagVal.includes(',') ? tagVal.split(',') : tagVal).addClass('chosen chosen-full-width');
     } else if ( attr == 'ExistsInFileSystem' || stateAttrs.includes(attr) ) {
       const values = (attr == 'ExistsInFileSystem') ? booleanValues : stateTypes;
       const select = $j('<select></select>').attr('name', queryPrefix + rowNum + '][val]').attr('id', queryPrefix + rowNum + '][val]').addClass('chosen');
@@ -352,30 +363,10 @@ function parseRows(rows) {
     // Validate the operator
     const opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
     let opVal = inputTds.eq(3).children().val();
-    if ( attr == 'ExistsInFileSystem' || stateAttrs.includes(attr) ) {
-      if ( ! opVal ) {
-        // Default to equals so that something gets selected
-        opVal = 'IS';
-      }
-      for (const key of ['IS', 'IS NOT']) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
-      }
-    } else if (attr == 'Tags') {
-      if ( ! opVal ) {
-        // Default to LIKE so that something gets selected
-        opVal = '=';
-      }
-      for ( const key in tags_opTypes ) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + tags_opTypes[key] + '</option>');
-      }
-    } else {
-      if ( ! opVal ) {
-        // Default to equals so that something gets selected
-        opVal = '=';
-      }
-      for ( const key in opTypes ) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
-      }
+    const opChoices = termOpTypes(attr);
+    opVal = termOpValue(attr, opVal);
+    for (const key in opChoices) {
+      opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opChoices[key] + '</option>');
     }
     inputTds.eq(3).html(opSelect).children().val(opVal).addClass('chosen chosen-full-width');
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime

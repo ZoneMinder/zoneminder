@@ -536,19 +536,20 @@ function MonitorStream(monitorData) {
     return suffix;
   };
 
-  // For RTSP2Web which still uses numeric channel IDs
+  // RTSP2Web only registers channel 0 (primary) and 1 (secondary).
+  // Restream channels are not available in RTSP2Web and fall back to 0.
   this.getNumericChannel = function(channel) {
     const channelMap = {
       'default': 0,
       'Primary': 0,
       'Secondary': 1,
       'CameraDirectSecondary': 1,
-      'Restream': 2,
-      'ZoneMinderPrimary': 2,
+      'Restream': 0,
+      'ZoneMinderPrimary': 0,
       'CameraDirectPrimary': 0,
       '0': 0,
       '1': 1,
-      '2': 2
+      '2': 0
     };
     return channelMap[channel] !== undefined ? channelMap[channel] : 0;
   };
@@ -870,7 +871,7 @@ function MonitorStream(monitorData) {
     }
   };
 
-  this.stop = function(options = {}) {
+  this.stop = function(options = {showImg: true}) {
     // Preserve the previous starting state before clearing it.
     // This allows us to distinguish between stopping an already running
     // stream and cancelling a stream that was still starting.
@@ -884,6 +885,8 @@ function MonitorStream(monitorData) {
     manageEventListener.removeEventListener(this.handlerEventListener['pauseStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['errorStream']);
     manageEventListener.removeEventListener(this.handlerEventListener['waitingStream']);
+
+    if (-1 !== this.activePlayer.indexOf('zms')) options.showImg = false;
 
     /* Stop should stop the stream (killing zms) but NOT set src=''; This leaves the last jpeg up on screen instead of a broken image */
     const stream = this.getElement();
@@ -904,11 +907,8 @@ function MonitorStream(monitorData) {
     //this.started = false;
 
     if (this.audioMotion && this.audioMotion.stop) this.audioMotion.stop();
-    if (-1 !== this.activePlayer.indexOf('zms')) {
-      this.writeTextInfoBlock("Stopped", {showImg: false});
-    } else {
-      this.writeTextInfoBlock("Stopped");
-    }
+    this.writeTextInfoBlock("Stopped", {showImg: options.showImg});
+
     console.debug(`! ${dateTimeToISOLocal(new Date())} Stream for ID=${this.id} STOPPING`);
     this.statusCmdTimer = clearInterval(this.statusCmdTimer);
     this.streamCmdTimer = clearInterval(this.streamCmdTimer);

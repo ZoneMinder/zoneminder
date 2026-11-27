@@ -129,9 +129,10 @@ class UserPreferenceController extends AppController {
       } else {
         $message = 'Failure';
         ZM\Warning(json_encode($this->UserPreference->validationErrors));
+        $this->response->statusCode(400);
       }
     } else {
-      ZM\Error("NOT POST in add()");
+      throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
       'message' => $message,
@@ -164,6 +165,8 @@ class UserPreferenceController extends AppController {
 				$data['UserId'] = $user->Id();
 			}
 			if ($this->UserPreference->save($data)) {
+			} else {
+				$this->response->statusCode(400);
 			}
 		} else {
 			$options = array('conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id));

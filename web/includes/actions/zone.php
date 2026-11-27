@@ -52,7 +52,9 @@ if ( !empty($_REQUEST['mid']) && canEdit('Monitors', $_REQUEST['mid']) ) {
       ob_end_clean();
       if (!$points || count($points) < 3 || count($points) != count(preg_split('/\s+/', trim($_REQUEST['newZone']['Coords'])))) {
         ZM\Warning('Not saving zone '.$zid.' for monitor '.$mid.', Coords are not a polygon: '.$_REQUEST['newZone']['Coords']);
-        $redirect = '?view=zones&mid='.$mid;
+        // Stay on the zone editor and say why; redirecting to the list lost the
+        // edit without a word.
+        $error_message .= 'The zone was not saved: its points do not make a polygon of at least 3 points.<br/>';
         return;
       }
       # Keep Coords, NumCoords and Area in step with each other

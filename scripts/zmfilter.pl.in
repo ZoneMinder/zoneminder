@@ -360,12 +360,14 @@ sub checkFilterEvent {
   if ( $filter->{AutoArchive} ) {
     Info("Archiving event $Event->{Id}");
     # Do it individually to avoid locking up the table for new events
-    $Event->save({Archived=>1});
+    zmDbExecute('UPDATE `Events` SET `Archived`=1 WHERE `Id`=?', $Event->{Id});
+    $Event->{Archived} = 1;
   }
   if ( $filter->{AutoUnarchive} ) {
     Info("Unarchiving event $Event->{Id}");
     # Do it individually to avoid locking up the table for new events
-    $Event->save({Archived=>0});
+    zmDbExecute('UPDATE `Events` SET `Archived`=0 WHERE `Id`=?', $Event->{Id});
+    $Event->{Archived} = 0;
   }
   if ( $filter->{AutoTag} and $filter->{AutoTagId} ) {
     Info("Tagging event $Event->{Id} with tag $filter->{AutoTagId}");
@@ -434,7 +436,8 @@ sub checkFilterEvent {
       } else {
         # No commit: each statement autocommits now that LockRows no longer
         # wraps the whole filter run in one transaction.
-        $Event->save({SecondaryStorageId=>$$NewStorage{Id}});
+        zmDbExecute('UPDATE `Events` SET `SecondaryStorageId`=? WHERE `Id`=?', $$NewStorage{Id}, $Event->{Id});
+        $Event->{SecondaryStorageId} = $$NewStorage{Id};
       }
     } else {
       Error("No storage area found for copy to operation.  AutoCopyTo was $$filter{AutoCopyTo}");
@@ -450,7 +453,8 @@ sub checkFilterEvent {
       or
       ( (defined $old_diskspace) and (defined $new_diskspace) and ($old_diskspace != $new_diskspace) )
       ) {
-      $Event->save();
+      # Not save(): zmc or the web ui may have changed the event since it was loaded
+      zmDbExecute('UPDATE `Events` SET `DiskSpace`=? WHERE `Id`=?', $new_diskspace, $Event->{Id});
     }
   } # end if UpdateDiskSpace
 } # end sub checkFilterEvent

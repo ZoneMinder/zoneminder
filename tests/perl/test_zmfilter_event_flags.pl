@@ -73,6 +73,8 @@ sub save {
 sub Monitor { return bless { Name => 'Cam', DefaultRate => 100, DefaultScale => 100 }, 'FakeMonitor'; }
 sub Path { return '/nonexistent/1'; }
 # As ZoneMinder::Event::DiskSpace: undef asks for the size on disk
+# A user archives the event in the web ui while its files are copied
+sub CopyTo { my $self = shift; $main::rows{$$self{Id}}{Archived} = 1 if $main::rows{$$self{Id}}; return ''; }
 sub DiskSpace {
   my $self = shift;
   $$self{DiskSpace} = shift if @_;
@@ -81,8 +83,10 @@ sub DiskSpace {
 }
 package FakeMonitor;
 sub Name { return $_[0]{Name}; }
+package ZoneMinder::Storage;
+sub find_one { my ($class, %args) = @_; return bless { Id => $args{Id} }, $class; }
 package FakeFilter;
-sub Execute { return map { { %$_ } } values %main::rows; }
+sub Execute { return map { { %{$main::rows{$_}} } } sort { $a <=> $b } keys %main::rows; }
 package FakeSth;
 sub execute { my ($self, $id) = @_; $main::rows{$id}{$$self{column}} = 1 if $main::rows{$id}; return 1; }
 package FakeDbh;
@@ -118,9 +122,12 @@ sub substituteTags {
 }
 sub sendTheEmail { return 1 }
 sub zmDbExecute {
-  my ($sql, $id) = @_;
-  my ($column) = $sql =~ /SET `(\w+)`=1/;
-  $rows{$id}{$column} = 1 if $rows{$id};
+  my ($sql, @values) = @_;
+  my ($column, $value) = $sql =~ /^UPDATE `Events` SET `(\w+)`=(\d|\?) WHERE `Id`=\?$/
+    or die "unexpected statement $sql";
+  $value = shift @values if $value eq '?';
+  my $id = shift @values;
+  $rows{$id}{$column} = $value if $rows{$id};
   return 1;
 }
 sub zmDbFetchOne {
@@ -147,8 +154,11 @@ BEGIN {
       $main::rows{1}{DiskSpace} = 5000;
     }
     delete $main::rows{1} if $main::delete_during_video;
-    # zmc closes the event while its video is made
-    @{$main::rows{1}}{qw(EndDateTime Frames Length)} = ('2026-11-01 10:01:00', 600, 60) if $main::close_during_video;
+    # zmc closes the event numbered $close_during_video while the first video is made
+    if ($main::close_during_video and $main::rows{$main::close_during_video}) {
+      @{$main::rows{$main::close_during_video}}{qw(EndDateTime Frames Length)} = ('2026-11-01 10:01:00', 600, 60);
+      $main::close_during_video = 0;
+    }
     $? = 0;
     return "/nonexistent/1/video.mp4\n";
   };
@@ -171,11 +181,12 @@ sub run_filter {
   $video_exists = delete $filter{video_exists} // 0;
   $video_fails = delete $filter{video_fails} // 0;
   $ev_tag = delete $filter{ev_tag} // 0;
+  my $events = delete $filter{events} // 1;
   local $Config{ZM_MESSAGE_ADDRESS} = '' if delete $filter{message_fails};
   $files_size = $video_exists ? 5000 : 10;
-  %rows = (1 => { Id => 1, MonitorId => 1, DiskSpace => 1000, Archived => 0,
+  %rows = map { $_ => { Id => $_, MonitorId => 1, DiskSpace => 1000, Archived => 0,
     Videoed => 0, Uploaded => 0, Emailed => 0, Messaged => 0, Executed => 0,
-    EndDateTime => undef, Frames => 10, Length => undef });
+    EndDateTime => undef, Frames => 10, Length => undef } } 1..$events;
   checkFilter(bless { Name => 'test', EmailTo => 'a@example.com', EmailFormat => 'Individual',
     EmailSubject => 'subject', EmailBody => "head\n%SUMMARY%event\n%SUMMARY%tail", %filter }, 'FakeFilter');
 }
@@ -226,6 +237,23 @@ check('event deleted by its command is not written back', join(',', sort keys %r
 
 run_filter(AutoExecute => 1, AutoExecuteCmd => 'zmtest-delete', UpdateDiskSpace => 1);
 check('event deleted by its command is not written back by the disk space update', join(',', sort keys %rows), '');
+
+run_filter(AutoVideo => 1, AutoArchive => 1, events => 2, close_during_video => 2);
+check('event closed while an earlier one is worked on, then archived: Archived is set', $rows{2}{Archived}, 1);
+check('event closed while an earlier one is worked on, then archived: EndDateTime is kept', $rows{2}{EndDateTime}, '2026-11-01 10:01:00');
+check('event closed while an earlier one is worked on, then archived: Frames is kept', $rows{2}{Frames}, 600);
+
+run_filter(AutoVideo => 1, AutoUnarchive => 1, events => 2, close_during_video => 2);
+check('event closed while an earlier one is worked on, then unarchived: EndDateTime is kept', $rows{2}{EndDateTime}, '2026-11-01 10:01:00');
+
+run_filter(AutoVideo => 1, UpdateDiskSpace => 1, video_exists => 1, close_during_video => 1);
+check('event closed while its video is made, then disk space update: DiskSpace is saved', $rows{1}{DiskSpace}, 5000);
+check('event closed while its video is made, then disk space update: EndDateTime is kept', $rows{1}{EndDateTime}, '2026-11-01 10:01:00');
+check('event closed while its video is made, then disk space update: Frames is kept', $rows{1}{Frames}, 600);
+
+run_filter(AutoCopy => 1, AutoCopyTo => 2);
+check('copy: SecondaryStorageId is set', $rows{1}{SecondaryStorageId}, 2);
+check('copy: Archived set during the copy is kept', $rows{1}{Archived}, 1);
 
 print "\n$passes passed, $failures failed\n";
 exit($failures ? 1 : 0);

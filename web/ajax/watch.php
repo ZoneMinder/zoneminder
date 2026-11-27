@@ -1,7 +1,7 @@
 <?php
 //
 // This is simplified version of the logic from ajax/events.php
-// For efficiency, sorting and and pagination functionality have been excluded
+// For efficiency, sorting and pagination functionality have been excluded
 //
 
 $message = '';

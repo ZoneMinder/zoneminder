@@ -25,7 +25,7 @@ Ensure that the Delete all matches checkbox is checked.
 
 Then click on 'Save'.  The filter will immediately begin executing in the background to keep your disk within those limits.
 
-Please note that that this filter will only affect the default storage location.  If you have added other storage areas, you must create a PurgeWhenFull filter for each one, and specify the Storage Area as one of the parameters in the filter. You can duplicate the existing PurgeWhenFull filter by using Save As instead of Save.
+Please note that this filter will only affect the default storage location.  If you have added other storage areas, you must create a PurgeWhenFull filter for each one, and specify the Storage Area as one of the parameters in the filter. You can duplicate the existing PurgeWhenFull filter by using Save As instead of Save.
 
 Check the ``zmfilter.log`` file to make sure it is running as sometimes missing perl modules mean that it never runs but people don't always realize.
 
@@ -394,7 +394,7 @@ To save a run state you should first configure your monitors for Modect, Record,
 
 Now you can switch between these two states by selecting them from the same dialog you saved them, or from the command line from issue the command ''zmpkg.pl <run state>'', for example ''zmpkg.pl Daytime''.
 
-The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <https://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at at 8am and to the nighttime state at 8pm would be as follows,
+The final step you need to take, is scheduling the time the changes take effect. For this you can use `cron <https://en.wikipedia.org/wiki/Cron>`__. A simple entry to change to the Daylight state at 8am and to the nighttime state at 8pm would be as follows,
 
 ::
 

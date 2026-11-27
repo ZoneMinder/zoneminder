@@ -203,7 +203,7 @@ class HostController extends AppController {
     /* we won't support AUTH_HASH_IPS in token mode
       reasons:
       a) counter-intuitive for mobile consumers
-      b) zmu will never be able to to validate via a token if we sign
+      b) zmu will never be able to validate via a token if we sign
          it after appending REMOTE_ADDR
 
     if (ZM_AUTH_HASH_IPS) {

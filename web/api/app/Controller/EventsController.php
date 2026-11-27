@@ -176,7 +176,7 @@ class EventsController extends AppController {
       // with many event APIs. In future, we can
       // make a nice ZM_API_ITEMS_PER_PAGE for all pagination
       // API
-      // ICON: 2023-11-16: MontageReview now uses API and unless we specifiy a limit in params, there should be no limit
+      // ICON: 2023-11-16: MontageReview now uses API and unless we specify a limit in params, there should be no limit
       // TODO: Implement request based limits.
 
       'paramType' => 'querystring',

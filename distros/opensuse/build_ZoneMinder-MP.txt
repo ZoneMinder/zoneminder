@@ -21,7 +21,7 @@ perl-macros installed as part of zypper in perl-docs
 libmysqlclient-devel installed as part of libmariadb-devel
 15.6 also needed "pipewire-jack"
 
-Some packages (like perl-Sys-Mnap) only exist in in OBS projects. Add the "release" repository to your build machine.
+Some packages (like perl-Sys-Mnap) only exist in OBS projects. Add the "release" repository to your build machine.
 (You'll likely need to do this for your ZM machine too, even when using the -MP version)
 https://build.opensuse.org/package/show/home:joelgb:branches:home:Monex:stable/ZoneMinder
 (click Download package & add the repository)

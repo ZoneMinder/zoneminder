@@ -605,9 +605,9 @@ class Monitor extends ZM_Object {
 
     # zms doesn't support width & height, so if no scale is set, default it
     if (!isset($args['scale'])) {
-      if (isset($args['width']) and intval($args['width'])) {
+      if (isset($args['width']) and intval($args['width']) and $this->ViewWidth() > 0) {
         $args['scale'] = intval((100*intval($args['width']))/$this->ViewWidth());
-      } else if (isset($args['height']) and intval($args['height'])) {
+      } else if (isset($args['height']) and intval($args['height']) and $this->ViewHeight() > 0) {
         $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
     }
@@ -1320,9 +1320,11 @@ class Monitor extends ZM_Object {
         }
       } else {
         if (preg_match('/^(\d+)px$/', $options['width'], $matches)) {
-          $scale = intval(100*$matches[1]/$this->ViewWidth());
-          if ($scale < $options['scale'])
-            $options['scale'] = $scale;
+          if ($this->ViewWidth() > 0) {
+            $scale = intval(100*$matches[1]/$this->ViewWidth());
+            if ($scale < $options['scale'])
+              $options['scale'] = $scale;
+          }
         } else if (preg_match('/^(\d+)%$/', $options['width'], $matches)) {
           $scale = intval($matches[1]);
           if ($scale < $options['scale'])

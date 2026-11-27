@@ -753,7 +753,7 @@ CREATE TABLE `Monitors` (
   `MotionFrameSkip` smallint(5) unsigned NOT NULL default '0',
   `AnalysisFPSLimit` decimal(5,2) default NULL,
   `AnalysisUpdateDelay` smallint(5) unsigned NOT NULL default '0',
-  `MaxFPS` decimal(5,2) default NULL,
+  `MaxFPS` decimal(5,3) default NULL,
   `AlarmMaxFPS` decimal(5,2) default NULL,
   `FPSReportInterval` smallint(5) unsigned NOT NULL default '250',
   `RefBlendPerc` tinyint(3) unsigned NOT NULL default '6',

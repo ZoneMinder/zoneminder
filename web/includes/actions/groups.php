@@ -42,13 +42,19 @@ if ( $action == 'delete' ) {
       // Deleting a group removes its monitors from it, which can lift a deny on them.
       if (!ZM\Group::canEditMembership($Group->MonitorIds())) {
         ZM\Warning('Need edit permission on every monitor in group '.$Group->Id().' to delete it');
+        $error_message .= 'You need edit permission on every monitor in group '.validHtmlStr($Group->Name()).' to delete it.<br/>';
         continue;
       }
-      $Group->delete();
+      if ($Group->delete() === false) {
+        $error_message .= 'Error deleting group: '.validHtmlStr(dbLastError()).'<br/>';
+        continue;
+      }
       ZM\AuditAction('delete', 'group', $Group->Id(), 'Name: '.$Group->Name());
     }
   }
-  $redirect = '?view=groups';
-  $refreshParent = true;
+  if (!$error_message) {
+    $redirect = '?view=groups';
+    $refreshParent = true;
+  }
 } # end if action
 ?>

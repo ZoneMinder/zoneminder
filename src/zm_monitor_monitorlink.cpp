@@ -91,6 +91,9 @@ bool Monitor::MonitorLink::connect() {
     disconnect();
 
     mem_size = sizeof(SharedData) + sizeof(TriggerData);
+    // A zone link reads zone_scores[zone_index], which follows TriggerData
+    if (zone_index >= 0)
+      mem_size += (static_cast<off_t>(zone_index) + 1) * sizeof(int);
 
     Debug(1, "link.mem.size=%jd", static_cast<intmax_t>(mem_size));
 #if ZM_MEM_MAPPED

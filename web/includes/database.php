@@ -27,6 +27,11 @@ $GLOBALS['dbLogLevel'] = DB_LOG_OFF;
 $GLOBALS['dbConn'] = false;
 require_once('logger.php');
 
+// PDO::MYSQL_ATTR_* is deprecated since PHP 8.5 in favour of Pdo\Mysql::ATTR_*, which exists from 8.4.
+function dbMysqlAttr($name) {
+  return defined('Pdo\\Mysql::ATTR_'.$name) ? constant('Pdo\\Mysql::ATTR_'.$name) : constant('PDO::MYSQL_ATTR_'.$name);
+}
+
 function dbConnect() {
   global $dbConn;
 
@@ -59,13 +64,13 @@ function dbConnect() {
   try {
     $dbOptions = array();
     if ( $emulatePrepares ) {
-      $dbOptions[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
+      $dbOptions[dbMysqlAttr('MULTI_STATEMENTS')] = false;
     }
     if ( defined('ZM_DB_SSL_CA_CERT') and ZM_DB_SSL_CA_CERT ) {
       $dbOptions += array(
-        PDO::MYSQL_ATTR_SSL_CA   => ZM_DB_SSL_CA_CERT,
-        PDO::MYSQL_ATTR_SSL_KEY  => ZM_DB_SSL_CLIENT_KEY,
-        PDO::MYSQL_ATTR_SSL_CERT => ZM_DB_SSL_CLIENT_CERT,
+        dbMysqlAttr('SSL_CA')   => ZM_DB_SSL_CA_CERT,
+        dbMysqlAttr('SSL_KEY')  => ZM_DB_SSL_CLIENT_KEY,
+        dbMysqlAttr('SSL_CERT') => ZM_DB_SSL_CLIENT_CERT,
       );
       // Identity-verify the server certificate when ZM_DB_SSL_VERIFY_SERVER_CERT
       // is set: truthy verifies, false-y (0/false/no/off) allows a self-signed
@@ -76,7 +81,7 @@ function dbConnect() {
       if ( defined('ZM_DB_SSL_VERIFY_SERVER_CERT') ) {
         $verify_value = strtolower(trim((string)ZM_DB_SSL_VERIFY_SERVER_CERT));
         if ( $verify_value !== '' ) {
-          $dbOptions[PDO::MYSQL_ATTR_SSL_VERIFY_SERVER_CERT] =
+          $dbOptions[dbMysqlAttr('SSL_VERIFY_SERVER_CERT')] =
             !in_array($verify_value, array('0', 'false', 'no', 'off'), true);
         }
       }
@@ -176,10 +181,7 @@ function dbError($sql) {
 
 function dbEscape( $string ) {
   $dbConn = zmDbConn();
-  if ( version_compare(phpversion(), '5.4', '<=') and get_magic_quotes_gpc() ) 
-    return $dbConn->quote(stripslashes($string));
-  else
-    return $dbConn->quote($string);
+  return $dbConn->quote($string);
 }
 
 // The bound values of a failed statement, for its Error line: those go to the

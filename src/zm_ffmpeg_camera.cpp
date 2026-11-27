@@ -462,7 +462,7 @@ int FfmpegCamera::OpenFfmpeg() {
     ret = av_dict_parse_string(&opts, mOptions.c_str(), "=", kOptionSeparators, 0);
     if (ret < 0) {
       Error("Could not parse ffmpeg input options '%s'. Options must be key=value pairs separated by commas or "
-            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", mOptions.c_str());
+            "new lines, such as tls_verify=0, not ffmpeg command line flags like -tls_verify 0.", options_for_log(mOptions).c_str());
     }
 
     // "loop=1" is handled by us (seek-to-start on EOF), not by ffmpeg, which
@@ -523,10 +523,14 @@ int FfmpegCamera::OpenFfmpeg() {
       Warning("Could not set rtsp_transport method '%s'", method.c_str());
     }
   } else if (protocol == "V4L2") {
-    if (!zm_load_avdevice()) return -1;
+    if (!zm_load_avdevice()) {
+      av_dict_free(&opts);
+      return -1;
+    }
     input_format = av_find_input_format("video4linux2");
     if (!input_format) {
       Error("Cannot find v4l2 input format");
+      av_dict_free(&opts);
       return -1;
     }
     openPath = mPath.substr(7);
@@ -714,9 +718,10 @@ int FfmpegCamera::Close() {
 
   if ( mSecondFormatContext ) {
     mSecondFormatContext = nullptr;
-    mAudioStream = nullptr;
-    mAudioStreamId = -1;
   }
+  // The stream pointers point into the contexts just closed.
+  mAudioStream = nullptr;
+  mAudioStreamId = -1;
   mSecondInput.reset();
 
   return 0;

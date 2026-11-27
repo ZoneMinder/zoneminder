@@ -6,6 +6,11 @@ class HostController extends AppController {
   public $components = array('RequestHandler');
 
   public function daemonCheck($daemon=false, $args=false) {
+    # Same rule as daemonControl() for check and status: System View or Edit.
+    global $user;
+    if ($user and ($user->System() == 'None')) {
+      throw new UnauthorizedException(__('Insufficient privileges'));
+    }
     # To try to prevent abuse here, we are only going to allow certain characters in the daemon and args.
     $count = 0;
     $safe_daemon = $daemon ? preg_replace('/[^A-Za-z0-9\- \.]/', '', $daemon, -1, $count) : false;
@@ -258,7 +263,10 @@ class HostController extends AppController {
     # cannot view a monitor was being told that it exists and how much disk it
     # uses. Report only on the monitors it may see.
     if ($mid) {
-      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid)));
+      $one = $this->Monitor->find('first', array('conditions' => array('Id' => $mid, 'Monitor.Deleted' => 0)));
+      if (!$one) {
+        throw new NotFoundException(__('Invalid monitor'));
+      }
       $zm_monitor = new ZM\Monitor($one['Monitor']);
       if (!$zm_monitor->canView()) {
         throw new UnauthorizedException(__('Insufficient Privileges'));

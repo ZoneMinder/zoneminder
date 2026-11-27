@@ -73,7 +73,7 @@ Monitor::Go2RTCManager::Go2RTCManager(Monitor *parent_)
   if (Use_RTSP_Restream) {
     if (parent->server_id) {
       Server server(parent->server_id);
-      rtsp_restream_base_path = "rtsp://"+server.Hostname();
+      rtsp_restream_base_path = "rtsp://"+UrlHost(server.Hostname());
     } else {
       rtsp_restream_base_path = "rtsp://127.0.0.1";
     }

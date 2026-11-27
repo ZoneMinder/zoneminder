@@ -45,6 +45,17 @@ class Server extends ZM_Object {
     'zmeventnotification'  => 0,
   );
 
+  // Describes what still points at this server ('3 monitors, 1 storage area'), or '' when nothing does.
+  public static function InUseSummary($id) {
+    $row = dbFetchOne('SELECT (SELECT COUNT(*) FROM Monitors WHERE Deleted=0 AND ServerId=?) AS Monitors, (SELECT COUNT(*) FROM Storage WHERE ServerId=?) AS Storage, (SELECT COUNT(*) FROM CronJobs WHERE ServerId=?) AS CronJobs', false, array($id, $id, $id));
+    if (!$row) return '';
+    $parts = array();
+    if ($row['Monitors']) $parts[] = $row['Monitors'].' monitor'.($row['Monitors'] == 1 ? '' : 's');
+    if ($row['Storage']) $parts[] = $row['Storage'].' storage area'.($row['Storage'] == 1 ? '' : 's');
+    if ($row['CronJobs']) $parts[] = $row['CronJobs'].' cron job'.($row['CronJobs'] == 1 ? '' : 's');
+    return implode(', ', $parts);
+  }
+
   public function ReadStats() {
     # Single-server installs store stats under ServerId=0 (zmstats.pl writes
     # ZM_SERVER_ID ? ZM_SERVER_ID : 0), and $this->Id() is empty/undef there.
@@ -195,7 +206,12 @@ class Server extends ZM_Object {
     }
 
     $url = $this->Protocol().'://';
-		$url .= $this->Hostname();
+    $hostname = $this->Hostname();
+    # An IPv6 literal must be bracketed to be followed by a port.
+    if ( strpos($hostname, ':') !== false and $hostname[0] != '[' ) {
+      $hostname = '['.$hostname.']';
+    }
+    $url .= $hostname;
     if ( !$port ) {
       $port = $this->Port();
     }

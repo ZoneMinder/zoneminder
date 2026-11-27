@@ -41,6 +41,10 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::General qw(:all);
 
 use Time::HiRes qw( usleep );
@@ -86,19 +90,22 @@ sub open {
     }
 
     $ADDRESS = $uri->host();
+    # URI returns an IPv6 host without the brackets a URL needs.
+    $ADDRESS = '['.$ADDRESS.']' if $ADDRESS =~ /:/;
   } else {
     Error('Failed to parse auth from address ' . urlForLog($self->{Monitor}->{ControlAddress}));
     $ADDRESS = $self->{Monitor}->{ControlAddress};
   }
-  if ( !($ADDRESS =~ /:/) ) {
-    Debug('You generally need to also specify the port.  I will append :80');
-    $ADDRESS .= ':80';
+  if ( !($ADDRESS =~ /:/) or $ADDRESS =~ /^\[[^\]]*\]$/ ) {
+    my $port = ($PROTOCOL eq 'https://') ? '443' : '80';
+    Debug('You generally need to also specify the port.  I will append :'.$port);
+    $ADDRESS .= ':'.$port;
   }
   $BASE_URL = $PROTOCOL.($USERNAME?$USERNAME.':'.$PASSWORD.'@':'').$ADDRESS;
   Debug('Base url: '.urlForLog($BASE_URL));
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent( 'ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION );
   $self->{state} = 'open';
 
@@ -216,6 +223,12 @@ sub moveStop {
   my $self = shift;
   Debug( "Move Stop: not implemented" );
   # not implemented
+}
+
+# The web ui sends zoomStop when a continuous zoom button is released.
+sub zoomStop {
+  my $self = shift;
+  Debug( "Zoom Stop: not implemented" );
 }
 
 sub zoomConTele {

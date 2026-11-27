@@ -41,7 +41,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title"><?php echo translate('Storage') .' - '. $newStorage->Name() ?></h5>
+        <h5 class="modal-title"><?php echo translate('Storage') .' - '. validHtmlStr($newStorage->Name()) ?></h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -67,7 +67,7 @@
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Url') ?></th>
-              <td><input type="text" name="newStorage[Url]" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
+              <td><input type="text" name="newStorage[Url]" maxlength="255" value="<?php echo validHtmlStr($newStorage->Url()) ?>"/></td>
             </tr>
             <tr>
               <th class="text-right " scope="row"><?php echo translate('Server') ?></th>

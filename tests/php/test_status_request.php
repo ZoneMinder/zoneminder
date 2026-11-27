@@ -13,6 +13,11 @@
 namespace ZM {
   function Debug($m) {}
   function Error($m) {}
+  class Event {
+    public function __construct($id = null) {}
+    public function Id() { return 7; }
+    public function canView() { return true; }
+  }
 }
 
 namespace {
@@ -37,6 +42,7 @@ namespace {
   function translate($s) { return $s; }
   function validJsStr($v) { return (is_null($v) or is_array($v)) ? '' : strip_tags(addslashes($v)); }
   function validInt($v) { return is_array($v) ? '' : preg_replace('/[^\-\d]/', '', $v); }
+  function validCardinal($v) { return is_scalar($v) ? preg_replace('/\D/', '', $v) : ''; }
   $sqls = array();
   function dbFetchOne($sql, $col = null, $params = array()) {
     $GLOBALS['sqls'][] = $sql;

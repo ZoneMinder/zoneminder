@@ -7,6 +7,7 @@ var eventListTable = $j('#eventList');
 var sidebarView = $j('#sidebar');
 var sidebarControls = $j('#ptzControls');
 var wrapperMonitor = $j('#wrapperMonitor');
+var streamPrepareInterval = null;
 var filterQuery = '&filter[Query][terms][0][attr]=MonitorId&filter[Query][terms][0][op]=%3d&filter[Query][terms][0][val]='+monitorId;
 var analyse_frames = false;
 var idleCycleWas = false; /* Cycle was running when the idle timeout fired */
@@ -73,10 +74,21 @@ function ajaxRequest(params) {
 
   $j.getJSON(thisUrl, data)
       .done(function(data) {
+        if (data.result == 'Error') {
+          // ajaxError() answers 200 with result=Error, so params.success()
+          // would never run and the table would load for ever.
+          eventListTable.bootstrapTable('hideLoading');
+          alert(data.message);
+          return;
+        }
         const rows = processRows(data.rows);
         params.success(rows);
       })
-      .fail(logAjaxFail);
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        // Without this the table stays on "Loading, please wait" for good.
+        eventListTable.bootstrapTable('hideLoading');
+        logAjaxFail(jqXHR, textStatus, errorThrown);
+      });
 }
 
 function processRows(rows) {
@@ -470,10 +482,12 @@ function controlCmd(event) {
   if (event.type !='mouseup') {
     control = button.getAttribute('value');
   } else {
-    control = 'moveStop';
+    // A released continuous zoom/focus/iris button stops its own axis.
+    const lens = /^(zoom|focus|iris)Con/.exec(button.getAttribute('value'));
+    control = lens ? lens[1] + 'Stop' : 'moveStop';
   }
-  xtell = button.getAttribute('data-xtell');
-  ytell = button.getAttribute('data-ytell');
+  xtell = parseInt(button.getAttribute('data-xtell')) || 0; // "0": that axis is not used
+  ytell = parseInt(button.getAttribute('data-ytell')) || 0;
 
   var data = {};
 
@@ -885,14 +899,18 @@ function streamPrepareStart(monitor=null) {
     el.addEventListener('mouseleave', handleMouseLeave);
   }
 
-  const i = setInterval(function() {
+  // One poller per page: a monitor switch calls this again before the last
+  // stream appeared, and that poller would otherwise run forever.
+  if (streamPrepareInterval) clearInterval(streamPrepareInterval);
+  streamPrepareInterval = setInterval(function() {
     const livestream = document.querySelector('[id ^= "liveStream"]');
 
     if (!livestream) {
       console.log("No id matching liveStream");
     } else if (livestream.offsetHeight > 20) {
       //You need to wait until the image appears.
-      clearInterval(i);
+      clearInterval(streamPrepareInterval);
+      streamPrepareInterval = null;
       document.getElementById('monitor').classList.remove('hidden-shift');
       monitorsSetScale(monitorId);
     }
@@ -1126,6 +1144,18 @@ function initPage() {
   document.getElementById('use-old-zoom-pan').checked = useOldZoomPan;
   // --- Support of old ZoomPan algorithm
 
+  // Zone overlays are always in the DOM; #monitor.hide-zones controls them.
+  const zonesCookie = getCookie('zmWatchShowZones');
+  if (zonesCookie !== null && zonesCookie !== undefined) {
+    setZonesVisible(zonesCookie == '1');
+  } else {
+    const zonesMonitor = document.getElementById('monitor');
+    if (zonesMonitor) updateZonesButton(zonesMonitor.classList.contains('hide-zones'));
+  }
+  if (document.getElementById('toggleZonesButton')) {
+    bindButton('#toggleZonesButton', 'click', null, toggleZones);
+  }
+
   // IgorA100 ToDo: This isn't a duplicate initialization. We initialize different objects (in the first case, ".zoompan" is the default, in the second, ".imageFeed"),
   // but PanZoom wasn't fully implemented in panzoom.js for the second ".imageFeed" initialization line.
   zmPanZoom.init();
@@ -1158,6 +1188,24 @@ function initPage() {
   } else {
     cyclePause();
   }
+
+  // Left/Right switch monitors, as they switch events on the event view.
+  $j(document).on('keydown', function(e) {
+    e = e || window.event;
+    if (!e) return;
+    // Keys typed into a field, or used to pick from a select, are that
+    // control's own and must not drive the page.
+    if (e.target && /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    if ($j('.modal').is(':visible')) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (monitorData.length < 2) return;
+    if (e.key === 'ArrowLeft') {
+      cyclePrev();
+    } else if (e.key === 'ArrowRight') {
+      cycleNext();
+    }
+  });
+
   bindButton('#ptzToggle', 'click', null, ptzToggle);
   if (ZM_WEB_VIEWING_TIMEOUT > 0) {
     var inactivityTime = function() {
@@ -1250,6 +1298,31 @@ function initPage() {
     setTimeout(indicatorLightStatusReq, 800);
   });
 } // initPage
+
+function updateZonesButton(hidden) {
+  const button = document.getElementById('toggleZonesButton');
+  if (!button) return;
+  button.setAttribute('title', hidden ? showZonesString : hideZonesString);
+  button.classList.toggle('btn-normal', !hidden);
+  button.classList.toggle('btn-secondary', hidden);
+  const icon = button.querySelector('.material-icons');
+  if (icon) icon.textContent = hidden ? 'layers' : 'layers_clear';
+}
+
+function setZonesVisible(visible) {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  monitor.classList.toggle('hide-zones', !visible);
+  updateZonesButton(!visible);
+}
+
+function toggleZones() {
+  const monitor = document.getElementById('monitor');
+  if (!monitor) return;
+  const hidden = monitor.classList.toggle('hide-zones');
+  setCookie('zmWatchShowZones', hidden ? '0' : '1');
+  updateZonesButton(hidden);
+}
 
 function watchFullscreen() {
   const btn = document.getElementById('fullscreenBtn');

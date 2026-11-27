@@ -176,6 +176,16 @@ class AppController extends Controller {
 
   } # end function beforeFilter()
 
+  # The Url of an s3fs storage area holds the access key and secret: keep them for users who can edit System.
+  protected function hideStorageSecrets($row) {
+    global $user;
+    if (!is_array($row) or empty($row['Url'])) return $row;
+    if (!$user or $user->System() == 'Edit') return $row;
+    require_once __DIR__ .'/../../../includes/log_redact.php';
+    $row['Url'] = ZM\removeUserinfo($row['Url']);
+    return $row;
+  }
+
   # Model::save() takes the record id from a primary key in the data it is given, so an
   # edit authorized for the id in the URL could otherwise write to whichever id the request
   # body names. Drop any primary key from the request data and pin the model to $id.
@@ -281,6 +291,20 @@ class AppController extends Controller {
         throw new NotFoundException(__('Invalid event'));
       }
       if (!$event->canView()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
+  # Throw unless the user may edit every event in $eventIds, which includes its monitor.
+  protected function requireEventsEdit($eventIds) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    foreach (array_unique($eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if (!$event->Id()) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      if (!$event->canEdit()) {
         throw new UnauthorizedException(__('Insufficient Privileges'));
       }
     }

@@ -1,4 +1,5 @@
 <?php
+require_once('includes/log_redact.php');
 if (!isset($_REQUEST['entity'])) {
   \ZM\Error("No entity pass to status request.");
   http_response_code(404);
@@ -152,6 +153,7 @@ $statusData = array(
   ),
   'event' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Events',
     'limit' => 1,
     'selector' => 'Events.Id',
@@ -204,6 +206,7 @@ $statusData = array(
   ),
   'frames' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'defaultLimit' => 100,
     'selector' => 'EventId',
@@ -220,6 +223,7 @@ $statusData = array(
   ),
   'frame' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'table' => 'Frames',
     'limit' => 1,
     'selector' => array( array( 'table' => 'Events', 'join' => 'Events.Id = Frames.EventId', 'selector'=>'Events.Id' ), 'Frames.FrameId' ),
@@ -237,17 +241,29 @@ $statusData = array(
   ),
   'frameimage' => array(
     'permission' => 'Events',
+    'eventParam' => 'eid',
     'func' => 'getFrameImage'
   ),
   'nearframe' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearFrame'
   ),
   'nearevents' => array(
     'permission' => 'Events',
+    'eventParam' => 'id',
     'func' => 'getNearEvents'
   )
 );
+
+// Camera credentials are for users who can edit the monitor. A viewer gets Host, Path and ControlAddress without the user:password@ part.
+function statusHideMonitorCredentials(array $row) {
+  if (!isset($row['Id']) || editableMonitor($row['Id'])) return $row;
+  foreach (array('Host', 'Path', 'ControlAddress') as $field) {
+    if (isset($row[$field]) && $row[$field] !== '') $row[$field] = ZM\removeUserinfo($row[$field]);
+  }
+  return $row;
+}
 
 function collectData() {
   global $statusData;
@@ -262,6 +278,26 @@ function collectData() {
   if (isset($entitySpec['permission'])) {
     if (!canView($entitySpec['permission'])) {
       ajaxError('Unrecognised action or insufficient permissions for '.$entity.' permission: '.$entitySpec['permission']);
+      return;
+    }
+  }
+
+  # These entities name an event, so the monitor it belongs to must be viewable.
+  if (!empty($entitySpec['eventParam'])) {
+    if (!isset($_REQUEST[$entitySpec['eventParam']])) {
+      ajaxError('Event id required for '.$entity);
+      return;
+    }
+    $eventParam = $_REQUEST[$entitySpec['eventParam']];
+    if (is_array($eventParam)) $eventParam = reset($eventParam);
+    # Check the same cleaned id that the query binds (validInt).
+    $requestedEvent = new ZM\Event(validInt($eventParam));
+    if (!$requestedEvent->Id()) {
+      ajaxError('Event not found');
+      return;
+    }
+    if (!$requestedEvent->canView()) {
+      ajaxError('Insufficient permissions for event '.$requestedEvent->Id());
       return;
     }
   }
@@ -419,7 +455,8 @@ function collectData() {
       $limit_offset = validInt($_REQUEST['offset']) . ', ';
     if ( !empty($limit) )
       $sql .= ' limit '.$limit_offset.$limit;
-    if ( isset($limit) && ($limit == 1) ) {
+    $single = (isset($entitySpec['limit']) && $entitySpec['limit'] == 1);
+    if ( $single ) {
       if ( $sqlData = dbFetchOne($sql, NULL, $values) ) {
         if (isset($entitySpec['object'])) {
           ZM\Debug("Have object".$entitySpec['object']);
@@ -431,6 +468,7 @@ function collectData() {
             return;
           }
         }
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )
@@ -449,6 +487,7 @@ function collectData() {
           if (!$object->canView()) continue;
         }
 
+        if ($entity == 'monitor') $sqlData = statusHideMonitorCredentials($sqlData);
         foreach ( $postFuncs as $element=>$func )
           $sqlData[$element] = call_user_func($func, $sqlData);
         foreach ( $postFunctions as $element=>$function )

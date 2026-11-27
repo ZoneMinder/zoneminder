@@ -332,6 +332,7 @@ class EventsController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
     }
     $EventObj = new ZM\Event($event['Event']);
+    if (isset($event['Storage'])) $event['Storage'] = $this->hideStorageSecrets($event['Storage']);
     if (!$EventObj->canView()) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
@@ -392,6 +393,9 @@ class EventsController extends AppController {
       return;
     }
 
+    if ( !$this->request->is('post') ) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ( $this->request->is('post') ) {
       $monitorId = $this->requestField('Event', 'MonitorId');
       if ($monitorId === null) {
@@ -405,6 +409,7 @@ class EventsController extends AppController {
         $id = $this->Event->id;
       } else {
         $message = 'Error';
+        $this->response->statusCode(400);
         $id = null;
         // if there is a validation message, use it
         if (!$this->Event->validates()) {
@@ -463,6 +468,7 @@ class EventsController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Event->validationErrors ? $this->Event->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(
@@ -714,6 +720,138 @@ class EventsController extends AppController {
     $this->set(array(
       'archived' => $archiveVal,
       '_serialize' => array('archived')
+    ));
+  }
+
+  // POST /api/events/archiveBulk with ids[] and archived=1 archives, or with
+  // archived=0 unarchives, every listed event. Unlike archive() it sets the
+  // state rather than toggling it, so a mixed selection ends up all one way.
+  // Permissions follow archive(): archiving needs view, unarchiving needs edit.
+  // Events the user may not change, that no longer exist, or whose save failed
+  // are reported in refused and the remaining ids are still processed.
+  public function archiveBulk() {
+    $this->Event->recursive = -1;
+    $this->request->allowMethod('post');
+
+    if (isset($this->request->data['ids'])) {
+      $ids = $this->request->data['ids'];
+    } else if (isset($this->request->data['Event']['ids'])) {
+      $ids = $this->request->data['Event']['ids'];
+    } else {
+      $ids = null;
+    }
+    if (!is_array($ids)) {
+      throw new BadRequestException(__('ids must be an array'));
+    }
+    $archiveVal = isset($this->request->data['archived']) ? $this->request->data['archived'] : null;
+    if (!is_scalar($archiveVal) or ($archiveVal !== '0' and $archiveVal !== '1' and $archiveVal !== 0 and $archiveVal !== 1)) {
+      throw new BadRequestException(__('archived must be 0 or 1'));
+    }
+    $archiveVal = (int)$archiveVal;
+
+    $changed = array();
+    $refused = array();
+    $seen = array();
+    foreach ($ids as $id) {
+      // A request element may itself be an array; it is not an event id, and
+      // passing it on could forge a DB row instead of loading the real one.
+      if (is_array($id) or !is_numeric($id)) {
+        $refused[] = $id;
+        continue;
+      }
+      $id = (int)$id;
+      if (isset($seen[$id])) continue;
+      $seen[$id] = true;
+
+      if ($id <= 0 or !$this->Event->exists($id)) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $archived = $this->Event->find('first', array(
+        'conditions' => array('Event.Id' => $id)
+      ));
+      if (empty($archived['Event'])) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $EventObj = new ZM\Event($archived['Event']);
+      $allowed = $archiveVal ? $EventObj->canView() : $EventObj->canEdit();
+      if (!$allowed) {
+        $refused[] = $id;
+        continue;
+      }
+
+      $this->Event->id = $id;
+      if (!$this->Event->saveField('Archived', $archiveVal)) {
+        $refused[] = $id;
+        continue;
+      }
+      $changed[] = $id;
+    }
+
+    $this->set(array(
+      'changed' => $changed,
+      'refused' => $refused,
+      '_serialize' => array('changed', 'refused')
+    ));
+  }
+
+  // POST /api/events/video/<id>.json renders the event to a video file with
+  // zmvideo.pl, as the event view's Video page does (ajax/event.php action=video),
+  // and answers the file name. Viewing the event is enough, as on that page.
+  public function video($id = null) {
+    $this->request->allowMethod('post');
+    $this->Event->recursive = -1;
+    if (!$this->Event->exists($id)) {
+      throw new NotFoundException(__('Invalid event'));
+    }
+    if (!(defined('ZM_OPT_FFMPEG') and ZM_OPT_FFMPEG)) {
+      throw new BadRequestException(__('Video generation is turned off (ZM_OPT_FFMPEG)'));
+    }
+
+    $data = $this->request->data;
+    $param = function($name) use ($data) {
+      return (isset($data[$name]) and is_scalar($data[$name])) ? trim((string)$data[$name]) : '';
+    };
+    $format = $param('videoFormat');
+    $rate = $param('rate');
+    $scale = $param('scale');
+    $transform = $param('transform');
+
+    // The formats ZM_FFMPEG_FORMATS offers, without their default markers.
+    $formats = array();
+    foreach (preg_split('/\s+/', defined('ZM_FFMPEG_FORMATS') ? ZM_FFMPEG_FORMATS : '', -1, PREG_SPLIT_NO_EMPTY) as $f) {
+      $formats[] = rtrim($f, '*');
+    }
+    if (!in_array($format, $formats, true)) {
+      throw new BadRequestException(__('videoFormat must be one of: ').implode(', ', $formats));
+    }
+    if (!preg_match('/^\d+$/', $rate) or !(int)$rate) {
+      throw new BadRequestException(__('rate must be a positive whole number'));
+    }
+    if (!preg_match('/^(\d+|\d+x\d+)$/', $scale) or !(int)$scale) {
+      throw new BadRequestException(__('scale must be a positive whole number or WxH'));
+    }
+    if (!preg_match('/^[\w=]*$/', $transform)) {
+      throw new BadRequestException(__('Invalid transform'));
+    }
+
+    $event = $this->Event->find('first', array('conditions' => array('Event.Id' => $id)));
+    $EventObj = new ZM\Event($event['Event']);
+    // canView() enforces the per-monitor ACL.
+    if (!$EventObj->canView()) {
+      throw new UnauthorizedException(__('Insufficient Privileges'));
+    }
+
+    $file = $EventObj->createVideo($format, $rate, $scale, $transform, !empty($data['overwrite']));
+    if (!$file) {
+      throw new InternalErrorException(__('Video generation failed'));
+    }
+    $this->set(array(
+      'video' => $file,
+      '_serialize' => array('video')
     ));
   }
 

@@ -601,10 +601,7 @@ class Event extends ZM_Object {
       $imageFile = $imagePath;
       $thumbFile = $thumbPath;
     } else {
-      if ( version_compare(phpversion(), '4.3.10', '>=') )
-        $fraction = sprintf('%.3F', $scale/SCALE_BASE);
-      else
-        $fraction = sprintf('%.3f', $scale/SCALE_BASE);
+      $fraction = sprintf('%.3F', $scale/SCALE_BASE);
       $scale = (int)round($scale);
 
       $thumbCapturePath = preg_replace('/\.jpg$/', "-$scale.jpg", $capturePath);
@@ -657,7 +654,7 @@ class Event extends ZM_Object {
   }
 
   public function file_exists() {
-    if ( file_exists( $this->Path().'/'.$this->DefaultVideo() ) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return true;
     }
     if ( !defined('ZM_SERVER_ID') ) {
@@ -697,7 +694,7 @@ class Event extends ZM_Object {
   } # end public function file_exists()
 
   public function file_size() {
-    if ( file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
+    if ( $this->DefaultVideo() and file_exists($this->Path().'/'.$this->DefaultVideo()) ) {
       return filesize($this->Path().'/'.$this->DefaultVideo());
     }
     if ( !defined('ZM_SERVER_ID') ) {

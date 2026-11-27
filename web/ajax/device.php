@@ -24,10 +24,11 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
-$action = validStr($_REQUEST['action'] ?? '');
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? validStr($_REQUEST['action']) : '';
 if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
-    $status = setDeviceStatusX10($_REQUEST['key'], strtolower($_REQUEST['command']));
+    $command = is_scalar($_REQUEST['command']) ? strtolower($_REQUEST['command']) : $_REQUEST['command'];
+    $status = setDeviceStatusX10($_REQUEST['key'], $command);
     if ( $status == 'unknown' ) {
       ajaxError('No response from X10 device '.validHtmlStr($_REQUEST['key']));
     }

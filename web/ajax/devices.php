@@ -24,7 +24,7 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
-$action = validStr($_REQUEST['action'] ?? '');
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? validStr($_REQUEST['action']) : '';
 if ( $action == 'delete' ) {
   $failed = false;
   if ( isset($_REQUEST['markDids']) ) {

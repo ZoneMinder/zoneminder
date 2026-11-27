@@ -71,6 +71,10 @@ class CameraModel extends AppModel {
 				: ($this->id ? $this->field($field) : null);
 		}
 		if ($row['ManufacturerId'] === null or $row['ManufacturerId'] === '') return true;
+		// AppModel::beforeValidate() already refuses an array.
+		foreach ($row as $value) {
+			if ($value !== null and !is_scalar($value)) return true;
+		}
 		$conditions = array('CameraModel.Name' => $row['Name'], 'CameraModel.ManufacturerId' => $row['ManufacturerId']);
 		if ($this->id) $conditions['CameraModel.Id !='] = $this->id;
 		return $this->find('count', array('conditions' => $conditions)) === 0;

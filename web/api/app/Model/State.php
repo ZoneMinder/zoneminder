@@ -45,13 +45,19 @@ class State extends AppModel {
 		// The column has no default, so a state added without one is refused by MySQL.
 		'Definition' => array(
 			'required' => array(
-				'rule' => array('maxLength', 65535),
+				'rule' => array('definitionFits'),
 				'required' => 'create',
 				'allowEmpty' => true,
 				'message' => 'A state needs a Definition',
 			),
 		),
 	);
+
+	// The built-in maxLength rule throws a TypeError for a list; AppModel::beforeValidate() refuses it.
+	public function definitionFits($check) {
+		$value = reset($check);
+		return !is_scalar($value) or mb_strlen((string)$value) <= 65535;
+	}
 
 	// Deleting the active state would leave none active, so events would be recorded with no
 	// StateId. Fall back to default, as the console and zmpkg.pl do.

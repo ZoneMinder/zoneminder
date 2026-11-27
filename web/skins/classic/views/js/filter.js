@@ -219,6 +219,17 @@ function deleteFilter(element) {
   }
 }
 
+function termOpTypes(attr) {
+  if (attr == 'ExistsInFileSystem' || stateAttrs.includes(attr)) return {'IS': opTypes['IS'], 'IS NOT': opTypes['IS NOT']};
+  if (attr == 'Tags') return tags_opTypes;
+  return opTypes;
+}
+function termOpValue(attr, opVal) {
+  const types = termOpTypes(attr);
+  if (opVal && Object.prototype.hasOwnProperty.call(types, opVal)) return opVal;
+  return (attr == 'ExistsInFileSystem' || stateAttrs.includes(attr)) ? 'IS' : '=';
+}
+
 function parseRows(rows) {
   for ( let rowNum = 0; rowNum < rows.length; rowNum++ ) { //Each row is a term
     const queryPrefix = 'filter[Query][terms][';
@@ -352,30 +363,10 @@ function parseRows(rows) {
     // Validate the operator
     const opSelect = $j('<select></select>').attr('name', queryPrefix + rowNum + '][op]').attr('id', queryPrefix + rowNum + '][op]');
     let opVal = inputTds.eq(3).children().val();
-    if ( attr == 'ExistsInFileSystem' || stateAttrs.includes(attr) ) {
-      if ( ! opVal ) {
-        // Default to equals so that something gets selected
-        opVal = 'IS';
-      }
-      for (const key of ['IS', 'IS NOT']) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
-      }
-    } else if (attr == 'Tags') {
-      if ( ! opVal ) {
-        // Default to LIKE so that something gets selected
-        opVal = '=';
-      }
-      for ( const key in tags_opTypes ) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + tags_opTypes[key] + '</option>');
-      }
-    } else {
-      if ( ! opVal ) {
-        // Default to equals so that something gets selected
-        opVal = '=';
-      }
-      for ( const key in opTypes ) {
-        opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opTypes[key] + '</option>');
-      }
+    const opChoices = termOpTypes(attr);
+    opVal = termOpValue(attr, opVal);
+    for (const key in opChoices) {
+      opSelect.append('<option value="' + key + '"'+(key == opVal ? ' selected="selected"' : '')+'>' + opChoices[key] + '</option>');
     }
     inputTds.eq(3).html(opSelect).children().val(opVal).addClass('chosen chosen-full-width');
     if ( attr.endsWith('DateTime') ) { //Start/End DateTime

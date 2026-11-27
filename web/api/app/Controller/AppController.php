@@ -210,6 +210,30 @@ class AppController extends Controller {
     return array($field => count($ids) ? $ids : array(0));
   }
 
+  # Monitor columns that hold, or can hold, camera credentials.
+  protected function monitorCredentialColumns() {
+    return array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password', 'Host', 'Path', 'SecondPath', 'ONVIF_URL', 'ControlAddress');
+  }
+
+  # Camera credentials are for users who can edit the monitor.
+  protected function hideCredentials($row, $zm_monitor) {
+    if ($zm_monitor->canEdit()) return $row;
+    foreach (array('User', 'Pass', 'ONVIF_Username', 'ONVIF_Password') as $field) {
+      if (isset($row[$field])) $row[$field] = '';
+    }
+    foreach (array('Host', 'Path', 'SecondPath', 'ONVIF_URL', 'ControlAddress') as $field) {
+      if (!empty($row[$field])) $row[$field] = preg_replace('#^([a-z][a-z0-9+.-]*://)?[^/?\#]*@#i', '$1', $row[$field]);
+    }
+    return $row;
+  }
+
+  # hideCredentials() for a Monitor row read through an association.
+  protected function hideRowCredentials($row) {
+    if (!is_array($row) or !isset($row['Id'])) return $row;
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    return $this->hideCredentials($row, new ZM\Monitor($row));
+  }
+
   # A field from the request data, or null, read the way Model::set() will save it: from
   # Model[field] when the request has a non-empty Model entry, otherwise from the bare field.
   # Reading Model[field] whenever Model was an array let {"Monitor":[],"EventEndCommand":"x"}

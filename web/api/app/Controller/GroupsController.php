@@ -63,6 +63,9 @@ class GroupsController extends AppController {
       $group['Monitor'] = array_values(array_filter($group['Monitor'], function($m) use ($allowed, $deleted) {
         return !isset($deleted[$m['Id']]) and ($allowed === null or in_array($m['Id'], $allowed));
       }));
+      foreach ($group['Monitor'] as $key => $m) {
+        $group['Monitor'][$key] = $this->hideRowCredentials($m);
+      }
     }
     return $groups;
   }

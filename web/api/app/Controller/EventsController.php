@@ -296,6 +296,9 @@ class EventsController extends AppController {
         $events[$key]['Event']['MaxScoreFrameId'] = $this->getMaxScoreAlarmFrameId($value['Event']['Id']);
       }
       $events[$key]['Event']['FileSystemPath'] = $EventObj->Path();
+      if (isset($events[$key]['Monitor'])) {
+        $events[$key]['Monitor'] = $this->hideRowCredentials($events[$key]['Monitor']);
+      }
     }
 
     $this->set(compact('events'));
@@ -372,6 +375,9 @@ class EventsController extends AppController {
     ZM\Debug(print_r($alarmFrame, true));
 
     $event['Event']['AlarmFrameId'] = $alarmFrame ? $alarmFrame['Frame']['FrameId'] : null;
+    if (isset($event['Monitor'])) {
+      $event['Monitor'] = $this->hideRowCredentials($event['Monitor']);
+    }
 
     $this->set(array(
       'event' => $event,

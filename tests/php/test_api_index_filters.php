@@ -23,7 +23,7 @@ function check($name, $got, $expected) {
 
 function method($file, $name) {
   $src = file_get_contents(__DIR__.'/../../web/api/app/Controller/'.$file);
-  if (!preg_match('/^  public function '.$name.'\(.*?^  }\n/ms', $src, $m)) { echo "not ok - no $name in $file\n"; exit(1); }
+  if (!preg_match('/^  (public|protected|private) function '.$name.'\(.*?^  }\n/ms', $src, $m)) { echo "not ok - no $name in $file\n"; exit(1); }
   // The monitors index loads the ZM\Monitor class from the web tree; a stub is defined below
   return preg_replace('/require_once[^;]*;/', '', $m[0]);
 }
@@ -59,7 +59,11 @@ class Obj {
 }
 eval('class ZonesH extends Obj { public $Zone; '.str_replace('public function', 'public function', method('ZonesController.php', 'index')).' }');
 eval('class PresetsH extends Obj { public $ZonePreset; '.method('ZonePresetsController.php', 'index').' }');
-eval('class MonitorsH extends Obj { public $Monitor; '.method('MonitorsController.php', 'index').' }');
+// index() leaves the camera credential columns out of the filter for a user who cannot edit them.
+function visibleMonitor($id) { return true; }
+function editableMonitor($id) { return true; }
+eval('class MonitorsH extends Obj { public $Monitor; '.method('MonitorsController.php', 'index')
+  .method('MonitorsController.php', 'canQueryCredentials').method('AppController.php', 'monitorCredentialColumns').' }');
 eval('namespace ZM { class Monitor { function __construct($r) {} function canView() { return true; } } }');
 
 function run($class, $prop, $cols, $named, $query = array(), $user = null) {

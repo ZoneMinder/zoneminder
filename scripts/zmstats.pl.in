@@ -37,6 +37,7 @@ sub TermHandler {
   Info('Received TERM, exiting');
   $zm_terminate = 1;
 }
+
 $SIG{TERM} = \&TermHandler;
 $SIG{INT} = \&TermHandler;
 
@@ -305,15 +306,16 @@ while (!$zm_terminate) {
     } else {
       # Time of record
 
-      # 7 days is invalid.  We need to remove the s
-      if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
-        $Config{ZM_LOG_DATABASE_LIMIT} = $1;
+      my $log_interval = logLimitInterval($Config{ZM_LOG_DATABASE_LIMIT});
+      if (!defined $log_interval) {
+        Warning("ZM_LOG_DATABASE_LIMIT '$Config{ZM_LOG_DATABASE_LIMIT}' is not a number of rows or '<n> <unit>', not pruning logs by time");
+      } else {
+        my $rows;
+        do {
+          $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$log_interval.') LIMIT 100', $audit_level);
+          Debug("Deleted $rows log table entries by time") if $rows;
+        } while ($rows and ($rows == 100) and !$zm_terminate);
       }
-      my $rows;
-      do {
-        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 100', $audit_level);
-        Debug("Deleted $rows log table entries by time") if $rows;
-      } while ($rows and ($rows == 100) and !$zm_terminate);
     }
   } # end if ZM_LOG_DATABASE_LIMIT
 
@@ -337,12 +339,16 @@ while (!$zm_terminate) {
       }
     } else {
       # Time of record
-      $audit_limit =~ s/s$//;
-      my $rows;
-      do {
-        $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_limit.') LIMIT 100', $audit_level);
-        Debug("Deleted $rows audit log entries by time") if $rows;
-      } while ($rows and ($rows == 100) and !$zm_terminate);
+      my $audit_interval = logLimitInterval($audit_limit);
+      if (!defined $audit_interval) {
+        Warning("ZM_LOG_AUDIT_DATABASE_LIMIT '$audit_limit' is not a number of rows or '<n> <unit>', not pruning audit logs by time");
+      } else {
+        my $rows;
+        do {
+          $rows = zmDbDo('DELETE low_priority FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_interval.') LIMIT 100', $audit_level);
+          Debug("Deleted $rows audit log entries by time") if $rows;
+        } while ($rows and ($rows == 100) and !$zm_terminate);
+      }
     }
   } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
 

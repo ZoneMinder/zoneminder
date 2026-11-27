@@ -922,22 +922,23 @@ if ( $level > 1 ) {
     } else {
       # Time of record
 
-      # 7 days is invalid.  We need to remove the s
-      if ( $Config{ZM_LOG_DATABASE_LIMIT} =~ /^(.*)s$/ ) {
-        $Config{ZM_LOG_DATABASE_LIMIT} = $1;
+      my $log_interval = logLimitInterval($Config{ZM_LOG_DATABASE_LIMIT});
+      if (!defined $log_interval) {
+        Warning("ZM_LOG_DATABASE_LIMIT '$Config{ZM_LOG_DATABASE_LIMIT}' is not a number of rows or '<n> <unit>', not pruning logs by time");
+      } else {
+        my $deleted_rows;
+        do {
+          my $deleteLogByTimeSql =
+          'DELETE FROM `Logs`
+          WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$log_interval.') LIMIT 10';
+          my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
+            or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
+          $res = $deleteLogByTimeSth->execute($audit_level)
+            or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
+          $deleted_rows = $deleteLogByTimeSth->rows();
+          aud_print("Deleted $deleted_rows log table entries by time");
+        } while ( $deleted_rows );
       }
-      my $deleted_rows;
-      do {
-        my $deleteLogByTimeSql =
-        'DELETE FROM `Logs`
-        WHERE `Level` != ? AND `TimeKey` < unix_timestamp(now() - interval '.$Config{ZM_LOG_DATABASE_LIMIT}.') LIMIT 10';
-        my $deleteLogByTimeSth = $dbh->prepare_cached( $deleteLogByTimeSql )
-          or Fatal("Can't prepare '$deleteLogByTimeSql': ".$dbh->errstr());
-        $res = $deleteLogByTimeSth->execute($audit_level)
-          or Fatal("Can't execute: ".$deleteLogByTimeSth->errstr());
-        $deleted_rows = $deleteLogByTimeSth->rows();
-        aud_print("Deleted $deleted_rows log table entries by time");
-      } while ( $deleted_rows );
     }
   } # end if ZM_LOG_DATABASE_LIMIT
 
@@ -965,17 +966,21 @@ if ( $level > 1 ) {
       }
     } else {
       # Time of record
-      $audit_limit =~ s/s$//;
-      my $deleted_rows;
-      do {
-        my $del_sth = $dbh->prepare_cached(
-          'DELETE FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_limit.') LIMIT 10')
-          or Fatal("Can't prepare audit log time delete: ".$dbh->errstr());
-        $res = $del_sth->execute($audit_level)
-          or Fatal("Can't execute audit log time delete: ".$del_sth->errstr());
-        $deleted_rows = $del_sth->rows();
-        aud_print("Deleted $deleted_rows audit log entries by time");
-      } while ( $deleted_rows );
+      my $audit_interval = logLimitInterval($audit_limit);
+      if (!defined $audit_interval) {
+        Warning("ZM_LOG_AUDIT_DATABASE_LIMIT '$audit_limit' is not a number of rows or '<n> <unit>', not pruning audit logs by time");
+      } else {
+        my $deleted_rows;
+        do {
+          my $del_sth = $dbh->prepare_cached(
+            'DELETE FROM `Logs` WHERE `Level` = ? AND `TimeKey` < unix_timestamp(now() - interval '.$audit_interval.') LIMIT 10')
+            or Fatal("Can't prepare audit log time delete: ".$dbh->errstr());
+          $res = $del_sth->execute($audit_level)
+            or Fatal("Can't execute audit log time delete: ".$del_sth->errstr());
+          $deleted_rows = $del_sth->rows();
+          aud_print("Deleted $deleted_rows audit log entries by time");
+        } while ( $deleted_rows );
+      }
     }
   } # end if ZM_LOG_AUDIT_DATABASE_LIMIT
 

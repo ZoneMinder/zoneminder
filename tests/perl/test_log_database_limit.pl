@@ -57,6 +57,16 @@ sub Debug {} sub aud_print {}
 sub Fatal { die "Fatal: @_\n" }
 sub zmDbDo { push @sql, shift; return 0; }
 
+# logLimitInterval() lives in ZoneMinder::General, shared by both scripts.
+{
+  my $module = "$FindBin::Bin/../../scripts/ZoneMinder/lib/ZoneMinder/General.pm";
+  open(my $mfh, '<', $module) or die "Can't read $module: $!";
+  my $msrc = do { local $/; <$mfh> };
+  close($mfh);
+  my ($sub) = $msrc =~ /^(sub logLimitInterval \{.*?\n\})$/ms or die "no logLimitInterval in $module";
+  eval $sub; die $@ if $@;
+}
+
 foreach my $script (qw(zmstats.pl.in zmaudit.pl.in)) {
   my $file = "$FindBin::Bin/../../scripts/$script";
   open(my $fh, '<', $file) or die "Can't read $file: $!";

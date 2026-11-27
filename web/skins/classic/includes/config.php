@@ -138,8 +138,20 @@ $bandwidth_optional_settings = array(
 $bandwidth_profile = $_COOKIE['zmBandwidth'] ?? '';
 $bandwidth_prefix = $bandwidth_prefixes[$bandwidth_profile] ?? 'L';
 
+// Settings with a smallest usable value. The Options page accepts 0, and a
+// status refresh of 0 seconds turns into a setInterval of 0 ms in watch,
+// montage, zone, zones, cycle and event, so each open page polled as fast as the
+// browser allows.
+$bandwidth_minimums = array(
+    'REFRESH_STATUS' => 1,
+);
 foreach ( $bandwidth_settings as $setting ) {
-  define('ZM_WEB_'.$setting, constant('ZM_WEB_'.$bandwidth_prefix.'_'.$setting));
+  $value = constant('ZM_WEB_'.$bandwidth_prefix.'_'.$setting);
+  if (isset($bandwidth_minimums[$setting]) and intval($value) < $bandwidth_minimums[$setting]) {
+    ZM\Warning('ZM_WEB_'.$bandwidth_prefix.'_'.$setting." is $value, using ".$bandwidth_minimums[$setting]);
+    $value = $bandwidth_minimums[$setting];
+  }
+  define('ZM_WEB_'.$setting, $value);
 }
 foreach ( $bandwidth_optional_settings as $setting => $fallback ) {
   $source = 'ZM_WEB_'.$bandwidth_prefix.'_'.$setting;

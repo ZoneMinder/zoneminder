@@ -29,6 +29,7 @@ function load() {
   };
   jq.ajax = function() {};
   const ctx = {
+    escapeHTML: (text) => (text ? text.toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : text),
     $j: jq,
     console: console,
     thisUrl: 'index.php',
@@ -59,7 +60,8 @@ function csvRow(name, url) {
 }
 
 function click(page, row) {
-  const url = /data-url="([^"]*)"/.exec(row.buttons)[1];
+  const url = /data-url="([^"]*)"/.exec(row.buttons)[1]
+      .replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   page.api.addMonitor({getAttribute: () => url});
 }
 

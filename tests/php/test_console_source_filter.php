@@ -34,6 +34,12 @@ namespace {
     exit(1);
   }
   eval($m[0]);
+  // monitorMatchesSource calls this helper from the same file
+  if (!preg_match('/^function pathWithoutQuery\(.*?\n\}/ms', $src, $m)) {
+    fwrite(STDERR, "could not find pathWithoutQuery in web/ajax/console.php\n");
+    exit(1);
+  }
+  eval($m[0]);
 
   $remote = array('Host'=>'admin:secret@10.0.0.5', 'Port'=>'8080', 'Path'=>'', 'Device'=>null);
 

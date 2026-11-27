@@ -50,11 +50,15 @@ our @ISA = qw(ZoneMinder::Control);
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 sub open {
   my $self = shift;
 
   $self->loadMonitor();
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
 
@@ -100,9 +104,11 @@ sub sendCmd {
     # TODO: Add code to retrieve $res->message_decode or some such. Then we could do things like check the camera status.
   } else {
     # Have seen on some HikVision cams that whatever cookie LWP uses times out and it never refreshes, so we have to actually create a new LWP object.
-    $self->{ua} = LWP::UserAgent->new();
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->cookie_jar( {} );
     $self->{ua}->credentials($$self{address}, $$self{realm}, $$self{username}, $$self{password});
+    # The new agent verifies certificates again; let get() turn that off once more if it has to.
+    $self->{ssl_verify_disabled} = 0;
 
     # Try again
     $res = $self->get($cmd);
@@ -1002,7 +1008,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = ZoneMinder::Control::Amcrest_HTTP->new();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->cookie_jar( {} );
   $$self{username} = $username;
   $$self{password} = $password;

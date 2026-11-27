@@ -32,6 +32,12 @@ if ( $action == 'device' ) {
       ajaxError('No response from X10 device '.validHtmlStr($_REQUEST['key']));
     }
   } else if ( isset($_REQUEST['newDevice']) ) {
+    if ( !is_array($_REQUEST['newDevice'])
+      || !isset($_REQUEST['newDevice']['Name']) || !is_string($_REQUEST['newDevice']['Name'])
+      || !isset($_REQUEST['newDevice']['KeyString']) || !is_string($_REQUEST['newDevice']['KeyString']) ) {
+      ajaxError('Invalid device');
+      return;
+    }
     $failed = false;
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
       ZM\Warning('did value is: '.$_REQUEST['did']);

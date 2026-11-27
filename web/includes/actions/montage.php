@@ -54,7 +54,8 @@ if ( isset($_REQUEST['object']) ) {
         }
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
-        $Layout->UserId($user->Id());
+        # An admin saving someone else's layout leaves it with its owner
+        if (!$Layout->Id()) $Layout->UserId($user->Id());
         $Layout->Positions($_REQUEST['Positions']);
         $Layout->save();
         zm_session_start();

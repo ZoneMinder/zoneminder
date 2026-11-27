@@ -31,6 +31,7 @@ if ( !canEdit('Events') ) {
 
 if ( $action == 'archive' ) {
   $dbConn->beginTransaction();
+  $failed = array();
   $eids = getAffectedIds('eids');
   ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
@@ -39,12 +40,19 @@ if ( $action == 'archive' ) {
       ZM\Warning('No permission to archive event '.$markEid);
       continue;
     }
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $event->Id()));
+    if (dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(1, $event->Id())) === null) $failed[] = $event->Id();
   }
-  $dbConn->commit();
-  $refreshParent = true;
+  if ($failed) {
+    $dbConn->rollBack();
+    global $error_message;
+    $error_message .= 'Error updating events '.implode(', ', $failed).'<br/>';
+  } else {
+    $dbConn->commit();
+    $refreshParent = true;
+  }
 } else if ( $action == 'unarchive' ) {
   $dbConn->beginTransaction();
+  $failed = array();
   $eids = getAffectedIds('eids');
   ZM\Debug("E IDS" . print_r($eids, true));
   foreach ( $eids as $markEid ) {
@@ -53,10 +61,16 @@ if ( $action == 'archive' ) {
       ZM\Warning('No permission to unarchive event '.$markEid);
       continue;
     }
-    dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $event->Id()));
+    if (dbQuery('UPDATE Events SET Archived=? WHERE Id=?', array(0, $event->Id())) === null) $failed[] = $event->Id();
   }
-  $dbConn->commit();
-  $refreshParent = true;
+  if ($failed) {
+    $dbConn->rollBack();
+    global $error_message;
+    $error_message .= 'Error updating events '.implode(', ', $failed).'<br/>';
+  } else {
+    $dbConn->commit();
+    $refreshParent = true;
+  }
 } else if ( $action == 'delete' ) {
   $deletedEids = getAffectedIds('eids');
   $deletedCount = 0;
@@ -64,6 +78,10 @@ if ( $action == 'archive' ) {
     if (deleteEvent($markEid)) $deletedCount++;
   }
   ZM\AuditAction('delete', 'events', 0, 'Count: '.$deletedCount);
+  if ($deletedCount < count($deletedEids)) {
+    global $error_message;
+    $error_message .= 'Could not delete '.(count($deletedEids)-$deletedCount).' of '.count($deletedEids).' events<br/>';
+  }
   $refreshParent = true;
 } else {
   ZM\Warning("Unsupported action $action in events");

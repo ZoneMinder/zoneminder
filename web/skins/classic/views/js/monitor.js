@@ -1103,6 +1103,8 @@ function populate_models(ManufacturerId) {
   dropdown.empty();
   dropdown.append('<option value="" selected="true">Unknown</option>');
   dropdown.prop('selectedIndex', 0);
+  // With the model back at Unknown, the name box is how one is entered.
+  $j('[name="newMonitor[Model]"]').show().prop('disabled', false);
 
   if (ManufacturerId) {
     // Populate dropdown with list of provinces

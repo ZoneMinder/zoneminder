@@ -24,6 +24,13 @@ if ($action == 'Save') {
   require_once('includes/User.php');
   $uid = isset($_REQUEST['uid']) ? validInt($_REQUEST['uid']) : 0;
   $dbUser = new ZM\User($uid);
+  // A user deleted since the form was opened loads empty, and saving it would
+  // insert a new account from the posted fields instead.
+  if ($uid and !$dbUser->Id()) {
+    ZM\Warning('User '.$uid.' not found for save');
+    $error_message .= 'This user no longer exists.<br/>';
+    return;
+  }
 
   if (canEdit('System')) {
     if (!$uid or isset($_REQUEST['user']['Username'])) {
@@ -33,9 +40,11 @@ if ($action == 'Save') {
         unset($_REQUEST['redirect']);
         return;
       }
+      # Save and check the filtered name, not what was typed.
+      $_REQUEST['user']['Username'] = $username;
     }
     # Need to check for uniqueness of Username
-    $user_with_my_username = ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username']));
+    $user_with_my_username = isset($_REQUEST['user']['Username']) ? ZM\User::find_one(array('Username'=>$_REQUEST['user']['Username'])) : null;
     if ($user_with_my_username and 
       ( ( $uid and ($user_with_my_username->Id() != $uid) ) or !$uid)
     ) {
@@ -65,7 +74,8 @@ if ($action == 'Save') {
     }
     if (isset($_REQUEST['user']['Language']) and $_REQUEST['user']['Language']) {
       # Verify that the language file exists in the lang directory.
-      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
+      # A language is a file name in the lang directory, not a path.
+      if (!is_string($_REQUEST['user']['Language']) or !preg_match('/^[\w\-]+$/', $_REQUEST['user']['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
         $error_message .= 'Error setting Language. New value ' .$_REQUEST['user']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php doesn\'t exist.<br/>';
         ZM\Error($error_message);
         unset($_REQUEST['user']['Language']);
@@ -95,6 +105,8 @@ if ($action == 'Save') {
           # Have to update auth hash in session
           zm_session_start();
           generateAuthHash(ZM_AUTH_HASH_IPS, true);
+          // Keep this session valid after changing our own password.
+          if (isset($changes['Password']) and $user) $_SESSION['passwordHash'] = $user->Password();
           session_write_close();
         }
       }
@@ -104,8 +116,12 @@ if ($action == 'Save') {
       if (isset($_POST['group_permission']) and isset($_POST['group_permission'][$g->Id()])) {
         $permission = $g->Group_Permission($dbUser->Id());
         if ($permission->Permission() != $_POST['group_permission'][$g->Id()]) {
-          $permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]));
-          $g->Permissions(null); # reload
+          if (!$permission->save(array('Permission'=>$_POST['group_permission'][$g->Id()]))) {
+            $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+            unset($_REQUEST['redirect']);
+          } else {
+            $g->Permissions(null); # reload
+          }
         }
       }
     }
@@ -116,7 +132,10 @@ if ($action == 'Save') {
           $permission = $dbUser->Monitor_Permission($m->Id());
           $new_permission = $_POST['monitor_permission'][$m->Id()];
           if ($permission->Permission() != $new_permission) {
-            $permission->save(['Permission'=>$new_permission]);
+            if (!$permission->save(['Permission'=>$new_permission])) {
+              $error_message .= 'Error saving permission: '.htmlspecialchars($permission->get_last_error()).'<br/>';
+              unset($_REQUEST['redirect']);
+            }
           }
         }
       }
@@ -136,7 +155,8 @@ if ($action == 'Save') {
     }
     if (isset($_REQUEST['user']['Language']) and $_REQUEST['user']['Language']) {
       # Verify that the language file exists in the lang directory.
-      if (!file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
+      # A language is a file name in the lang directory, not a path.
+      if (!is_string($_REQUEST['user']['Language']) or !preg_match('/^[\w\-]+$/', $_REQUEST['user']['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php')) {
         $error_message .= 'Error setting Language. New value ' .$_REQUEST['user']['Language'].' not saved because '.ZM_PATH_WEB.'/lang/'.$_REQUEST['user']['Language'].'.php doesn\'t exist.<br/>';
         ZM\Error($error_message);
         unset($_REQUEST['user']['Language']);
@@ -163,6 +183,8 @@ if ($action == 'Save') {
       $user = ZM\User::find_one(['Enabled'=>1, 'Id'=>$uid]);
       
       zm_session_start();
+      # The password changed under this session, which stays logged in
+      if (isset($changes['Password'])) $_SESSION['passwordHash'] = $user->Password();
       generateAuthHash(ZM_AUTH_HASH_IPS, true);
       session_write_close();
     } # end if changes

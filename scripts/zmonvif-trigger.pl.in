@@ -214,7 +214,8 @@ sub xs_duration {
 
     my %new_monitors = ();
 
-    my $sql = "SELECT * FROM Monitors WHERE Capturing != 'None' AND ONVIF_URL != ''";
+    # A deleted monitor keeps Capturing and ONVIF_URL, so it must be excluded explicitly. Same as zmtrigger.pl.in loadMonitors.
+    my $sql = "SELECT * FROM Monitors WHERE Deleted=0 AND Capturing != 'None' AND ONVIF_URL != ''";
     my $sth = $dbh->prepare_cached($sql) or Fatal("Can't prepare '$sql': ".$dbh->errstr());
     my $res = $sth->execute() or Fatal("Can't execute: ".$sth->errstr());
     while ( my $monitor = $sth->fetchrow_hashref() ) {
@@ -268,12 +269,20 @@ sub xs_duration {
     Info("On: $monitorId, $score, $cause, $text, $showtext");
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
+    if ( !$monitor ) {
+      Warning("Can't find monitor $monitorId");
+      return;
+    }
     if ( defined $script ) {
       #      eval {
       system($script, 'On', $monitor->{Name}, $monitor->{Path}, $cause);
       # this goes to "stopped" in ffmpeg when executed from shell - why?
       #      }
     } else {
+      if ( !zmMemVerify($monitor) ) {
+        Warning("Can't verify shared memory for monitor $monitorId");
+        return;
+      }
       # encode() ensures that no utf-8 is written to mmap'ed memory.
       zmTriggerEventOn($monitor, $score, encode('utf-8', $cause), encode('utf-8', $text));
       zmTriggerShowtext($monitor, encode('utf-8', $showtext)) if defined($showtext);
@@ -286,11 +295,19 @@ sub xs_duration {
     Info("Off: $monitorId, $score, $cause, $text, $showtext");
     my %monitors = $self->monitors();
     my $monitor = $monitors{$monitorId};
+    if ( !$monitor ) {
+      Warning("Can't find monitor $monitorId");
+      return;
+    }
     if ( defined $script ) {
       #      eval {
       system($script, 'Off', $monitor->{Name}, $monitor->{Path}, $cause);
       #      }
     } else {
+      if ( !zmMemVerify($monitor) ) {
+        Warning("Can't verify shared memory for monitor $monitorId");
+        return;
+      }
       my $last_event = zmGetLastEvent($monitor);
       zmTriggerEventOff($monitor);
       # encode() ensures that no utf-8 is written to mmap'ed memory.
@@ -730,9 +747,9 @@ zmonvif-trigger.pl - ZoneMinder ONVIF trigger daemon
 
 =head1 OPTIONS
 
-    local-addr    - local address to bind to
-    script|s=s   - script to run
-    verbose|v    - increase verbosity
+ -l, --local-addr=<host[:port]> - Local address to listen on
+ -s, --script=<script>          - Run this script instead of generating ZoneMinder events
+ -v, --verbose                  - Increase verbosity
 
 =cut
 

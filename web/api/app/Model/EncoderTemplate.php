@@ -12,6 +12,7 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Encoder is required',
+        'required' => 'create',
         'last' => true,
       ),
       'unique' => array(
@@ -31,6 +32,7 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Name is required',
+        'required' => 'create',
         'last' => true,
       ),
       'unique' => array(

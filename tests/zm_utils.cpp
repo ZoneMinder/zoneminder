@@ -669,3 +669,18 @@ TEST_CASE("UrlHost") {
   REQUIRE(UrlHost("zm.example.com") == "zm.example.com");
   REQUIRE(UrlHost("") == "");
 }
+
+TEST_CASE("Utf8Sanitize") {
+  REQUIRE(Utf8Sanitize(std::string("")) == std::string(""));
+  REQUIRE(Utf8Sanitize(std::string("abc")) == std::string("abc"));
+  REQUIRE(Utf8Sanitize(std::string("caf" "\xC3\xA9")) == std::string("caf" "\xC3\xA9"));
+  REQUIRE(Utf8Sanitize(std::string("\xE2\x82\xAC")) == std::string("\xE2\x82\xAC"));
+  REQUIRE(Utf8Sanitize(std::string("\xF0\x9F\x98\x80")) == std::string("\xF0\x9F\x98\x80"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2\x82")) == std::string("ab??"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2")) == std::string("ab?"));
+  REQUIRE(Utf8Sanitize(std::string("a\x80" "z")) == std::string("a?z"));
+  REQUIRE(Utf8Sanitize(std::string("caf\xE9")) == std::string("caf?"));
+  REQUIRE(Utf8Sanitize(std::string("\xC0\x80")) == std::string("??"));
+  REQUIRE(Utf8Sanitize(std::string("\xED\xA0\x80")) == std::string("???"));
+  REQUIRE(Utf8Sanitize(std::string("\xFF")) == std::string("?"));
+}

@@ -129,6 +129,9 @@ function makePlayer(state) {
     pause: function() {
       state.paused = true;
     },
+    play: function() {
+      state.paused = false;
+    },
     paused: function() {
       return !!state.paused;
     },
@@ -332,6 +335,32 @@ test('rewinding stops at the start of the event', () => {
   player.tick(5);
   assert.ok(player.state.paused, 'player was not paused at the start');
   assert.ok(!player.rewinding(), 'rewind interval was left running');
+});
+
+test('Play after rewinding to the start plays forwards', () => {
+  // The rewind sets playbackRate to 0 on every tick. Stopping at the start
+  // only cleared the interval, so the rate stayed 0 and intervalRewind kept a
+  // stale id: Play then ran the video at rate 0 and it never moved.
+  for (const rate of [-100, -1600]) {
+    const player = withPlayer(rate, 1);
+    player.tick(5);
+    assert.ok(player.state.paused, 'player was not paused at the start');
+    player.env.playClicked();
+    assert.ok(!player.state.paused, 'Play did not start the player');
+    assert.strictEqual(player.state.rate, 1, 'Play ran at rate ' + player.state.rate);
+    assert.ok(!player.env.intervalRewind, 'intervalRewind still holds the stopped interval');
+  }
+});
+
+test('the rewind button also stops cleanly at the start', () => {
+  const player = withPlayer(100, 1);
+  player.env.setButtonState = () => {};
+  player.env.streamFastRev(true);
+  assert.ok(player.rewinding(), 'no rewind interval was started');
+  player.tick(10);
+  assert.ok(player.state.paused, 'player was not paused at the start');
+  player.env.playClicked();
+  assert.strictEqual(player.state.rate, 1, 'Play ran at rate ' + player.state.rate);
 });
 
 console.log('changeRate, leaving reverse');

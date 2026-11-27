@@ -36,13 +36,13 @@ if (!empty($_REQUEST['id']) and !$report->Id()) {
 
 if (!$report->Id() and !canEdit('Events')) {
   ZM\Warning('You do not have permission to create a report');
-  $redirect = '?view=reports';
+  $error_message .= 'You do not have permission to create a report.<br/>';
   return;
 }
 
 if ($report->Id() and !$report->canEdit()) {
   ZM\Warning('You do not have permission to edit report '.$report->Id());
-  $redirect = '?view=reports';
+  $error_message .= 'You do not have permission to edit this report.<br/>';
   return;
 }
 
@@ -68,8 +68,11 @@ if ($action == 'save') {
     }
   }
 } else if ($action == 'delete') {
-  $report->delete();
-  $redirect = '?view=reports';
+  if (!$report->delete()) {
+    $error_message .= 'Error deleting report: '.htmlspecialchars(dbLastError()).'<br/>';
+  } else {
+    $redirect = '?view=reports';
+  }
 } else {
   ZM\Error("Unknown action $action in saving Report");
 }

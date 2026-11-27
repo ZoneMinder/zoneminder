@@ -59,6 +59,10 @@ use URI;
 use URI::Escape;
 use IO::Socket::SSL;
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 # =========================================================================
 #  Config types — maps category names to ONVIF SOAP endpoints/actions
 # =========================================================================
@@ -197,12 +201,20 @@ my %config_types = (
 #  open / close
 # =========================================================================
 
+# URI hands the host of http://[fe80::1]:80 back without its brackets, which a
+# URL and a Host header need around an IPv6 literal.
+sub _host_port {
+  my ($host, $port) = @_;
+  $host = "[$host]" if $host =~ /:/;
+  return $host . ':' . $port;
+}
+
 sub open {
   my $self = shift;
   $self->loadMonitor();
 
   # --- UserAgent with SSL verification (will fall back if needed) --------
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(
     verify_hostname => 1,
@@ -226,7 +238,7 @@ sub open {
       # Rebuild BaseURL without any path that guess_credentials may include
       my $scheme = ($$self{uri} && $$self{uri}->scheme()) ? $$self{uri}->scheme() : 'http';
       $scheme = 'http' if $scheme eq 'rtsp';
-      $$self{BaseURL} = $scheme . '://' . $$self{host} . ':' . $$self{port};
+      $$self{BaseURL} = $scheme . '://' . _host_port($$self{host}, $$self{port});
     } else {
       Warning('Failed to determine camera address from ControlAddress or Path');
     }
@@ -287,7 +299,7 @@ sub _parse_control_address {
   $$self{onvif_path} = ($path && $path ne '/') ? $path : '/onvif/PTZ';
 
   # Base URL without path
-  $$self{BaseURL} = $uri->scheme . '://' . $$self{host} . ':' . $$self{port};
+  $$self{BaseURL} = $uri->scheme . '://' . _host_port($$self{host}, $$self{port});
 
   Debug('ONVIF open: base=' . $$self{BaseURL}
     . ' path=' . $$self{onvif_path}
@@ -344,7 +356,7 @@ sub sendCmd {
 
   my $req = HTTP::Request->new(POST => $url);
   $req->header('content-type'     => 'application/soap+xml; charset=utf-8; action="' . $action . '"');
-  $req->header('Host'             => $$self{host} . ':' . $$self{port});
+  $req->header('Host'             => _host_port($$self{host}, $$self{port}));
   $req->header('content-length'   => length($msg));
   $req->header('accept-encoding'  => 'gzip, deflate');
   $req->header('connection'       => 'Close');
@@ -943,7 +955,7 @@ sub probe {
   my ($ip, $username, $password) = @_;
 
   my $self = ZoneMinder::Control::ONVIF->new();
-  $self->{ua} = LWP::UserAgent->new();
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(
     verify_hostname => 1,

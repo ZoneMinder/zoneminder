@@ -86,7 +86,11 @@ sub open {
   $$self{username} = 'admin' unless $$self{username};
   $$self{password} = '' unless $$self{password};
   $$self{port} = 80 unless $$self{port};
-  $$self{protocol} = 'http';
+  $$self{protocol} = ($$self{uri} and $$self{uri}->scheme eq 'https') ? 'https' : 'http';
+  if ($$self{protocol} eq 'https') {
+    # Cameras use a self-signed certificate
+    $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
+  }
   
   Debug("Reolink HTTP: Using credentials for $$self{host}:$$self{port}, user: $$self{username}");
   
@@ -116,6 +120,12 @@ sub close {
   $self->{state} = 'closed';
 }
 
+# URI returns an IPv6 host without the brackets a URL needs.
+sub url_host {
+  my $self = shift;
+  return $$self{host} =~ /:/ ? '['.$$self{host}.']' : $$self{host};
+}
+
 sub login {
   my $self = shift;
   
@@ -134,7 +144,7 @@ sub login {
   };
   
   my $json = encode_json([$login_cmd]);
-  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+  my $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
 
   $self->printMsg($json, 'Tx');
 
@@ -160,7 +170,7 @@ sub login {
       }
 
       # Retry with the redirected URL
-      $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
+      $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd=Login&token=null';
       Debug("Reolink retrying login at: $url");
       $req = HTTP::Request->new(POST => $url);
       $req->content_type('application/json');
@@ -254,7 +264,7 @@ sub sendApiCmd {
   $self->printMsg($json, 'Tx');
   
   # Construct URL with token
-  my $url = $$self{protocol}.'://'.$$self{host}.':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
+  my $url = $$self{protocol}.'://'.$self->url_host().':'.$$self{port}.'/cgi-bin/api.cgi?cmd='.$cmds[0]->{cmd}.'&token='.$$self{token};
   
   my $req = HTTP::Request->new(POST => $url);
   $req->content_type('application/json');
@@ -278,6 +288,7 @@ sub sendApiCmd {
           # rspCode -6 is 'please login first': the camera dropped our token
           # (reboot, session limit, lease cut short), whatever our own expiry says.
           $token_rejected = 1 if defined($response->[0]->{error}) and ($response->[0]->{error}->{rspCode} // 0) == -6;
+          $result = undef;
         }
       }
     };

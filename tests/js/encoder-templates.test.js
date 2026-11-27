@@ -55,6 +55,11 @@ test('value containing = keeps the trailing equals', () => {
       ZM.parseParams('x264-params=keyint=30:bframes=0'),
       [{key: 'x264-params', value: 'keyint=30:bframes=0'}]);
 });
+test('# starts a comment to the end of the line', () => {
+  assert.deepStrictEqual(
+      ZM.parseParams('# 1 is best, 51 is worst\n#crf=18\npreset=fast # g=5\ng=30'),
+      [{key: 'preset', value: 'fast'}, {key: 'g', value: '30'}]);
+});
 test('all-separator input returns empty array', () => {
   assert.deepStrictEqual(ZM.parseParams(',,,'), []);
 });

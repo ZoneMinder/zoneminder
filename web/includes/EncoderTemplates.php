@@ -75,11 +75,12 @@ class EncoderTemplates {
 
   // Convert "key=value\nkey=value" text to {key: value} for the
   // JS module's mergeParams. Mirrors the parseParams JS function:
-  // splits on \n / , / # (matching av_dict_parse_string), trims keys
-  // and values, drops pairs without =, drops empty keys.
+  // drops # comments to end of line and splits on \n / , (matching
+  // zm_parse_options), trims keys and values, drops pairs without =,
+  // drops empty keys.
   private static function paramsTextToObject(string $text): array {
     $out = [];
-    $pairs = preg_split('/[#,\n]/', $text);
+    $pairs = preg_split('/[,\n]/', preg_replace('/#[^\n]*/', '', $text));
     if ($pairs === false) return $out;
     foreach ($pairs as $pair) {
       $idx = strpos($pair, '=');

@@ -62,7 +62,7 @@ GetOptions(
   version => \$version,
   verbose => \$verbose,
   dry_run => \$dry_run,
-);
+) or pod2usage(-exitstatus => -1);
 
 if ($version) {
   print(ZoneMinder::Base::ZM_VERSION . "\n");

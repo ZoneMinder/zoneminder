@@ -450,6 +450,10 @@ if ( currentView != 'none' && currentView != 'login' ) {
 
   // After retieving modal html via Ajax, this will insert it into the DOM
   function insertModalHtml(name, html) {
+    if (!html) {
+      console.error('No html received for modal ' + name);
+      return $j('#' + name);
+    }
     let modal = $j('#' + name);
 
     if (modal.length) {
@@ -460,6 +464,16 @@ if ( currentView != 'none' && currentView != 'login' ) {
     }
     return modal;
   }
+
+  // Show the server's message when a modal request comes back as an error
+  function modalReplyFailed(evt, jqxhr, settings) {
+    if (!settings || !settings.url || settings.url.indexOf('request=modal') === -1) return;
+    const reply = jqxhr && jqxhr.responseJSON;
+    if (reply && reply.result == 'Error') {
+      alert(reply.message || 'Unable to load the dialog.');
+    }
+  }
+  $j(document).ajaxSuccess(modalReplyFailed);
 
   // Manage the modal html we received after user clicks help link
   function optionhelpModal(data) {

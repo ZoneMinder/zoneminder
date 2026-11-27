@@ -527,8 +527,8 @@ function getCmdResponse(respObj, respText) {
   //  setButtonState('zoomOutBtn', 'inactive');
   //}
 
-  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != currentScale + deltaScale())) {
-    console.log("Stream not scaled, re-applying, current: ", currentScale + deltaScale(), " stream: ", streamStatus.scale);
+  if (currentScale && (streamStatus.scale !== undefined) && (streamStatus.scale != zmsScale(currentScale))) {
+    console.log("Stream not scaled, re-applying, current: ", zmsScale(currentScale), " stream: ", streamStatus.scale);
     streamScale(currentScale);
   }
   const fps = document.getElementById('fpsValue');
@@ -922,10 +922,15 @@ function streamZoomOut() {
 }
 */
 
-function streamScale(scale) {
+// The scale zms is asked for: the stream quality applied, and never over 100%.
+function zmsScale(scale) {
   scale += deltaScale();
+  return (scale>100) ? 100 : scale;
+}
+
+function streamScale(scale) {
   if (document.getElementById('evtStream')) {
-    streamReq({command: CMD_SCALE, scale: (scale>100) ? 100 : scale});
+    streamReq({command: CMD_SCALE, scale: zmsScale(scale)});
   }
 }
 

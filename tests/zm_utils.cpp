@@ -284,6 +284,7 @@ TEST_CASE("QueryString") {
     REQUIRE(p != nullptr);
     REQUIRE(p->name() == "name1");
     REQUIRE(p->size() == 0);
+    REQUIRE(p->firstValue().empty());
   }
 
   SECTION("no value and ampersand") {

@@ -39,6 +39,7 @@ class RolesController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireScalarSort();
     $roles = $this->Paginator->paginate('Role');
 
     $this->set(array(

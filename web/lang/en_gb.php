@@ -1330,6 +1330,17 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      The required version is reported below this setting, and is set by SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION in skins/classic/js/audioMotionAnalyzer.js.
      ',
     ),
+  'OPTIONS_WALL_CLOCK_TIMESTAMPS' => array(
+    'Help' => 'Controls where ZoneMinder gets the timing for each frame when writing a video file: from the camera\'s video stream itself or from the server\'s system clock.~~~~'
+            . '- Off (Default - recommended for most cameras): ZoneMinder uses the original timestamps (PTS/DTS) embedded in the stream by the camera. This ensures smooth playback with consistent frame intervals, avoids distortion from network delays, and properly supports B-frames.~~'
+            . '- On: ZoneMinder ignores the camera\'s stream timestamps and assigns each frame the server\'s system clock time at the exact moment the packet arrives.~~~~'
+            . 'When to enable this option:~~'
+            . '- Your camera has buggy firmware that sends broken, jumping, or duplicate timestamps (causing \'non increasing dts\' warnings in logs, dropped recordings, or unplayable files).~~'
+            . '- The camera\'s internal clock drifts significantly (e.g., a 10-minute real-time recording plays back as 7 or 13 minutes).~~~~'
+            . 'Important caveats when enabled:~~'
+            . '- Over unstable networks (such as Wi-Fi or congested links), playback may appear slightly jittery because network packet delays are baked directly into frame timings.~~'
+            . '- Not recommended for streams containing B-frames in Passthrough mode, as presentation timestamps (PTS) are forced equal to decoding timestamps (DTS).'
+  ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When to perform motion detection on the captured video.  

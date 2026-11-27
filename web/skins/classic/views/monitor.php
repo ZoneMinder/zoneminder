@@ -1358,7 +1358,7 @@ echo htmlSelect('newMonitor[OutputContainer]', $videowriter_containers, $monitor
 ?>
             </li>
             <li class="WallClockTimeStamps">
-              <label><?php echo translate('Use Wallclock Timestamps') ?></label>
+              <label><?php echo translate('Use Wallclock Timestamps'); echo makeHelpLink('OPTIONS_WALL_CLOCK_TIMESTAMPS') ?></label>
               <input type="checkbox" name="newMonitor[WallClockTimestamps]" value="1"<?php if ( $monitor->WallClockTimestamps() ) { ?> checked="checked"<?php } ?>/>
             </li>
             <li class="RecordAudio">

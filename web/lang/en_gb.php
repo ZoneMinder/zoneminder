@@ -80,6 +80,7 @@ $SLANG = array(
     '24BitColour'           => '24 bit colour',
     '32BitColour'           => '32 bit colour',
     '8BitGrey'              => '8 bit greyscale',
+    'AddAlias'              => 'Add alias, then Enter',
     'AddNewClass'           => 'Add New Class',
     'AddNewControl'         => 'Add New Control',
     'AddNewDataset'         => 'Add New Dataset',
@@ -103,6 +104,7 @@ $SLANG = array(
     'AlarmPx'               => 'Alarm Px',
     'AlarmRefImageBlendPct' => 'Alarm Reference Image Blend %ge',
     'AlarmRGBUnset'         => 'You must set an alarm RGB colour',
+    'Aliases'               => 'Aliases',
     'All'                   => 'All',
     'AllTokensRevoked'      => 'All Tokens Revoked',
     'AnalysisFPS'           => 'Analysis FPS',
@@ -322,6 +324,7 @@ $SLANG = array(
     'ChooseLogFormat'       => 'Choose a log format',
     'ChooseLogSelection'    => 'Choose a log selection',
     'ChoosePreset'          => 'Choose Preset',
+    'ClassIndexInUse'       => 'Index %1$s is already used by %2$s in this dataset',
     'ClassLabel'            => 'Label',
     'ClearLogs'             => 'Clear Logs',
     'CloneMonitor'          => 'Clone',
@@ -610,6 +613,7 @@ $SLANG = array(
     'NewPasswordRequired'   => 'Enter a new password.',
     'NewState'              => 'New State',
     'NewUser'               => 'New User',
+    'NextFreeIndex'         => 'Next free',
     'NextFrame'             => 'Next Frame',
     'NextMonitor'           => 'Next Monitor',
     'NoDetectedCameras'     => 'No Detected Cameras',
@@ -648,6 +652,7 @@ $SLANG = array(
     'ONVIF'                 => 'ONVIF',
     'ONVIF_Alarm_Text'      => 'ONVIF Alarm Text',
     'ONVIF_Event_Listener'  => 'ONVIF Event Listener',
+    'ONVIF_Event_Tags'      => 'Tag Events From ONVIF',
     'ONVIF_EVENTS_PATH'     => 'ONVIF Events Path',
     'ONVIF_Options'         => 'ONVIF Options',
     'ONVIF_URL'             => 'ONVIF URL',
@@ -1427,6 +1432,19 @@ None: No frames will be decoded, live view and thumbnails will not be available~
      Disable it if you receive an error ~~~ Couldnt do Renew Error 12 ActionNotSupported
      <env:Text>The device do NOT support this feature</env:Text> ~~~ when trying to enable/use ONVIF ~~it may
      help to get it to work... it is confirmed to work in some chinese cameras that do not implement ONVIF entirely
+    '
+   ),
+   'OPTIONS_ONVIF_Event_Tags' => array(
+    'Help' => '
+     Tag events raised by the ONVIF event listener with what the camera detected.~~
+     Object detections from the camera become the same tags object detection uses:
+     person, vehicle, animal, package, face, and doorbell for a doorbell press.~~
+     What a camera calls each object is set in Options, AI Classes, as the class
+     Aliases (PeopleDetect and Human are aliases of person). Add the words your
+     camera uses there. Saving a class restarts the monitors that tag events.~~
+     An alarm that names no object, such as plain motion or tampering, is tagged with
+     the name of its topic, for example MotionAlarm.~~
+     With this on, the event note just says ONVIF, as the tags say what was detected.
     '
    ),
    'OPTIONS_ONVIF_Alarm_Text' => array(

@@ -61,16 +61,21 @@ Tag::Tag(uint64_t p_id) : id(p_id) {
 Tag::~Tag() {
 }
 
+// The tag called name, or nullptr when there is none yet. Not finding one is
+// how callers learn a tag is new, so only a failed query is an error.
 Tag *Tag::find(const std::string &name) {
   std::string sql = stringtf("SELECT `Id`, `Name`, `CreateDate`, `CreatedBy`, `LastAssignedDate` FROM `Tags` WHERE `Name`='%s'",
       zmDbEscapeString(name).c_str());
   Debug(4, "Loading Tag using %s", sql.c_str());
-  zmDbRow dbrow;
-  if (!dbrow.fetch(sql)) {
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
     Error("Unable to load tag using %s: %s", sql.c_str(), mysql_error(&dbconn));
     return nullptr;
   }
-  return new Tag(dbrow.mysql_row());
+  MYSQL_ROW row = mysql_fetch_row(result);
+  Tag *tag = row ? new Tag(row) : nullptr;
+  mysql_free_result(result);
+  return tag;
 }
 
 uint64_t Tag::save() {
@@ -78,8 +83,11 @@ uint64_t Tag::save() {
     if (created_on.time_since_epoch() == Seconds(0)) created_on = std::chrono::system_clock::now();
     if (last_assigned_on.time_since_epoch() == Seconds(0)) last_assigned_on = created_on;
 
+    // Another process may have created the tag since it was looked for; the
+    // existing row's Id is then returned rather than a duplicate key error.
     std::string sql = stringtf("INSERT INTO `Tags` (`Name`, `CreateDate`, `LastAssignedDate`)"
-       " VALUES ('%s', from_unixtime(%" PRId64 "), from_unixtime(%" PRId64 "))",
+       " VALUES ('%s', from_unixtime(%" PRId64 "), from_unixtime(%" PRId64 "))"
+       " ON DUPLICATE KEY UPDATE `Id`=LAST_INSERT_ID(`Id`)",
         zmDbEscapeString(name).c_str(),
         static_cast<int64>(std::chrono::system_clock::to_time_t(created_on)),
         static_cast<int64>(std::chrono::system_clock::to_time_t(last_assigned_on))

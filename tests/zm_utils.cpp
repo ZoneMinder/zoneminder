@@ -33,6 +33,17 @@ TEST_CASE("Trim") {
   REQUIRE(Trim("\"te\"st\"", "\"") == "te\"st");
 }
 
+TEST_CASE("Utf8Truncate") {
+  REQUIRE(Utf8Truncate("", 2) == "");
+  REQUIRE(Utf8Truncate("abc", 3) == "abc");
+  REQUIRE(Utf8Truncate("abcd", 3) == "abc");
+  REQUIRE(Utf8Truncate("abc", 0) == "");
+  // \xc3\xa9 is one character (e acute), \xe4\xba\xba another (person)
+  REQUIRE(Utf8Truncate("\xc3\xa9\xc3\xa9\xc3\xa9", 2) == "\xc3\xa9\xc3\xa9");
+  REQUIRE(Utf8Truncate("a\xe4\xba\xba", 2) == "a\xe4\xba\xba");
+  REQUIRE(Utf8Truncate("a\xe4\xba\xba" "b", 2) == "a\xe4\xba\xba");
+}
+
 TEST_CASE("TrimSpaces") {
   REQUIRE(TrimSpaces(" ") == "");
 

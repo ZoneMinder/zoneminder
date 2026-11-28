@@ -19,6 +19,7 @@
 
 #include "zm_event_tag.h"
 
+#include "zm_db.h"
 #include "zm_logger.h"
 #include "zm_signal.h"
 #include "zm_time.h"
@@ -78,17 +79,17 @@ Event_Tag::Event_Tag(uint64_t p_tag_id, uint64_t p_event_id, SystemTimePoint p_a
 Event_Tag::~Event_Tag() {
 }
 
-uint64_t Event_Tag::save() {
+// Linking a tag the event already has (object detection may have linked it
+// first) is not an error, so the row is left as it is. Queued, as the caller
+// may be the analysis thread.
+void Event_Tag::save() {
   std::string sql = stringtf("INSERT INTO `Events_Tags` (`TagId`, `EventId`, `AssignedDate`, `AssignedBy`)"
-      " VALUES (%" PRIu64 ", %" PRIu64 ", from_unixtime(%" PRId64 "), %d)",
+      " VALUES (%" PRIu64 ", %" PRIu64 ", from_unixtime(%" PRId64 "), %d)"
+      " ON DUPLICATE KEY UPDATE `TagId`=`TagId`",
       tag_id,
       event_id,
       static_cast<int64>(std::chrono::system_clock::to_time_t(assigned_on)),
       assigned_by
       );
-  uint64_t rc;
-  //do {
-    rc = zmDbDoInsert(sql);
-  //} while (!rc and !zm_terminate);
-  return rc;
+  dbQueue.push(std::move(sql));
 }

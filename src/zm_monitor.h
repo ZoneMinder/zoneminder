@@ -658,6 +658,7 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   std::string onvif_password;
   std::string onvif_options;
   bool        onvif_event_listener;
+  bool        onvif_event_tags;  // tag events with the objects ONVIF alarms name
   bool        use_Amcrest_API;
 
   std::string     device;

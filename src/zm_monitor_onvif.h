@@ -28,6 +28,7 @@
 #include <mutex>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 #include "zm_time.h"
 #include "soapPullPointSubscriptionBindingProxy.h"
 #include "plugin/wsseapi.h"
@@ -96,6 +97,48 @@ bool ONVIFIsActionNotSupported(int result, const char *subcode, const char *faul
 // longer at now. max_seconds of zero or less means no limit. For cameras that
 // never send the alarm-off notification (refs #4561, #3802).
 bool ONVIFAlarmExceedsMaxDuration(const SystemTimePoint &started, const SystemTimePoint &now, int max_seconds);
+
+// One tt:SimpleItem from the Data part of an ONVIF event message. name is
+// empty for a value found without one (ElementItem, legacy layouts).
+struct ONVIFEventItem {
+  std::string name;
+  std::string value;
+};
+
+// The event note for an ONVIF alarm, from its topic, the Data items of the
+// message and the Rule named in its Source (empty when there is none).
+//
+// Cameras say what they detected in different places: the topic (Reolink
+// MyRuleDetector/PeopleDetect), an item name (Tapo IsPeople=true) or an item
+// value (Ajax ClassTypes="Human Vehicle"). The note keeps all of them and drops
+// only what is noise on every camera: the namespace prefix of each topic
+// segment, a leading RuleEngine/, items that are empty or say inactive (by the
+// same words as the alarm state), per-object ids, the value of items that say
+// active, and generic State/LogicalState items that say active. So
+// tns1:RuleEngine/TPSmartEventDetector/TPSmartEvent with IsPeople=true and
+// Rule=MyRule gives "TPSmartEventDetector/TPSmartEvent IsPeople (MyRule)". A
+// topic that reduces to nothing is used as it is. The word lists that drive
+// this are at its definition.
+std::string ONVIFEventNote(const std::string &topic, const std::vector<ONVIFEventItem> &items,
+                           const std::string &rule);
+
+// What cameras call an object, lower case, to the object class it is:
+// "peopledetect" -> "person".
+using ONVIFTagNames = std::unordered_map<std::string, std::string>;
+
+// Adds an object class (AI_Object_Classes.ClassName) and its comma separated
+// aliases (AI_Object_Classes.Aliases) to names, any case. An alias wins over a
+// class name, so an alias can move a word to another class.
+void ONVIFAddTagNames(ONVIFTagNames &names, const std::string &class_name, const std::string &aliases);
+
+// The event tags for an ONVIF alarm: the objects it names, wherever the camera
+// put them (the topic as Reolink PeopleDetect, an active item name without its
+// "Is" as Tapo IsPeople, or classes in an item value, split on spaces and
+// commas, as Ajax ClassTypes="Human Vehicle"), as the object classes names
+// gives them, so they match the tags object detection sets. An alarm that names no known object
+// (motion, tamper, an unknown detector) is tagged with the last topic segment.
+std::vector<std::string> ONVIFEventTags(const std::string &topic, const std::vector<ONVIFEventItem> &items,
+                                        const ONVIFTagNames &names);
 #endif
 
 // Forward declaration
@@ -150,8 +193,10 @@ class ONVIF {
   void setHealthy(bool p_healthy);
 #ifdef WITH_GSOAP
   void setNotes(Event::StringSet &noteSet) { SetNoteSet(noteSet); }
+  void setTags(Event::StringSet &tagSet) { SetTagSet(tagSet); }
 #else
   void setNotes(Event::StringSet &) {}  // No-op without GSOAP
+  void setTags(Event::StringSet &) {}   // No-op without GSOAP
 #endif
 
  protected:
@@ -204,13 +249,16 @@ class ONVIF {
     std::string value;
     SystemTimePoint termination_time;
     SystemTimePoint started;  // when the topic went active; kept across re-triggers
+    std::string note;         // ONVIFEventNote() of the message that raised it
+    std::vector<std::string> tags;  // ONVIFEventTags() of that message
   };
   std::unordered_map<std::string, AlarmEntry> alarms;
-  // The topic/value of the most recent activation, kept so SetNoteSet can still
-  // name the cause of a momentary pulse that has already been erased from
-  // `alarms` by the time the analysis thread samples it (refs #5301).
-  std::string last_alarm_topic_;
-  std::string last_alarm_value_;
+  // The note and tags of the most recent activation, kept so SetNoteSet and
+  // SetTagSet can still name the cause of a momentary pulse that has already been erased from `alarms`
+  // by the time the analysis thread samples it (refs #5301).
+  std::string last_alarm_note_;
+  std::vector<std::string> last_alarm_tags_;
+  ONVIFTagNames tag_names_;  // set before the polling thread starts, read only after
   bool expire_alarms_enabled;
   int max_alarm_duration_seconds;  // 0 = no limit
   int timestamp_validity_seconds;  // WS-Security timestamp validity window
@@ -228,13 +276,16 @@ class ONVIF {
   void ProcessPullResponse(_tev__PullMessagesResponse &tev__PullMessagesResponse);
   void ClearAlarms();
   void SetNoteSet(Event::StringSet &noteSet);
+  void SetTagSet(Event::StringSet &tagSet);
   void enable_soap_logging(const std::string &log_path);
   void disable_soap_logging();
   void cleanup_subscription();
-  bool interpret_alarm_value(const std::string &value);
-  bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value, std::string &operation);
+  static bool interpret_alarm_value(const std::string &value);
+  static bool parse_event_message(wsnt__NotificationMessageHolderType *msg, std::string &topic, std::string &value,
+                                  std::string &operation, std::vector<ONVIFEventItem> &items, std::string &rule);
   static bool matches_topic_filter(const std::string &topic, const std::string &filter);
   void parse_onvif_options();
+  void load_tag_names();
   int get_retry_delay();
   void update_renewal_times(time_t camera_current_time, time_t termination_time);
   void assume_renewal_times(const SystemTimePoint &request_time, const SystemTimePoint &requested_termination);

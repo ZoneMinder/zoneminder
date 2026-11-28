@@ -20,8 +20,9 @@ if ( $cid ) {
     'Id' => 0,
     'DatasetId' => null,
     'ClassName' => '',
-    'ClassIndex' => 0,
-    'Description' => ''
+    'ClassIndex' => '',
+    'Description' => '',
+    'Aliases' => ''
   );
 }
 
@@ -64,11 +65,22 @@ if ($result) {
               </tr>
               <tr class="ClassIndex">
                 <th scope="row"><?php echo translate('Class Index') ?></th>
-                <td><input type="number" name="newClass[ClassIndex]" value="<?php echo validCardinal($class['ClassIndex']) ?>" step="1" min="0" required/></td>
+                <td><input type="number" name="newClass[ClassIndex]" value="<?php echo $cid ? validCardinal($class['ClassIndex']) : '' ?>" step="1" min="0"<?php echo $cid ? ' required' : ' placeholder="'.translate('NextFreeIndex').'"' ?>/></td>
               </tr>
               <tr class="Description">
                 <th scope="row"><?php echo translate('Description') ?></th>
                 <td><textarea name="newClass[Description]" rows="3"><?php echo validHtmlStr($class['Description']) ?></textarea></td>
+              </tr>
+              <tr class="Aliases">
+                <th scope="row"><?php echo translate('Aliases') ?></th>
+                <td>
+                  <input type="hidden" name="newClass[Aliases]" id="classAliases" value="<?php echo validHtmlStr($class['Aliases']) ?>"/>
+                  <div class="tags-container" id="classAliasTags">
+                    <div class="tag-dropdown">
+                      <input type="text" id="classAliasInput" class="tag-input" placeholder="<?php echo translate('AddAlias') ?>"/>
+                    </div>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>

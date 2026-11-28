@@ -2009,7 +2009,8 @@ function monitorFormUncheckedDefaults() {
       'MQTT_Enabled'  =>  0,
       'RTSPServer' => 0,
       'SectionLengthWarn' => 0,
-      'SOAP_wsa_compl' => 0
+      'SOAP_wsa_compl' => 0,
+      'ONVIF_Event_Tags' => 0
       );
 
   # The Control tab is only drawn with ZM_OPT_CONTROL and View permission on

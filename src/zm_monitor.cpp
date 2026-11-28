@@ -103,7 +103,7 @@ std::string load_monitor_sql =
   "`Latitude`, `Longitude`, "
   "`RTSPServer`, `RTSPStreamName`, `SOAP_wsa_compl`, `ONVIF_Alarm_Text`,"
   "`ONVIF_URL`, `ONVIF_EVENTS_PATH`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, "
-  "`ONVIF_Event_Listener`, `use_Amcrest_API`,"
+  "`ONVIF_Event_Listener`, `ONVIF_Event_Tags`, `use_Amcrest_API`,"
   "`SignalCheckPoints`, `SignalCheckColour`, `Importance`-1, ZoneCount "
 #if MOSQUITTOPP_FOUND
   ", `MQTT_Enabled`, `MQTT_Subscriptions`"
@@ -204,6 +204,7 @@ Monitor::Monitor() :
   pass(),
   //path
   onvif_event_listener(false),
+  onvif_event_tags(false),
   use_Amcrest_API(false),
   //device
   palette(0),
@@ -691,7 +692,7 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_alarm_txt = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
 
-  /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `use_Amcrest_API`, " */
+  /* "`ONVIF_URL`, `ONVIF_Username`, `ONVIF_Password`, `ONVIF_Options`, `ONVIF_Event_Listener`, `ONVIF_Event_Tags`, `use_Amcrest_API`, " */
   onvif_url = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
   if (onvif_url.empty()) {
@@ -710,6 +711,8 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   onvif_options = std::string(dbrow[col] ? dbrow[col] : "");
   col++;
   onvif_event_listener = (*dbrow[col] != '0');
+  col++;
+  onvif_event_tags = dbrow[col] && (*dbrow[col] != '0');
   col++;
   use_Amcrest_API = (*dbrow[col] != '0');
   col++;
@@ -2262,6 +2265,7 @@ bool Monitor::Analyse() {
 
       std::string cause;
       Event::StringSetMap noteSetMap;
+      Event::StringSet onvif_tags;
       SystemTimePoint counting_boundary;
 
 #ifdef WITH_GSOAP
@@ -2270,7 +2274,13 @@ bool Monitor::Analyse() {
         Debug(4, "Triggered on ONVIF");
         Event::StringSet noteSet;
         noteSet.insert("ONVIF");
-        onvif->setNotes(noteSet);
+        // What the camera detected goes in the tags when they are on, so the
+        // note does not repeat it.
+        if (onvif_event_tags) {
+          onvif->setTags(onvif_tags);
+        } else {
+          onvif->setNotes(noteSet);
+        }
         noteSetMap[MOTION_CAUSE] = noteSet;
         if (!cause.empty()) cause += ", ";
         cause += "ONVIF";
@@ -2819,6 +2829,9 @@ bool Monitor::Analyse() {
         } else if (noteSetMap.size() > 0) {
           event->updateNotes(noteSetMap);
         } // end if ! event
+        if (event) {
+          for (const std::string &tag : onvif_tags) event->AddTag(tag, packet->timestamp);
+        }
       } // end if signal
 
       packet->score = score;

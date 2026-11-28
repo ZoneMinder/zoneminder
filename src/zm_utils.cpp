@@ -91,6 +91,16 @@ std::string Trim(const std::string &str, const std::string &char_set) {
   return str.substr(start_pos, end_pos - start_pos + 1);
 }
 
+std::string Utf8Truncate(const std::string &str, size_t max_chars) {
+  size_t chars = 0;
+  for (size_t i = 0; i < str.size(); i++) {
+    // Count lead bytes; continuation bytes are 10xxxxxx
+    if ((static_cast<unsigned char>(str[i]) & 0xC0) != 0x80 && ++chars > max_chars)
+      return str.substr(0, i);
+  }
+  return str;
+}
+
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value) {
   if (old_value.empty())
     return str;

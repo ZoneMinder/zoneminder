@@ -63,6 +63,8 @@ std::string Trim(const std::string &str, const std::string &char_set);
 // Replaces every byte that is not part of a well formed UTF-8 sequence with '?'
 std::string Utf8Sanitize(const std::string &str);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
+// The first max_chars UTF-8 characters of str, never splitting one.
+std::string Utf8Truncate(const std::string &str, size_t max_chars);
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string ShellEscape(const std::string &str) {
   std::string result = "'";

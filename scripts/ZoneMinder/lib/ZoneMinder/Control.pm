@@ -443,7 +443,8 @@ sub post {
   my $req = HTTP::Request->new('POST', $url);
   if ( defined($content) ) {
     if (ref $content eq 'HASH') {
-      my $uri = $$self{uri};
+      # Not $$self{uri}: it can be the same object as BaseURL
+      my $uri = URI->new('', 'http');
       $uri->query_form(%{$content});
       $content = $uri->query;
     }

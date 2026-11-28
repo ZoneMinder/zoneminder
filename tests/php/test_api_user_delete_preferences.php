@@ -39,6 +39,7 @@ $pdo->exec('CREATE TABLE User_Preferences (Id INTEGER PRIMARY KEY, UserId INTEGE
   Name TEXT NOT NULL, Value TEXT, FOREIGN KEY (UserId) REFERENCES Users(Id))');
 
 class FakeUser {
+  function getDataSource() { return new class { function begin() {} function commit() {} function rollback() {} }; }
   public $id;
   function exists() {
     global $pdo;

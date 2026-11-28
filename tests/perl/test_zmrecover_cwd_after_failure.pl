@@ -58,6 +58,8 @@ sub DESTROY { }
 EOM
 write_file("$dir/lib/ZoneMinder/Event.pm", <<'EOM');
 package ZoneMinder::Event;
+sub FALLBACK_ID_MIN () { 1000000000000000 }
+sub is_fallback_id { 0 }
 sub new { return bless({}, 'ZoneMinder::Event'); }
 sub find_one { return 0; }
 sub recover_timestamps { $_[0]{StartDateTime} = '2026-11-01 00:00:00'; }

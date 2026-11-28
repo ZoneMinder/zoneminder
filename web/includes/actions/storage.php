@@ -38,7 +38,12 @@ if ($action == 'save') {
     # Name into a filesystem path, so neither may be blank.
     $name = array_key_exists('Name', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Name'] : ($storage->{'Name'} ?? '');
     $path = array_key_exists('Path', $_REQUEST['newStorage']) ? $_REQUEST['newStorage']['Path'] : ($storage->{'Path'} ?? '');
-    if (!is_string($name) or (trim($name) === '')) {
+    # Saving a storage area that failed to load would insert a new one.
+    if (validCardinal($_REQUEST['id']) and !$storage->Id()) {
+      ZM\Warning('Storage area '.validCardinal($_REQUEST['id']).' not found');
+      $error_message .= 'Storage area not found<br/>';
+      $changes = array();
+    } else if (!is_string($name) or (trim($name) === '')) {
       ZM\Warning('Refusing to save storage area with an empty Name');
       $error_message .= 'Storage area Name is required<br/>';
       $changes = array();
@@ -48,6 +53,16 @@ if ($action == 'save') {
       $changes = array();
     } else {
       $changes = $storage->changes($_REQUEST['newStorage']);
+
+      # Storage::changes() filters Name and Path down to letters, numbers and - . ( ) : / space.
+      # If that strips every character, Storage::Name()/Path() ignore the empty value and the
+      # save silently does nothing (or falls back to the default events path for a new area).
+      if ((array_key_exists('Name', $changes) and ($changes['Name'] === ''))
+        or (array_key_exists('Path', $changes) and ($changes['Path'] === ''))) {
+        ZM\Warning('Refusing to save storage area whose Name or Path is empty after filtering');
+        $error_message .= 'Storage area Name and Path may only contain letters, numbers and - . ( ) : / space<br/>';
+        $changes = array();
+      }
     }
   }
 

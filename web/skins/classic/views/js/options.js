@@ -208,15 +208,17 @@ function updateMenuIconPreview($row) {
   if (!$preview.length) return;
   const type = $row.find('.iconTypeSelect').val();
   const $input = $row.find('.iconNameInput');
-  let val = $input.val().trim();
-  if (type === 'fontawesome') {
+  const val = $input.val().trim();
+  if (val === '' && type !== 'none') {
+    // Saved without a name, the navbar shows the entry's default material icon
+    $preview.html('<i class="material-icons">' + escapeHTML($input.data('default-icon') || 'menu') + '</i>');
+  } else if (type === 'fontawesome') {
     $preview.html('<i class="fa ' + escapeHTML(val) + '"></i>');
   } else if (type === 'image') {
     $preview.html(val ? '<img src="' + escapeHTML(val) + '" style="width:24px;height:24px;object-fit:contain;" alt=""/>' : '');
   } else if (type === 'none') {
     $preview.html('');
   } else { // material
-    if (val === '') val = $input.attr('placeholder') || 'menu';
     $preview.html('<i class="material-icons">' + escapeHTML(val) + '</i>');
   }
 }

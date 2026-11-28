@@ -80,6 +80,16 @@ inline int EventMaxScoreForDb(int max_score) {
   return max_score < 0 ? 0 : max_score;
 }
 
+// The id an event is recorded under when the Events insert keeps failing, so
+// recording goes on and zmrecover.pl can add the event from disk later. Built
+// from the time so it needs no database: distinct per monitor at the same
+// millisecond and far above the ids auto increment has handed out.
+// ZoneMinder::Event::FALLBACK_ID_MIN in Perl recognises these ids, so zmaudit
+// keeps such an event and zmrecover.pl gives it a normal id.
+inline uint64_t EventFallbackId(uint64_t epoch_ms, unsigned int monitor_id) {
+  return epoch_ms * 1000 + monitor_id % 1000;
+}
+
 // SectionLength is used as a divisor, so 0 would crash zmc.
 inline Seconds ClampSectionLength(Seconds section_length) {
   return section_length < Seconds(1) ? Seconds(1) : section_length;
@@ -91,6 +101,10 @@ inline int EventNamePrefixLength(uint64_t id) {
   for (uint64_t n = id; n >= 10; n /= 10) digits++;
   return 64 - digits;
 }
+
+// SQL expression that names an event "<prefix><id>" when the user has not renamed it. The prefix is
+// expanded from the monitor's EventPrefix, so it can hold quotes, and it is escaped for the query.
+std::string EventNameOnCloseSql(const std::string &prefix, uint64_t id);
 
 inline bool EventCountsFrameStats(SystemTimePoint timestamp, SystemTimePoint boundary) {
   return boundary == SystemTimePoint() or timestamp >= boundary;

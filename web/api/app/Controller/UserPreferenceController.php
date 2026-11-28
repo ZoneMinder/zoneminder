@@ -102,6 +102,7 @@ class UserPreferenceController extends AppController {
  * @return void
  */
 	public function add() {
+    $this->request->allowMethod('post');
     $data = $this->request->data;
     if ($this->RequestHandler->requestedWith('json')) {
       $data = $this->request->input('json_decode', true) ;
@@ -128,9 +129,10 @@ class UserPreferenceController extends AppController {
       } else {
         $message = 'Failure';
         ZM\Warning(json_encode($this->UserPreference->validationErrors));
+        $this->response->statusCode(400);
       }
     } else {
-      ZM\Error("NOT POST in add()");
+      throw new BadRequestException(__('POST required'));
     }
     $this->set(array(
       'message' => $message,
@@ -146,19 +148,40 @@ class UserPreferenceController extends AppController {
  * @return void
  */
 	public function edit($id = null) {
+		$this->request->allowMethod('post', 'put');
 		if (!$this->UserPreference->exists($id)) {
 			throw new NotFoundException(__('Invalid user_preference'));
 		}
 		$this->assertOwned($id);
+		$message = '';
 		if ($this->request->is(array('post', 'put'))) {
-			if ($this->UserPreference->save($this->request->data)) {
+			$data = $this->request->data;
+			if (isset($data['UserPreference'])) {
+				$data = $data['UserPreference'];
+			}
+			if (!is_array($data)) {
+				throw new BadRequestException(__('UserPreference must be an object'));
+			}
+			// The row is the one in the URL, whatever Id the body names.
+			$data['Id'] = $id;
+			global $user;
+			if ($user and ($user->System() != 'Edit')) {
+				$data['UserId'] = $user->Id();
+			}
+			if ($this->UserPreference->save($data)) {
+				$message = 'Saved';
+			} else {
+				$this->response->statusCode(400);
+				$message = $this->UserPreference->validationErrors ? $this->UserPreference->validationErrors : 'Error';
 			}
 		} else {
 			$options = array('conditions' => array('UserPreference.'.$this->UserPreference->primaryKey => $id));
 			$this->request->data = $this->UserPreference->find('first', $options);
 		}
-		$preference = $this->UserPreference;
-		$this->set(compact('user_preference'));
+		$this->set(array(
+			'message' => $message,
+			'_serialize' => array('message')
+		));
 	}
 
 /**

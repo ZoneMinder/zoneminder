@@ -100,5 +100,5 @@ uint64_t Tag::save() {
   if (last_assigned_on.time_since_epoch() == Seconds(0)) last_assigned_on = std::chrono::system_clock::now();
   std::string sql = stringtf("UPDATE `Tags` SET `LastAssignedDate` = from_unixtime(%" PRId64 ") WHERE `Id`=%" PRIu64,
         static_cast<int64>(std::chrono::system_clock::to_time_t(last_assigned_on)), id);
-  return zmDbDo(sql); 
+  return (zmDbDoUpdate(sql) >= 0) ? id : 0;
 }

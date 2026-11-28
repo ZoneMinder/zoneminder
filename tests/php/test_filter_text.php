@@ -27,7 +27,7 @@ function zm_setcookie($name, $value) {
 
 $path = __DIR__.'/../../web/skins/classic/views/_monitor_filters.php';
 $src = file_get_contents($path);
-foreach (array('getFilterSelection', 'getFilterText', 'monitorNameRegexp') as $fn) {
+foreach (array('filterSelectionScalars', 'getFilterSelection', 'getFilterText', 'monitorNameRegexp') as $fn) {
   if (!preg_match('/^function '.$fn.'\(.*?\n\}/ms', $src, $m)) {
     echo "Could not find $fn() in $path\n";
     exit(1);

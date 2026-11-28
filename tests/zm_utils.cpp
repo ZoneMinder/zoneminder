@@ -567,6 +567,33 @@ TEST_CASE("request_for_log") {
   }
 }
 
+TEST_CASE("options_for_log") {
+  SECTION("a headers value is removed") {
+    REQUIRE(options_for_log("headers=Authorization: Basic dXNlcjpwYXNz") == "headers=<not logged>");
+  }
+  SECTION("the separators around a removed value are kept") {
+    REQUIRE(options_for_log("tls_verify=0,headers=Authorization: Bearer abc,timeout=5")
+            == "tls_verify=0,headers=<not logged>,timeout=5");
+  }
+  SECTION("a newline separated options string") {
+    REQUIRE(options_for_log("cookies=sid=abc\ntimeout=5000000")
+            == "cookies=<not logged>\ntimeout=5000000");
+  }
+  SECTION("a proxy url carrying credentials is removed") {
+    REQUIRE(options_for_log("http_proxy=http://u:p@host:3128") == "http_proxy=<not logged>");
+  }
+  SECTION("a command-line style authorization value without '=' is removed") {
+    REQUIRE(options_for_log("-headers Authorization: Basic xyz") == "<not logged>");
+  }
+  SECTION("options without credentials are unchanged") {
+    std::string opts = "tls_verify=0,rw_timeout=5000000";
+    REQUIRE(options_for_log(opts) == opts);
+  }
+  SECTION("the empty string") {
+    REQUIRE(options_for_log("") == "");
+  }
+}
+
 TEST_CASE("url_for_log") {
   SECTION("plain url is unchanged") {
     REQUIRE(url_for_log("rtsp://127.0.0.1:8554/cam") == "rtsp://127.0.0.1:8554/cam");
@@ -679,4 +706,19 @@ TEST_CASE("UrlHost") {
   REQUIRE(UrlHost("192.168.1.5") == "192.168.1.5");
   REQUIRE(UrlHost("zm.example.com") == "zm.example.com");
   REQUIRE(UrlHost("") == "");
+}
+
+TEST_CASE("Utf8Sanitize") {
+  REQUIRE(Utf8Sanitize(std::string("")) == std::string(""));
+  REQUIRE(Utf8Sanitize(std::string("abc")) == std::string("abc"));
+  REQUIRE(Utf8Sanitize(std::string("caf" "\xC3\xA9")) == std::string("caf" "\xC3\xA9"));
+  REQUIRE(Utf8Sanitize(std::string("\xE2\x82\xAC")) == std::string("\xE2\x82\xAC"));
+  REQUIRE(Utf8Sanitize(std::string("\xF0\x9F\x98\x80")) == std::string("\xF0\x9F\x98\x80"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2\x82")) == std::string("ab??"));
+  REQUIRE(Utf8Sanitize(std::string("ab\xE2")) == std::string("ab?"));
+  REQUIRE(Utf8Sanitize(std::string("a\x80" "z")) == std::string("a?z"));
+  REQUIRE(Utf8Sanitize(std::string("caf\xE9")) == std::string("caf?"));
+  REQUIRE(Utf8Sanitize(std::string("\xC0\x80")) == std::string("??"));
+  REQUIRE(Utf8Sanitize(std::string("\xED\xA0\x80")) == std::string("???"));
+  REQUIRE(Utf8Sanitize(std::string("\xFF")) == std::string("?"));
 }

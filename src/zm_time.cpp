@@ -54,11 +54,11 @@ std::string SystemTimePointToMysqlString(SystemTimePoint tp) {
 
 std::string TimePointToString(TimePoint tp) {
   const auto tp_dur = std::chrono::duration_cast<std::chrono::system_clock::duration>(tp - std::chrono::steady_clock::now());
-  time_t tp_sec = std::chrono::system_clock::to_time_t(
-                    std::chrono::system_clock::now() + tp_dur);
+  SystemTimePoint wall = std::chrono::system_clock::now() + tp_dur;
+  time_t tp_sec = std::chrono::system_clock::to_time_t(wall);
 
   Microseconds now_frac = std::chrono::duration_cast<Microseconds>(
-                            tp.time_since_epoch() - std::chrono::duration_cast<Seconds>(tp.time_since_epoch()));
+                            wall.time_since_epoch() - std::chrono::duration_cast<Seconds>(wall.time_since_epoch()));
 
   // Format into a real buffer: writing into a string's spare capacity leaves its size at 0.
   char buffer[96];

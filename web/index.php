@@ -72,12 +72,10 @@ if ( defined('ZM_FORCE_SKIN_DEFAULT') ) {
   $skin = 'classic';
 }
 
-if (!is_dir('skins/'.$skin) ) {
-  $skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
-  if (!in_array($skin, $skins)) {
-    ZM\Error("Invalid skin '$skin' setting to ".$skins[0]);
-    $skin = $skins[0];
-  }
+$skins = array_map('basename', glob('skins/*', GLOB_ONLYDIR));
+if (!is_string($skin) or !in_array($skin, $skins, true)) {
+  ZM\Error('Invalid skin '.(is_string($skin) ? "'$skin'" : '(not a string)').' setting to '.$skins[0]);
+  $skin = $skins[0];
 }
 global $css;
 if (defined('ZM_FORCE_CSS_DEFAULT')) {
@@ -91,7 +89,7 @@ if (defined('ZM_FORCE_CSS_DEFAULT')) {
 } else {
   $css = 'classic';
 }
-if (!is_dir("skins/$skin/css/$css")) {
+if (!is_string($css) or !preg_match('/^[\w.-]+$/', $css) or $css === '.' or $css === '..' or !is_dir("skins/$skin/css/$css")) {
   $css_skins = array_map('basename', glob('skins/'.$skin.'/css/*', GLOB_ONLYDIR));
   if (count($css_skins)) {
     if (!in_array($css, $css_skins)) {
@@ -197,6 +195,7 @@ CORSHeaders();
 $running = null;
 $action = null;
 $error_message = null;
+$info_message = null;
 $redirect = null;
 $view = isset($_REQUEST['view']) ? detaintPath($_REQUEST['view']) : null;
 $user = null;

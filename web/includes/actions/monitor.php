@@ -84,7 +84,11 @@ if ($action == 'save') {
 
   if (!$newMonitor['ModelId'] and ($newMonitor['Model'] != '')) {
     # Need to add a new Model entry
-    $newModel = ZM\Model::find_one(array('Name'=>$newMonitor['Model']));
+    # Model names are only unique per manufacturer, so look under this one.
+    $newModel = ZM\Model::find_one(array(
+      'Name'=>$newMonitor['Model'],
+      'ManufacturerId'=>$newMonitor['ManufacturerId'] ? $newMonitor['ManufacturerId'] : null
+    ));
     if (!$newModel) {
       $newModel = new ZM\Model();
       if (!$newModel->save(array(
@@ -99,6 +103,21 @@ if ($action == 'save') {
   }
 
   $monitor = new ZM\Monitor($mid);
+
+  # Refuse an Ffmpeg source path with no protocol. ffmpeg then fails in
+  # avformat_open_input with "Protocol not found" and zmdc restarts zmc in a
+  # loop without pointing at the field. Absolute paths and ffmpeg's scheme-less
+  # v4l2: form are valid, so allow those.
+  $type = isset($newMonitor['Type']) ? $newMonitor['Type'] : $monitor->Type();
+  if ($type == 'Ffmpeg') {
+    $path = array_key_exists('Path', $newMonitor) ? $newMonitor['Path'] : $monitor->Path();
+    if ($path !== null and $path !== '' and strpos($path, '://') === false and
+        substr($path, 0, 1) !== '/' and stripos($path, 'v4l2:') !== 0) {
+      $error_message .= translate('BadFfmpegPathProtocol').'</br>';
+      ZM\Warning('Refused to save monitor '.$mid.': Source Path must start with a protocol such as rtsp://');
+      return;
+    }
+  }
 
   // Define a field type for anything that's not simple text equivalent
   $types = monitorFormUncheckedDefaults();
@@ -183,7 +202,7 @@ if ($action == 'save') {
                 if (is_link($linkPath)) {
                   $absolutePath = realpath($linkPath);
                   if ($oldLinkPath == $linkPath) $oldLinkPathFound = true;
-                  if ($absolutePath == $Storage->Path().'/'.$mid) {
+                  if ($absolutePath == $storagePath.$mid) {
                     ZM\Debug("Deleting old link in storage '" . $Storage->Name() . "' " . $linkPath);
                     unlink($linkPath);
                   }
@@ -235,8 +254,10 @@ if ($action == 'save') {
             convertZoneThresholdsToPercent($newZone, $zonePixelArea, true);
             $zoneChanges = getFormChanges($zone, $newZone, $types);
             if ( count($zoneChanges) ) {
-              dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                array($mid, $zone['Id']));
+              if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                array($mid, $zone['Id'])) ) {
+                $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+              }
             }
             $zone = $newZone;
           }
@@ -256,8 +277,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } # end foreach zone
           } else if ($oldA > 0 && $newA != $oldA) {
@@ -278,8 +301,10 @@ if ($action == 'save') {
               $zoneChanges = getFormChanges($zone, $newZone, $types);
 
               if ( count($zoneChanges) ) {
-                dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
-                  array($mid, $zone['Id']));
+                if ( !dbQuery('UPDATE Zones SET '.implode(', ', $zoneChanges).' WHERE MonitorId=? AND Id=?',
+                  array($mid, $zone['Id'])) ) {
+                  $error_message .= 'Error updating zone '.validInt($zone['Id']).' after resize: '.dbLastError().'<br/>';
+                }
               }
             } // end foreach zone
           } // end if rotation or just size change
@@ -299,9 +324,23 @@ if ($action == 'save') {
 
       if ( $monitor->insert($changes) ) {
         $mid = $monitor->Id();
+        $dupId = empty($_REQUEST['dupId']) ? 0 : validCardinal($_REQUEST['dupId']);
+        $dupZones = (!empty($_REQUEST['cloneZones']) and $dupId and canView('Monitors', $dupId))
+          ? dbFetchAll('SELECT * FROM Zones WHERE MonitorId=?', NULL, array($dupId)) : array();
+        foreach ($dupZones as $dupZone) {
+          unset($dupZone['Id']);
+          $dupZone['MonitorId'] = $mid;
+          $zone = new ZM\Zone();
+          if (!$zone->save($dupZone)) {
+            $error_message .= $zone->get_last_error();
+            ZM\Error('Error cloning zone: '.$error_message);
+          }
+        }
         // Zone coords and thresholds are stored as percentages (0-100)
         $zone = new ZM\Zone();
-        if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
+        if ($dupZones) {
+          // zones were cloned, no default zone needed
+        } else if (!$zone->save(['MonitorId'=>$monitor->Id(), 'Name'=>'All',
           'Units'=>'Percent',
           'Coords'=>'0.00,0.00 100.00,0.00 100.00,100.00 0.00,100.00',
           'Area'=>10000,
@@ -340,9 +379,14 @@ if ($action == 'save') {
     }
 
     if ( isset($changes['GroupIds']) ) {
-      dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid));
-      foreach ( $changes['GroupIds'] as $group_id ) {
-        dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid));
+      if ( !dbQuery('DELETE FROM Groups_Monitors WHERE MonitorId=?', array($mid)) ) {
+        $error_message .= 'Error clearing groups: '.dbLastError().'<br/>';
+      } else {
+        foreach ( $changes['GroupIds'] as $group_id ) {
+          if ( !dbQuery('INSERT INTO Groups_Monitors (GroupId, MonitorId) VALUES (?,?)', array($group_id, $mid)) ) {
+            $error_message .= 'Error adding monitor to group '.validInt($group_id).': '.dbLastError().'<br/>';
+          }
+        }
       }
     } // end if there has been a change of groups
 
@@ -361,12 +405,18 @@ if ($action == 'save') {
 
     if ( count($x10Changes) ) {
       if ( $x10Monitor && isset($_REQUEST['newX10Monitor']) ) {
-        dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid));
+        if ( !dbQuery('UPDATE TriggersX10 SET '.implode(', ', $x10Changes).' WHERE MonitorId=?', array($mid)) ) {
+          $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+        }
       } else if ( !$user->unviewableMonitorIds() ) {
         if ( !$x10Monitor ) {
-          dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid));
+          if ( !dbQuery('INSERT INTO TriggersX10 SET MonitorId = ?, '.implode(', ', $x10Changes), array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         } else {
-          dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid));
+          if ( !dbQuery('DELETE FROM TriggersX10 WHERE MonitorId = ?', array($mid)) ) {
+            $error_message .= 'Error saving X10 settings: '.dbLastError().'<br/>';
+          }
         }
       }
       $restart = true;
@@ -379,10 +429,12 @@ if ($action == 'save') {
 
     $submitted_ids = array();
     foreach ( $_REQUEST['newAction'] as $posted ) {
+      if ( !is_array($posted) ) continue;
+
       # A row with no target is how the editor expresses "unused": the spare
       # blank row on every page, or an existing action the operator cleared.
-      $target = empty($posted['TargetMonitorId']) ? 0 : validInt($posted['TargetMonitorId']);
-      $action_id = empty($posted['Id']) ? 0 : validInt($posted['Id']);
+      $target = (empty($posted['TargetMonitorId']) or is_array($posted['TargetMonitorId'])) ? 0 : validInt($posted['TargetMonitorId']);
+      $action_id = (empty($posted['Id']) or is_array($posted['Id'])) ? 0 : validInt($posted['Id']);
 
       if ( !$target ) {
         if ( $action_id ) {
@@ -392,11 +444,30 @@ if ($action == 'save') {
         continue;
       }
 
+      # The same right ajax/control.php demands when an action is fired by hand.
+      # Without it a user who may edit this monitor could store an action whose
+      # alarms drive a light or speaker on a monitor they have no Control over.
+      if ( !canView('Control', $target) ) {
+        $error_message .= 'Ignoring action: no Control permission on monitor '.validInt($target).'.<br/>';
+        continue;
+      }
+
       # Never store an action the target cannot perform. The editor filters the
       # dropdown, but the request is not to be trusted. A disabled select is
       # not submitted at all, so the key may simply be absent.
-      $action_type = isset($posted['ActionType']) ? $posted['ActionType'] : '';
-      $trigger_on = isset($posted['TriggerOn']) ? $posted['TriggerOn'] : 'EventStart';
+      $action_type = (isset($posted['ActionType']) and is_string($posted['ActionType'])) ? $posted['ActionType'] : '';
+      $trigger_on = (isset($posted['TriggerOn']) and is_string($posted['TriggerOn'])) ? $posted['TriggerOn'] : 'EventStart';
+
+      $valid_triggers = array('EventStart', 'EventEnd', 'Alarm', 'AlarmEnd', 'Manual', 'Schedule');
+      if ( !in_array($trigger_on, $valid_triggers, true) ) {
+        $error_message .= 'Ignoring action: "'.validHtmlStr($trigger_on).'" is not a trigger.<br/>';
+        continue;
+      }
+      $valid_action_types = array('LightOn', 'LightOff', 'IndicatorLightOn', 'IndicatorLightOff', 'AudioPlay', 'AudioStop');
+      if ( !in_array($action_type, $valid_action_types, true) ) {
+        $error_message .= 'Ignoring action: "'.validHtmlStr($action_type).'" is not an action type.<br/>';
+        continue;
+      }
 
       # The editor collects "Every <when> at <time>"; cron's five fields are
       # what gets stored and written to the crontab. A schedule it could not
@@ -408,11 +479,11 @@ if ($action == 'save') {
       # be on this side of the request.
       $schedule = '';
       if ( $trigger_on == 'Schedule' ) {
-        if ( isset($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
+        if ( isset($posted['ScheduleRaw']) and is_string($posted['ScheduleRaw']) and (trim($posted['ScheduleRaw']) !== '') ) {
           $schedule = trim($posted['ScheduleRaw']);
         } else {
-          $frequency = isset($posted['ScheduleFrequency']) ? $posted['ScheduleFrequency'] : '';
-          $time = isset($posted['ScheduleTime']) ? trim($posted['ScheduleTime']) : '';
+          $frequency = (isset($posted['ScheduleFrequency']) and is_string($posted['ScheduleFrequency'])) ? $posted['ScheduleFrequency'] : '';
+          $time = (isset($posted['ScheduleTime']) and is_string($posted['ScheduleTime'])) ? trim($posted['ScheduleTime']) : '';
           # <input type="time"> gives HH:MM, and HH:MM:SS where seconds are on.
           if ( !preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $hm) ) {
             $error_message .= 'Ignoring action: "'.validHtmlStr($time).
@@ -447,7 +518,7 @@ if ($action == 'save') {
         'TriggerOn'       => $trigger_on,
         'Schedule'        => $schedule,
         'ActionType'      => $action_type,
-        'AudioFile'       => (!isset($posted['AudioFile']) or $posted['AudioFile'] === '')
+        'AudioFile'       => (!isset($posted['AudioFile']) or is_array($posted['AudioFile']) or $posted['AudioFile'] === '')
                                ? null : validInt($posted['AudioFile']),
         'Enabled'         => empty($posted['Enabled']) ? 0 : 1,
       );

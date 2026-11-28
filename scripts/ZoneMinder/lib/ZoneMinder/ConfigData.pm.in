@@ -46,6 +46,7 @@ our %EXPORT_TAGS = (
       @options
       %options_hash
       dbValue
+      extendAuthHashSecret
       ) ]
     );
 push( @{$EXPORT_TAGS{all}}, @{$EXPORT_TAGS{$_}} ) foreach keys %EXPORT_TAGS;
@@ -378,7 +379,8 @@ our @options = (
       necessary to generate hashed strings containing encrypted
       sensitive information such as usernames and password. Although
       these string are reasonably secure the addition of a random
-      secret increases security substantially.
+      secret increases security substantially. It is also the key
+      for API tokens, so it must be at least 32 characters long.
       `,
     requires    => [
       { name=>'ZM_OPT_USE_AUTH', value=>'1' },
@@ -1242,7 +1244,7 @@ our @options = (
     type        => {
       db_type     => 'integer',
       hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
-      pattern     => qr|^(\d+)$|,
+      pattern     => qr|^(-?\d+)$|,
       format      => q( $1 )
     },
     category    => 'logging',
@@ -1268,7 +1270,7 @@ our @options = (
     type        => {
       db_type     => 'integer',
       hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
-      pattern     => qr|^(\d+)$|,
+      pattern     => qr|^(-?\d+)$|,
       format      => q( $1 )
     },
     category    => 'logging',
@@ -1298,7 +1300,7 @@ our @options = (
     type        => {
       db_type     => 'integer',
       hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
-      pattern     => qr|^(\d+)$|,
+      pattern     => qr|^(-?\d+)$|,
       format      => q( $1 )
     },
     category    => 'logging',
@@ -1325,7 +1327,7 @@ our @options = (
     type        => {
       db_type     => 'integer',
       hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
-      pattern     => qr|^(\d+)$|,
+      pattern     => qr|^(-?\d+)$|,
       format      => q( $1 )
     },
     category    => 'logging',
@@ -1356,7 +1358,7 @@ our @options = (
     type        => {
       db_type     => 'integer',
       hint        => 'None=-6|Audit=-5|Panic=-4|Fatal=-3|Error=-2|Warning=-1|Info=0|Debug=1',
-      pattern     => qr|^(\d+)$|,
+      pattern     => qr|^(-?\d+)$|,
       format      => q( $1 )
     },
     category    => 'logging',
@@ -1724,7 +1726,7 @@ our @options = (
     type        => {
       db_type     => 'string',
       hint        => 'normal|collapsed|left',
-      pattern     => qr|^([nc])|i,
+      pattern     => qr|^([ncl])|i,
       format      => q( ($1 =~ /^n/) ? 'normal' : 'collapsed' )
     },
     category    => 'web',
@@ -2138,7 +2140,7 @@ our @options = (
     type        => {
       db_type     =>'string',
       hint        =>'ftp|sftp',
-      pattern     =>qr|^([tz])|i,
+      pattern     =>qr|^([fs])|i,
       format      =>q( $1 =~ /^f/ ? 'ftp' : 'sftp' )
     },
     category    => 'upload',
@@ -3068,7 +3070,7 @@ our @options = (
     help        => q`
       Controls how the monitor filter settings panel is displayed on
       views that support it (Console, Watch, Montage, Montage Review).
-      When set to 'Embedded in Left Sidebar' (default), the filter
+      When set to 'sidebar' (default), the filter
       panel is moved into the left sidebar extruder. This option only
       takes effect when ZM_WEB_NAVBAR_TYPE is set to 'left'. When
       the navbar is not on the left, filters use the standard
@@ -3078,8 +3080,8 @@ our @options = (
       `,
     type        => {
       db_type     => 'string',
-      hint        => 'Embedded in Left Sidebar|inline',
-      pattern     => qr|^([EiI])|i,
+      hint        => 'sidebar|inline',
+      pattern     => qr|^([sEiI])|i,
       format      => q( ($1 =~ /^i/i) ? 'inline' : 'sidebar' )
     },
     requires    => [ { name=>'ZM_WEB_NAVBAR_TYPE', value=>'left' } ],
@@ -3404,7 +3406,7 @@ our @options = (
     type        => {
       db_type     =>'string',
       hint        =>'events|timeline',
-      pattern     =>qr|^([lt])|i,
+      pattern     =>qr|^([et])|i,
       format      =>q( $1 =~ /^e/ ? 'events' : 'timeline' )
     },
     category    => 'highband',
@@ -3698,7 +3700,7 @@ our @options = (
     type        => {
       db_type     =>'string',
       hint        =>'events|timeline',
-      pattern     =>qr|^([lt])|i,
+      pattern     =>qr|^([et])|i,
       format      =>q( $1 =~ /^e/ ? 'events' : 'timeline' )
     },
     category    => 'medband',
@@ -3991,7 +3993,7 @@ our @options = (
     type        => {
       db_type     =>'string',
       hint        =>'events|timeline',
-      pattern     =>qr|^([lt])|i,
+      pattern     =>qr|^([et])|i,
       format      =>q( $1 =~ /^e/ ? 'events' : 'timeline' )
     },
     category    => 'lowband',
@@ -4337,6 +4339,17 @@ sub dbValue {
   my ($db_type, $value) = @_;
   return $value ? '1' : '0' if $db_type eq 'boolean';
   return defined($value) ? $value : '';
+}
+
+# ZM_AUTH_HASH_SECRET is the HS256 token key, and php-jwt refuses one shorter than
+# 32 bytes. Repeat a shorter secret until it is long enough, so an upgrade keeps
+# the secret the user chose. Whole copies only, so a multibyte character is never
+# split. An empty value is left for generateAuthHashSecret() to replace.
+sub extendAuthHashSecret {
+  my $value = shift;
+  my $min = 32;
+  return $value if !length($value) or length($value) >= $min;
+  return $value x int(($min + length($value) - 1) / length($value));
 }
 
 1;

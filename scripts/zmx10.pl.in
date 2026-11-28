@@ -39,7 +39,7 @@ management of the ZM daemons based on the receipt of X10 signals.
  -c <command>, --command=<command>       - Command to issue, one of 'on','off','dim','bright','start', 'status','shutdown'
  -u <unit code>, --unit-code=<unit code> - Unit code to act on required for all commands
                                            except 'status' (optional) and 'shutdown'
- -v, --verison                           - Pirnts the currently installed version of ZoneMinder
+ -v, --version                           - Prints the currently installed version of ZoneMinder
 
 =cut
 use strict;
@@ -166,6 +166,8 @@ use Socket;
 use X10::ActiveHome;
 use autouse 'Data::Dumper'=>qw(Dumper);
 
+use constant CLIENT_READ_TIMEOUT => 5;
+
 our $dbh;
 our $x10;
 
@@ -175,6 +177,8 @@ our %pending_tasks;
 
 sub runServer {
   Info('X10 server starting');
+  # A client may hang up before our reply is written; a failed write must not kill the daemon
+  $SIG{PIPE} = 'IGNORE';
 
   socket(SERVER, PF_UNIX, SOCK_STREAM, 0) or Fatal("Can't open socket: $!");
   unlink(main::SOCK_FILE);
@@ -213,12 +217,38 @@ sub runServer {
       Debug(2, "Nfound $nfound");
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = '';
+        my $deadline = time() + CLIENT_READ_TIMEOUT;
+        while ( (my $wait = $deadline - time()) > 0 ) {
+          vec(my $cin = '', fileno(CLIENT), 1) = 1;
+          last if select(my $cout = $cin, undef, undef, $wait) <= 0;
+          last if !sysread(CLIENT, $message, 4096, length($message));
+          last if $message =~ /\n/;
+        }
 
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
+
+        chomp($message);
         my ($command, $unit_code) = split(';', $message);
+        $unit_code =~ s/\s+$// if defined($unit_code);
+
+        if ( ( $command eq 'on' || $command eq 'off' ) && !defined($unit_code) ) {
+          dPrint(ZoneMinder::Logger::ERROR, "No unit code given for '$command' command\n");
+          close(CLIENT);
+          next;
+        }
 
         my $device;
         if ( defined($unit_code) ) {
+          if ( $unit_code !~ /^\d+$/ ) {
+            dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
+            close(CLIENT);
+            next;
+          }
+          $unit_code = int($unit_code);
           if ( $unit_code < 1 || $unit_code > 16 ) {
             dPrint(ZoneMinder::Logger::ERROR, "Invalid unit code '$unit_code'\n");
             close(CLIENT);
@@ -415,6 +445,7 @@ sub addToMonitorList {
 sub loadTasks {
   # The poll keeps monitors attached; detach them before dropping them.
   zmMemInvalidate($_) foreach values(%monitor_hash);
+  my %old_monitors = %monitor_hash;
   %monitor_hash = ();
 
   Debug('Loading tasks');
@@ -428,7 +459,8 @@ sub loadTasks {
   my $sql = 'SELECT M.*,T.* FROM Monitors as M
   INNER JOIN TriggersX10 as T on (M.Id = T.MonitorId)
   WHERE M.Capturing != \'None\'
-  AND find_IN_set(\'X10\', M.Triggers)';
+  AND find_IN_set(\'X10\', M.Triggers)
+  AND M.Deleted = 0';
   my $sth = $dbh->prepare_cached( $sql )
     or Fatal("Can't prepare '$sql': ".$dbh->errstr());
   my $res = $sth->execute()
@@ -440,11 +472,15 @@ sub loadTasks {
       next;
     }
 
+    my $old = $old_monitors{$monitor->{Id}};
+    $monitor->{LastState} = $old->{LastState}
+      if $old and defined($old->{LastState});
     $monitor_hash{$monitor->{Id}} = $monitor;
 
     if ( $monitor->{Activation} ) {
       Debug("$monitor->{Name} has active string '$monitor->{Activation}'");
       foreach my $code_string ( split(',', $monitor->{Activation}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -472,6 +508,7 @@ sub loadTasks {
     if ( $monitor->{AlarmInput} ) {
       Debug("$monitor->{Name} has alarm input string '$monitor->{AlarmInput}'");
       foreach my $code_string ( split(',', $monitor->{AlarmInput}) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );
@@ -499,6 +536,7 @@ sub loadTasks {
     if ( $monitor->{AlarmOutput} ) {
       Debug("$monitor->{Name} has alarm output string '$monitor->{AlarmOutput}'");
       foreach my $code_string ( split( ',', $monitor->{AlarmOutput} ) ) {
+        $code_string =~ s/^\s+|\s+$//g;
         #Debug( "Code string: $code_string\n" );
         my ( $invert, $unit_code, $modifier, $limit )
         = ( $code_string =~ /^([!~])?(\d+)(?:([+-])(\d+)?)?$/ );

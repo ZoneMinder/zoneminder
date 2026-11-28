@@ -9,7 +9,7 @@ $controls = dbFetchAll('SELECT * FROM Controls ORDER BY Name');
         <div class="col">
           <button id="backBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Back') ?>" disabled><i class="fa fa-arrow-left"></i></button>
           <button id="refreshBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Refresh') ?>" ><i class="fa fa-refresh"></i></button>
-          <button id="addNewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('AddNewControl') ?>" data-on-click-this="addNewControl" data-url="?view=controlcap"><i class="fa fa-plus"></i></button>
+          <button id="addNewBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('AddNewControl') ?>" data-on-click-this="addNewControl" data-url="?view=controlcap"<?php echo canEdit('Control') ? '' : ' disabled' ?>><i class="fa fa-plus"></i></button>
           <button id="editBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('EditControl') ?>" data-on-click-this="editControl" data-url="?view=controlcap&cid=" disabled><i class="fa fa-pencil"></i></button>
           <button id="cloneBtn" class="btn btn-normal" data-toggle="tooltip" data-placement="top" title="<?php echo translate('CloneMonitor') ?>" data-on-click-this="cloneControl" data-url="?view=controlcap&dupId=" disabled><i class="fa fa-clone"></i></button>
           <button id="deleteBtn" class="btn btn-danger" data-toggle="tooltip" data-placement="top" title="<?php echo translate('Delete') ?>" disabled><i class="fa fa-trash"></i></button>

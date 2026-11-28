@@ -20,6 +20,10 @@ use URI::Escape qw(uri_escape_utf8);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::Database qw(zmDbConnect);
 
 sub new
@@ -79,12 +83,12 @@ sub open
         $ADDRESS = $self->{Monitor}->{ControlAddress};
     }
     if ( !($ADDRESS =~ /:/) ) {
-        $ADDRESS .= ':80';
+        $ADDRESS .= ($PROTOCOL eq 'https://') ? ':443' : ':80';
     }
 
     use LWP::UserAgent;
     use IO::Socket::SSL;
-    $self->{ua} = LWP::UserAgent->new(keep_alive => 1);
+    $self->{ua} = LWP::UserAgent->new(keep_alive => 1, timeout => HTTP_TIMEOUT);
     # Try with SSL verification enabled first
     $self->{ua}->ssl_opts(
       verify_hostname => 1,
@@ -458,10 +462,13 @@ sub presetSet
     my $res = $sth->execute($self->{Monitor}->{Id}, $preset_id)
         or Fatal("Can't execute sql '$sql': " . $sth->errstr());
     my $control_preset_row = $sth->fetchrow_hashref();
-    my $new_label_name = $control_preset_row->{'Label'};
+    my $new_label_name = $control_preset_row ? $control_preset_row->{'Label'} : undef;
 
     $self->_sendPtzCommand("start", "SetPreset", 0, $preset_id, 0);
-    $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
+    # An empty name would go out as arg2=0 and the camera would name the preset "0".
+    if (defined($new_label_name) and length($new_label_name)) {
+        $self->_sendPtzCommand("start", "SetPresetName", $preset_id, uri_escape_utf8($new_label_name), 0);
+    }
 }
 
 sub presetGoto

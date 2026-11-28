@@ -1,0 +1,32 @@
+name: CI Python Tests
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # The tests use only the standard library. test_zmrepo_createrepo.py runs
+      # utils/zmrepo_createrepo.sh with a stub createrepo_c and needs bash and
+      # flock, both on the runner.
+      - name: Run the Python tests
+        run: |
+          python3 --version
+          failed=0
+          for t in tests/python/*.py; do
+            echo "--- $t"
+            # Run every file even after one fails: a single CI run should report
+            # all the broken tests, not just the first.
+            timeout 120 python3 "$t" || failed=1
+          done
+          exit $failed

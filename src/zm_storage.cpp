@@ -100,5 +100,14 @@ Storage::Storage(unsigned int p_id) : id(p_id) {
   }
 }
 
+std::string Storage::FallbackSql(unsigned int missing_id, unsigned int server_id) {
+  std::string sql = stringtf("SELECT `Id` FROM `Storage` WHERE `Enabled` AND `Id` != %u", missing_id);
+  if (server_id)
+    sql += stringtf(" ORDER BY (`ServerId` = %u) DESC, `Id` LIMIT 1", server_id);
+  else
+    sql += " ORDER BY `Id` LIMIT 1";
+  return sql;
+}
+
 Storage::~Storage() {
 }

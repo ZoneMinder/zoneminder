@@ -30,6 +30,8 @@ App::uses('CrudControllerTrait', 'Crud.Lib');
  * @package           app.Controller
  * @link              https://book.cakephp.org/2.0/en/controllers.html#the-app-controller
  */
+// Cake and the controllers set components such as $this->FilterComponent as properties; PHP 8.2 deprecates that.
+#[\AllowDynamicProperties]
 class AppController extends Controller {
   use CrudControllerTrait;
 
@@ -176,6 +178,16 @@ class AppController extends Controller {
 
   } # end function beforeFilter()
 
+  # The Url of an s3fs storage area holds the access key and secret: keep them for users who can edit System.
+  protected function hideStorageSecrets($row) {
+    global $user;
+    if (!is_array($row) or empty($row['Url'])) return $row;
+    if (!$user or $user->System() == 'Edit') return $row;
+    require_once __DIR__ .'/../../../includes/log_redact.php';
+    $row['Url'] = ZM\removeUserinfo($row['Url']);
+    return $row;
+  }
+
   # Model::save() takes the record id from a primary key in the data it is given, so an
   # edit authorized for the id in the URL could otherwise write to whichever id the request
   # body names. Drop any primary key from the request data and pin the model to $id.
@@ -286,6 +298,20 @@ class AppController extends Controller {
     }
   }
 
+  # Throw unless the user may edit every event in $eventIds, which includes its monitor.
+  protected function requireEventsEdit($eventIds) {
+    require_once __DIR__ .'/../../../includes/Event.php';
+    foreach (array_unique($eventIds) as $eventId) {
+      $event = new ZM\Event($eventId);
+      if (!$event->Id()) {
+        throw new NotFoundException(__('Invalid event'));
+      }
+      if (!$event->canEdit()) {
+        throw new UnauthorizedException(__('Insufficient Privileges'));
+      }
+    }
+  }
+
   # Drop the events on monitors the user may not view from a row's contained Event list.
   protected function filterContainedEvents($row, $key = 'Event') {
     $condition = $this->viewableMonitorCondition('MonitorId');
@@ -295,5 +321,17 @@ class AppController extends Controller {
       return isset($event['MonitorId']) and in_array($event['MonitorId'], $allowed);
     }));
     return $row;
+  }
+
+  # Paginator uses sort as an array key and lowercases direction, so a list for either, from the
+  # query string or a named parameter, is a TypeError.
+  protected function requireScalarSort() {
+    foreach (array($this->request->params['named'], $this->request->query) as $params) {
+      foreach (array('sort', 'direction') as $key) {
+        if (isset($params[$key]) and !is_string($params[$key])) {
+          throw new BadRequestException($key.' must be a single value');
+        }
+      }
+    }
   }
 }

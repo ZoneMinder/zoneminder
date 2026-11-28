@@ -12,8 +12,8 @@
 -- ClassTypes Human) and are untested. Add the words other cameras use in
 -- Options, AI Classes.
 --
--- zm_update-1.39.55.sql also runs this file, so it must keep working on a
--- 1.39.55 database: a change that needs a later column goes in a later
+-- zm_update-1.39.57.sql also runs this file, so it must keep working on a
+-- 1.39.57 database: a change that needs a later column goes in a later
 -- zm_update file, not here.
 --
 

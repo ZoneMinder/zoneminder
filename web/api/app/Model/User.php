@@ -9,7 +9,8 @@ class User extends AppModel {
     public $validate = array(
         'Username' => array(
             'required' => array(
-                'rule' => array('notEmpty'),
+                'rule' => array('notBlank'),
+                'required' => 'create',
                 'message' => 'A username is required'
             ),
             'unique' => array(
@@ -23,7 +24,8 @@ class User extends AppModel {
         ),
         'Password' => array(
             'required' => array(
-                'rule' => array('notEmpty'),
+                'rule' => array('notBlank'),
+                'required' => 'create',
                 'message' => 'A password is required'
             ),
             'acceptable' => array(
@@ -46,6 +48,15 @@ class User extends AppModel {
 
         foreach (array_keys($schema) as $field) {
           $query['fields'][] = $this->alias . '.' . $field;
+        }
+        # A field list leaves out joined models unless they are named, so the Role went missing.
+        $recursive = isset($query['recursive']) ? $query['recursive'] : $this->recursive;
+        if ($recursive >= 0) {
+          foreach (array_keys($this->belongsTo) as $assoc) {
+            foreach (array_keys($this->{$assoc}->schema()) as $field) {
+              $query['fields'][] = $assoc . '.' . $field;
+            }
+          }
         }
         return $query;
       }

@@ -24,23 +24,35 @@ if ( !canEdit('Devices') ) {
   return;
 }
 
-$action = validStr($_REQUEST['action'] ?? '');
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? validStr($_REQUEST['action']) : '';
 if ( $action == 'device' ) {
   if ( !empty($_REQUEST['command']) ) {
-    $status = setDeviceStatusX10($_REQUEST['key'], strtolower($_REQUEST['command']));
+    $command = is_scalar($_REQUEST['command']) ? strtolower($_REQUEST['command']) : $_REQUEST['command'];
+    $status = setDeviceStatusX10($_REQUEST['key'], $command);
     if ( $status == 'unknown' ) {
       ajaxError('No response from X10 device '.validHtmlStr($_REQUEST['key']));
     }
   } else if ( isset($_REQUEST['newDevice']) ) {
+    if ( !is_array($_REQUEST['newDevice'])
+      || !isset($_REQUEST['newDevice']['Name']) || !is_string($_REQUEST['newDevice']['Name'])
+      || !isset($_REQUEST['newDevice']['KeyString']) || !is_string($_REQUEST['newDevice']['KeyString']) ) {
+      ajaxError('Invalid device');
+      return;
+    }
+    $failed = false;
     if ( isset($_REQUEST['did']) && $_REQUEST['did'] ) {
       ZM\Warning('did value is: '.$_REQUEST['did']);
       ZM\Warning('newDevice array value is: '.print_r($_REQUEST['newDevice'],true));
-      dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) );
+      if ( dbQuery('UPDATE Devices SET Name=?, KeyString=? WHERE Id=?',
+        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString'], $_REQUEST['did']) ) === null ) $failed = true;
     } else {
 
-      dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
-        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString']) );
+      if ( dbQuery('INSERT INTO Devices SET Name=?, KeyString=?',
+        array($_REQUEST['newDevice']['Name'], $_REQUEST['newDevice']['KeyString']) ) === null ) $failed = true;
+    }
+    if ( $failed ) {
+      ajaxError('Failed to save device: '.dbLastError());
+      return;
     }
   }
   ajaxResponse();

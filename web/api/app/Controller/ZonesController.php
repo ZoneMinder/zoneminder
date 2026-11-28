@@ -40,7 +40,10 @@ class ZonesController extends AppController {
   private function requestMonitorId() {
     $data = $this->request->data;
     if (isset($data['Zone']) and is_array($data['Zone'])) $data = $data['Zone'];
-    return isset($data['MonitorId']) ? $data['MonitorId'] : null;
+    if (!isset($data['MonitorId'])) return null;
+    // An array or object here would be checked as a made-up monitor and then saved as the zone's MonitorId.
+    if (!is_scalar($data['MonitorId'])) throw new BadRequestException(__('MonitorId must be a number'));
+    return $data['MonitorId'];
   }
 
   // Find all zones which belong to a MonitorId
@@ -56,6 +59,9 @@ class ZonesController extends AppController {
     $monitor = $this->Monitor->find('first', array(
       'conditions' => array('Monitor.Id' => $id)
     ));
+    if ( $monitor['Monitor']['Deleted'] ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     $MonitorObj = new ZM\Monitor($monitor['Monitor']);
     if ( !$MonitorObj->canView() ) {
       throw new UnauthorizedException(__('Insufficient Privileges'));
@@ -135,6 +141,11 @@ class ZonesController extends AppController {
       throw new BadRequestException(__('MonitorId is required'));
     }
     $this->requireMonitorEdit($monitorId);
+    require_once __DIR__ .'/../../../includes/Monitor.php';
+    $monitor = new ZM\Monitor($monitorId);
+    if ( $monitor->Deleted() ) {
+      throw new NotFoundException(__('Invalid monitor'));
+    }
     $this->pinRequestId($this->Zone, null);
 
     $zone = null;
@@ -149,6 +160,7 @@ class ZonesController extends AppController {
       //$zone = $this->Zone->find('first', array('conditions' => array( array('Zone.' . $this->Zone->primaryKey => $this->Zone),
     } else {
       $message = 'Error: ';
+      $this->response->statusCode(400);
       // if there is a validation message, use it
       if ( !$this->Zone->validates() ) {
         $message = $this->Zone->validationErrors;
@@ -197,8 +209,11 @@ class ZonesController extends AppController {
           if ($monitor->Type() != 'WebSite' and !$monitor->Deleted()) $monitor->zmcControl('reload');
         }
       } else {
+        $this->response->statusCode(400);
         $message = 'Error ' . print_r($this->Zone->invalidFields(), true);
       }
+    } else {
+      throw new BadRequestException(__('Invalid method. Should be post or put'));
     }
     $this->set(array(
       'message' => $message,

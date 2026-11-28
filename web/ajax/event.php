@@ -10,6 +10,10 @@ if ( canView('Events') or canView('Snapshots') ) {
       ajaxError('Video Generation Failure, no rate given');
     } else if (empty($_REQUEST['scale'])) {
       ajaxError('Video Generation Failure, no scale given');
+    } else if (!is_string($_REQUEST['videoFormat']) or !is_numeric($_REQUEST['rate'])
+      or !is_string($_REQUEST['scale']) or !(is_numeric($_REQUEST['scale']) or preg_match('/^\d+x\d+$/', $_REQUEST['scale']))
+      or (isset($_REQUEST['transform']) and !is_string($_REQUEST['transform']))) {
+      ajaxError('Video Generation Failure, invalid format, rate, scale or transform');
     } else {
       $sql = '
       SELECT E.*, M.Name AS MonitorName,M.DefaultRate,M.DefaultScale, GROUP_CONCAT(T.Name SEPARATOR ", ") AS Tags
@@ -25,7 +29,7 @@ if ( canView('Events') or canView('Snapshots') ) {
         or !($Event = new ZM\Event($event))->canView()) {
         ajaxError('Video Generation Failure, Unable to load event');
       } else {
-        if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'], !empty($_REQUEST['overwrite'])) ) {
+        if ( $videoFile = $Event->createVideo( $_REQUEST['videoFormat'], $_REQUEST['rate'], $_REQUEST['scale'], $_REQUEST['transform'] ?? '', !empty($_REQUEST['overwrite'])) ) {
           ajaxResponse(array('response'=>$videoFile));
         } else {
           ajaxError('Video Generation Failed');
@@ -167,6 +171,7 @@ if ( canView('Events') or canView('Snapshots') ) {
     ajaxResponse(array('response'=>$response));
     break;
   case 'file_existence_check' :
+    require_once('includes/download_functions.php');
     $fileNameArray = $_REQUEST['file_name_array'] ?? [];
     if (!is_array($fileNameArray)) ajaxError('The "file_name_array" request parameter is not an array');
     if (count($fileNameArray) > 100) ajaxError('Too many files requested');
@@ -178,7 +183,8 @@ if ( canView('Events') or canView('Snapshots') ) {
       $fileName = ltrim($fileName, "/\\");
       if (preg_match('#(^|[\\/])\.\.([\\/]|$)#', $fileName)) continue;
       $path = DIR_EXPORTS_DOWNLOAD . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName);
-      $result[] = [$fileName, file_exists($path)];
+      $first = explode(DIRECTORY_SEPARATOR, str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $fileName))[0];
+      $result[] = [$fileName, exportNameBelongsToUser($first) and file_exists($path)];
     }
     ajaxResponse(array('response'=>$result));
     break;
@@ -254,11 +260,12 @@ if ( canEdit('Events') ) {
 
     $sql = 'INSERT IGNORE INTO Events_Tags (TagId, EventId, AssignedBy) VALUES (?, ?, ?)';
     $values = array($tagId, $eventId, $user->Id());
-    $response = dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
+    $response = array();
 
     $sql = 'UPDATE Tags SET LastAssignedDate = NOW() WHERE Id = ?';
     $values = array($tagId);
-    dbFetchAll($sql, NULL, $values);
+    if (!dbQuery($sql, $values)) ajaxError('Failed to add tag');
 
     // Record this tag against the user's personal recency order so it
     // sorts to the top of THEIR dropdown next time, on any device.

@@ -41,7 +41,8 @@ if ( !($mids and count($mids)) ) {
   return;
 }
 $monitors = ZM\ZM_Object::Objects_Indexed_By_Id('ZM\Monitor', array('Id'=>$mids));
-$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]); }));
+# A monitor the user may not view is left out, as a monitor that does not exist is.
+$mids = array_values(array_filter($mids, function($mid) use ($monitors) { return isset($monitors[$mid]) and $monitors[$mid]->canView(); }));
 if ( !count($mids) ) {
   $view = 'error';
   return;
@@ -124,7 +125,7 @@ echo getNavBarHTML();
                 ?></td>
                 <td class="colType"><?php echo validHtmlStr($zone['Type']) ?></td>
                 <td class="colUnits"><?php echo intval($zone['Area'] / 10000 * $monitor->ViewWidth() * $monitor->ViewHeight()) ?>&nbsp;/&nbsp;<?php echo sprintf('%.2f', $zone['Area'] / 100) ?></td>
-                <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !canEdit('Monitors') ) { ?> disabled="disabled"<?php } ?>/></td>
+                <td class="colMark"><input type="checkbox" name="markZids[]" value="<?php echo $zone['Id'] ?>" data-on-click-this="configureDeleteButton"<?php if ( !$monitor->canEdit() ) { ?> disabled="disabled"<?php } ?>/></td>
               </tr>
 <?php
   }
@@ -132,7 +133,7 @@ echo getNavBarHTML();
             </tbody>
           </table>
           <div id="contentButtons">
-            <button type="button" data-on-click-this="AddNewZone" data-url="?view=zone&amp;mid=<?php echo $monitor->Id() ?>&amp;zid=0" <?php echo canEdit('Monitors') ? '' : 'disabled="disabled"' ?>>
+            <button type="button" data-on-click-this="AddNewZone" data-url="?view=zone&amp;mid=<?php echo $monitor->Id() ?>&amp;zid=0" <?php echo $monitor->canEdit() ? '' : 'disabled="disabled"' ?>>
               <i class="material-icons">add_circle</i><span class="text"><?php echo translate('Add New Zone') ?></span>
             </button>
             <button type="submit" name="action" id="deleteBtn" value="delete" disabled="disabled">

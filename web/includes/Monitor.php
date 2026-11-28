@@ -480,7 +480,8 @@ class Monitor extends ZM_Object {
       return '';
 
     // extract the authentication part from the path given
-    $values = extract_auth_values_from_url($this->{'Path'});
+    $authEnd = null;
+    $values = extract_auth_values_from_url($this->{'Path'}, $authEnd);
 
     // If no values for User and Pass fields are present then terminate
     if (count($values) !== 2) {
@@ -495,7 +496,9 @@ class Monitor extends ZM_Object {
     // Update the auth fields if they were empty and remove them from the path
     // or if they are equal between the path and field
     if ( (!$old_us && !$old_ps) || ($us == $old_us && $ps == $old_ps) ) {
-      $this->{'Path'} = str_replace("$us:$ps@", '', $this->{'Path'});
+      // Cut the credentials out by position: $us and $ps are URL-decoded, so they do not match a percent-encoded password in the path.
+      $authStart = strpos($this->{'Path'}, '://') + 3;
+      $this->{'Path'} = substr($this->{'Path'}, 0, $authStart) . substr($this->{'Path'}, $authEnd + 1);
       $this->{'User'} = $us;
       $this->{'Pass'} = $ps;
     }
@@ -606,9 +609,9 @@ class Monitor extends ZM_Object {
 
     # zms doesn't support width & height, so if no scale is set, default it
     if (!isset($args['scale'])) {
-      if (isset($args['width']) and intval($args['width'])) {
+      if (isset($args['width']) and intval($args['width']) and $this->ViewWidth() > 0) {
         $args['scale'] = intval((100*intval($args['width']))/$this->ViewWidth());
-      } else if (isset($args['height']) and intval($args['height'])) {
+      } else if (isset($args['height']) and intval($args['height']) and $this->ViewHeight() > 0) {
         $args['scale'] = intval((100*intval($args['height']))/$this->ViewHeight());
       }
     }
@@ -680,6 +683,10 @@ class Monitor extends ZM_Object {
   function zmcControl($mode=false) {
     if (!(property_exists($this,'Id') and $this->{'Id'})) {
       Warning('Attempt to control a monitor with no Id');
+      return;
+    }
+    if ($mode != 'stop' and $this->Deleted()) {
+      Warning('Attempt to control deleted monitor '.$this->{'Id'});
       return;
     }
     if ((!defined('ZM_SERVER_ID')) or ( property_exists($this, 'ServerId') and (ZM_SERVER_ID==$this->{'ServerId'}) )) {
@@ -848,6 +855,8 @@ class Monitor extends ZM_Object {
       if ($this->{'Port'} != '5900') {
         $source .= ':'.$this->{'Port'};
       }
+    } else if ($this->{'Type'} == 'File' || $this->{'Type'} == 'cURL') {
+      $source = preg_replace('/^.*\//', '', (string)$this->{'Path'});
     } else if ($this->{'Type'} == 'Ffmpeg' || $this->{'Type'} == 'WebSite') {
       if ($this->{'Path'}) {
         $url_parts = parse_url($this->{'Path'});
@@ -1066,13 +1075,17 @@ class Monitor extends ZM_Object {
 
     $group_permissions = $u->Group_Permissions();
 
-    # If denied view in any group, then can't view it.
+    # If denied in any group, then can't edit it.
+    $group_edit = false;
     foreach ($group_permissions as $permission) {
-      if (!$permission->canEditMonitor($this->{'Id'})) {
-        Debug("Can't edit monitor ".$this->{'Id'}." because of group ".$permision->Group()->Name().' '.$permision->Permission());
+      $value = $permission->MonitorPermission($this->{'Id'});
+      if ($value == 'None') {
+        Debug("Can't edit monitor ".$this->{'Id'}.' because of group '.$permission->Group()->Name().' '.$value);
         return false;
       }
+      if ($value == 'Edit') $group_edit = true;
     }
+    if ($group_edit) return true;
     return ($u['Monitors'] == 'Edit' || $u['Monitors'] == 'Create');
   }
 
@@ -1311,9 +1324,11 @@ class Monitor extends ZM_Object {
         }
       } else {
         if (preg_match('/^(\d+)px$/', $options['width'], $matches)) {
-          $scale = intval(100*$matches[1]/$this->ViewWidth());
-          if ($scale < $options['scale'])
-            $options['scale'] = $scale;
+          if ($this->ViewWidth() > 0) {
+            $scale = intval(100*$matches[1]/$this->ViewWidth());
+            if ($scale < $options['scale'])
+              $options['scale'] = $scale;
+          }
         } else if (preg_match('/^(\d+)%$/', $options['width'], $matches)) {
           $scale = intval($matches[1]);
           if ($scale < $options['scale'])

@@ -36,7 +36,12 @@ class StorageController extends AppController {
     $named_params = $this->request->params['named'];
     if ( $named_params ) {
       $this->FilterComponent = $this->Components->load('Filter');
-      $conditions = $this->FilterComponent->buildFilter($named_params, array_keys($this->Storage->schema()));
+      global $user;
+      $fields = array_keys($this->Storage->schema());
+      if ($user && $user->System() != 'Edit') {
+        $fields = array_values(array_diff($fields, array('Url')));
+      }
+      $conditions = $this->FilterComponent->buildFilter($named_params, $fields);
     } else {
       $conditions = array();
     }
@@ -48,6 +53,7 @@ class StorageController extends AppController {
       $storage = new ZM\Storage($s['Storage']);
       $s['Storage']['DiskTotalSpace'] = $storage->disk_total_space();
       $s['Storage']['DiskUsedSpace'] = $storage->disk_used_space();
+      $s['Storage'] = $this->hideStorageSecrets($s['Storage']);
     }
 
 		$this->set(array(
@@ -76,6 +82,7 @@ class StorageController extends AppController {
           )
         );
     $storage = $this->Storage->find('first', $options);
+    if ($storage and isset($storage['Storage'])) $storage['Storage'] = $this->hideStorageSecrets($storage['Storage']);
     $this->set(array(
       'storage' => $storage,
       '_serialize' => array('storage')
@@ -109,6 +116,7 @@ class StorageController extends AppController {
       ));
       return;
     }
+    $this->response->statusCode(400);
     $this->set(array(
       'message' => $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error',
       'id' => null,
@@ -142,6 +150,7 @@ class StorageController extends AppController {
       $message = 'Saved';
     } else {
       $message = $this->Storage->validationErrors ? $this->Storage->validationErrors : 'Error';
+      $this->response->statusCode(400);
     }
 
     $this->set(array(

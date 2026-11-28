@@ -486,6 +486,11 @@ int EventStream::LoopedFrameId(int frame_id, int num_frames) {
   return frame_id < 1 ? num_frames : 1;
 }
 
+Microseconds EventStream::TailPollDelta(bool in_progress, int frame_id, int num_frames, Microseconds delta) {
+  if (in_progress && frame_id > num_frames) return std::chrono::duration_cast<Microseconds>(STREAM_PAUSE_WAIT);
+  return delta;
+}
+
 int EventStream::InitialFrameId(int requested, size_t num_frames) {
   return (requested < 1 || requested > (int)num_frames) ? 1 : requested;
 }
@@ -716,10 +721,14 @@ void EventStream::processCommand(const CmdMsg *msg) {
     break;
   case CMD_SEEK : {
     time_to_event = Seconds(0);
-    double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
-                      | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
-    double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
-                      | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+    uint32_t int_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[1])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[2])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[3])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[4]));
+    uint32_t dec_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[5])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[6])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[7])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[8]));
 
     FPSeconds offset = FPSeconds(int_part + dec_part / 1000000.0);
     if (offset < Seconds(0)) {
@@ -1019,8 +1028,11 @@ Image *EventStream::loadFrameImage(std::unique_ptr<Image> &owned_image, int &pre
     // frame. ReadJpeg's WriteBuffer reuses the pixel allocation when the
     // dimensions match (every frame of a given event), eliminating a ~2MB
     // malloc/free per streamed frame.
-    reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
-    return &reuse_image_;
+    if (reuse_image_.ReadJpeg(reuse_filepath_, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB))
+      return &reuse_image_;
+    // reuse_image_ still holds the last good frame, or nothing for the first one.
+    // Treat the unreadable file as missing and try the video.
+    reuse_filepath_.clear();
   }
   if (!ffmpeg_input) return nullptr;
 
@@ -1206,13 +1218,16 @@ bool EventStream::sendFrame(Microseconds delta_us) {
       switch ( type ) {
       case STREAM_SINGLE :
       case STREAM_JPEG :
-        send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+        encodeJpeg(*send_image, img_buffer, &img_buffer_size);
         fputs("Content-Type: image/jpeg\r\n", stdout);
         break;
       case STREAM_ZIP :
-        unsigned long zip_buffer_size;
-        send_image->Zip(img_buffer, &zip_buffer_size);
-        img_buffer_size = zip_buffer_size;
+        img_buffer_size = zipImageToTempBuffer(*send_image);
+        img_buffer = temp_img_buffer;
+        if (!img_buffer_size) {
+          Error("Unable to compress the image");
+          return false;
+        }
         fputs("Content-Type: image/x-rgbz\r\n", stdout);
         break;
       case STREAM_RAW :
@@ -1384,6 +1399,11 @@ void EventStream::runStream() {
           }
         }
         frame_count++;
+        // frames=N asks for N frames and then the end of the stream, as MonitorStream does.
+        if (frames_to_send > 0 && frame_count >= frames_to_send) {
+          zm_terminate = true;
+          break;
+        }
       }
 
       if (!paused && !stopped && !holding_for_hint && !event_data->frames.empty()
@@ -1455,6 +1475,7 @@ void EventStream::runStream() {
                 FPSeconds(elapsed).count()
                );
         }  // end if not at end of event
+        delta = TailPollDelta(event_data->in_progress, curr_frame_id, num_frames, delta);
       } else if (holding_for_hint) {
         // Holding on the last frame, like a pause, until the UI's hint arrives.
         // Check back soon: the hint is usually a request or two away.

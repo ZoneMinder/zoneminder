@@ -35,6 +35,7 @@ if (!class_exists('NotFoundException')) { class NotFoundException extends Except
 if (!class_exists('MethodNotAllowedException')) { class MethodNotAllowedException extends Exception {} }
 if (!function_exists('__')) { function __($s) { return $s; } }
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
 class FakeRequest {
   public $data;
   private $method;
@@ -93,7 +94,7 @@ if ($add === null or $edit === null) {
   exit(1);
 }
 
-eval('class EventDataHarness { public $request, $EventData, $vars = array();
+eval('class EventDataHarness { public $request, $response, $EventData, $vars = array();
   function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
   function requireEventDataEdit($id) {}
   function requireRequestEventDataEdit($required) {}
@@ -105,7 +106,7 @@ function run($action, $method, $save_result = true) {
   $user = null;
   $warnings = array();
   $h = new EventDataHarness();
-  $h->request = new FakeRequest($method, array('EventData' => array('EventId' => 1, 'MonitorId' => 1)));
+  $h->request = new FakeRequest($method, array('EventData' => array('EventId' => 1, 'MonitorId' => 1))); $h->response = new FakeResponse;
   $h->EventData = new FakeEventData();
   $h->EventData->saveResult = $save_result;
   try {

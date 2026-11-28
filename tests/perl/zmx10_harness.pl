@@ -61,7 +61,7 @@ BEGIN {
     ZM_PATH_SOCKS => $ENV{ZMX10_DIR},
     ZM_X10_DEVICE => 'stub',
     ZM_X10_HOUSE_CODE => 'A',
-    ZM_X10_DB_RELOAD_INTERVAL => 3600,
+    ZM_X10_DB_RELOAD_INTERVAL => ($ENV{ZMX10_RELOAD} // 3600),
     ZM_FORCED_ALARM_SCORE => 255,
   );
 }
@@ -90,14 +90,24 @@ sub zmTriggerEventOn { rec('TRIGGER_ON', $_[0]->{Id}) }
 sub zmTriggerEventCancel { rec('TRIGGER_OFF', $_[0]->{Id}) }
 package StubDbh;
 sub prepare_cached {
+  my ($self, $sql) = @_;
   my $rows = do "$ENV{ZMX10_DIR}/rows.pl";
-  return bless({rows=>[ map { {%$_} } @$rows ]}, 'StubSth');
+  return bless({rows=>[ map { {%$_} } @$rows ], sql=>$sql}, 'StubSth');
 }
 sub errstr { '' }
 package StubSth;
 sub execute { 1 }
 sub errstr { '' }
-sub fetchrow_hashref { shift(@{$_[0]->{rows}}) }
+sub fetchrow_hashref {
+  my $self = shift;
+  my $ignore_deleted = defined($self->{sql})
+    && $self->{sql} =~ /\bDeleted\s*=\s*0\b/;
+  while ( my $row = shift(@{$self->{rows}}) ) {
+    next if $ignore_deleted && $row->{Deleted};
+    return $row;
+  }
+  return undef;
+}
 1;
 STUB
 
@@ -125,6 +135,7 @@ sub handle_input {
 }
 sub Appliance {
   my ($self, %args) = @_;
+  X10::Appliance::rec('APPLIANCE_NEW', $args{unit_code});
   return bless({unit_code=>$args{unit_code}}, 'X10::Appliance');
 }
 package X10::Event;
@@ -144,13 +155,14 @@ STUB
 # zmx10_start(rows => [ {Id=>1, Name=>'m', Activation=>..., AlarmInput=>..., AlarmOutput=>...} ])
 sub zmx10_start {
   my %opt = @_;
+  $ENV{ZMX10_RELOAD} = $opt{reload} if defined($opt{reload});
   my $root = "$FindBin::Bin/../..";
   my $base = dirname(Cwd::abs_path($root));
   $Dir = tempdir('zmx10-test-XXXXXX', DIR => $base, CLEANUP => 0);
   write_file("$Dir/lib/ZoneMinder.pm", $STUB_ZM);
   write_file("$Dir/lib/DBI.pm", $STUB_DBI);
   write_file("$Dir/lib/X10/ActiveHome.pm", $STUB_X10);
-  my $src = read_file("$root/scripts/zmx10.pl.in");
+  my $src = read_file($ENV{ZMX10_IN} || "$root/scripts/zmx10.pl.in");
   $src =~ s/\@PERL_EXECUTABLE\@/$^X/g;
   $src =~ s/\@EXTRA_PERL_LIB\@//g;
   $src =~ s/\@ZM_SCRIPT_PATH\@/\/usr\/bin:\/bin/g;

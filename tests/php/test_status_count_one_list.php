@@ -9,6 +9,11 @@
 namespace ZM {
   function Debug($m) {}
   function Error($m) {}
+  class Event {
+    public function __construct($id = null) { $this->id = $id; }
+    public function Id() { return $this->id ?: 7; }
+    public function canView() { return true; }
+  }
 }
 
 namespace {
@@ -48,6 +53,8 @@ namespace {
   $_REQUEST = array('entity' => $entity, 'id' => '7', 'element' => array($entity == 'frames' ? 'FrameId' : 'Id'));
   if ($count) $_REQUEST['count'] = (string)$count;
   try {
+    // status.php requires includes/log_redact.php relative to web/, as under the web server.
+    set_include_path($root.'/web'.PATH_SEPARATOR.get_include_path());
     include $root.'/web/ajax/status.php';
   } catch (StopRequest $e) {
   }

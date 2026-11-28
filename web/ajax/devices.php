@@ -20,11 +20,11 @@
 
 // Device view actions
 if ( !canEdit('Devices') ) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 
-$action = validStr($_REQUEST['action'] ?? '');
+$action = (isset($_REQUEST['action']) && is_scalar($_REQUEST['action'])) ? validStr($_REQUEST['action']) : '';
 if ( $action == 'delete' ) {
   $failed = false;
   if ( isset($_REQUEST['markDids']) ) {

@@ -26,6 +26,7 @@ class FakeModel {
   public $id, $deleteResult = true;
   function exists($id = null) { return true; }
   function delete() { return $this->deleteResult; }
+  function getDataSource() { return new class { function begin() {} function commit() {} function rollback() {} }; }
   function deleteAll($conditions, $cascade = true) { return true; }
 }
 class FakeRequest { function allowMethod() { return true; } }

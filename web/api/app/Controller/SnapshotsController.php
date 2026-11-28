@@ -1,5 +1,6 @@
 <?php
 App::uses('AppController', 'Controller');
+require_once __DIR__ . '/../../../includes/SnapshotCreate.php';
 /**
  * Snapshots Controller
  *
@@ -92,6 +93,33 @@ class SnapshotsController extends AppController {
         return;
       }
 
+      # MonitorIds takes the same path as the web action: force an alarm on each
+      # monitor, link the events it records and archive them.
+      $monitorIds = $this->requestField('Snapshot', 'MonitorIds');
+      if ( $monitorIds !== null ) {
+        if ( is_string($monitorIds) ) {
+          $monitorIds = trim($monitorIds) === '' ? array() : explode(',', $monitorIds);
+        } else if ( !is_array($monitorIds) ) {
+          $monitorIds = array($monitorIds);
+        }
+        $snapshotId = ZM\create_snapshot_from_monitors($monitorIds);
+        if ( $snapshotId ) {
+          $this->set(array(
+            'message' => 'Saved',
+            'id' => $snapshotId,
+            '_serialize' => array('message', 'id')
+          ));
+        } else {
+          ZM\Error('Failed to create Snapshot from monitors');
+          $this->set(array(
+            'message' => 'Error',
+            'id' => null,
+            '_serialize' => array('message', 'id')
+          ));
+        }
+        return;
+      }
+
       $eventIds = $this->requestField('Snapshot', 'EventIds');
       if ( is_string($eventIds) and $eventIds !== '' and ! isset($this->request->data['Event']) ) {
         $this->request->data['Event'] = explode(',', $eventIds);
@@ -113,6 +141,7 @@ class SnapshotsController extends AppController {
         return;
       } else {
         ZM\Error("Failed to save Snapshot");
+        $this->response->statusCode(400);
         $this->set(array(
           'message' => $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error',
           'id' => null,
@@ -154,6 +183,7 @@ class SnapshotsController extends AppController {
         $message = 'Saved';
       } else {
         $message = $this->Snapshot->validationErrors ? $this->Snapshot->validationErrors : 'Error';
+        $this->response->statusCode(400);
 			}
 		} # end if post/put
 

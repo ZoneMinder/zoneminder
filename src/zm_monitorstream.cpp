@@ -26,6 +26,7 @@
 #include <libavutil/pixdesc.h>
 
 #include <arpa/inet.h>
+#include <cstdint>
 #include <glob.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -155,10 +156,14 @@ void MonitorStream::processCommand(const CmdMsg *msg) {
     }
     break;
   case CMD_MAXFPS : {
-    double int_part = ((unsigned char) msg->msg_data[1] << 24) | ((unsigned char) msg->msg_data[2] << 16)
-                      | ((unsigned char) msg->msg_data[3] << 8) | (unsigned char) msg->msg_data[4];
-    double dec_part = ((unsigned char) msg->msg_data[5] << 24) | ((unsigned char) msg->msg_data[6] << 16)
-                      | ((unsigned char) msg->msg_data[7] << 8) | (unsigned char) msg->msg_data[8];
+    uint32_t int_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[1])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[2])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[3])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[4]));
+    uint32_t dec_part = (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[5])) << 24)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[6])) << 16)
+                        | (static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[7])) << 8)
+                        | static_cast<uint32_t>(static_cast<unsigned char>(msg->msg_data[8]));
 
     maxfps = (int_part + dec_part / 1000000.0);
 
@@ -448,7 +453,7 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
 
     switch (type) {
     case STREAM_JPEG :
-      send_image->EncodeJpeg(img_buffer, &img_buffer_size);
+      encodeJpeg(*send_image, img_buffer, &img_buffer_size);
       fputs("Content-Type: image/jpeg\r\n", stdout);
       break;
     case STREAM_RAW :
@@ -459,9 +464,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     case STREAM_ZIP :
 #if HAVE_ZLIB_H
       fputs("Content-Type: image/x-rgbz\r\n", stdout);
-      unsigned long zip_buffer_size;
-      send_image->Zip(img_buffer, &zip_buffer_size);
-      img_buffer_size = zip_buffer_size;
+      img_buffer_size = zipImageToTempBuffer(*send_image);
+      img_buffer = temp_img_buffer;
+      if (!img_buffer_size) {
+        Error("Unable to compress the image");
+        return false;
+      }
 #else
       Error("zlib is required for zipped images. Falling back to raw image");
       type = STREAM_RAW;
@@ -561,6 +569,7 @@ void MonitorStream::runStream() {
   TimePoint last_mem_report = stream_start_time;
   const Seconds mem_report_interval = Seconds(30);
 
+  playback_buffer = MonitorStreamClampBuffer(playback_buffer, monitor->GetStreamReplayBuffer());
   temp_image_buffer_count = playback_buffer;
   temp_read_index = temp_image_buffer_count.load();
   temp_write_index = temp_image_buffer_count.load();
@@ -1144,7 +1153,7 @@ void MonitorStream::SingleImage(int scale) {
     scaled_image.Scale(scale);
     snap_image = &scaled_image;
   }
-  snap_image->EncodeJpeg(img_buffer, &img_buffer_size);
+  encodeJpeg(*snap_image, img_buffer, &img_buffer_size);
 
   fprintf(stdout,
           "Content-Length: %zu\r\n"

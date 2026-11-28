@@ -6,6 +6,12 @@ if (!canEdit('Monitors')) {
 
 $mid = validCardinal($_REQUEST['mid'] ?? '');
 
+// The control actions check the Control permission on the monitor, so the modal does too.
+if (!canView('Control', $mid)) {
+  ZM\Warning('Tried to load PTZ preset modal for monitor '.$mid.' without Control permission.');
+  return ' ';
+}
+
 $monitor = dbFetchOne('SELECT C.*,M.* FROM Monitors AS M INNER JOIN Controls AS C ON (M.ControlId = C.Id ) WHERE M.Id = ?', NULL, array($mid));
 if (!$monitor) {
   ZM\Warning('No controllable monitor '.$mid.' for the preset modal');
@@ -21,7 +27,7 @@ $presets = array();
 for ($i = 1; $i <= $monitor['NumPresets']; $i++) {
   $presets[$i] = translate('Preset').' '.$i;
   if (!empty($labels[$i])) {
-    $presets[$i] .= ' ('.validHtmlStr($labels[$i]).')';
+    $presets[$i] .= ' ('.$labels[$i].')';
   }
 }
 ?>

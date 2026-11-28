@@ -45,6 +45,14 @@ class Storage {
   explicit Storage( unsigned int p_id );
   ~Storage();
 
+  // True when a non zero requested_id did not load a Storage row (the constructor resets the id to 0).
+  // An id of 0 is the schema default and means the default events path, not a missing row.
+  static bool NeedsFallback(unsigned int requested_id, unsigned int loaded_id) { return requested_id != 0 && loaded_id == 0; }
+
+  // SQL selecting the Id of another enabled Storage area to use when missing_id is gone, preferring server_id's.
+  // A disabled area is one the admin has taken out of use, the monitor form doesn't offer it either.
+  static std::string FallbackSql(unsigned int missing_id, unsigned int server_id);
+
   unsigned int	Id() const { return id; }
   const char *Name() const { return name; }
   const char *Path() const { return path; }

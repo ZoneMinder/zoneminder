@@ -219,10 +219,19 @@ class ConfigsController extends AppController {
 			if (!empty($config['Config']['Readonly'])) {
 				throw new ForbiddenException(__('Cannot edit a readonly Config entry'));
 			}
+			// Config.Name is the primary key, so a Name in the body would move the save
+			// to another row than the one validated here.
+			$this->pinRequestId($this->Config, $id);
+			$value = $this->requestField('Config', 'Value');
+			if (($config['Config']['Name'] == 'ZM_AUTH_HASH_SECRET') and ($value !== null)
+				and !authHashSecretValid($value)) {
+				throw new BadRequestException(__('ZM_AUTH_HASH_SECRET must be at least %d characters long', ZM_AUTH_HASH_SECRET_MIN_LENGTH));
+			}
 			if ($this->Config->save($this->request->data)) {
 				$message = 'Saved';
 			} else {
 				$message = $this->Config->validationErrors ? $this->Config->validationErrors : 'Error';
+				$this->response->statusCode(400);
 			}
 			$this->set(array(
 				'message' => $message,
@@ -253,6 +262,13 @@ class ConfigsController extends AppController {
 			throw new NotFoundException(__('Invalid config'));
 		}
 		$this->request->allowMethod('post', 'delete');
+		$config = $this->Config->find('first', array('conditions' => array('Config.' . $this->Config->primaryKey => $id)));
+		if (!empty($config['Config']['System'])) {
+			throw new ForbiddenException(__('Cannot delete a system Config entry'));
+		}
+		if (!empty($config['Config']['Readonly'])) {
+			throw new ForbiddenException(__('Cannot delete a readonly Config entry'));
+		}
 		if ($this->Config->delete()) {
 			$this->set(array(
 				'message' => 'Deleted',

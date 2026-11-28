@@ -43,7 +43,7 @@ class Frame extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notBlank'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -61,7 +61,7 @@ class Frame extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 			'notEmpty' => array(
-				'rule' => array('notEmpty'),
+				'rule' => array('notBlank'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -71,7 +71,7 @@ class Frame extends AppModel {
 		),
 		'Type' => array(
 			'multiple' => array(
-				'rule' => array('multiple'),
+				'rule' => array('typeGiven'),
 				//'message' => 'Your custom message here',
 				//'allowEmpty' => false,
 				//'required' => false,
@@ -110,6 +110,12 @@ class Frame extends AppModel {
 			),
 		),
 	);
+
+	// Cake's multiple rule throws a TypeError for a nested list; AppModel::beforeValidate() refuses a list.
+	public function typeGiven($check) {
+		$value = reset($check);
+		return is_array($value) ? count($value) > 0 : strlen((string)$value) > 0;
+	}
 
 	//The Associations below have been created with all possible keys, those that are not needed can be removed
 

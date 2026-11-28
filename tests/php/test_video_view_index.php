@@ -12,6 +12,7 @@ namespace ZM {
     function __construct($id) {}
     function MonitorId() { return 1; }
     function Monitor() { return new Monitor(); }
+    function canView($u = null) { return true; }
     function Path() { return $GLOBALS['dir']; }
     function Id() { return 7; }
     function Width() { return 640; }

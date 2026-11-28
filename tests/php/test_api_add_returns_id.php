@@ -62,6 +62,12 @@ function extract_add($file) {
   return substr($source, $start, $i - $start + 1);
 }
 
+// A failed save sets a 400 on the controller's response.
+class HarnessResponse {
+  public $code = 200;
+  function statusCode($code) { $this->code = $code; }
+}
+
 function run_add($class, $model, $method, $save_result) {
   global $user;
   $user = null;
@@ -86,7 +92,8 @@ foreach (array('Servers' => 'Server', 'Storage' => 'Storage', 'States' => 'State
     continue;
   }
   $class = $name.'Harness';
-  eval('class '.$class.' { public $request, $'.$model.', $vars = array(), $flashed = array();
+  eval('class '.$class.' { public $request, $'.$model.', $vars = array(), $flashed = array(), $response;
+    function __construct() { $this->response = new HarnessResponse(); }
     function set($v, $value = null) { $this->vars = array_merge($this->vars, is_array($v) ? $v : array($v => $value)); }
     function flash($message, $url = null) { $this->flashed[] = $message; return "FLASH"; }
     function requestField($alias, $field) { return null; }

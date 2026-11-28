@@ -531,6 +531,8 @@ int main(int argc, char *argv[]) {
   std::string video_file = dbrow[6] ? std::filesystem::path(dbrow[6]).filename().string() : std::string();
   std::string scheme_str = dbrow[7] ? std::string(dbrow[7]) : std::string();
   int save_jpegs = dbrow[8] ? atoi(dbrow[8]) : 0;
+  Microseconds event_length = std::chrono::duration_cast<Microseconds>(
+      FPSeconds(dbrow[5] ? atof(dbrow[5]) : 0.0));
 
   Storage::Schemes scheme;
   if (scheme_str == "Deep") {
@@ -642,6 +644,17 @@ int main(int argc, char *argv[]) {
     last_timestamp = timestamp;
   }
   mysql_free_result(result);
+
+  // Frames after the last row have none of their own: an event recorded while
+  // idle only writes a row every bulk frame interval. Spread them up to the
+  // event's length so the end of the event is analysed too.
+  if (last_id > 0 && frame_count > last_id && event_length > last_offset) {
+    Microseconds delta = (event_length - last_offset) / (frame_count - last_id);
+    for (int i = last_id + 1; i <= frame_count; i++) {
+      Microseconds gap_offset = last_offset + (i - last_id) * delta;
+      frames.push_back({i, start_time + gap_offset, gap_offset, false});
+    }
+  }
 
   if (frames.empty()) {
     Fatal("No frames found for event %" PRIu64, event_id);

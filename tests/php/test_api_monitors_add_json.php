@@ -77,6 +77,8 @@ class FakeMonitorModel {
   function validates() { return $this->validatesResult; }
 }
 
+class FakeResponse { public $status = 200; function statusCode($c = null) { if ($c) $this->status = $c; return $this->status; } }
+
 class FakeRequest {
   public $post;
   public $data;
@@ -96,6 +98,7 @@ file_put_contents($scratch.'/web/includes/Zone.php', "<?php\n");
 $classBody = "class FakeController {\n"
   ."  public \$Monitor;\n"
   ."  public \$request;\n"
+  ."  public \$response;\n"
   ."  public \$out = null;\n"
   ."  public \$setCalls = 0;\n"
   ."  function set(\$data) { \$this->setCalls++; \$this->out = \$data; }\n"
@@ -125,9 +128,11 @@ $c->Monitor->saveResult = false;
 $c->Monitor->validatesResult = false;
 $c->Monitor->validationErrors = array('Name' => array('This field cannot be left blank'));
 $c->request = new FakeRequest(true, array('Monitor' => array('Name' => '')));
+$c->response = new FakeResponse();
 $user = null;
 $c->add();
 check('failed POST answers the validation errors', $c->out['message'], $c->Monitor->validationErrors);
+check('failed POST answers 400', $c->response->status, 400);
 check('failed POST answers id null', array_key_exists('id', $c->out) ? $c->out['id'] : 'missing', null);
 check('failed POST serializes id', in_array('id', $c->out['_serialize'], true), true);
 

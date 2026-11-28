@@ -52,6 +52,10 @@ our %CamParams = ();
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
 
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use Time::HiRes qw( usleep );
 
 sub open
@@ -61,7 +65,7 @@ sub open
     $self->loadMonitor();
 
     use LWP::UserAgent;
-    $self->{ua} = LWP::UserAgent->new;
+    $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
     $self->{ua}->agent( "ZoneMinder Control Agent/".ZoneMinder::Base::ZM_VERSION );
 
     $self->{state} = 'open';
@@ -228,12 +232,24 @@ sub zoomStop
 
 #Diagonally Up Right Arrow
 #This camera does not have builtin diagonal commands so we emulate them
+sub moveDiagonal
+{
+    my ($self, $vcmd, $vstop, $hcmd, $hstop) = @_;
+    # Start both directions, then stop both, so the camera moves diagonally
+    # instead of finishing one axis before starting the other.
+    $self->sendCmd( "decoder_control.cgi?command=$vcmd" );
+    $self->sendCmd( "decoder_control.cgi?command=$hcmd" );
+    $self->{stop_command} = [$vstop, $hstop];
+    my $timeout = $self->{Monitor}->{AutoStopTimeout};
+    $self->autoStop( $vstop, $timeout );
+    $self->sendCmd( "decoder_control.cgi?command=$hstop" ) if $timeout;
+}
+
 sub moveConUpRight
 {
     my $self = shift;
     Debug( "Move Diagonally Up Right" );
-    $self->moveConUp( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "0", "1", "6", "7" );
 }
 
 #Diagonally Down Right Arrow
@@ -242,8 +258,7 @@ sub moveConDownRight
 {
     my $self = shift;
     Debug( "Move Diagonally Down Right" );
-    $self->moveConDown( );
-    $self->moveConRight( );
+    $self->moveDiagonal( "2", "3", "6", "7" );
 }
 
 #Diagonally Up Left Arrow
@@ -252,8 +267,7 @@ sub moveConUpLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Up Left" );
-    $self->moveConUp( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "0", "1", "4", "5" );
 }
 
 #Diagonally Down Left Arrow
@@ -262,8 +276,7 @@ sub moveConDownLeft
 {
     my $self = shift;
     Debug( "Move Diagonally Down Left" );
-    $self->moveConDown( );
-    $self->moveConLeft( );
+    $self->moveDiagonal( "2", "3", "4", "5" );
 }
 
 #Stop
@@ -272,8 +285,9 @@ sub moveStop
     my $self = shift;
     Debug( "Move Stop" );
     # Each direction has its own stop code, saved by the move that started it.
-    my $cmd = "decoder_control.cgi?command=".($self->{stop_command} // "1");
-    $self->sendCmd( $cmd );
+    my $stop = $self->{stop_command};
+    my @stops = ref($stop) eq 'ARRAY' ? @$stop : (defined $stop && length $stop ? $stop : 1);
+    foreach my $s (@stops) { $self->sendCmd( "decoder_control.cgi?command=$s" ); }
 }
 
 #Set Camera Preset

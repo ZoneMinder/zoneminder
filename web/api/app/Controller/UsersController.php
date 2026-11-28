@@ -44,6 +44,7 @@ class UsersController extends AppController {
       throw new UnauthorizedException(__('Insufficient Privileges'));
       return;
     }
+    $this->requireScalarSort();
 		$users = $this->Paginator->paginate('User');
 
 		$this->set(compact('users'));
@@ -202,11 +203,15 @@ class UsersController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 		# User_Preferences has no ON DELETE CASCADE, so the user can't be deleted while it has rows.
+		$ds = $this->User->getDataSource();
+		$ds->begin();
 		$this->loadModel('UserPreference');
 		$this->UserPreference->deleteAll(array('UserPreference.UserId' => $id), false);
 		if ($this->User->delete()) {
+			$ds->commit();
 			$message = 'The user has been deleted.';
 		} else {
+			$ds->rollback();
 			throw new InternalErrorException(__('The user could not be deleted.'));
 		}
 		$this->set(array(
@@ -231,7 +236,7 @@ class UsersController extends AppController {
     $fields = array_intersect_key($in, array('Password'=>'', 'Language'=>'', 'HomeView'=>''));
     if (empty($fields['Password'])) unset($fields['Password']);
     if (!empty($fields['Language']) and
-      (!is_string($fields['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$fields['Language'].'.php'))) {
+      (!is_string($fields['Language']) or !preg_match('/^[\w\-]+$/', $fields['Language']) or !file_exists(ZM_PATH_WEB.'/lang/'.$fields['Language'].'.php'))) {
       throw new BadRequestException(__('Invalid Language'));
     }
     return array('User' => $fields);

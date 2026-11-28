@@ -303,11 +303,11 @@ $writeActions = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
 $postRequired = ['save', 'delete', 'delete_all', 'browse_delete', 'detect'];
 
 if (in_array($action, $readActions) && !canView('Events')) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 if (in_array($action, $writeActions) && !canEdit('Events')) {
-  ajaxError('Insufficient permissions for user '.$user->Username());
+  ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
   return;
 }
 if (in_array($action, $postRequired) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -327,6 +327,10 @@ switch ($action) {
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
+      break;
+    }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
       break;
     }
 
@@ -398,18 +402,22 @@ switch ($action) {
       ajaxError('Invalid frame ID');
       break;
     }
-    $paths = getFramePaths($eid, $fid);
-    if (!file_exists($paths['lbl'])) {
-      ajaxResponse(['annotations' => []]);
-      break;
-    }
-    $labels = getClassLabels();
     // Need image dimensions to convert YOLO normalized back to pixels
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
       break;
     }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
+      break;
+    }
+    $paths = getFramePaths($eid, $fid);
+    if (!file_exists($paths['lbl'])) {
+      ajaxResponse(['annotations' => []]);
+      break;
+    }
+    $labels = getClassLabels();
     $imgW = $Event->Width();
     $imgH = $Event->Height();
     $anns = [];
@@ -557,10 +565,14 @@ switch ($action) {
       ajaxError('Event not found');
       break;
     }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
+      break;
+    }
 
     if (!ensureTrainingDirs()) break;
 
-    $annotations = json_decode($_REQUEST['annotations'], true);
+    $annotations = is_string($_REQUEST['annotations'] ?? null) ? json_decode($_REQUEST['annotations'], true) : null;
     if (!is_array($annotations)) {
       ajaxError('Invalid annotations data');
       break;
@@ -576,7 +588,7 @@ switch ($action) {
 
     // Validate and sanitize annotation labels
     foreach ($annotations as $ann) {
-      if (!isset($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
+      if (!isset($ann['label']) || !is_scalar($ann['label']) || !preg_match('/^[\p{L}\p{M}0-9_-]+$/u', $ann['label'])) {
         ajaxError('Invalid label: labels must contain only Unicode letters, numbers, hyphens, and underscores');
         break 2;
       }
@@ -672,12 +684,18 @@ switch ($action) {
     $paths = getFramePaths($eid, $fid);
 
     $deleted = false;
-    if (file_exists($paths['img'])) { unlink($paths['img']); $deleted = true; }
-    if (file_exists($paths['lbl'])) { unlink($paths['lbl']); $deleted = true; }
+    $failed = false;
+    if (file_exists($paths['img'])) { if (unlink($paths['img'])) { $deleted = true; } else { $failed = true; } }
+    if (file_exists($paths['lbl'])) { if (unlink($paths['lbl'])) { $deleted = true; } else { $failed = true; } }
 
     if ($deleted) {
       rebuildDataYaml();
       ZM\Debug('Training: removed annotation for event '.$eid.' frame '.$fid);
+    }
+
+    if ($failed) {
+      ajaxError('Failed to delete training data files');
+      break;
     }
 
     ajaxResponse([
@@ -694,16 +712,23 @@ switch ($action) {
       break;
     }
     $deleted = 0;
+    $failed = 0;
     foreach (['images/all', 'labels/all'] as $sub) {
       $dir = $base.'/'.$sub;
       if (is_dir($dir)) {
         foreach (glob($dir.'/*') as $file) {
-          if (is_file($file)) { unlink($file); $deleted++; }
+          if (is_file($file)) { if (unlink($file)) { $deleted++; } else { $failed++; } }
         }
       }
     }
     $yamlFile = $base.'/data.yaml';
-    if (file_exists($yamlFile)) { unlink($yamlFile); $deleted++; }
+    if (file_exists($yamlFile)) { if (unlink($yamlFile)) { $deleted++; } else { $failed++; } }
+
+    if ($failed > 0) {
+      ZM\Warning('Training: failed to delete '.$failed.' training data files');
+      ajaxError('Failed to delete '.$failed.' training data files');
+      break;
+    }
 
     ZM\Warning('Training: deleted ALL training data ('.$deleted.' files)');
     ajaxResponse([
@@ -732,11 +757,17 @@ switch ($action) {
     $lblFile = $base.'/labels/all/'.$stem.'.txt';
 
     $deletedFiles = [];
+    $failed = false;
     ZM\Debug('Training: browse_delete stem='.$stem);
-    if (file_exists($imgFile)) { unlink($imgFile); $deletedFiles[] = 'images/all/'.$stem.'.jpg'; }
-    if (file_exists($lblFile)) { unlink($lblFile); $deletedFiles[] = 'labels/all/'.$stem.'.txt'; }
+    if (file_exists($imgFile)) { if (unlink($imgFile)) { $deletedFiles[] = 'images/all/'.$stem.'.jpg'; } else { $failed = true; } }
+    if (file_exists($lblFile)) { if (unlink($lblFile)) { $deletedFiles[] = 'labels/all/'.$stem.'.txt'; } else { $failed = true; } }
 
     rebuildDataYaml();
+
+    if ($failed) {
+      ajaxError('Failed to delete training data files');
+      break;
+    }
 
     ajaxResponse([
       'deleted' => $deletedFiles,
@@ -765,6 +796,10 @@ switch ($action) {
     $Event = ZM\Event::find_one(['Id' => $eid]);
     if (!$Event) {
       ajaxError('Event not found');
+      break;
+    }
+    if (!$Event->canView()) {
+      ajaxError('Insufficient permissions for event '.$eid);
       break;
     }
 
@@ -843,5 +878,5 @@ switch ($action) {
     break;
 
 }
-ajaxError('Unrecognised action '.$action.' or insufficient permissions for user '.$user->Username());
+ajaxError('Unrecognised action '.validHtmlStr($action).' or insufficient permissions for user '.validHtmlStr($user->Username()));
 ?>

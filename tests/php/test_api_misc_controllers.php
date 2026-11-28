@@ -64,12 +64,13 @@ foreach (array('pinRequestId', 'requestField') as $name) {
   }
   $helpers .= $m[0];
 }
-eval('class AppController { public $request; public $Components; public $Paginator; public $RequestHandler; public $vars = array();
+eval('class AppController { public $request; public $response; public $Components; public $Paginator; public $RequestHandler; public $vars = array();
   function set($v) { $this->vars = $v; }
   function viewableMonitorCondition($f) { return array(); }
   '.$helpers.' }');
 
 class StubHandler { function requestedWith() { return false; } }
+class StubResponse { public $status = 200; function statusCode($c = null) { if ($c !== null) $this->status = $c; return $this->status; } }
 class StubComponents { function load($n) { return new FilterComponent(); } }
 
 class StubModel {
@@ -110,6 +111,7 @@ function make($controller, $property, $model, $data = array(), $named = array(),
   $c->request->method = $method;
   $c->Components = new StubComponents();
   $c->RequestHandler = new StubHandler();
+  $c->response = new StubResponse();
   $c->$property = $model;
   return $c;
 }

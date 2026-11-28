@@ -25,6 +25,7 @@
 #include "zm_monitorstream.h"
 #include "zm_eventstream.h"
 #include "zm_fifo_stream.h"
+#include <climits>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -39,6 +40,20 @@
 static void Forbidden(bool nph) {
   if (nph) fputs("HTTP/1.0 403 Forbidden\r\n", stdout);
   fputs("Status: 403 Forbidden\r\n\r\n", stdout);
+}
+
+// Splits "name=value" in place at the first '=' and returns the name (nullptr
+// when there is none). A later '=' belongs to the value, so a password such as
+// "a=b" is not cut short. A parameter without '=' has an empty value.
+char *zms_split_param(char *param, const char *&value) {
+  value = "";
+  if (!param || !*param || *param == '=') return nullptr;
+  char *equals = strchr(param, '=');
+  if (equals) {
+    *equals = '\0';
+    value = equals + 1;
+  }
+  return param;
 }
 
 bool ValidateAccess(User *user, int mon_id) {
@@ -105,6 +120,7 @@ int main(int argc, const char *argv[], char **envp) {
   unsigned int rate = 100;
   double maxfps = 0.0;
   unsigned int bitrate = 100000;
+  int quality = 0;
   unsigned int ttl = 0;
   bool  analysis_frames = false;
   EventStream::StreamMode replay = EventStream::MODE_NONE;
@@ -165,12 +181,10 @@ int main(int argc, const char *argv[], char **envp) {
   }
 
   for ( int p = 0; p < parm_no; p++ ) {
-    char *name = strtok(parms[p], "=");
+    char const *value = "";
+    char *name = zms_split_param(parms[p], value);
     if ( !name )
       continue;
-    char const *value = strtok(nullptr, "=");
-    if ( !value )
-      value = "";
     if ( !strcmp(name, "analysis") ) {
       if ( !strcmp(value, "true") ) {
         analysis_frames = true;
@@ -224,19 +238,36 @@ int main(int argc, const char *argv[], char **envp) {
       event_id = strtoull(value, nullptr, 10);
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frame") ) {
-      frame_id = strtoull(value, nullptr, 10);
+      unsigned long long parsed_frame = strtoull(value, nullptr, 10);
+      if (parsed_frame > UINT_MAX) {
+        Warning("Ignoring frame '%s', out of range", value);
+      } else {
+        frame_id = static_cast<unsigned int>(parsed_frame);
+      }
       source = ZMS_EVENT;
     } else if ( !strcmp(name, "frames") ) {
-      frames_to_send = strtoll(value, nullptr, 10);
+      long long parsed_frames = strtoll(value, nullptr, 10);
+      if (parsed_frames < INT_MIN || parsed_frames > INT_MAX) {
+        Warning("Ignoring frames '%s', out of range", value);
+      } else {
+        frames_to_send = static_cast<int>(parsed_frames);
+      }
     } else if ( !strcmp(name, "scale") ) {
       scale = StreamBase::ParseScaleParam(value);
       if (strtol(value, nullptr, 10) > 16*ZM_SCALE_BASE) Warning("Limiting scale to 16x");
     } else if ( !strcmp(name, "rate") ) {
-      rate = atoi(value);
+      long parsed_rate = strtol(value, nullptr, 10);
+      if (parsed_rate < 0 || parsed_rate > 1000000) {
+        Warning("Ignoring rate '%s', out of range", value);
+      } else {
+        rate = static_cast<unsigned int>(parsed_rate);
+      }
     } else if ( !strcmp(name, "maxfps") ) {
       maxfps = atof(value);
     } else if ( !strcmp(name, "bitrate") ) {
       bitrate = atoi(value);
+    } else if ( !strcmp(name, "quality") ) {
+      quality = StreamBase::ParseQualityParam(value);
     } else if ( !strcmp(name, "ttl") ) {
       ttl = atoi(value);
     } else if ( !strcmp(name, "replay") ) {
@@ -395,6 +426,7 @@ int main(int argc, const char *argv[], char **envp) {
   if ( source == ZMS_MONITOR ) {
     MonitorStream stream;
     stream.setStreamScale(scale);
+    stream.setStreamQuality(quality);
     stream.setStreamReplayRate(rate);
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamTTL(ttl);
@@ -427,6 +459,7 @@ int main(int argc, const char *argv[], char **envp) {
   } else if ( source == ZMS_EVENT ) {
     EventStream stream;
     stream.setStreamScale(scale);
+    stream.setStreamQuality(quality);
     stream.setStreamReplayRate(rate);
     stream.setStreamMaxFPS(maxfps);
     stream.setStreamMode(replay);
@@ -446,6 +479,8 @@ int main(int argc, const char *argv[], char **envp) {
       stream.setStreamType(EventStream::STREAM_JPEG);
     } else if ( mode == ZMS_RAW ) {
       stream.setStreamType(EventStream::STREAM_RAW);
+    } else if ( mode == ZMS_ZIP ) {
+      stream.setStreamType(EventStream::STREAM_ZIP);
     } else if ( mode == ZMS_SINGLE ) {
       stream.setStreamType(MonitorStream::STREAM_SINGLE);
     } else {

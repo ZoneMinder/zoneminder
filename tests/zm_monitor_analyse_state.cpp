@@ -95,3 +95,21 @@ TEST_CASE("Monitor::ClearAlarmTracking drops partial alarm progress", "[Monitor]
   m.ClearAlarmTracking();
   REQUIRE(m.PreAlarmCount() == 0);
 }
+
+// An event that rolls over on a packet carrying no score (an audio packet, or
+// a video frame skipped by the analysis fps limit) reopened as "Continuous"
+// even though the alarm was still in progress.
+TEST_CASE("Monitor::EventCauseForOpen keeps the alarm cause on a no-score packet", "[Monitor][analyse]") {
+  REQUIRE(Monitor::EventCauseForOpen("Motion: Z1", "Motion: Z1", Monitor::ALARM) == "Motion: Z1");
+  REQUIRE(Monitor::EventCauseForOpen("", "Motion: Z1", Monitor::ALARM) == "Motion: Z1");
+  REQUIRE(Monitor::EventCauseForOpen("", "Motion: Z1", Monitor::IDLE) == "Continuous");
+  REQUIRE(Monitor::EventCauseForOpen("", "", Monitor::ALARM) == "Continuous");
+  REQUIRE(Monitor::EventCauseForOpen("Signal: Reacquired", "Motion: Z1", Monitor::ALARM) == "Signal: Reacquired");
+}
+
+// After signal loss the reference image is stale. It must be re-seeded on
+// reacquire for every recording mode that analyses, not only Record.
+TEST_CASE("Monitor::ReacquireNeedsRefReset follows analysing, not recording", "[Monitor][analyse]") {
+  REQUIRE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_ALWAYS));
+  REQUIRE_FALSE(Monitor::ReacquireNeedsRefReset(Monitor::ANALYSING_NONE));
+}

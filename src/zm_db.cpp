@@ -298,7 +298,11 @@ int zmDbDo(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
-    return rc;
+    return 0;
+  }
+  if (rc) {
+    Error("Can't run query %s while terminating: %s", query.c_str(), mysql_error(&dbconn));
+    return 0;
   }
 
   Debug(1, "Success running sql query %s, thread_id: %lu", query.c_str(), db_thread_id);
@@ -322,6 +326,10 @@ uint64_t zmDbDoInsert(const std::string &query) {
     if (retry_after_contention(err, query, contention_attempts)) continue;
 
     Error("Can't run query %s: %d %s", query.c_str(), rc, reason.c_str());
+    return 0;
+  }
+  if (rc) {
+    Error("Can't run query %s while terminating: %s", query.c_str(), mysql_error(&dbconn));
     return 0;
   }
   uint64_t id = mysql_insert_id(&dbconn);
@@ -421,6 +429,14 @@ bool zmDbQueue::stop(std::chrono::milliseconds wait) {
   return done;
 }
 
+bool zmDbQueue::drain(std::chrono::milliseconds wait) {
+  std::unique_lock<std::mutex> lock(mMutex);
+  // Only wait for what is queued now: rows pushed while waiting (logs, status,
+  // the next event) don't hold the caller up.
+  const uint64_t target = mPushed;
+  return mIdleCondition.wait_for(lock, wait, [this, target]{ return mFinished >= target; });
+}
+
 void zmDbQueue::process() {
   std::unique_lock<std::mutex> lock(mMutex);
 
@@ -443,12 +459,13 @@ void zmDbQueue::process() {
         mQueue.pop();
         if (log_row) --mLogRows;
       }
+      const bool took_row = !sql.empty();
       if (dropped) {
         lock.unlock();
         write_dropped_summary(dropped);
         lock.lock();
       }
-      if (sql.empty()) continue;
+      if (!took_row) continue;
       // My idea for leaving the locking around each sql statement is to allow
       // other db writers to get a chance
       lock.unlock();
@@ -470,6 +487,8 @@ void zmDbQueue::process() {
         zmDbDo(sql);
       }
       lock.lock();
+      ++mFinished;
+      mIdleCondition.notify_all();
     }
   }
   mDone = true;
@@ -488,6 +507,7 @@ void zmDbQueue::push(std::string &&sql, bool log_row, bool keep) {
       ++mLogRows;
     }
     mQueue.emplace(std::move(sql), log_row);
+    ++mPushed;
   }
   mCondition.notify_all();
 }

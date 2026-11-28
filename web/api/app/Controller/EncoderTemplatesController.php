@@ -17,6 +17,12 @@ class EncoderTemplatesController extends AppController {
       $conditions = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->EncoderTemplate->schema()));
     }
     if (!empty($this->request->query['Encoder'])) {
+      // A name or a list of names; a list inside the list would be written into the SQL as the word Array.
+      foreach ((array)$this->request->query['Encoder'] as $name) {
+        if (is_array($name)) {
+          throw new BadRequestException(__('Encoder must be a name or a list of names'));
+        }
+      }
       $conditions['EncoderTemplate.Encoder'] = $this->request->query['Encoder'];
     }
     $templates = $this->EncoderTemplate->find('all', array(
@@ -44,6 +50,9 @@ class EncoderTemplatesController extends AppController {
   }
 
   public function add() {
+    if (!$this->request->is('post')) {
+      throw new BadRequestException(__('Invalid method. Should be post'));
+    }
     if ($this->request->is('post')) {
       global $user;
       $canEdit = (!$user) || ($user->System() == 'Edit');

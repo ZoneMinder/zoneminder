@@ -1384,7 +1384,7 @@
   // status, so the fps line kept moving. Restarted the way changePlayer does.
   function liveStream(on) {
     monitors.forEach(function(m) {
-      if (on) m.start(); else m.stop();
+      if (on) m.start(); else m.stop({showImg: false});
     });
     pauseBtn.toggle(on);
     playBtn.toggle(!on);
@@ -1442,6 +1442,7 @@
     refreshOverlay();
   }
 
+  global.zoneObjectSize_stepReplay = stepReplay;
   function stepReplay(direction) {
     if (!replay || !media || !replay.frames.length) return;
     const now = media.currentTime;

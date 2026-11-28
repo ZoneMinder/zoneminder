@@ -151,6 +151,8 @@ class StreamBase {
   // a different resolution.
   int last_crop_width, last_crop_height;
   int bitrate;
+  // JPEG quality for this stream, 1-100; 0 uses ZM_JPEG_STREAM_QUALITY.
+  int quality;
   unsigned short last_x, last_y;
   std::atomic<unsigned short> x, y;
   bool send_analysis;
@@ -243,6 +245,7 @@ class StreamBase {
     last_crop_width(0),
     last_crop_height(0),
     bitrate(DEFAULT_BITRATE),
+    quality(0),
     last_x(0),
     last_y(0),
     x(0),
@@ -327,6 +330,18 @@ class StreamBase {
   void setStreamBitrate(int p_bitrate) {
     bitrate = p_bitrate;
   }
+  // The quality= query parameter of zms. Anything that is not 1-100 keeps the
+  // configured ZM_JPEG_STREAM_QUALITY.
+  static int ParseQualityParam(const char *value) {
+    const long parsed = strtol(value, nullptr, 10);
+    return (parsed >= 1 && parsed <= 100) ? static_cast<int>(parsed) : 0;
+  }
+  void setStreamQuality(int p_quality) {
+    quality = (p_quality >= 1 && p_quality <= 100) ? p_quality : 0;
+  }
+  int streamQuality() const { return quality; }
+  // Every JPEG a stream sends is encoded here, at the stream's quality.
+  bool encodeJpeg(const Image &image, unsigned char *buffer, size_t *size) const;
   void setStreamQueue(int p_connkey) {
     connkey = p_connkey;
   }

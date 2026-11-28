@@ -26,7 +26,15 @@ if ( !canEdit('Control') ) {
 
 if ( $action == 'Save' ) {
   require_once('includes/Control.php');
-  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? $_REQUEST['cid'] : null );
+  $Control = new ZM\Control( !empty($_REQUEST['cid']) ? (validCardinal($_REQUEST['cid']) ?: null) : null );
+
+  // A capability deleted in another tab would be saved here as a new one
+  if ( !empty($_REQUEST['cid']) and !$Control->Id() ) {
+    global $error_message;
+    ZM\Warning('Control capability not found for save');
+    $error_message .= 'Control capability not found.</br>';
+    return;
+  }
 
   $field_defaults = array(
     'CanWake' =>  0,
@@ -46,6 +54,7 @@ if ( $action == 'Save' ) {
     'HasTiltSpeed'  =>  0,
     'HasTurboTilt'  =>  0,
     'CanZoom' => 0,
+    'CanAutoZoom' => 0,
     'CanZoomRel' => 0,
     'CanZoomAbs' => 0,
     'CanZoomCon' => 0,

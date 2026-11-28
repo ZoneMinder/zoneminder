@@ -320,7 +320,7 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
             ];
             $whatDisplaySelected = 'Default'; // Default
             if (defined('AUDIO_MOTION_ENABLED') && AUDIO_MOTION_ENABLED) {
-              if (isset($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
+              if (isset($_REQUEST['whatDisplay']) and is_string($_REQUEST['whatDisplay']) and isset($whatDisplay[$_REQUEST['whatDisplay']])) {
                 $whatDisplaySelected = validHtmlStr($_REQUEST['whatDisplay']);
               } else if (isset($_COOKIE['zmWhatDisplay']) and isset($whatDisplay[$_COOKIE['zmWhatDisplay']])) {
                 $whatDisplaySelected = validHtmlStr($_COOKIE['zmWhatDisplay']);
@@ -366,8 +366,11 @@ echo htmlSelect('changeRate', $maxfps_options, $options['maxfps'], array('id'=>'
           <button type="button" id="fullscreenBtn" title="<?php echo translate('Fullscreen') ?>" class="avail" data-on-click="watchFullscreen">
           <i class="material-icons md-18">fullscreen</i>
           </button>
+          <button type="button" id="pauseAllBtn" title="<?php echo translate('PauseAll') ?>" data-title-pause-all="<?php echo translate('PauseAll') ?>" data-title-play-all="<?php echo translate('ResumeAll') ?>" class="avail">
+          <i class="material-icons md-18">pause</i>
+          </button>
 <?php
-if ($showControl) {
+if ($showControl and canView('Control')) {
   echo makeLink('?view=control', translate('Control'));
 }
 if (canView('System')) {

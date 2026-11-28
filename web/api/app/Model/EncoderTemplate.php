@@ -12,6 +12,7 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Encoder is required',
+        'required' => 'create',
         'last' => true,
       ),
       'unique' => array(
@@ -31,6 +32,7 @@ class EncoderTemplate extends AppModel {
       'notBlank' => array(
         'rule' => array('notBlank'),
         'message' => 'Name is required',
+        'required' => 'create',
         'last' => true,
       ),
       'unique' => array(
@@ -51,6 +53,10 @@ class EncoderTemplate extends AppModel {
     }
     if (!$row['Encoder']) return true; // notBlank validator on Encoder will fail separately
     if ($row['Name'] === null or $row['Name'] === '') return true;
+    // AppModel::beforeValidate() already refuses an array.
+    foreach ($row as $value) {
+      if (!is_scalar($value)) return true;
+    }
     $conditions = array(
       'EncoderTemplate.Encoder' => $row['Encoder'],
       'EncoderTemplate.Name' => $row['Name'],

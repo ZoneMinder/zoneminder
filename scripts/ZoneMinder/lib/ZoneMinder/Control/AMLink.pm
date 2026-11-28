@@ -170,7 +170,9 @@ sub open {
   # As in Dahua_RPC: parse_Path() yields the RTSP port, which is not where the
   # vendor RPC lives.
   my $port = ($self->{port} && $self->{port} != 554) ? $self->{port} : 80;
-  $self->{RPCBase} = 'http://'.$self->{host}.':'.$port.'/Onvif/device_service';
+  # URI returns an IPv6 host without the brackets a URL needs.
+  my $host = $self->{host} =~ /:/ ? '['.$self->{host}.']' : $self->{host};
+  $self->{RPCBase} = 'http://'.$host.':'.$port.'/Onvif/device_service';
   $self->{rpc_id} = 0;
   $self->{mask_key} = undef;
 

@@ -29,7 +29,12 @@ if ( isset($_REQUEST['object']) ) {
         # Saving under a name the user already has overwrites that layout, but
         # never a built-in preset. Names are wrapped in arrays so NULL and
         # NOT NULL match literally.
-        $name = $_REQUEST['Name'];
+        $name = is_string($_REQUEST['Name']) ? trim($_REQUEST['Name']) : '';
+        if ( $name === '' ) {
+          $error_message = 'A layout needs a name';
+          ZM\Warning($error_message);
+          return;
+        }
         if ( preg_match('/^(Auto|Freeform|\d+ Wide)$/', $name) ) {
           $error_message = 'A layout with that name already exists';
           ZM\Warning($error_message);
@@ -54,7 +59,8 @@ if ( isset($_REQUEST['object']) ) {
         }
       }
       if (canEdit('System') or !$Layout->Id() or ($user->Id() == $Layout->UserId())) {
-        $Layout->UserId($user->Id());
+        # An admin saving someone else's layout leaves it with its owner
+        if (!$Layout->Id()) $Layout->UserId($user->Id());
         $Layout->Positions($_REQUEST['Positions']);
         $Layout->save();
         zm_session_start();

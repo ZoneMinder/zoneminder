@@ -39,14 +39,18 @@ function validHtmlStr($input) {
 }
 
 $skin = 'classic';
-require_once(__DIR__.'/../../web/skins/classic/includes/functions.php');
+// Load the skin library under test. ZM_SKIN_FUNCTIONS_PHP lets the test run
+// against another copy (e.g. the original file) instead of the working tree.
+$functionsPhp = getenv('ZM_SKIN_FUNCTIONS_PHP');
+if (empty($functionsPhp)) $functionsPhp = __DIR__.'/../../web/skins/classic/includes/functions.php';
+require_once($functionsPhp);
 
-// The query string a crafted link would carry: 'attr' as a key of terms is
-// what the function looks for.
+// The query string a crafted link would carry. Real requests index terms
+// numerically: terms[0][attr], terms[1][attr], ...
 function setTerms($min, $max) {
   $_REQUEST = array('filter' => array('Query' => array('terms' => array(
-    'attr' => array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $min),
-    0 => array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $max),
+    0 => array('attr' => 'StartDateTime', 'op' => '>=', 'val' => $min),
+    1 => array('attr' => 'StartDateTime', 'op' => '<=', 'val' => $max),
   ))));
 }
 
@@ -96,6 +100,16 @@ foreach (array(false => 'top navbar', true => 'left sidebar') as $forLeftBar => 
     check('live', $q['live'] ?? null, '0');
   }
 }
+
+// Behaviour check on its own: the numerically indexed pair real requests send
+// (terms[0] StartDateTime >= min, terms[1] StartDateTime <= max) must put both
+// bounds into the navbar link.
+echo "numeric StartDateTime pair\n";
+setTerms('2026-10-01 00:00:00', '2026-10-02 00:00:00');
+$numericLinks = parseFragment(getMontageReviewHTML('console'))[0];
+$numericQuery = queryOf($numericLinks[0] ?? '');
+check('minTime carried', $numericQuery['minTime'] ?? null, '2026-10-01 00:00:00');
+check('maxTime carried', $numericQuery['maxTime'] ?? null, '2026-10-02 00:00:00');
 
 echo "malformed terms\n";
 $_REQUEST = array('filter' => array('Query' => array('terms' => array('attr' => 'StartDateTime'))));

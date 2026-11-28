@@ -19,6 +19,11 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
+
 use URI;
 use LWP::UserAgent;
 
@@ -26,7 +31,7 @@ sub open {
   my $self = shift;
   $self->loadMonitor();
 
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{state} = 'closed';
 

@@ -86,6 +86,8 @@ $SLANG = array(
     'AddNewModel'           => 'Add New Model',
     'AddNewMonitor'         => 'Add',
     'AddMonitorDisabled'    => 'Your user is not allowed to add a new monitor',
+    'AddReportDisabled'     => 'Your user is not allowed to add a new report',
+    'EditReportDisabled'    => 'Your user is not allowed to edit this report',
     'AddNewServer'          => 'Add New Server',
     'AddNewStorage'         => 'Add New Storage',
     'AddNewRole'            => 'Add New Role',
@@ -130,14 +132,19 @@ $SLANG = array(
     'AttrDiskBlocks'        => 'Disk Blocks',
     'AttrDiskPercent'       => 'Disk Percent',
     'AttrDuration'          => 'Duration',
+    'AttrEmailed'           => 'Emailed',
+    'AttrExecuted'          => 'Executed',
     'AttrFrames'            => 'Frames',
     'AttrId'                => 'Id',
     'AttrMaxScore'          => 'Max. Score',
+    'AttrMessaged'          => 'Messaged',
     'AttrMonitorId'         => 'Monitor Id',
     'AttrMonitorName'       => 'Monitor Name',
     'AttrSecondaryStorageArea' => 'Secondary Storage Area',
     'AttrStorageArea'       => 'Storage Area',
     'AttrFilterServer'      => 'Server Filter is Running On',
+    'AttrUploaded'          => 'Uploaded',
+    'AttrVideoed'           => 'Videoed',
     'AttrMonitorServer'     => 'Server Monitor is Running On',
     'AttrStorageServer'     => 'Server Hosting Storage',
     'AttrStateId'           => 'Run State',
@@ -164,6 +171,7 @@ $SLANG = array(
     'BadDevice'             => 'Device must be set to a valid value',
     'BadEncoderParameters'  => 'Encoder does not work well without at least a value for crf. Please see the help.',
     'BadFfmpegOptions'      => 'Source -> Options must be key=value pairs separated by commas or new lines, such as tls_verify=0. Write ffmpeg command line flags like -tls_verify 0 without the dash and with =. Could not use:',
+    'BadFfmpegPathProtocol' => 'Source -> Path must start with a protocol such as rtsp://, or be an absolute file path.',
     'BadFormat'             => 'Format must be set to a valid value',
     'BadFPSReportInterval'  => 'FPS report interval buffer count must be an integer of 0 or more',
     'BadMotionFrameSkip'    => 'Motion Frame skip count must be an integer of zero or more',
@@ -317,6 +325,7 @@ $SLANG = array(
     'ClassLabel'            => 'Label',
     'ClearLogs'             => 'Clear Logs',
     'CloneMonitor'          => 'Clone',
+    'CloneZones'            => 'Also clone the zones',
     'ConcurrentFilter'      => 'Run filter concurrently',
     'ConfigOptions'         => 'ConfigOptions',
     'ConfigType'            => 'Config Type',
@@ -442,9 +451,12 @@ $SLANG = array(
     'FilterUnarchiveEvents' => 'Unarchive all matches',
     'FilterUpdateDiskSpace' => 'Update used disk space',
     'FilterDeleteEvents'    => 'Delete all matches',
+    'FilterExecuted'        => 'Filter executed. The number of events it matched is in the log.',
+    'FilterExecuteFailed'   => 'Filter failed to execute. See the log for the reason.',
     'FilterCopyEvents'      => 'Copy all matches',
     'FilterLockRows'        => 'Lock Rows',
     'FilterMoveEvents'      => 'Move all matches',
+    'FilterTagEvents'       => 'Tag all matches',
     'FilterEmailEvents'     => 'Email details of all matches',
     'FilterEmailTo'    			=> 'Email To',
     'FilterEmailSubject'	  => 'Email Subject',
@@ -472,6 +484,7 @@ $SLANG = array(
     'FPS'                   => 'fps',
     'FPSReportInterval'     => 'FPS Report Interval',
     'FrameId'               => 'Frame Id',
+    'Free'                  => 'Free',
     'FrameRate'             => 'Frame Rate',
     'MotionFrameSkip'       => 'Motion Frame Skip',
     'GenerateVideo'         => 'Generate Video',
@@ -676,6 +689,7 @@ $SLANG = array(
     'PathToIndex'           => 'Path To Index',
     'PathToZMS'             => 'Path To ZMS',
     'PathToApi'             => 'Path To Api',
+    'PauseAll'              => 'Pause All',
     'PauseCycle'            => 'Pause Cycle',
     'PhoneBW'               => 'Phone&nbsp;B/W',
     'PixelDiff'             => 'Pixel Diff',
@@ -782,6 +796,7 @@ $SLANG = array(
     'ResetEventCounts'      => 'Reset Event Counts',
     'RestrictedCameraIds'   => 'Restricted Camera Ids',
     'RestrictedMonitors'    => 'Restricted Monitors',
+    'ResumeAll'             => 'Resume All',
     'ReturnDelay'           => 'Return Delay',
     'ReturnLocation'        => 'Return Location',
     'RevokeAllTokens'       => 'Revoke All Tokens',
@@ -915,6 +930,7 @@ $SLANG = array(
     'TurboPanSpeed'         => 'Turbo Pan Speed',
     'TurboTiltSpeed'        => 'Turbo Tilt Speed',
     'TZUnset'               => 'Unset - use value in php.ini',
+    'Undo'                  => 'Undo',
     'UnrecognisedAction'    => 'Unrecognised action',
     'UpdateAvailable'       => 'An update to ZoneMinder is available.',
     'UpdateNotNecessary'    => 'No update is necessary.',
@@ -1322,6 +1338,17 @@ Always: A zmc process will run and immediately connect and stay connected.~~~~
      The required version is reported below this setting, and is set by SUPPORTED_AUDIO_MOTION_ANALYZER_VERSION in skins/classic/js/audioMotionAnalyzer.js.
      ',
     ),
+  'OPTIONS_WALL_CLOCK_TIMESTAMPS' => array(
+    'Help' => 'Controls where ZoneMinder gets the timing for each frame when writing a video file: from the camera\'s video stream itself or from the server\'s system clock.~~~~'
+            . '- Off (Default - recommended for most cameras): ZoneMinder uses the original timestamps (PTS/DTS) embedded in the stream by the camera. This ensures smooth playback with consistent frame intervals, avoids distortion from network delays, and properly supports B-frames.~~'
+            . '- On: ZoneMinder ignores the camera\'s stream timestamps and assigns each frame the server\'s system clock time at the exact moment the packet arrives.~~~~'
+            . 'When to enable this option:~~'
+            . '- Your camera has buggy firmware that sends broken, jumping, or duplicate timestamps (causing \'non increasing dts\' warnings in logs, dropped recordings, or unplayable files).~~'
+            . '- The camera\'s internal clock drifts significantly (e.g., a 10-minute real-time recording plays back as 7 or 13 minutes).~~~~'
+            . 'Important caveats when enabled:~~'
+            . '- Over unstable networks (such as Wi-Fi or congested links), playback may appear slightly jittery because network packet delays are baked directly into frame timings.~~'
+            . '- Not recommended for streams containing B-frames in Passthrough mode, as presentation timestamps (PTS) are forced equal to decoding timestamps (DTS).'
+  ),
   'FUNCTION_ANALYSIS_ENABLED' => array(
     'Help' => '
       When to perform motion detection on the captured video.  

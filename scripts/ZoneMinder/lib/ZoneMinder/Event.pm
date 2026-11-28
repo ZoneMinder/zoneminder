@@ -40,6 +40,7 @@ require File::Find;
 require File::Path;
 require File::Copy;
 require File::Basename;
+require File::Glob;
 require Number::Bytes::Human;
 require Date::Parse;
 require POSIX;
@@ -190,21 +191,26 @@ sub RelativePath {
         $$event{RelativePath} = '';
       }
     } elsif ( $$event{Scheme} eq 'Medium' ) {
-      if ( $event->Time() ) {
+      if ( $event->Time() and $$event{Id} ) {
         $$event{RelativePath} = join('/',
             $event->{MonitorId},
             POSIX::strftime('%Y-%m-%d', localtime($event->Time())),
             $event->{Id},
             );
       } else {
-        Error("Event $$event{Id} has no value for Time(), unable to determine path");
+        Error('Event has no Id or no value for Time(), unable to determine path');
         $$event{RelativePath} = '';
       }
     } else { # Shallow
-      $$event{RelativePath} = join('/',
-          $event->{MonitorId},
-          $event->{Id},
-          );
+      if ( $$event{Id} ) {
+        $$event{RelativePath} = join('/',
+            $event->{MonitorId},
+            $event->{Id},
+            );
+      } else {
+        Error('Event has no Id, unable to determine path');
+        $$event{RelativePath} = '';
+      }
     } # end if Scheme
   } # end if ! Path
 
@@ -271,6 +277,93 @@ sub createIdFile {
   setFileOwner($idFile); 
 }
 
+# zmc records an event under a time-based id when it cannot insert the Events
+# row (EventFallbackId in src/zm_event.h). Auto increment never gets this high.
+use constant FALLBACK_ID_MIN => 1000000000000000;
+
+sub is_fallback_id {
+  my $id = shift;
+  return (defined $id and $id =~ /^\d+$/ and $id >= FALLBACK_ID_MIN) ? 1 : 0;
+}
+
+# The tables zmc may have written rows to under the event's id
+my @event_id_tables = qw(Frames Stats Event_Data Events_Tags Snapshots_Events
+  Events_Hour Events_Day Events_Week Events_Month Events_Archived);
+
+# Saves an event that has no row yet under a new auto increment id instead of
+# the fallback id zmc recorded it under, and moves its files and rows to match.
+# Returns '' or the error, like save().
+sub save_with_new_id {
+  my $event = shift;
+  my $old_id = $$event{Id};
+  my $old_path = $event->Path();
+  my $scheme = $$event{Scheme} // 'Shallow';
+
+  delete $$event{Id};
+  my $error = $event->save({}, 1);
+  if ($error or !$$event{Id}) {
+    $$event{Id} = $old_id;
+    return $error || 'No id returned for the new row';
+  }
+  my $new_id = $$event{Id};
+
+  my $new_path = $old_path;
+  if ($scheme eq 'Deep') {
+    # The time directory stays, only the .<id> link in the day directory changes
+    my $day_path = File::Basename::dirname(File::Basename::dirname(File::Basename::dirname($old_path)));
+    if (-l "$day_path/.$old_id" and !rename("$day_path/.$old_id", "$day_path/.$new_id")) {
+      $error = "Failed renaming $day_path/.$old_id to .$new_id: $!";
+    }
+  } else {
+    $new_path = File::Basename::dirname($old_path).'/'.$new_id;
+    if (!rename($old_path, $new_path)) {
+      $error = "Failed renaming $old_path to $new_path: $!";
+    } elsif ($scheme eq 'Shallow' and -e "$new_path/.$old_id") {
+      rename("$new_path/.$old_id", "$new_path/.$new_id")
+        or Warning("Failed renaming $new_path/.$old_id to .$new_id: $!");
+    }
+  }
+  if ($error) {
+    # Leave the event under its old id so a later run can try again
+    zmDbDo('DELETE FROM Events WHERE Id=?', $new_id);
+    $$event{Id} = $old_id;
+    return $error;
+  }
+  $$event{Path} = $new_path;
+  $$event{RelativePath} =~ s/\b$old_id$/$new_id/ if $$event{RelativePath};
+  delete $$event{LinkPath};
+  delete $$event{files};
+
+  if (opendir(my $dh, $new_path)) {
+    foreach my $file (readdir($dh)) {
+      my ($suffix) = $file =~ /^$old_id(-video\..+)$/ or next;
+      rename("$new_path/$old_id$suffix", "$new_path/$new_id$suffix")
+        or Warning("Failed renaming $new_path/$old_id$suffix: $!");
+    }
+    closedir($dh);
+  }
+  if (open(my $in, '<', "$new_path/index.m3u8")) {
+    my $m3u8 = do { local $/; <$in> };
+    close($in);
+    $m3u8 =~ s/\beid=$old_id\b/eid=$new_id/g;
+    $m3u8 =~ s/\b$old_id-video\./$new_id-video./g;
+    if (open(my $out, '>', "$new_path/index.m3u8")) {
+      print $out $m3u8;
+      close($out);
+    } else {
+      Warning("Failed rewriting $new_path/index.m3u8: $!");
+    }
+  }
+  $$event{DefaultVideo} =~ s/^$old_id-video\./$new_id-video./ if $$event{DefaultVideo};
+  $$event{Name} =~ s/\b$old_id\b/$new_id/ if $$event{Name};
+
+  foreach my $table (@event_id_tables) {
+    zmDbDo("UPDATE `$table` SET EventId=? WHERE EventId=?", $new_id, $old_id);
+  }
+  Info("Event recorded as $old_id without a database row is now event $new_id");
+  return $event->save();
+} # end sub save_with_new_id
+
 sub GenerateVideo {
   my ( $self, $rate, $fps, $scale, $size, $overwrite, $format, $transforms ) = @_;
 
@@ -279,6 +372,8 @@ sub GenerateVideo {
   # Name is user editable; keep the output file inside the event directory.
   ( my $video_name = $self->{Name} ) =~ s/[^-A-Za-z0-9_.]/_/g;
   $video_name =~ s/^[-.]/_/;
+  # An empty name would make the output file start with '-', which ffmpeg reads as an option.
+  $video_name = 'Event' if $video_name eq '';
 
   my @file_parts;
   if ( $rate ) {
@@ -513,8 +608,13 @@ sub delete {
       }
 
       if (!$err) {
-        $ZoneMinder::Database::dbh->commit() if !$in_transaction;
-        last;
+        last if $in_transaction;
+        # A failed commit rolls the deletes back, so the rows are still there; keep the files.
+        if ($ZoneMinder::Database::dbh->commit()) {
+          last;
+        }
+        $err = $ZoneMinder::Database::dbh->err() // 1;
+        $errstr = $ZoneMinder::Database::dbh->errstr() // 'commit failed';
       }
 
       $ZoneMinder::Database::dbh->rollback() if !$in_transaction;
@@ -809,7 +909,9 @@ sub CopyTo {
     my $bucket = $NewStorage->bucket();
     if ($s3 and $bucket) {
       my $event_path = $NewStorage->aws_subpath().$self->RelativePath();
-      my @files = glob("$OldPath/*");
+      # Not glob(): it splits its pattern on whitespace, so a storage path with a
+      # space in it matches none of the event's files.
+      my @files = File::Glob::bsd_glob("$OldPath/*");
       Debug("Files to move @files");
       eval {
         foreach my $file (@files) {
@@ -963,7 +1065,7 @@ sub recover_timestamps {
   Debug('Have ' . @contents . ' files in '.$path);
   closedir(DIR);
 
-  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+  my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
   if ( @mp4_files ) {
     $$Event{DefaultVideo} = $mp4_files[0];
   }
@@ -1097,7 +1199,7 @@ sub fix_DefaultVideo {
     Debug('Have ' . @contents . ' files in '.$path);
     closedir(DIR);
 
-    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?mp4$/, @contents);
+    my @mp4_files = grep(/^\d+\-video\.(?:\w+\.)?(?:mp4|mkv|webm)$/, @contents);
     if ( @mp4_files ) {
       $$event{DefaultVideo} = $mp4_files[0];
     }

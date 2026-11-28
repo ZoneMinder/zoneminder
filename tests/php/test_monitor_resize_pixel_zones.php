@@ -98,7 +98,9 @@ namespace {
   }
   function dbQuery($sql, $args = array()) {
     if (strpos($sql, 'UPDATE Zones') === 0) ZM\Rec::$queries[] = array($sql, $args);
+    return true;
   }
+  function dbLastError() { return ''; }
   function getFormChanges($old, $new, $types = false) {
     $c = array();
     foreach ($new as $k => $v) {

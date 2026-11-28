@@ -60,6 +60,8 @@ inline void zm_strncpy(char *dst, const char *src, size_t size, ssize_t n = -1) 
 std::string escape_json_string(std::string input);
 std::string remove_newlines(std::string input);
 std::string Trim(const std::string &str, const std::string &char_set);
+// Replaces every byte that is not part of a well formed UTF-8 sequence with '?'
+std::string Utf8Sanitize(const std::string &str);
 inline std::string TrimSpaces(const std::string &str) { return Trim(str, " \t"); }
 std::string ReplaceAll(std::string str, const std::string &old_value, const std::string &new_value);
 inline std::string ShellEscape(const std::string &str) {
@@ -195,6 +197,10 @@ std::string url_for_log(const std::string &url);
 // url_for_log() and the value of any Authorization or Proxy-Authorization
 // header (Basic carries user:password, only base64-encoded) replaced.
 std::string request_for_log(const std::string &request);
+// A monitor's Options string as it may be logged: the values of headers,
+// cookies and http_proxy (which carry credentials) and any entry mentioning
+// authorization are replaced with "<not logged>".
+std::string options_for_log(const std::string &options);
 
 std::string UriEncode(const std::string &value);
 // url with user:pass@ inserted after its scheme://, as stored (not encoded: a

@@ -27,6 +27,17 @@ TEST_CASE("EventMaxScoreForDb") {
   REQUIRE(EventMaxScoreForDb(42) == 42);
 }
 
+TEST_CASE("EventFallbackId") {
+  // When the Events insert keeps failing the event is still recorded to disk
+  // under this id, for zmrecover.pl to add to the database later. It has to be
+  // nonzero, distinct per monitor at the same moment, and grow with time.
+  REQUIRE(EventFallbackId(1795517294000, 1) != 0);
+  REQUIRE(EventFallbackId(1795517294000, 1) != EventFallbackId(1795517294000, 2));
+  REQUIRE(EventFallbackId(1795517294001, 1) > EventFallbackId(1795517294000, 999));
+  // Far above any id the Events table has handed out by auto increment.
+  REQUIRE(EventFallbackId(1795517294000, 1) > 1000000000000000ULL);
+}
+
 TEST_CASE("ClampSectionLength") {
   // SectionLength=0 is accepted by the monitor form and used as a modulo.
   REQUIRE(ClampSectionLength(Seconds(0)) == Seconds(1));
@@ -122,4 +133,16 @@ TEST_CASE("EventKeepsDraining") {
     packet.timestamp = boundary - std::chrono::milliseconds(1);
     CHECK(EventKeepsDraining(true, boundary, &packet));
   }
+}
+
+TEST_CASE("EventNameOnCloseSql escapes the event prefix") {
+  // The prefix is the expanded EventPrefix, so it can hold the monitor name or trigger text.
+  REQUIRE(EventNameOnCloseSql("Front-", 12) ==
+          "IF(Name='New Event', CONCAT(LEFT('Front-', 62), '12'), Name)");
+  REQUIRE(EventNameOnCloseSql("Joe's-", 12) ==
+          "IF(Name='New Event', CONCAT(LEFT('Joe\\'s-', 62), '12'), Name)");
+  REQUIRE(EventNameOnCloseSql("',Name),Cause=USER(),Name=IF(1,'", 7) ==
+          "IF(Name='New Event', CONCAT(LEFT('\\',Name),Cause=USER(),Name=IF(1,\\'', 63), '7'), Name)");
+  REQUIRE(EventNameOnCloseSql("a\\", 7) ==
+          "IF(Name='New Event', CONCAT(LEFT('a\\\\', 63), '7'), Name)");
 }

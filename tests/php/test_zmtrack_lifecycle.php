@@ -92,6 +92,15 @@ function translate($s) { return $s; }
 }
 namespace ZM {
 function Debug($m) {}
+// Copied from web/includes/functions.php; Object.php changes() calls it.
+function scalar_values_differ($old, $new) {
+  if (is_array($old) or is_array($new)) {
+    return $old != $new;
+  }
+  if (is_bool($old)) $old = (int)$old;
+  if (is_bool($new)) $new = (int)$new;
+  return (string)($old === null ? '' : $old) !== (string)($new === null ? '' : $new);
+}
 function Warning($m) {}
 function Error($m) {}
 function Info($m) {}

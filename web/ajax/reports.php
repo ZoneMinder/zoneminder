@@ -20,7 +20,7 @@ if (empty($_REQUEST['ids'])) {
   if (isset($_REQUEST['task']) && $_REQUEST['task'] != 'query')
     $message = 'No id(s) supplied<br/>';
 } else {
-  $ids = $_REQUEST['ids'];
+  $ids = (array)$_REQUEST['ids'];
 }
 
 if ($message) {
@@ -56,8 +56,8 @@ $sort = (isset($_REQUEST['sort']) and is_string($_REQUEST['sort'])) ? $_REQUEST[
 // Offset specifies the starting row to return, used for pagination
 $offset = 0;
 if (isset($_REQUEST['offset'])) {
-  if ((!is_int($_REQUEST['offset']) and !ctype_digit($_REQUEST['offset']))) {
-    ZM\Error('Invalid value for offset: ' . $_REQUEST['offset']);
+  if (!is_scalar($_REQUEST['offset']) or (!is_int($_REQUEST['offset']) and !ctype_digit((string)$_REQUEST['offset']))) {
+    ZM\Error('Invalid value for offset: ' . (is_scalar($_REQUEST['offset']) ? $_REQUEST['offset'] : gettype($_REQUEST['offset'])));
   } else {
     $offset = $_REQUEST['offset'];
   }
@@ -67,8 +67,8 @@ if (isset($_REQUEST['offset'])) {
 // Set the default to 0 for reports view, to prevent an issue with ALL pagination
 $limit = 0;
 if (isset($_REQUEST['limit'])) {
-  if ((!is_int($_REQUEST['limit']) and !ctype_digit($_REQUEST['limit']))) {
-    ZM\Error('Invalid value for limit: ' . $_REQUEST['limit']);
+  if (!is_scalar($_REQUEST['limit']) or (!is_int($_REQUEST['limit']) and !ctype_digit((string)$_REQUEST['limit']))) {
+    ZM\Error('Invalid value for limit: ' . (is_scalar($_REQUEST['limit']) ? $_REQUEST['limit'] : gettype($_REQUEST['limit'])));
   } else {
     $limit = $_REQUEST['limit'];
   }
@@ -81,7 +81,7 @@ if (isset($_REQUEST['limit'])) {
 switch ($task) {
   case 'delete' :
 		if (!canEdit('Events'))  {
-			ajaxError('Insufficient permissions for user '.$user->Username());
+			ajaxError('Insufficient permissions for user '.validHtmlStr($user->Username()));
 			return;
 		}
     $messages = array();
@@ -105,13 +105,17 @@ ajaxResponse($data);
 
 function deleteRequest($id) {
   $message = array();
+  $id = validCardinal($id);
+  if ($id === '') {
+    return array('Report not found.');
+  }
   $report = new ZM\Report($id);
   if ( !$report->Id() ) {
     $message[] = 'Report not found.';
   } else if (!$report->canEdit()) {
     $message[] = 'You do not have permission to delete report '.$report->Id();
-  } else {
-    $report->delete();
+  } else if ( !$report->delete() ) {
+    $message[] = 'Report '.$id.' could not be deleted.';
   }
   
   return $message;
@@ -163,7 +167,8 @@ function queryRequest($search, $advsearch, $sort, $offset, $order, $limit) {
   ZM\Debug('Calling the following sql query: ' .$sql);
   $query = dbQuery($sql, $values);
   if (!$query) {
-    ajaxError(dbError($sql));
+    ZM\Error(dbError($sql));
+    ajaxError('Database query failed');
     return;
   }
   while ($row = dbFetchNext($query)) {

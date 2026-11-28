@@ -24,6 +24,7 @@
 #include <cerrno>
 #include <cstdarg>
 #include <cstdio>       // for snprintf
+#include <cstring>
 #include <fcntl.h>
 #include <netinet/tcp.h>
 #include <sys/ioctl.h>
@@ -33,6 +34,15 @@
 #ifdef SOLARIS
 #include <sys/filio.h> // define FIONREAD
 #endif
+
+namespace {
+// accept() can fail for reasons that leave the listening socket perfectly
+// usable, e.g. a signal interrupting the call or a connection aborting before
+// it reached the accept queue.
+bool acceptErrorIsTransient(int err) {
+  return err == EINTR || err == EAGAIN || err == ECONNABORTED;
+}
+}  // namespace
 
 int zm::CommsBase::readV(int iovcnt, /* const void *, int, */ ...) {
   va_list arg_ptr;
@@ -205,8 +215,12 @@ bool zm::SockAddrInet::resolve(int port, const char *proto) {
 bool zm::SockAddrUnix::resolve(const char *path, const char *proto) {
   memset(&mAddrUn, 0, sizeof(mAddrUn));
 
-  strncpy(mAddrUn.sun_path, path, sizeof(mAddrUn.sun_path));
-  mAddrUn.sun_path[sizeof(mAddrUn.sun_path) - 1] = '\0';
+  if (strlen(path) >= sizeof(mAddrUn.sun_path)) {
+    Error("Unix socket path '%s' is longer than the %zu bytes sun_path allows", path, sizeof(mAddrUn.sun_path) - 1);
+    return false;
+  }
+
+  memcpy(mAddrUn.sun_path, path, strlen(path));
   mAddrUn.sun_family = AF_UNIX;
 
   return true;
@@ -276,6 +290,10 @@ bool zm::Socket::accept() {
 
   int newSd = -1;
   if ((newSd = ::accept(mSd, &rem_addr, &rem_addr_size)) == -1) {
+    if (acceptErrorIsTransient(errno)) {
+      Debug(1, "accept(), transient error, errno = %d, error = %s", errno, strerror(errno));
+      return false;
+    }
     Error("accept(), errno = %d, error = %s", errno, strerror(errno));
     close();
     return false;
@@ -294,6 +312,10 @@ bool zm::Socket::accept(int &newSd) {
 
   newSd = -1;
   if ((newSd = ::accept(mSd, &rem_addr, &rem_addr_size)) == -1) {
+    if (acceptErrorIsTransient(errno)) {
+      Debug(1, "accept(), transient error, errno = %d, error = %s", errno, strerror(errno));
+      return false;
+    }
     Error("accept(), errno = %d, error = %s", errno, strerror(errno));
     close();
     return false;
@@ -669,10 +691,6 @@ bool zm::Select::addReader(CommsBase *comms) {
 }
 
 bool zm::Select::deleteReader(CommsBase *comms) {
-  if (!comms->isOpen()) {
-    Error("Unable to delete closed reader");
-    return false;
-  }
   if (mReaders.erase(comms)) {
     calcMaxFd();
     return true;
@@ -718,13 +736,17 @@ int zm::Select::wait() {
   mReadable.clear();
   FD_ZERO(&rfds);
   for (CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter) {
-    FD_SET((*iter)->getReadDesc(), &rfds);
+    const int fd = (*iter)->getReadDesc();
+    if (fd >= 0)
+      FD_SET(fd, &rfds);
   }
 
   mWriteable.clear();
   FD_ZERO(&wfds);
   for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-    FD_SET((*iter)->getWriteDesc(), &wfds);
+    const int fd = (*iter)->getWriteDesc();
+    if (fd >= 0)
+      FD_SET(fd, &wfds);
   }
 
   int nFound = select(mMaxFd + 1, &rfds, &wfds, nullptr, selectTimeout);
@@ -734,12 +756,14 @@ int zm::Select::wait() {
     Error("Select error: %s", strerror(errno));
   } else {
     for (CommsSet::iterator iter = mReaders.begin(); iter != mReaders.end(); ++iter) {
-      if (FD_ISSET((*iter)->getReadDesc(), &rfds)) {
+      const int fd = (*iter)->getReadDesc();
+      if (fd >= 0 && FD_ISSET(fd, &rfds)) {
         mReadable.push_back(*iter);
       }
     }
     for (CommsSet::iterator iter = mWriters.begin(); iter != mWriters.end(); ++iter) {
-      if (FD_ISSET((*iter)->getWriteDesc(), &wfds)) {
+      const int fd = (*iter)->getWriteDesc();
+      if (fd >= 0 && FD_ISSET(fd, &wfds)) {
         mWriteable.push_back(*iter);
       }
     }

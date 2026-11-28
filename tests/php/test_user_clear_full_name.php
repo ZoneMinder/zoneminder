@@ -23,7 +23,18 @@ function dbInsertId() { return 1; }
 function dbFetchAll($sql, $col = null, $params = null) { return array(); }
 function dbFetchOne($sql, $col = null, $params = null) { return null; }
 }
-namespace ZM { function Debug($m) {} function Warning($m) {} function Error($m) {} function Info($m) {} }
+namespace ZM {
+  function Debug($m) {} function Warning($m) {} function Error($m) {} function Info($m) {}
+  // Copied from web/includes/functions.php; Object.php changes() calls it.
+  function scalar_values_differ($old, $new) {
+    if (is_array($old) or is_array($new)) {
+      return $old != $new;
+    }
+    if (is_bool($old)) $old = (int)$old;
+    if (is_bool($new)) $new = (int)$new;
+    return (string)($old === null ? '' : $old) !== (string)($new === null ? '' : $new);
+  }
+}
 STUB
 );
 foreach (array('Group_Permission', 'Monitor_Permission', 'User_Preference') as $f)

@@ -62,9 +62,16 @@ class Zone extends ZM_Object {
 
   public function svg_polygon($width=0, $height=0) {
     $areaCoords = $this->AreaCoords();
+    if (!($width && $height)) {
+      # The event view passes no size; pixel zones still need the monitor's to scale
+      $monitor = $this->Monitor();
+      $width = $monitor->ViewWidth();
+      $height = $monitor->ViewHeight();
+    }
     if ($width && $height) {
       $points = coordsToPoints($this->Coords());
-      $isPixel = false;
+      // Percent coordinates are always written with decimals; without any they are pixels
+      $isPixel = strpos($this->Coords(), '.') === false;
       foreach ($points as $point) {
         if ($point['x'] > 100 || $point['y'] > 100) {
           $isPixel = true;

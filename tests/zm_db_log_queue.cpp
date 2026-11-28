@@ -67,3 +67,18 @@ TEST_CASE("zmDbQueue under the cap drops nothing", "[db_log_queue]") {
   queue.stop();
   CHECK(queue.logRowsDropped() == 0);
 }
+
+// EventEndCommand is forked once the event's queued frame and stats inserts
+// are in the database, so the queue has to be able to say when it is empty.
+TEST_CASE("zmDbQueue drain waits for queued writes to finish", "[db_log_queue]") {
+  zmDbQueue queue(10);
+  {
+    std::lock_guard<std::mutex> hold(db_mutex);
+    queue.push("DO 1");
+    queue.push("DO 2");
+    // The queue thread is held off the connection, so the writes are pending.
+    CHECK_FALSE(queue.drain(std::chrono::milliseconds(100)));
+  }
+  CHECK(queue.drain(std::chrono::seconds(10)));
+  queue.stop();
+}

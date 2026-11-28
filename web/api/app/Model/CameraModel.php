@@ -40,6 +40,9 @@ class CameraModel extends AppModel {
 		'Name' => array(
 			'notBlank' => array(
 				'rule' => array('notBlank'),
+				// The column has no default, so a model added without a name is refused by MySQL.
+				'required' => 'create',
+				'message' => 'Name is required',
 				'last' => true),
 			'unique' => array(
 				'rule' => array('isUniquePerManufacturer'),
@@ -68,6 +71,10 @@ class CameraModel extends AppModel {
 				: ($this->id ? $this->field($field) : null);
 		}
 		if ($row['ManufacturerId'] === null or $row['ManufacturerId'] === '') return true;
+		// AppModel::beforeValidate() already refuses an array.
+		foreach ($row as $value) {
+			if ($value !== null and !is_scalar($value)) return true;
+		}
 		$conditions = array('CameraModel.Name' => $row['Name'], 'CameraModel.ManufacturerId' => $row['ManufacturerId']);
 		if ($this->id) $conditions['CameraModel.Id !='] = $this->id;
 		return $this->find('count', array('conditions' => $conditions)) === 0;

@@ -398,9 +398,12 @@ sub run {
     if ( $nfound > 0 ) {
       if ( vec($rout, fileno(SERVER), 1) ) {
         my $paddr = accept(CLIENT, SERVER);
-        my $message = <CLIENT>;
+        my $message = readClientCommand(\*CLIENT, 5);
 
-        next if !$message;
+        if ( !$message ) {
+          close(CLIENT);
+          next;
+        }
 
         my ( $command, $daemon, @args ) = split(';', $message);
 
@@ -482,6 +485,20 @@ sub cPrint {
     local $SIG{PIPE} = 'IGNORE';
     close(CLIENT) if !print(CLIENT @_) || !CLIENT->flush();
   }
+}
+
+# Reads one command line from a client. A client that connects and sends nothing must not
+# block the control loop, so give up after $timeout seconds.
+sub readClientCommand {
+  my ($fh, $timeout) = @_;
+  my $message = '';
+  my $deadline = time() + $timeout;
+  while ( $message !~ /\n/ and (my $wait = $deadline - time()) > 0 ) {
+    vec(my $in = '', fileno($fh), 1) = 1;
+    last if select(my $out = $in, undef, undef, $wait) <= 0;
+    last if !sysread($fh, $message, 4096, length($message));
+  }
+  return $message;
 }
 
 # I think the purpose of this is to echo the logs to the client process so it can then display them. 
@@ -839,21 +856,25 @@ sub reaper {
       }
     }
 #print( ", core dumped" ) if ( $core_dumped );
-    $out_str .= "\n";
 
-    if ( $exit_status == 0 and !$crashed ) {
-      Info($out_str);
-    } else {
-      Error($out_str);
-    }
+    my $abnormal = ( $exit_status != 0 or $crashed ) ? 1 : 0;
 
     if ( $process->{keepalive} ) {
+      $process->{failures} = 0 if !defined $process->{failures};
+      if ( $abnormal ) {
+        $process->{failures}++;
+      } else {
+        $process->{failures} = 0;
+      }
+
 # Schedule for immediate restart
       $cmd_hash{$process->{command}} = $process;
       if ( !$process->{delay} || ($process->{runtime} > $Config{ZM_MAX_RESTART_DELAY} ) ) {
 #start( $process->{daemon}, @{$process->{args}} );
         $process->{pending} = $process->{stopped};
         $process->{delay} = 5;
+        # A fresh start (or a run longer than the max delay) begins a new streak.
+        $process->{failures} = 1 if $abnormal;
       } else {
         $process->{pending} = $process->{stopped}+$process->{delay};
         $process->{delay} *= 2;
@@ -862,9 +883,25 @@ sub reaper {
           $process->{delay} = $Config{ZM_MAX_RESTART_DELAY};
         }
       }
+      if ( $abnormal ) {
+        # pending is when it will really be started again; delay is the wait for the next failure.
+        my $wait = $process->{pending} - $process->{stopped};
+        $out_str .= $wait > 0 ? "; restarting in ${wait}s" : '; restarting now';
+        $out_str .= " (failure $process->{failures} in a row";
+        $out_str .= ", retry delay at its $Config{ZM_MAX_RESTART_DELAY}s maximum"
+          if $process->{delay} >= $Config{ZM_MAX_RESTART_DELAY};
+        $out_str .= ')';
+      }
       #Debug("Delay for $$process{command} is now $$process{delay}");
     } else {
       delete $cmd_hash{$$process{command}};
+    }
+    $out_str .= "\n";
+
+    if ( $exit_status == 0 and !$crashed ) {
+      Info($out_str);
+    } else {
+      Error($out_str);
     }
   } # end foreach pid_to_reap
 } # end sub reaper

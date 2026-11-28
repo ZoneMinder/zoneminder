@@ -91,7 +91,9 @@ namespace {
   }
   function dbQuery($sql, $args = array()) {
     if (strpos($sql, 'UPDATE Zones') === 0) ZM\Rec::$queries[] = array($sql, $args);
+    return true;
   }
+  function dbLastError() { return ''; }
   function coordsToPoints($c) { return array(); }
   function pointsToCoords($p) { return ''; }
   function getFormChanges($old, $new, $types = false) {

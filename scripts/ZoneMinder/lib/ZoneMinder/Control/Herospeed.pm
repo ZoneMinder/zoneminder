@@ -273,7 +273,7 @@ sub api {
   push @headers, 'Cookie' => $self->{api_cookie} if $self->{api_cookie};
 
   my $res = eval {
-    $self->{ua}->post('http://'.$self->{host}.'/api'.$path, @headers,
+    $self->{ua}->post('http://'.($self->{address} // $self->{host}).'/api'.$path, @headers,
       Content => encode_json({action => $action, data => $data}));
   };
   if (!$res) {
@@ -444,7 +444,7 @@ sub presetGoto {
     Error("Herospeed: refusing to go to preset '".(defined $idx ? $idx : 'undef')."'");
     return undef;
   }
-  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($self->getParam($params, 'speed')),
+  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($params->{speed}),
     preset => preset_payload($idx, undef, 1, 0));
 }
 
@@ -455,8 +455,8 @@ sub presetSet {
     Error("Herospeed: refusing to store preset '".(defined $idx ? $idx : 'undef')."'");
     return undef;
   }
-  return $self->ptz(CMD_PRESET_SET, speed => clamp_speed($self->getParam($params, 'speed')),
-    preset => preset_payload($idx, $self->getParam($params, 'presetName'), 1, 0));
+  return $self->ptz(CMD_PRESET_SET, speed => clamp_speed($params->{speed}),
+    preset => preset_payload($idx, $params->{presetName}, 1, 0));
 }
 
 sub presetClear {
@@ -472,7 +472,7 @@ sub presetClear {
 # Preset 1 is the conventional home position on these cameras.
 sub presetHome {
   my ($self, $params) = @_;
-  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($self->getParam($params, 'speed')),
+  return $self->ptz(CMD_MOVEPOINT, speed => clamp_speed($params->{speed}),
     preset => preset_payload(1, undef, 1, 0));
 }
 

@@ -44,6 +44,7 @@ class LogsController extends AppController {
 			$this->Paginator->settings['conditions'] = $this->FilterComponent->buildFilter($this->request->params['named'], array_keys($this->Log->schema()));
 		}
 
+		$this->requireScalarSort();
 		$logs = $this->Paginator->paginate('Log');
 		$this->set(compact('logs'));
 	}
@@ -93,6 +94,7 @@ class LogsController extends AppController {
 				));
 				return;
 			}
+			$this->response->statusCode(400);
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
 				'id' => null,
@@ -128,6 +130,7 @@ class LogsController extends AppController {
 				));
 				return;
 			}
+			$this->response->statusCode(400);
 			$this->set(array(
 				'message' => $this->Log->validationErrors ? $this->Log->validationErrors : 'Error',
 				'_serialize' => array('message')

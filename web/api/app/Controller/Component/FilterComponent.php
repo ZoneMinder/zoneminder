@@ -202,6 +202,19 @@ class FilterComponent extends Component {
           $value = null;
           $operator = ($operator == 'IS') ? '' : '!=';
         }
+        // Only =, != and IN take a list (CakePHP writes IN / NOT IN); a list given to any
+        // other operator is a TypeError below or a SQL syntax error.
+        if (is_array($value) and $operator != '' and !in_array($operator, array('=', '!=', '<>', 'IN'))) {
+          throw new BadRequestException('Invalid value for '.$operator.': array');
+        }
+        // A list holds plain values; a list inside it would be written into the SQL as the word Array.
+        if (is_array($value)) {
+          foreach ($value as $term) {
+            if (is_array($term)) {
+              throw new BadRequestException('Invalid value for '.$matches['field'].': nested array');
+            }
+          }
+        }
         if (($operator == 'LIKE') and (false === strpos($value, '%'))) {
           $value = '%'.$value.'%';
         } else if ($operator == 'IN') {

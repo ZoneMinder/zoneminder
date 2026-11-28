@@ -41,6 +41,10 @@ our @ISA = qw(ZoneMinder::Control);
 
 use ZoneMinder::Logger qw(:all);
 use ZoneMinder::Config qw(:all);
+
+# Seconds. The camera answers in milliseconds when it is there at all, so this
+# only ever bounds the case where it is not.
+use constant HTTP_TIMEOUT => 10;
 use ZoneMinder::General qw(:all);
 
 use Time::HiRes qw( usleep );
@@ -103,7 +107,7 @@ sub open {
   $self->loadMonitor();
 
   use LWP::UserAgent;
-  $self->{ua} = LWP::UserAgent->new;
+  $self->{ua} = LWP::UserAgent->new(timeout => HTTP_TIMEOUT);
   $self->{ua}->agent('ZoneMinder Control Agent/'.ZoneMinder::Base::ZM_VERSION);
   $self->{ua}->ssl_opts(verify_hostname => 0, SSL_verify_mode => 0x00);
   $self->{ua}->cookie_jar( {} );
@@ -118,7 +122,8 @@ sub open {
   }
   $USERNAME = $self->{username} if $self->{username};
   $PASSWORD = $self->{password} if defined $self->{password};
-  $ADDRESS = $self->{host};
+  # URI returns an IPv6 host without the brackets a URL needs.
+  $ADDRESS = $self->{host} =~ /:/ ? '['.$self->{host}.']' : $self->{host};
   # guess_credentials sets $self->{host} for ping. Keep the https:// default for
   # the control API; the camera's HTTP/HTTPS port is independent of the stream port.
   $BASE_URL = $PROTOCOL.$ADDRESS;

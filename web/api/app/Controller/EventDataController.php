@@ -157,6 +157,7 @@ class EventDataController extends AppController {
 			$message = 'Saved';
 		} else {
 			$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
+			$this->response->statusCode(400);
 		}
 		$this->set(array(
 			'message' => $message,
@@ -184,6 +185,7 @@ class EventDataController extends AppController {
 			$message = 'Saved';
 		} else {
 			$message = $this->EventData->validationErrors ? $this->EventData->validationErrors : 'Error';
+			$this->response->statusCode(400);
 		}
 		$this->set(array(
 			'message' => $message,

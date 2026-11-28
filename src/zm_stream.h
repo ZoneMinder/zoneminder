@@ -229,6 +229,8 @@ class StreamBase {
   void checkCommandQueue();
   virtual void processCommand(const CmdMsg *msg)=0;
   void reserveTempImgBuffer(size_t size);
+  // Compresses the image into temp_img_buffer, which may be reallocated. Returns the compressed length, 0 on failure.
+  size_t zipImageToTempBuffer(const Image &image);
 
  public:
   StreamBase():

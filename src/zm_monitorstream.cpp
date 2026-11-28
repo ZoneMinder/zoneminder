@@ -464,9 +464,12 @@ bool MonitorStream::sendFrame(Image *image, SystemTimePoint timestamp) {
     case STREAM_ZIP :
 #if HAVE_ZLIB_H
       fputs("Content-Type: image/x-rgbz\r\n", stdout);
-      unsigned long zip_buffer_size;
-      send_image->Zip(img_buffer, &zip_buffer_size);
-      img_buffer_size = zip_buffer_size;
+      img_buffer_size = zipImageToTempBuffer(*send_image);
+      img_buffer = temp_img_buffer;
+      if (!img_buffer_size) {
+        Error("Unable to compress the image");
+        return false;
+      }
 #else
       Error("zlib is required for zipped images. Falling back to raw image");
       type = STREAM_RAW;

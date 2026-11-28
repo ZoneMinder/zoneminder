@@ -36,6 +36,8 @@
 #include <sys/un.h>
 #include <thread>
 #include <unistd.h>
+#include <vector>
+#include <zlib.h>
 
 #include <cstdlib>
 #include <string>
@@ -54,6 +56,8 @@ class TestStream : public StreamBase {
   Image *prepare(Image *image, int pre_scaled_by = 0) {
     return prepareImage(image, pre_scaled_by);
   }
+  size_t zip(const Image &image) { return zipImageToTempBuffer(image); }
+  const uint8_t *tempBuffer() const { return temp_img_buffer; }
   int preScale(int base_width, int base_height, int &width, int &height) {
     return preScaleDimensions(base_width, base_height, width, height);
   }
@@ -226,6 +230,28 @@ TEST_CASE("StreamBase comms are named after the stream's owner") {
   }
   rmdir(dir.c_str());
 }
+
+#if HAVE_ZLIB_H
+TEST_CASE("StreamBase zips an image that does not compress into a large enough buffer") {
+  // A random picture is larger once compressed than raw, so a buffer of Size() bytes is too small.
+  if (!config.font_file_location) config.font_file_location = "";
+  Image image(64, 64, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+  unsigned int seed = 12345;
+  for (unsigned int i = 0; i < image.Size(); i++) {
+    seed = seed * 1103515245u + 12345u;
+    image.Buffer()[i] = static_cast<uint8_t>(seed >> 16);
+  }
+  TestStream stream;
+  size_t zipped = stream.zip(image);
+  REQUIRE(zipped > 0);
+  REQUIRE(zipped <= compressBound(image.Size()));
+  std::vector<uint8_t> out(image.Size());
+  uLongf out_len = out.size();
+  REQUIRE(uncompress(out.data(), &out_len, stream.tempBuffer(), zipped) == Z_OK);
+  REQUIRE(out_len == image.Size());
+  REQUIRE(std::memcmp(out.data(), image.Buffer(), image.Size()) == 0);
+}
+#endif
 
 TEST_CASE("StreamBase::prepareImage pre-scaled frames") {
   // zms used to colour convert an mp4 frame to full size RGBA and then scale

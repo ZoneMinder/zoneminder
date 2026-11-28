@@ -561,6 +561,18 @@ void StreamBase::closeComms() {
   }
 } // end void StreamBase::closeComms
 
+size_t StreamBase::zipImageToTempBuffer(const Image &image) {
+#if HAVE_ZLIB_H
+  // compress2 writes up to compressBound() bytes, which is more than the image when it does not compress.
+  unsigned long zip_buffer_size = compressBound(image.Size());
+  reserveTempImgBuffer(zip_buffer_size);
+  if (!image.Zip(temp_img_buffer, &zip_buffer_size)) return 0;
+  return zip_buffer_size;
+#else
+  return 0;
+#endif // HAVE_ZLIB_H
+}
+
 void StreamBase::reserveTempImgBuffer(size_t size) {
   if (temp_img_buffer_size < size) {
     Debug(1, "Resizing image buffer from %zu to %zu", temp_img_buffer_size, size);

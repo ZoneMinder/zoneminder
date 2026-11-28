@@ -21,6 +21,7 @@
 
 #include "zm_camera.h"
 #include "zm_db.h"
+#include "zm_detector.h"
 #include "zm_event_tag.h"
 #include "zm_frame.h"
 #include "zm_logger.h"
@@ -529,47 +530,31 @@ void Event::AddPacket_(const std::shared_ptr<ZMPacket>packet) {
   if ((packet->codec_type == AVMEDIA_TYPE_VIDEO) or packet->image) {
     AddFrame(packet);
   }
-#if HAS_NLOHMANN_JSON
-  if (packet->detections.size()) {
+#if ZM_HAS_NLOHMANN_JSON
+  if (!packet->detections.empty()) {
     std::string sql = stringtf("INSERT INTO Event_Data (EventId,MonitorId,FrameId,Timestamp,Data) VALUES (%" PRId64 ", %d, %d, NOW(), '%s')", id, monitor->Id(), frames.load(), zmDbEscapeString(packet->detections.dump()).c_str());
     dbQueue.push(std::move(sql));
 
-    for (auto it = packet->detections.begin(); it != packet->detections.end(); ++it) {
-      auto detection = *it;
-      Debug(1, "detection %s", detection.dump().c_str());
-      std::string cls = detection["class"];
-      Tag *tag = nullptr;
-      auto tag_it = tags.find(cls);
-      if (tag_it == tags.end()) {
-        Debug(1, "Tag not found %s", cls.c_str());
-        tag = Tag::find(cls);
-        if (!tag) {
-          tag = new Tag();
-          tag->Name(cls);
-          tag->save();
-          Debug(1, "Created new Tag %s", cls.c_str());
-          tags.emplace(std::make_pair(cls, *tag));
-          uint64_t tag_id = tag->Id();
-          delete tag;  // Delete after copying into map
-          tag = nullptr;
-
-          if (tag_id) {
-            // Store
-            Event_Tag event_tag(tag_id, id, packet->timestamp);
-            event_tag.save();
-          }
-        } else {
-          Debug(1, "Found tag for %s", cls.c_str());
-        }
-
-      } else {
-        Debug(1, "Already have tag %s", cls.c_str());
-        tag = &(tag_it->second);
+    // Tag the event once with each detected class, creating the tag the
+    // first time any event sees that class.
+    for (const std::string &label : zm::ai::DetectionLabels(packet->detections)) {
+      if (tags.find(label) != tags.end()) continue;
+      std::unique_ptr<Tag> tag(Tag::find(label));
+      if (!tag) {
+        tag = std::make_unique<Tag>();
+        tag->Name(label);
+        tag->save();
+        Debug(1, "Created new Tag %s", label.c_str());
       }
-    }  // end foreach detection
-  } else {
-    Debug(3, "Detections is empty.");
-  } // end if detections
+      if (!tag->Id()) {
+        Warning("Could not save tag %s for event %" PRIu64, label.c_str(), id);
+        continue;
+      }
+      Event_Tag event_tag(tag->Id(), id, packet->timestamp);
+      event_tag.save();
+      tags.emplace(label, *tag);
+    }
+  }
 #endif
 
   end_time = packet->timestamp;

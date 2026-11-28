@@ -843,6 +843,77 @@ TEST_CASE("Image::Blend YUV420P blends only luma", "[image]") {
     }
 }
 
+// DrawBox outlines a detection in every format a monitor's image can be in.
+// Coordinates come from inference, so they can be inverted or off the image.
+TEST_CASE("Image::DrawBox outlines a box in each pixel format", "[image]") {
+  const int w = 16, h = 12;
+
+  SECTION("RGB24") {
+    Image image(w, h, ZM_COLOUR_RGB24, ZM_SUBPIX_ORDER_RGB);
+    image.Clear();
+    image.DrawBox(2, 3, 9, 7, kRGBRed);
+    const uint8_t *edge = image.Buffer(2, 5);
+    CHECK(edge[0] == 0xff);  // R
+    CHECK(edge[1] == 0);
+    CHECK(edge[2] == 0);
+    CHECK(image.Buffer(9, 3)[0] == 0xff);  // top right corner
+    CHECK(image.Buffer(5, 7)[0] == 0xff);  // bottom edge
+    CHECK(image.Buffer(5, 5)[0] == 0);     // inside stays clear
+    CHECK(image.Buffer(10, 5)[0] == 0);    // outside stays clear
+  }
+
+  SECTION("RGB32") {
+    Image image(w, h, ZM_COLOUR_RGB32, ZM_SUBPIX_ORDER_RGBA);
+    image.Clear();
+    image.DrawBox(2, 3, 9, 7, kRGBBlue);
+    const uint8_t *edge = image.Buffer(9, 5);
+    CHECK(edge[0] == 0);
+    CHECK(edge[2] == 0xff);  // B
+    CHECK(image.Buffer(5, 5)[2] == 0);
+  }
+
+  SECTION("GRAY8 takes the colour's brightness") {
+    Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    image.Clear();
+    image.DrawBox(2, 3, 9, 7, kRGBWhite);
+    CHECK(*image.Buffer(2, 3) == 0xff);
+    CHECK(*image.Buffer(5, 5) == 0);
+  }
+
+  SECTION("YUV420P colours luma and chroma") {
+    Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_YUV420P);
+    Planes p = plane_view(image, AV_PIX_FMT_YUV420P, w, h);
+    for (int y = 0; y < h; y++) memset(p.data[0] + y * p.stride[0], 16, w);
+    for (int y = 0; y < h / 2; y++) {
+      memset(p.data[1] + y * p.stride[1], 128, w / 2);
+      memset(p.data[2] + y * p.stride[2], 128, w / 2);
+    }
+    image.DrawBox(2, 2, 9, 7, kRGBRed);
+    CHECK(p.data[0][2 * p.stride[0] + 5] != 16);   // top edge luma
+    CHECK(p.data[2][1 * p.stride[2] + 2] > 128);   // red pushes V up
+    CHECK(p.data[0][5 * p.stride[0] + 5] == 16);   // inside untouched
+    CHECK(p.data[2][2 * p.stride[2] + 3] == 128);
+  }
+
+  SECTION("thickness grows the outline inwards") {
+    Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    image.Clear();
+    image.DrawBox(2, 2, 12, 10, kRGBWhite, 2);
+    CHECK(*image.Buffer(3, 6) == 0xff);
+    CHECK(*image.Buffer(4, 6) == 0);
+  }
+
+  SECTION("an inverted or off-image box is normalised and clamped") {
+    Image image(w, h, ZM_COLOUR_GRAY8, ZM_SUBPIX_ORDER_NONE);
+    image.Clear();
+    image.DrawBox(40, 30, -5, 4, kRGBWhite);
+    CHECK(*image.Buffer(0, 6) == 0xff);       // left edge clamped to 0
+    CHECK(*image.Buffer(w - 1, 6) == 0xff);   // right edge clamped to width-1
+    CHECK(*image.Buffer(6, 4) == 0xff);       // top edge
+    CHECK(*image.Buffer(6, 8) == 0);
+  }
+}
+
 // A fill box that reaches past the image is cut to the image. It used to write past the end of
 // the row, which with no row padding lands on the start of the next row.
 TEST_CASE("Image::Fill with a box past the right edge stays inside the image", "[image]") {

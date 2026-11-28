@@ -110,6 +110,7 @@ std::string load_monitor_sql =
 #endif
   ", `StartupDelay`"
   ", `AudioDetection`, `AudioThreshold`, `AudioAlarmScore`, `DeviceClass`, `Go2RTCDisableBackChannel`"
+  ", `ObjectDetection`, `ObjectDetectionModel`, `ObjectDetectionObjectThreshold`, `ObjectDetectionNMSThreshold`"
   " FROM `Monitors`";
 
 // Indexed by Monitor::CameraType, which starts at 1, so entry 0 covers the
@@ -760,6 +761,23 @@ void Monitor::Load(MYSQL_ROW dbrow, bool load_zones=true, Purpose p = QUERY) {
   Go2RTC_disable_backchannel = dbrow[col] && atoi(dbrow[col]);
   col++;
 
+  {
+    AIConfig ai;
+    ai.backend = (dbrow[col] and *dbrow[col]) ? dbrow[col] : "none";
+    col++;
+    ai.model = dbrow[col] ? dbrow[col] : "";
+    col++;
+    ai.object_threshold = std::clamp(dbrow[col] ? strtof(dbrow[col], nullptr) : 0.4f, 0.0f, 1.0f);
+    col++;
+    ai.nms_threshold = std::clamp(dbrow[col] ? strtof(dbrow[col], nullptr) : 0.25f, 0.0f, 1.0f);
+    col++;
+    if (ai.backend != "none" and purpose == CAPTURE)
+      ai.classes = LoadAIDetectionSettings(id);
+    std::lock_guard<std::mutex> lock(ai_config_mutex_);
+    ai_config_ = std::move(ai);
+    ai_config_changed_ = true;
+  }
+
   // How many frames we need to have before we start analysing.
   // Must account for the alarm frames because openEvent walks back
   // PreEventWalkBack() frames from the analysis point.
@@ -924,6 +942,135 @@ void Monitor::LoadCamera() {
     break;
   }
   }
+}
+
+zm::ai::ClassSettings Monitor::LoadAIDetectionSettings(unsigned int monitor_id) {
+  zm::ai::ClassSettings settings;
+  // Global rows (MonitorId NULL) first, so the monitor's own rows replace them.
+  std::string sql = stringtf(
+      "SELECT oc.ClassName, ds.Enabled, ds.ReportDetection, ds.ConfidenceThreshold, ds.BoxColor"
+      " FROM AI_Detection_Settings ds JOIN AI_Object_Classes oc ON ds.ObjectClassId = oc.Id"
+      " WHERE ds.MonitorId = %u OR ds.MonitorId IS NULL"
+      " ORDER BY ds.MonitorId IS NOT NULL", monitor_id);
+  MYSQL_RES *result = zmDbFetch(sql);
+  if (!result) {
+    Warning("Could not read AI_Detection_Settings for monitor %u; detecting every class", monitor_id);
+    return settings;
+  }
+  while (MYSQL_ROW row = mysql_fetch_row(result)) {
+    if (!row[0]) continue;
+    zm::ai::ClassSetting setting;
+    setting.enabled = !row[1] or atoi(row[1]);
+    setting.report = !row[2] or atoi(row[2]);
+    setting.confidence_threshold = row[3] ? atoi(row[3]) : 50;
+    setting.box_color = zm::ai::ParseBoxColor(row[4] ? row[4] : "");
+    settings[row[0]] = setting;
+  }
+  mysql_free_result(result);
+  Debug(1, "Loaded %zu AI detection class settings for monitor %u", settings.size(), monitor_id);
+  return settings;
+}
+
+int Monitor::DetectObjects(const std::shared_ptr<ZMPacket> &packet, std::string &cause,
+                           Event::StringSetMap &noteSetMap) {
+  if (ai_config_changed_.exchange(false)) {
+    std::lock_guard<std::mutex> lock(ai_config_mutex_);
+    ai_active_ = ai_config_;
+    detector_.reset();
+    detector_retry_at_ = {};
+    last_detections_.clear();
+    last_detections_frames_ = 0;
+  }
+  if (ai_active_.backend == "none") return 0;
+
+  const SystemTimePoint now = std::chrono::system_clock::now();
+  if (!detector_) {
+    if (now < detector_retry_at_) return 0;
+    // Retry a backend that is missing or fails to set up, but not every frame.
+    detector_retry_at_ = now + Seconds(30);
+    detector_ = zm::ai::MakeDetector(ai_active_.backend);
+    if (!detector_) {
+      Error("Monitor %u: object detection backend '%s' is not available in this build (available: %s)",
+            id, ai_active_.backend.c_str(), Join(zm::ai::DetectorNames(), ", ").c_str());
+      return 0;
+    }
+    zm::ai::DetectorConfig config;
+    config.monitor_id = id;
+    config.model = ai_active_.model;
+    config.object_threshold = ai_active_.object_threshold;
+    config.nms_threshold = ai_active_.nms_threshold;
+    config.width = Width();
+    config.height = Height();
+    if (!detector_->Setup(config)) {
+      detector_.reset();
+      return 0;
+    }
+    Info("Monitor %u: object detection with the %s backend", id, detector_->Name());
+  }
+
+  // While inference has fallen behind real time, give frames away until it
+  // catches up rather than falling further behind.
+  const double lag = FPSeconds(now - packet->timestamp).count();
+  const bool was_behind = ai_behind_;
+  ai_behind_ = zm::ai::InferenceBehind(ai_behind_, lag);
+  if (ai_behind_ != was_behind) {
+    Debug(1, "Monitor %u: object detection %s (%.2fs behind)", id,
+          ai_behind_ ? "skipping frames to catch up" : "caught up", lag);
+  }
+
+  std::vector<zm::ai::Detection> fresh;
+  bool have_fresh = false;
+  if (!ai_behind_ and !(analysis_image_count % (motion_frame_skip + 1))) {
+    switch (detector_->Detect(*packet, fresh)) {
+      case zm::ai::DetectStatus::Done:
+        have_fresh = true;
+        fresh = zm::ai::FilterDetections(fresh, ai_active_.classes, ai_active_.object_threshold);
+        // Every completed inference replaces what is redrawn, including one
+        // that finds nothing; keeping the old boxes would show an object that
+        // has left the scene.
+        last_detections_ = fresh;
+        last_detections_frames_ = motion_frame_skip;
+        break;
+      case zm::ai::DetectStatus::Pending:
+        break;
+      case zm::ai::DetectStatus::Failed:
+        Warning("Monitor %u: object detection backend %s failed; setting it up again in 30s",
+                id, detector_->Name());
+        detector_.reset();
+        last_detections_.clear();
+        last_detections_frames_ = 0;
+        return 0;
+    }
+  }
+
+  const std::vector<zm::ai::Detection> *draw = nullptr;
+  if (have_fresh) {
+    draw = &fresh;
+  } else if (last_detections_frames_ > 0) {
+    last_detections_frames_--;
+    draw = &last_detections_;
+  }
+  if (draw and !draw->empty() and packet->image) {
+    if (!detector_->Annotate(*packet, *draw)) {
+      if (!packet->analysis_image) packet->analysis_image = new Image(*packet->image);
+      zm::ai::DrawDetections(*packet->analysis_image, *draw, ai_active_.classes, LabelSize());
+    }
+  }
+
+  if (!have_fresh or fresh.empty()) return 0;
+#if ZM_HAS_NLOHMANN_JSON
+  packet->detections = zm::ai::DetectionsToJson(fresh, packet->pts);
+#endif
+  const int ai_score = zm::ai::AlarmScore(fresh, ai_active_.classes);
+  if (ai_score) {
+    const std::vector<std::string> labels = zm::ai::ReportedLabels(fresh, ai_active_.classes);
+    if (!cause.empty()) cause += ", ";
+    cause += OBJECT_CAUSE;
+    cause += ':';
+    cause += Join(labels, ", ");
+    noteSetMap[OBJECT_CAUSE].insert(labels.begin(), labels.end());
+  }
+  return ai_score;
 }
 
 std::shared_ptr<Monitor> Monitor::Load(unsigned int p_id, bool load_zones, Purpose purpose) {
@@ -2537,6 +2684,8 @@ bool Monitor::Analyse() {
                   Debug(1, "Skipped motion detection last motion score was %d", last_motion_score);
                   //score += last_motion_score;
                 }
+
+                score += DetectObjects(packet, cause, noteSetMap);
 
                 if (hasAnalysisViewers()) {
                   // These extra copies are expensive, so only do it if we have viewers.

@@ -27,6 +27,8 @@
 #include <libavutil/pixdesc.h>
 
 #include <algorithm>
+#include <cmath>
+#include <functional>
 #include <fcntl.h>
 #include <mutex>
 #include <sys/stat.h>
@@ -3362,6 +3364,84 @@ void Image::Fill( Rgb colour, int density, const Box *limits ) {
           /* Fast, copies the entire pixel in a single pass */
           *p = colour;
       }
+    }
+  }
+}
+
+void Image::DrawBox(int x1, int y1, int x2, int y2, Rgb colour, unsigned int thickness) {
+  if (!buffer or !width or !height or !thickness) return;
+  if (x2 < x1) std::swap(x1, x2);
+  if (y2 < y1) std::swap(y1, y2);
+  if (x2 < 0 or y2 < 0 or x1 >= static_cast<int>(width) or y1 >= static_cast<int>(height)) return;
+  x1 = std::max(x1, 0);
+  y1 = std::max(y1, 0);
+  x2 = std::min(x2, static_cast<int>(width) - 1);
+  y2 = std::min(y2, static_cast<int>(height) - 1);
+
+  const uint8_t r = RED_VAL_RGBA(colour);
+  const uint8_t g = GREEN_VAL_RGBA(colour);
+  const uint8_t b = BLUE_VAL_RGBA(colour);
+
+  const bool planar_420 = zm_is_yuv420(imagePixFormat);
+  const bool planar_422 = (imagePixFormat == AV_PIX_FMT_YUV422P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+  std::function<void(int, int)> plot;
+
+  uint8_t *planes[4] = {nullptr, nullptr, nullptr, nullptr};
+  int strides[4] = {0, 0, 0, 0};
+  if (planar_420 or planar_422) {
+    if (av_image_fill_arrays(planes, strides, buffer, imagePixFormat, width, height, 32) < 0
+        or !planes[1] or !planes[2]) {
+      Warning("DrawBox: av_image_fill_arrays failed for %s", av_get_pix_fmt_name(imagePixFormat));
+      return;
+    }
+    const bool full_range = (imagePixFormat == AV_PIX_FMT_YUVJ420P || imagePixFormat == AV_PIX_FMT_YUVJ422P);
+    const uint8_t y_val = rgb_to_luma(r, g, b, full_range);
+    uint8_t u_val, v_val;
+    if (full_range) {
+      u_val = static_cast<uint8_t>(std::lround(128 - 0.168736 * r - 0.331264 * g + 0.5 * b));
+      v_val = static_cast<uint8_t>(std::lround(128 + 0.5 * r - 0.418688 * g - 0.081312 * b));
+    } else {
+      const YUV yuv = brg_to_yuv(colour);
+      u_val = U_VAL(yuv);
+      v_val = V_VAL(yuv);
+    }
+    const int v_shift = planar_420 ? 1 : 0;
+    plot = [&, y_val, u_val, v_val, v_shift](int x, int y) {
+      planes[0][y * strides[0] + x] = y_val;
+      planes[1][(y >> v_shift) * strides[1] + (x >> 1)] = u_val;
+      planes[2][(y >> v_shift) * strides[2] + (x >> 1)] = v_val;
+    };
+  } else if (zm_is_rgb24(imagePixFormat)) {
+    const bool bgr = (subpixelorder == ZM_SUBPIX_ORDER_BGR);
+    plot = [&, bgr](int x, int y) {
+      uint8_t *p = &buffer[y * linesize + x * 3];
+      p[0] = bgr ? b : r;
+      p[1] = g;
+      p[2] = bgr ? r : b;
+    };
+  } else if (zm_is_rgb32(imagePixFormat)) {
+    const Rgb converted = rgb_convert(colour, subpixelorder);
+    plot = [&, converted](int x, int y) {
+      *reinterpret_cast<Rgb *>(&buffer[y * linesize + (x << 2)]) = converted;
+    };
+  } else if (zm_bytes_per_pixel(imagePixFormat) == 1) {
+    const uint8_t luma = rgb_to_luma(r, g, b, true);
+    plot = [&, luma](int x, int y) { buffer[y * linesize + x] = luma; };
+  } else {
+    Warning("DrawBox: unsupported pixel format %s", av_get_pix_fmt_name(imagePixFormat));
+    return;
+  }
+
+  for (unsigned int ring = 0; ring < thickness; ring++) {
+    const int lx = x1 + ring, ly = y1 + ring, hx = x2 - ring, hy = y2 - ring;
+    if (hx < lx or hy < ly) break;
+    for (int x = lx; x <= hx; x++) {
+      plot(x, ly);
+      plot(x, hy);
+    }
+    for (int y = ly; y <= hy; y++) {
+      plot(lx, y);
+      plot(hx, y);
     }
   }
 }

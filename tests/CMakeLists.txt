@@ -31,6 +31,7 @@ set(TEST_SOURCES
   zm_fifo_stream.cpp
   zm_font.cpp
   zm_hwaccel_candidates.cpp
+  zm_detector.cpp
   zm_image.cpp
   zm_image_annotate.cpp
   zm_image_overlay_rotate.cpp
@@ -56,8 +57,10 @@ set(TEST_SOURCES
   zm_mp4_sidx.cpp
   zm_mpeg_raw_packet.cpp
   zm_packetqueue.cpp
+  zm_packet.cpp
   zm_packet_lock.cpp
   zm_packet_y_image.cpp
+  zm_monitor.cpp
   zm_monitor_action.cpp
   zm_monitor_type_label.cpp
   zm_monitor_nozones_warn.cpp

@@ -18,6 +18,10 @@
 #include "zm_catch2.h"
 
 #ifdef WITH_GSOAP
+// Standard headers first: with GCC 15, std::any seen under the access hack
+// below redeclares its managers with different access and fails to compile.
+#include <any>
+
 #define private public
 #define protected public
 #include "zm_monitor_onvif.h"

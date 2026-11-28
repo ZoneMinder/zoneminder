@@ -1207,6 +1207,35 @@ echo htmlSelect('newMonitor[Decoder]', $decoders, $monitor->Decoder());
               <label><?php echo translate('use_Amcrest_API') ?></label>
               <?php echo html_radio('newMonitor[use_Amcrest_API]', array('1'=>translate('Enabled'), '0'=>translate('Disabled')), $monitor->use_Amcrest_API()); ?>
             </li>
+            <li class="settingsGroup"><?php echo translate('ObjectDetection') ?></li>
+            <li class="ObjectDetection">
+              <label><?php echo translate('ObjectDetection') ?></label>
+<?php
+      $od_options = array('none' => translate('None'));
+      foreach (array_filter(explode(',', defined('ZM_OBJECT_DETECTORS') ? ZM_OBJECT_DETECTORS : '')) as $backend)
+        $od_options[$backend] = $backend;
+      // Keep a configured backend selectable even when this build lacks it.
+      if (!isset($od_options[$monitor->ObjectDetection()]))
+        $od_options[$monitor->ObjectDetection()] = $monitor->ObjectDetection();
+      echo htmlSelect('newMonitor[ObjectDetection]', $od_options, $monitor->ObjectDetection());
+?>
+              <div class="form-text"><?php echo translate('ObjectDetectionHelp') ?></div>
+            </li>
+            <li class="ObjectDetectionModel">
+              <label><?php echo translate('ObjectDetectionModel') ?></label>
+              <input type="text" name="newMonitor[ObjectDetectionModel]" value="<?php echo validHtmlStr($monitor->ObjectDetectionModel()) ?>" maxlength="255"/>
+              <div class="form-text"><?php echo translate('ObjectDetectionModelHelp') ?></div>
+            </li>
+            <li class="ObjectDetectionObjectThreshold">
+              <label><?php echo translate('ObjectDetectionObjectThreshold') ?></label>
+              <input type="number" name="newMonitor[ObjectDetectionObjectThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionObjectThreshold()) ?>" min="0" max="1" step="0.01"/>
+              <div class="form-text"><?php echo translate('ObjectDetectionObjectThresholdHelp') ?></div>
+            </li>
+            <li class="ObjectDetectionNMSThreshold">
+              <label><?php echo translate('ObjectDetectionNMSThreshold') ?></label>
+              <input type="number" name="newMonitor[ObjectDetectionNMSThreshold]" value="<?php echo validHtmlStr($monitor->ObjectDetectionNMSThreshold()) ?>" min="0" max="1" step="0.01"/>
+              <div class="form-text"><?php echo translate('ObjectDetectionNMSThresholdHelp') ?></div>
+            </li>
 <?php
     }
     break;

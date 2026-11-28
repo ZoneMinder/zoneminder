@@ -32,6 +32,7 @@ define( 'ZM_DIR_CACHE', '@ZM_CACHEDIR@' );
 // If setup supports Video 4 Linux v2
 //
 define('ZM_HAS_V4L2', '@ZM_HAS_V4L2@');               // V4L2 support enabled
+define('ZM_OBJECT_DETECTORS', '@ZM_OBJECT_DETECTORS_CSV@'); // Object detection backends compiled into zmc, comma separated
 
 //
 // If ONVIF support has been built in

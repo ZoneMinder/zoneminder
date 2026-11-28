@@ -22,6 +22,7 @@
 
 #include "zm_define.h"
 #include "zm_camera.h"
+#include "zm_detector.h"
 #include "zm_analysis_thread.h"
 #include "zm_poll_thread.h"
 #include "zm_decoder_thread.h"
@@ -36,6 +37,7 @@
 #include "zm_zone.h"
 
 #include <atomic>
+#include <mutex>
 #include <functional>
 #include <list>
 #include <map>
@@ -63,6 +65,7 @@ class StreamSocket;
 #define SIGNAL_CAUSE "Signal"
 #define MOTION_CAUSE "Motion"
 #define AUDIO_CAUSE "Audio"
+#define OBJECT_CAUSE "Object"
 #define LINKED_CAUSE "Linked"
 
 
@@ -633,6 +636,30 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   StreamChannelOption stream_channel;      // Which stream source to use: Restream, CameraDirectPrimary, or CameraDirectSecondary
   bool            Go2RTC_enabled;     // Whether we set the h264/h265 stream up on Go2RTC
   bool            Go2RTC_disable_backchannel;
+
+  // Object detection (ObjectDetection* columns and AI_Detection_Settings).
+  // Load() may run on another thread than analysis, so it writes ai_config_
+  // under ai_config_mutex_ and sets ai_config_changed_; the analysis thread
+  // then takes its own copy in ai_active_ and rebuilds the detector.
+  struct AIConfig {
+    std::string backend = "none";
+    std::string model;
+    float object_threshold = 0.4f;
+    float nms_threshold = 0.25f;
+    zm::ai::ClassSettings classes;
+  };
+  std::mutex ai_config_mutex_;
+  AIConfig ai_config_;
+  std::atomic<bool> ai_config_changed_{false};
+  // Used only by the analysis thread.
+  AIConfig ai_active_;
+  std::unique_ptr<zm::ai::Detector> detector_;
+  SystemTimePoint detector_retry_at_;
+  bool ai_behind_ = false;
+  // Redrawn on the frames between inferences, so boxes don't flicker. Replaced
+  // by every completed inference, including one that finds nothing.
+  std::vector<zm::ai::Detection> last_detections_;
+  int last_detections_frames_ = 0;
   bool            janus_enabled;      // Whether we set the h264/h265 stream up on janus
   bool            janus_audio_enabled;      // Whether we tell Janus to try to include audio.
   std::string     janus_profile_override;   // The Profile-ID to force the stream to use.
@@ -1285,6 +1312,15 @@ class Monitor : public std::enable_shared_from_this<Monitor> {
   void CheckAction();
 
   unsigned int DetectMotion( const Image &comp_image, Event::StringSet &zoneSet );
+  // Runs object detection on the packet when it is due, draws and records the
+  // detections, and returns the alarm score they add (0 when none reports).
+  // Appends to cause and noteSetMap for reported classes.
+  int DetectObjects(const std::shared_ptr<ZMPacket> &packet, std::string &cause,
+                    Event::StringSetMap &noteSetMap);
+  // AI_Detection_Settings for this monitor, global rows overridden by the
+  // monitor's own.
+  static zm::ai::ClassSettings LoadAIDetectionSettings(unsigned int monitor_id);
+  std::string ObjectDetection() { std::lock_guard<std::mutex> lock(ai_config_mutex_); return ai_config_.backend; }
   unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet );
   unsigned int AnalyseFrame( const Image &frame_image, Event::StringSet &zoneSet, Image *analysis_image );
   // DetectBlack seems to be unused. Check it on zm_monitor.cpp for more info.

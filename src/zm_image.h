@@ -293,6 +293,11 @@ class Image {
   void Fill( Rgb colour, const Box *limits=0 );
   void Fill( Rgb colour, int density, const Box *limits=0 );
   void Outline( Rgb colour, const Polygon &polygon );
+  // Outlines the box from (x1,y1) to (x2,y2), corners included, in colour.
+  // thickness rings are drawn, growing inwards. The corners may come in either
+  // order and may lie off the image: the box is normalised and clamped. Works
+  // for GRAY8, RGB24, RGB32 and planar YUV 4:2:0 / 4:2:2.
+  void DrawBox(int x1, int y1, int x2, int y2, Rgb colour, unsigned int thickness = 1);
   void Fill(Rgb colour, const Polygon &polygon) { Fill(colour, 1, polygon); };
   void Fill(Rgb colour, int density, const Polygon &polygon);
 

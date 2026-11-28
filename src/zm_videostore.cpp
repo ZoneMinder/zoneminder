@@ -37,6 +37,167 @@ extern "C" {
 #include <string>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <cstdio>
+#include <vector>
+
+namespace {
+
+uint32_t read_be32(const uint8_t *p) {
+  return (static_cast<uint32_t>(p[0]) << 24) |
+         (static_cast<uint32_t>(p[1]) << 16) |
+         (static_cast<uint32_t>(p[2]) << 8)  |
+         static_cast<uint32_t>(p[3]);
+}
+
+uint64_t read_be64(const uint8_t *p) {
+  return (static_cast<uint64_t>(read_be32(p)) << 32) |
+         static_cast<uint64_t>(read_be32(p + 4));
+}
+
+bool read_box_header(FILE *fp, int64_t limit, int64_t &box_start, uint32_t &box_type, int64_t &box_size, int64_t &header_size) {
+  box_start = ftello(fp);
+  if (box_start < 0 || box_start + 8 > limit) return false;
+  uint8_t hdr[16];
+  if (fread(hdr, 1, 8, fp) != 8) return false;
+  uint32_t sz32 = read_be32(hdr);
+  box_type = read_be32(hdr + 4);
+  if (sz32 == 1) {
+    if (box_start + 16 > limit || fread(hdr + 8, 1, 8, fp) != 8) return false;
+    box_size = static_cast<int64_t>(read_be64(hdr + 8));
+    header_size = 16;
+  } else if (sz32 == 0) {
+    box_size = limit - box_start;
+    header_size = 8;
+  } else {
+    box_size = sz32;
+    header_size = 8;
+  }
+  return (box_size >= header_size && box_start + box_size <= limit);
+}
+
+// Extract video track_ID and timescale from moov
+bool parse_moov_video_info(FILE *fp, int64_t moov_data_start, int64_t moov_end, uint32_t &video_track_id, uint32_t &video_timescale) {
+  video_track_id = 0;
+  video_timescale = 0;
+  fseeko(fp, moov_data_start, SEEK_SET);
+  int64_t start, size, hdr;
+  uint32_t type;
+  while (read_box_header(fp, moov_end, start, type, size, hdr)) {
+    if (type == 0x7472616b) { // 'trak'
+      uint32_t tid = 0, ts = 0;
+      bool is_video = false;
+      int64_t t_start, t_size, t_hdr;
+      uint32_t t_type;
+      fseeko(fp, start + hdr, SEEK_SET);
+      while (read_box_header(fp, start + size, t_start, t_type, t_size, t_hdr)) {
+        if (t_type == 0x746b6864) { // 'tkhd'
+          uint8_t buf[24];
+          if (fread(buf, 1, 24, fp) == 24) {
+            tid = (buf[0] == 1) ? read_be32(buf + 20) : read_be32(buf + 12);
+          }
+        } else if (t_type == 0x6d646961) { // 'mdia'
+          int64_t m_start, m_size, m_hdr;
+          uint32_t m_type;
+          fseeko(fp, t_start + t_hdr, SEEK_SET);
+          while (read_box_header(fp, t_start + t_size, m_start, m_type, m_size, m_hdr)) {
+            if (m_type == 0x6d646864) { // 'mdhd'
+              uint8_t buf[24];
+              if (fread(buf, 1, 24, fp) == 24) {
+                ts = (buf[0] == 1) ? read_be32(buf + 20) : read_be32(buf + 12);
+              }
+            } else if (m_type == 0x68646c72) { // 'hdlr'
+              uint8_t buf[12];
+              if (fread(buf, 1, 12, fp) == 12 && read_be32(buf + 8) == 0x76696465) { // 'vide'
+                is_video = true;
+              }
+            }
+            fseeko(fp, m_start + m_size, SEEK_SET);
+          }
+        }
+        fseeko(fp, t_start + t_size, SEEK_SET);
+      }
+      if (is_video && tid > 0 && ts > 0) {
+        video_track_id = tid;
+        video_timescale = ts;
+        return true;
+      }
+    }
+    fseeko(fp, start + size, SEEK_SET);
+  }
+  return false;
+}
+
+// Sum video sample durations in ticks inside a single moof box
+uint64_t parse_moof_video_duration(FILE *fp, int64_t moof_data_start, int64_t moof_end, uint32_t video_track_id) {
+  uint64_t duration_ticks = 0;
+  fseeko(fp, moof_data_start, SEEK_SET);
+  int64_t start, size, hdr;
+  uint32_t type;
+  while (read_box_header(fp, moof_end, start, type, size, hdr)) {
+    if (type == 0x74726166) { // 'traf'
+      uint32_t track_id = 0;
+      uint32_t default_sample_duration = 0;
+      uint64_t traf_ticks = 0;
+      int64_t f_start, f_size, f_hdr;
+      uint32_t f_type;
+      fseeko(fp, start + hdr, SEEK_SET);
+      while (read_box_header(fp, start + size, f_start, f_type, f_size, f_hdr)) {
+        if (f_type == 0x74666864) { // 'tfhd'
+          int64_t payload = f_size - f_hdr;
+          if (payload >= 8) {
+            std::vector<uint8_t> buf(payload);
+            if (fread(buf.data(), 1, payload, fp) == static_cast<size_t>(payload)) {
+              uint32_t flags = read_be32(buf.data()) & 0x00FFFFFF;
+              track_id = read_be32(buf.data() + 4);
+              size_t pos = 8;
+              if (flags & 0x000001) pos += 8; // base-data-offset
+              if (flags & 0x000002) pos += 4; // sample-description-index
+              if ((flags & 0x000008) && pos + 4 <= buf.size()) {
+                default_sample_duration = read_be32(buf.data() + pos);
+              }
+            }
+          }
+        } else if (f_type == 0x7472756e) { // 'trun'
+          int64_t payload = f_size - f_hdr;
+          if (payload >= 8) {
+            std::vector<uint8_t> buf(payload);
+            if (fread(buf.data(), 1, payload, fp) == static_cast<size_t>(payload)) {
+              uint32_t flags = read_be32(buf.data()) & 0x00FFFFFF;
+              uint32_t sample_count = read_be32(buf.data() + 4);
+              size_t pos = 8;
+              if (flags & 0x000001) pos += 4; // data-offset
+              if (flags & 0x000004) pos += 4; // first-sample-flags
+              bool has_dur  = (flags & 0x000100) != 0;
+              bool has_size = (flags & 0x000200) != 0;
+              bool has_flg  = (flags & 0x000400) != 0;
+              bool has_cto  = (flags & 0x000800) != 0;
+              for (uint32_t i = 0; i < sample_count; ++i) {
+                if (has_dur) {
+                  if (pos + 4 > buf.size()) break;
+                  traf_ticks += read_be32(buf.data() + pos);
+                  pos += 4;
+                } else {
+                  traf_ticks += default_sample_duration;
+                }
+                if (has_size) pos += 4;
+                if (has_flg)  pos += 4;
+                if (has_cto)  pos += 4;
+              }
+            }
+          }
+        }
+        fseeko(fp, f_start + f_size, SEEK_SET);
+      }
+      if (track_id == video_track_id) {
+        duration_ticks += traf_ticks;
+      }
+    }
+    fseeko(fp, start + size, SEEK_SET);
+  }
+  return duration_ticks;
+}
+
+} // namespace
 
 static bool option_number(const AVDictionaryEntry *entry, uint64_t &out) {
   if (zm_parse_option_number(entry->value, out)) return true;
@@ -1873,6 +2034,59 @@ void VideoStore::finalize() {
     if (!zm_mp4::write_leading_sidx(filename, sidx_region_offset_, sidx_region_size_)) {
       Warning("Could not index %s; it will play, but a player must read it all "
               "before the first frame", filename.c_str());
+    }
+  }
+
+  // Rebuild HLS fragment table directly from on-disk MP4 moof/trun boxes
+  if (!filename.empty() && !fragments_.empty()) {
+    FILE *mp4_fp = fopen(filename.c_str(), "rb");
+    if (mp4_fp) {
+      fseeko(mp4_fp, 0, SEEK_END);
+      int64_t disk_size = ftello(mp4_fp);
+      fseeko(mp4_fp, 0, SEEK_SET);
+
+      uint32_t video_track_id = 0;
+      uint32_t video_timescale = 0;
+      std::vector<Fragment> exact_fragments;
+
+      int64_t box_start = 0, box_size = 0, hdr_size = 0;
+      uint32_t box_type = 0;
+      int64_t cur_moof_start = -1;
+      uint64_t cur_moof_ticks = 0;
+
+      while (read_box_header(mp4_fp, disk_size, box_start, box_type, box_size, hdr_size)) {
+        if (box_type == 0x6d6f6f76) { // 'moov'
+          parse_moov_video_info(mp4_fp, box_start + hdr_size, box_start + box_size, video_track_id, video_timescale);
+        } else if (box_type == 0x6d6f6f66) { // 'moof'
+          if (cur_moof_start >= 0 && video_timescale > 0 && cur_moof_ticks > 0) {
+            double dur = static_cast<double>(cur_moof_ticks) / video_timescale;
+            exact_fragments.push_back({cur_moof_start, box_start - cur_moof_start, dur});
+          }
+          cur_moof_start = box_start;
+          cur_moof_ticks = (video_track_id > 0)
+              ? parse_moof_video_duration(mp4_fp, box_start + hdr_size, box_start + box_size, video_track_id)
+              : 0;
+        } else if (box_type == 0x6d667261) { // 'mfra'
+          if (cur_moof_start >= 0 && video_timescale > 0 && cur_moof_ticks > 0) {
+            double dur = static_cast<double>(cur_moof_ticks) / video_timescale;
+            exact_fragments.push_back({cur_moof_start, box_start - cur_moof_start, dur});
+          }
+          cur_moof_start = -1;
+          break;
+        }
+        fseeko(mp4_fp, box_start + box_size, SEEK_SET);
+      }
+
+      if (cur_moof_start >= 0 && video_timescale > 0 && cur_moof_ticks > 0) {
+        double dur = static_cast<double>(cur_moof_ticks) / video_timescale;
+        exact_fragments.push_back({cur_moof_start, disk_size - cur_moof_start, dur});
+      }
+
+      fclose(mp4_fp);
+
+      if (!exact_fragments.empty()) {
+        fragments_ = std::move(exact_fragments);
+      }
     }
   }
 

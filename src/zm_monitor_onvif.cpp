@@ -484,6 +484,19 @@ void ONVIF::Subscribe() {
     }
   }
 
+  // A response without a SubscriptionReference Address leaves nothing to pull
+  // from, and a null char* cannot be assigned to a std::string.
+  if (!response.SubscriptionReference.Address || !response.SubscriptionReference.Address[0]) {
+    Error("ONVIF: Subscription response from %s has no address to pull from", event_endpoint_url_.c_str());
+    retry_count++;
+    soap_destroy(soap);
+    soap_end(soap);
+    soap_free(soap);
+    soap = nullptr;
+    setHealthy(false);
+    return;
+  }
+
   // Success handling - reached by either:
   // 1. First attempt succeeded (original rc == SOAP_OK)
   // 2. Plain auth retry succeeded (rc == SOAP_OK after retry)

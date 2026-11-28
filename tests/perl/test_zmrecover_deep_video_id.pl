@@ -29,9 +29,12 @@ sub write_file {
 my $dir = tempdir(CLEANUP => 1);
 make_path("$dir/lib/ZoneMinder", "$dir/run");
 # A Deep scheme event that lost its .<id> link: zmrecover can only read the id
-# from the video, which zmc names <id>-video.<codec>.mp4
-make_path("$dir/storage/1/26/11/01/10/00/00");
-write_file("$dir/storage/1/26/11/01/10/00/00/5-video.h264.mp4", '');
+# from the video, which zmc names <id>-video.<codec>.<container>
+my %videos = ('10/00/00' => '5-video.h264.mp4', '11/00/00' => '6-video.h264.mkv', '12/00/00' => '7-video.vp9.webm');
+for my $time (sort keys %videos) {
+  make_path("$dir/storage/1/26/11/01/$time");
+  write_file("$dir/storage/1/26/11/01/$time/$videos{$time}", '');
+}
 
 write_file("$dir/lib/ZoneMinder.pm", <<'EOM');
 package ZoneMinder;
@@ -78,7 +81,9 @@ $source =~ s/\@ZM_SCRIPT_PATH\@/\/usr\/bin:\/bin/g;
 write_file("$dir/zmrecover.pl", $source);
 
 my $out = qx(printf "n\\nn\\nn\\n" | $^X -T -I$dir/lib $dir/zmrecover.pl 2>&1);
-check('the event id is read from its video', $out =~ /looked up event 5\n/ ? 'found' : 'not found', 'found');
+for my $id (5, 6, 7) {
+  check("the event id $id is read from its video", $out =~ /looked up event $id\n/ ? 'found' : 'not found', 'found');
+}
 check('zmrecover exits cleanly', $? >> 8, 0);
 
 print "\n$passes passed, $failures failed\n";

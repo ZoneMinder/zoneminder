@@ -479,7 +479,8 @@ class Monitor extends ZM_Object {
       return '';
 
     // extract the authentication part from the path given
-    $values = extract_auth_values_from_url($this->{'Path'});
+    $authEnd = null;
+    $values = extract_auth_values_from_url($this->{'Path'}, $authEnd);
 
     // If no values for User and Pass fields are present then terminate
     if (count($values) !== 2) {
@@ -494,7 +495,9 @@ class Monitor extends ZM_Object {
     // Update the auth fields if they were empty and remove them from the path
     // or if they are equal between the path and field
     if ( (!$old_us && !$old_ps) || ($us == $old_us && $ps == $old_ps) ) {
-      $this->{'Path'} = str_replace("$us:$ps@", '', $this->{'Path'});
+      // Cut the credentials out by position: $us and $ps are URL-decoded, so they do not match a percent-encoded password in the path.
+      $authStart = strpos($this->{'Path'}, '://') + 3;
+      $this->{'Path'} = substr($this->{'Path'}, 0, $authStart) . substr($this->{'Path'}, $authEnd + 1);
       $this->{'User'} = $us;
       $this->{'Pass'} = $ps;
     }
